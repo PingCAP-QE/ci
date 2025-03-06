@@ -1,35 +1,35 @@
-import requests
-import subprocess
 import argparse
-from check_info import check_version
+import os
+import subprocess
+
 import requests
+
+from check_info import check_version
 from config import COMPONENT_META
 
 
-def check_url_existence_and_size(url_template, edition, version, arch):
-    # 使用传入的参数格式化 URL
-    url = url_template.format(edition=edition, version=version, arch=arch)
+def get_base_url(is_internal=None):
+    """
+    Determine whether to use internal or public URL based on environment variable.
+    
+    Args:
+        is_internal: Override environment variable if provided
+        
+    Returns:
+        tuple: (public_base_url, internal_base_url, use_internal)
+    """
+    public_base_url = "https://download.pingcap.org"
+    internal_base_url = "http://fileserver.pingcap.net/download/release"
 
-    # 发起 HEAD 请求
-    response = requests.head(url)
+    # If is_internal is explicitly provided, use it
+    if is_internal is not None:
+        return public_base_url, internal_base_url, is_internal
 
-    # 检查响应状态码
-    if response.status_code == 200:
-        # 文件存在
-        # 尝试从响应头中获取文件大小
-        content_length = response.headers.get('Content-Length')
-        print(f"URL: {url}, Valid: True, Size: {content_length}")
-        return {
-            'exists': True,
-            'size': int(content_length) if content_length is not None else 'Unknown'
-        }
-    else:
-        # 文件不存在或无法访问
-        print(f"URL: {url}, Valid: False")
-        return {
-            'exists': False,
-            'size': 0
-        }
+    # Otherwise check environment variable
+    use_internal = os.environ.get(
+        "USE_INTERNAL_URL", "false"
+    ).lower() in ("true", "1", "yes")
+    return public_base_url, internal_base_url, use_internal
 
 
 def get_components_hash(url):
@@ -65,44 +65,12 @@ def compare_package_sizes(url1, url2):
         return True, size1  # 包存在且大小一致
     return False, None
 
-def get_file_size_v2(url):
-    """获取文件大小，以字节为单位返回。"""
-    response = requests.head(url)
-    if response.status_code != 200:
-        # 如果 HEAD 请求失败，尝试 GET 请求但不下载内容
-        response = requests.get(url, stream=True)
-    if response.status_code == 200:
-        content_length = response.headers.get('Content-Length')
-        if content_length:
-            return int(content_length), True
-    return 0, False
-
-def compare_and_display_package_sizes(url1, url2):
-    """比较两个包的大小，并显示它们的大小以及体积差异（以 MB 显示）。"""
-    size1, exists1 = get_file_size_v2(url1)
-    size2, exists2 = get_file_size_v2(url2)
-
-    if not exists1 or not exists2:
-        return "One or both URLs do not exist."
-
-    # 将大小从字节转换为 MB，并计算差异
-    size1_mb = size1 / (1024 * 1024)
-    size2_mb = size2 / (1024 * 1024)
-    difference_mb = abs(size1_mb - size2_mb)
-
-    max_diff_mb = 30
-    result = {
-        'size1_mb': size1_mb,
-        'size2_mb': size2_mb,
-        'difference_mb': difference_mb,
-        'within_tolerance': difference_mb <= max_diff_mb
-    }
-    return result
-
 
 def check_offline_package(version):
     results = []
     success = True  # 初始假设所有检查都成功
+
+    public_base, internal_base, use_internal = get_base_url()
 
     editions = ["community", "enterprise"]
     arches = ["amd64", "arm64"]
@@ -111,17 +79,46 @@ def check_offline_package(version):
     for edition in editions:
         for arch in arches:
             for package_type in package_types:
-                public_url = f"https://download.pingcap.org/tidb-{edition}-{package_type}-{version}-linux-{arch}.tar.gz"
-                internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-{package_type}-{version}-linux-{arch}.tar.gz"
+                public_url = (
+                    f"{public_base}/tidb-{edition}-{package_type}-"
+                    f"{version}-linux-{arch}.tar.gz"
+                )
+                internal_url = (
+                    f"{internal_base}/tidb-{edition}-{package_type}-"
+                    f"{version}-linux-{arch}.tar.gz"
+                )
 
-                print(public_url)
-                print(internal_url)
-                are_sizes_equal, size = compare_package_sizes(public_url, internal_url)
-                if are_sizes_equal:
-                    results.append(f"{edition} {package_type} {version} {arch}: PASS, size: {size}")
+                # Determine which URL to use for checking
+                url_to_check = internal_url if use_internal else public_url
+
+                print(f"Using URL: {url_to_check}")
+
+                # For backward compatibility, still compare sizes if not using internal URL
+                if not use_internal:
+                    are_sizes_equal, size = compare_package_sizes(
+                        public_url, internal_url
+                    )
+                    if are_sizes_equal:
+                        results.append(
+                            f"{edition} {package_type} {version} {arch}: PASS, size: {size}"
+                        )
+                    else:
+                        success = False
+                        results.append(
+                            f"{edition} {package_type} {version} {arch}: FAIL or file(s) not found"
+                        )
                 else:
-                    success = False
-                    results.append(f"{edition} {package_type} {version} {arch}: FAIL or file(s) not found")
+                    # Just check if the internal URL exists
+                    size, exists = get_file_size(url_to_check)
+                    if exists:
+                        results.append(
+                            f"{edition} {package_type} {version} {arch}: PASS, size: {size}"
+                        )
+                    else:
+                        success = False
+                        results.append(
+                            f"{edition} {package_type} {version} {arch}: FAIL or file(s) not found"
+                        )
 
     for result in results:
         print(result)
@@ -133,19 +130,48 @@ def check_plugin_package(version):
     results = []
     success = True
 
+    public_base, internal_base, use_internal = get_base_url()
+
     arches = ["amd64", "arm64"]
     for arch in arches:
-        public_url = f"https://download.pingcap.org/enterprise-plugin-{version}-linux-{arch}.tar.gz"
-        internal_url = f"http://fileserver.pingcap.net/download/release/enterprise-plugin-{version}-linux-{arch}.tar.gz"
+        public_url = (
+            f"{public_base}/enterprise-plugin-{version}-linux-{arch}.tar.gz"
+        )
+        internal_url = (
+            f"{internal_base}/enterprise-plugin-{version}-linux-{arch}.tar.gz"
+        )
 
-        print(public_url)
-        print(internal_url)
-        are_size_equal, size = compare_package_sizes(public_url, internal_url)
-        if are_size_equal:
-            results.append(f"plugin {version} {arch}: PASS, size: {size}")
+        # Determine which URL to use for checking
+        url_to_check = internal_url if use_internal else public_url
+
+        print(f"Using URL: {url_to_check}")
+
+        # For backward compatibility, still compare sizes if not using internal URL
+        if not use_internal:
+            are_size_equal, size = compare_package_sizes(
+                public_url, internal_url
+            )
+            if are_size_equal:
+                results.append(
+                    f"plugin {version} {arch}: PASS, size: {size}"
+                )
+            else:
+                success = False
+                results.append(
+                    f"plugin {version} {arch}: FAIL or file(s) not found"
+                )
         else:
-            success = False
-            results.append(f"plugin {version} {arch}: FAIL or file(s) not found")
+            # Just check if the internal URL exists
+            size, exists = get_file_size(url_to_check)
+            if exists:
+                results.append(
+                    f"plugin {version} {arch}: PASS, size: {size}"
+                )
+            else:
+                success = False
+                results.append(
+                    f"plugin {version} {arch}: FAIL or file(s) not found"
+                )
 
     for result in results:
         print(result)
@@ -157,19 +183,40 @@ def check_dm_package(version):
     results = []
     success = True  # 初始假设所有检查都成功
 
+    public_base, internal_base, use_internal = get_base_url()
+
     arches = ["amd64", "arm64"]
     for arch in arches:
-        public_url = f"https://download.pingcap.org/tidb-dm-{version}-linux-{arch}.tar.gz"
-        internal_url = f"http://fileserver.pingcap.net/download/release/tidb-dm-{version}-linux-{arch}.tar.gz"
+        public_url = f"{public_base}/tidb-dm-{version}-linux-{arch}.tar.gz"
+        internal_url = f"{internal_base}/tidb-dm-{version}-linux-{arch}.tar.gz"
 
-        print(public_url)
-        print(internal_url)
-        are_size_equal, size = compare_package_sizes(public_url, internal_url)
-        if are_size_equal:
-            results.append(f"dm {version} {arch}: PASS, size: {size}")
+        # Determine which URL to use for checking
+        url_to_check = internal_url if use_internal else public_url
+
+        print(f"Using URL: {url_to_check}")
+
+        # For backward compatibility, still compare sizes if not using internal URL
+        if not use_internal:
+            are_size_equal, size = compare_package_sizes(
+                public_url, internal_url
+            )
+            if are_size_equal:
+                results.append(f"dm {version} {arch}: PASS, size: {size}")
+            else:
+                success = False
+                results.append(
+                    f"dm {version} {arch}: FAIL or file(s) not found"
+                )
         else:
-            success = False
-            results.append(f"dm {version} {arch}: FAIL or file(s) not found")
+            # Just check if the internal URL exists
+            size, exists = get_file_size(url_to_check)
+            if exists:
+                results.append(f"dm {version} {arch}: PASS, size: {size}")
+            else:
+                success = False
+                results.append(
+                    f"dm {version} {arch}: FAIL or file(s) not found"
+                )
 
     for result in results:
         print(result)
@@ -178,16 +225,20 @@ def check_dm_package(version):
 
 
 def check_offline_components(version, edition, arch, component_hash):
-    server_package_url = f"https://download.pingcap.org/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
-    server_package_internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
+    public_base, internal_base, use_internal = get_base_url()
 
-    # toolkit package url
-    toolkit_package_url = f"https://download.pingcap.org/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
-    toolkit_package_internal_url = f"http://fileserver.pingcap.net/download/release/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
+    # Determine which URL to use for downloading
+    base_url = internal_base if use_internal else public_base
 
-    # download package from internal url
-    subprocess.run(["wget",  server_package_url], check=True)
-    subprocess.run(["wget",  toolkit_package_url], check=True)
+    server_package_url = f"{base_url}/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
+    toolkit_package_url = f"{base_url}/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
+
+    print(f"Downloading server package from: {server_package_url}")
+    print(f"Downloading toolkit package from: {toolkit_package_url}")
+
+    # download package
+    subprocess.run(["wget", "-q", server_package_url], check=True)
+    subprocess.run(["wget", "-q", toolkit_package_url], check=True)
 
     # extract package
     subprocess.run(["tar", "xf", f"tidb-{edition}-server-{version}-linux-{arch}.tar.gz"], check=True)
@@ -198,7 +249,10 @@ def check_offline_components(version, edition, arch, component_hash):
     subprocess.run(["tiup", "uninstall", "--all"], check=True)
     expected_edition = "Enterprise" if edition == "enterprise" else "Community"
 
-    for component in ["tidb", "pd", "tikv", "tiflash", "tidb-dashboard"]:
+    components_need_check_version = ["tidb", "pd", "tikv", "tiflash"]
+    if version >= "v6.6.0":
+        components_need_check_version.append("tidb-dashboard")
+    for component in components_need_check_version:
         check_tiup_component_version(component, version, component_hash[component], expected_edition)
     for component in ["ctl", "grafana", "prometheus"]:
         check_tiup_component_exists(component, version)
@@ -250,7 +304,8 @@ def check_tiup_component_version(component, version, commit_hash, edition):
 
         try:
             result = subprocess.run(
-                ["tiup", f"{tiup_component}:{tiup_check_version}", version_command], capture_output=True, text=True, check=True)
+                ["tiup", f"{tiup_component}:{tiup_check_version}", version_command], capture_output=True, text=True,
+                check=True)
             # 假设成功执行命令返回非空结果即为有效
             # dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
             # issue https://github.com/pingcap/tidb/issues/53591
@@ -276,6 +331,11 @@ def check_tiup_component_version(component, version, commit_hash, edition):
 
 
 def main(version, check_type, edition, arch, components_url):
+    # Get URL configuration
+    public_base, internal_base, use_internal = get_base_url()
+    url_mode = "internal" if use_internal else "public"
+    print(f"Using {url_mode} URLs for package checking")
+
     if check_type == "quick":
         offline_package_success, _ = check_offline_package(version)
         dm_package_success, _ = check_dm_package(version)
@@ -293,10 +353,18 @@ def main(version, check_type, edition, arch, components_url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Check offline package.")
     # quick 检查只检查包的存在性，details 检查包的存在性和组件版本信息
-    parser.add_argument("type", choices=['quick', 'details'], help="The type of check to perform. (quick or details), quick check only check the existence of the package, details check the existence of the package and the version information of the components.")
+    parser.add_argument("type", choices=['quick', 'details'],
+                        help="The type of check to perform. (quick or details), quick check only check the existence of the package, details check the existence of the package and the version information of the components.")
     parser.add_argument("version", type=str, help="The Release Version to check.")
     parser.add_argument("edition", type=str, help="The Edition to check. (community or enterprise)")
     parser.add_argument("arch", type=str, help="The arch to check. (amd64 or arm64)")
     parser.add_argument("--components_url", type=str, help="The URL to fetch the components information.")
+    parser.add_argument("--use_internal", action="store_true",
+                        help="Force use internal URL regardless of environment variable")
     args = parser.parse_args()
+
+    # Set environment variable if --use_internal flag is provided
+    if args.use_internal:
+        os.environ["USE_INTERNAL_URL"] = "true"
+
     main(args.version, args.type, args.edition, args.arch, args.components_url)
