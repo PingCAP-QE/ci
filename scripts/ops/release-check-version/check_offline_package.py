@@ -1,7 +1,9 @@
-import requests
-import subprocess
 import argparse
 import os
+import subprocess
+
+import requests
+
 from check_info import check_version
 from config import COMPONENT_META
 
@@ -18,11 +20,11 @@ def get_base_url(is_internal=None):
     """
     public_base_url = "https://download.pingcap.org"
     internal_base_url = "http://fileserver.pingcap.net/download/release"
-    
+
     # If is_internal is explicitly provided, use it
     if is_internal is not None:
         return public_base_url, internal_base_url, is_internal
-    
+
     # Otherwise check environment variable
     use_internal = os.environ.get(
         "USE_INTERNAL_URL", "false"
@@ -67,9 +69,9 @@ def compare_package_sizes(url1, url2):
 def check_offline_package(version):
     results = []
     success = True  # 初始假设所有检查都成功
-    
+
     public_base, internal_base, use_internal = get_base_url()
-    
+
     editions = ["community", "enterprise"]
     arches = ["amd64", "arm64"]
     package_types = ["server", "toolkit"]
@@ -85,12 +87,12 @@ def check_offline_package(version):
                     f"{internal_base}/tidb-{edition}-{package_type}-"
                     f"{version}-linux-{arch}.tar.gz"
                 )
-                
+
                 # Determine which URL to use for checking
                 url_to_check = internal_url if use_internal else public_url
-                
+
                 print(f"Using URL: {url_to_check}")
-                
+
                 # For backward compatibility, still compare sizes if not using internal URL
                 if not use_internal:
                     are_sizes_equal, size = compare_package_sizes(
@@ -127,7 +129,7 @@ def check_offline_package(version):
 def check_plugin_package(version):
     results = []
     success = True
-    
+
     public_base, internal_base, use_internal = get_base_url()
 
     arches = ["amd64", "arm64"]
@@ -138,12 +140,12 @@ def check_plugin_package(version):
         internal_url = (
             f"{internal_base}/enterprise-plugin-{version}-linux-{arch}.tar.gz"
         )
-        
+
         # Determine which URL to use for checking
         url_to_check = internal_url if use_internal else public_url
-        
+
         print(f"Using URL: {url_to_check}")
-        
+
         # For backward compatibility, still compare sizes if not using internal URL
         if not use_internal:
             are_size_equal, size = compare_package_sizes(
@@ -180,19 +182,19 @@ def check_plugin_package(version):
 def check_dm_package(version):
     results = []
     success = True  # 初始假设所有检查都成功
-    
+
     public_base, internal_base, use_internal = get_base_url()
 
     arches = ["amd64", "arm64"]
     for arch in arches:
         public_url = f"{public_base}/tidb-dm-{version}-linux-{arch}.tar.gz"
         internal_url = f"{internal_base}/tidb-dm-{version}-linux-{arch}.tar.gz"
-        
+
         # Determine which URL to use for checking
         url_to_check = internal_url if use_internal else public_url
-        
+
         print(f"Using URL: {url_to_check}")
-        
+
         # For backward compatibility, still compare sizes if not using internal URL
         if not use_internal:
             are_size_equal, size = compare_package_sizes(
@@ -224,16 +226,16 @@ def check_dm_package(version):
 
 def check_offline_components(version, edition, arch, component_hash):
     public_base, internal_base, use_internal = get_base_url()
-    
+
     # Determine which URL to use for downloading
     base_url = internal_base if use_internal else public_base
-    
+
     server_package_url = f"{base_url}/tidb-{edition}-server-{version}-linux-{arch}.tar.gz"
     toolkit_package_url = f"{base_url}/tidb-{edition}-toolkit-{version}-linux-{arch}.tar.gz"
 
     print(f"Downloading server package from: {server_package_url}")
     print(f"Downloading toolkit package from: {toolkit_package_url}")
-    
+
     # download package
     subprocess.run(["wget", "-q", server_package_url], check=True)
     subprocess.run(["wget", "-q", toolkit_package_url], check=True)
@@ -302,7 +304,8 @@ def check_tiup_component_version(component, version, commit_hash, edition):
 
         try:
             result = subprocess.run(
-                ["tiup", f"{tiup_component}:{tiup_check_version}", version_command], capture_output=True, text=True, check=True)
+                ["tiup", f"{tiup_component}:{tiup_check_version}", version_command], capture_output=True, text=True,
+                check=True)
             # 假设成功执行命令返回非空结果即为有效
             # dmctl and dumpling output version info to stderr, so we need to check both stdout and stderr
             # issue https://github.com/pingcap/tidb/issues/53591
@@ -332,7 +335,7 @@ def main(version, check_type, edition, arch, components_url):
     public_base, internal_base, use_internal = get_base_url()
     url_mode = "internal" if use_internal else "public"
     print(f"Using {url_mode} URLs for package checking")
-    
+
     if check_type == "quick":
         offline_package_success, _ = check_offline_package(version)
         dm_package_success, _ = check_dm_package(version)
@@ -350,16 +353,18 @@ def main(version, check_type, edition, arch, components_url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Check offline package.")
     # quick 检查只检查包的存在性，details 检查包的存在性和组件版本信息
-    parser.add_argument("type", choices=['quick', 'details'], help="The type of check to perform. (quick or details), quick check only check the existence of the package, details check the existence of the package and the version information of the components.")
+    parser.add_argument("type", choices=['quick', 'details'],
+                        help="The type of check to perform. (quick or details), quick check only check the existence of the package, details check the existence of the package and the version information of the components.")
     parser.add_argument("version", type=str, help="The Release Version to check.")
     parser.add_argument("edition", type=str, help="The Edition to check. (community or enterprise)")
     parser.add_argument("arch", type=str, help="The arch to check. (amd64 or arm64)")
     parser.add_argument("--components_url", type=str, help="The URL to fetch the components information.")
-    parser.add_argument("--use_internal", action="store_true", help="Force use internal URL regardless of environment variable")
+    parser.add_argument("--use_internal", action="store_true",
+                        help="Force use internal URL regardless of environment variable")
     args = parser.parse_args()
-    
+
     # Set environment variable if --use_internal flag is provided
     if args.use_internal:
         os.environ["USE_INTERNAL_URL"] = "true"
-        
+
     main(args.version, args.type, args.edition, args.arch, args.components_url)
