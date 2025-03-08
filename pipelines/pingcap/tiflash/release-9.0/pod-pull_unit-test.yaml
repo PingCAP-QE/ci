@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: runner
+      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:llvm-17.0.6-rocky8"
+      command:
+        - "cat"
+      tty: true
+      # Notice: not set the resources limit, because limit will make unit test failed
+      resources:
+        requests:
+          memory: "32Gi"
+          cpu: "12000m"
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/rust"
+        name: "volume-0"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ccache"
+        name: "volume-1"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/dependency"
+        name: "volume-2"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+        name: "volume-4"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent/proxy-cache"
+        name: "volume-5"
+        readOnly: false
+      - mountPath: "/tmp"
+        name: "volume-6"
+        readOnly: false
+      - mountPath: "/tmp-memfs"
+        name: "volume-7"
+        readOnly: false
+      - mountPath: "/home/jenkins"
+        name: "volume-8"
+        readOnly: false
+    - name: net-tool
+      image: hub.pingcap.net/jenkins/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+    - name: util
+      image: hub.pingcap.net/jenkins/ks3util
+      args: ["sleep", "infinity"]
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "500Mi"
+        limits:
+          cpu: "500m"
+          memory: "500Mi"
+  volumes:
+    - name: "volume-0"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/rust"
+        readOnly: false
+        server: "10.2.12.82"
+    - name: "volume-2"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/dependency"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-1"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/ccache"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-4"
+      nfs:
+        path: "/data/nvme1n1/nfs/git"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-5"
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
+        readOnly: true
+        server: "10.2.12.82"
+    - name: "volume-6"
+      emptyDir: {}
+    - name: "volume-7"
+      emptyDir:
+        medium: Memory
+    - name: "volume-8"
+      emptyDir: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
