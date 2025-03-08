@@ -1,4 +1,9 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+    - ^feature/release-6.5(.\d+)?-.+$
+
 presubmits:
   tikv/pd:
     - name: tikv/pd/release-6.5/ghpr_build
@@ -8,7 +13,6 @@ presubmits:
       context: idc-jenkins-ci/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
-      branches:
-        - ^release-6\.[5-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
       skip_branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
