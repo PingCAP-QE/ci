@@ -1,13 +1,13 @@
 global_definitions:
   branches: &branches
-    - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+    - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
     # for feature branch based on release versions
-    - ^feature/release-8.1(.\d+)?-.+$
+    - ^feature/release-7.5(.\d+)?-.+$
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
-    - name: tikv/pd/release-8.1/ghpr_build
+    - name: tikv/pd/release-7.5/ghpr_build
       agent: jenkins
       decorate: false # need add this.
       always_run: true
@@ -15,7 +15,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
       branches: *branches
-    - name: tikv/pd/release-8.1/pull_integration_copr_test
+
+    - name: tikv/pd/release-7.5/pull_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
