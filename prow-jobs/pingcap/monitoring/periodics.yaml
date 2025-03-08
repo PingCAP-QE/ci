@@ -89,6 +89,37 @@ periodics:
         - name: github-token
           secret:
             secretName: github-token
+  - name: periodic-update-pingcap-monitoring-9.0
+    decorate: true # need add this.
+    cron: "0 * * * *" # @hourly
+    skip_report: true
+    extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
+      - org: pingcap
+        repo: monitoring
+        base_ref: release-9.1-beta.1
+        skip_submodules: true
+        clone_depth: 1
+    spec:
+      containers:
+        - name: check
+          image: golang:1.23
+          command: [bash, -ce]
+          env:
+            - name: TARGET
+              value: release-9.0-beta.1
+          resources:
+            limits:
+              memory: 4Gi
+              cpu: "1"
+          volumeMounts:
+            - name: github-token
+              mountPath: /etc/github
+              readOnly: true
+          args: *args
+      volumes:
+        - name: github-token
+          secret:
+            secretName: github-token
   - name: periodic-update-pingcap-monitoring-lts-8.5
     decorate: true # need add this.
     cron: "0 * * * *" # @hourly
