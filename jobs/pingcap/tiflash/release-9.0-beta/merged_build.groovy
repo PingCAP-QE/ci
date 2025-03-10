@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tiflash/release-9.0/merged_unit_test') {
+pipelineJob('pingcap/tiflash/release-9.0-beta/merged_build') {
     logRotator {
         daysToKeep(30)
     }
@@ -17,7 +17,7 @@ pipelineJob('pingcap/tiflash/release-9.0/merged_unit_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflash/release-9.0/merged_unit_test.groovy")
+            scriptPath("pipelines/pingcap/tiflash/release-9.0-beta/merged_build.groovy")
             scm {
                 git{
                     remote {

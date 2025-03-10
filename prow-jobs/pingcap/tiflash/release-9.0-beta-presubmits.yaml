@@ -1,16 +1,14 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
   branches: &branches
-    - ^release-9\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
     - ^release-9\.0-beta\.\d+$
     - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
-    - ^feature/release-9.0(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed
     "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 presubmits:
   pingcap/tiflash:
-    - name: pingcap/tiflash/release-9.0/pull_unit_test
+    - name: pingcap/tiflash/release-9.0-beta/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
@@ -21,7 +19,7 @@ presubmits:
       rerun_command: "/test pull-unit-test"
       branches: *branches
 
-    - name: pingcap/tiflash/release-9.0/pull_integration_test
+    - name: pingcap/tiflash/release-9.0-beta/pull_integration_test
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed

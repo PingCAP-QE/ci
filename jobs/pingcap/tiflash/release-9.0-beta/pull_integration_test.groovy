@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tiflash/release-9.0/pull_unit_test') {
+pipelineJob('pingcap/tiflash/release-9.0-beta/pull_integration_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -17,7 +17,7 @@ pipelineJob('pingcap/tiflash/release-9.0/pull_unit_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflash/release-9.0/pull_unit_test.groovy")
+            scriptPath("pipelines/pingcap/tiflash/release-9.0-beta/pull_integration_test.groovy")
             scm {
                 git{
                     remote {
