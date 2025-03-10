@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tiflow/release-9.0/pull_verify') {
+pipelineJob('pingcap/tiflow/release-9.0-beta/pull_cdc_integration_pulsar_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -16,7 +16,7 @@ pipelineJob('pingcap/tiflow/release-9.0/pull_verify') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflow/release-9.0/pull_verify.groovy")
+            scriptPath("pipelines/pingcap/tiflow/release-9.0-beta/pull_cdc_integration_pulsar_test.groovy")
             scm {
                 git{
                     remote {

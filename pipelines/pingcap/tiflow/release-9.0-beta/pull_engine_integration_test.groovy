@@ -1,13 +1,13 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for release-9.0 branches
+// should triggerd for release-9.0-beta branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0/pod-pull_engine_integration_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0-beta/pod-pull_engine_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final IMAGE_TAG = "engine-ci-test-pull-${REFS.pulls[0].number}"
 final ENGINE_TEST_TAG = "dataflow:test"
@@ -152,9 +152,9 @@ pipeline {
                                         """
                                     }
                                     script {
-                                        def pdImageTag = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-9.0')
-                                        def tikvImageTag = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-9.0')
-                                        def tidbImageTag = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-9.0')
+                                        def pdImageTag = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-9.0-beta')
+                                        def tikvImageTag = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-9.0-beta')
+                                        def tidbImageTag = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-9.0-beta')
                                         def branchInfo = component.extractHotfixInfo(REFS.base_ref)
                                         if (branchInfo.isHotfix) {
                                             println "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} components"

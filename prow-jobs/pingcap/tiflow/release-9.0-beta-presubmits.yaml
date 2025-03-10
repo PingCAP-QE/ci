@@ -1,16 +1,14 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
   branches: &branches
-    - ^release-9\.0(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
     - ^release-9\.0-beta\.\d+$
     - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
-    - ^feature/release-9.0(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed
     "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 presubmits:
   pingcap/tiflow:
-    - name: pingcap/tiflow/release-9.0/pull_cdc_integration_kafka_test
+    - name: pingcap/tiflow/release-9.0-beta/pull_cdc_integration_kafka_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -22,7 +20,7 @@ presubmits:
       rerun_command: "/test pull-cdc-integration-kafka-test"
       branches: *branches
 
-    - name: pingcap/tiflow/release-9.0/pull_cdc_integration_mysql_test
+    - name: pingcap/tiflow/release-9.0-beta/pull_cdc_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -34,7 +32,7 @@ presubmits:
       rerun_command: "/test pull-cdc-integration-mysql-test"
       branches: *branches
 
-    - name: pingcap/tiflow/release-9.0/pull_cdc_integration_pulsar_test
+    - name: pingcap/tiflow/release-9.0-beta/pull_cdc_integration_pulsar_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -46,7 +44,7 @@ presubmits:
       rerun_command: "/test pull-cdc-integration-pulsar-test"
       branches: *branches
 
-    - name: pingcap/tiflow/release-9.0/pull_cdc_integration_storage_test
+    - name: pingcap/tiflow/release-9.0-beta/pull_cdc_integration_storage_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -58,7 +56,7 @@ presubmits:
       rerun_command: "/test pull-cdc-integration-storage-test"
       branches: *branches
 
-    - name: pingcap/tiflow/release-9.0/pull_dm_compatibility_test
+    - name: pingcap/tiflow/release-9.0-beta/pull_dm_compatibility_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -70,7 +68,7 @@ presubmits:
       rerun_command: "/test pull-dm-compatibility-test"
       branches: *branches
 
-    - name: pingcap/tiflow/release-9.0/pull_dm_integration_test
+    - name: pingcap/tiflow/release-9.0-beta/pull_dm_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -82,7 +80,7 @@ presubmits:
       rerun_command: "/test pull-dm-integration-test"
       branches: *branches
 
-    - name: pingcap/tiflow/release-9.0/pull_engine_integration_test
+    - name: pingcap/tiflow/release-9.0-beta/pull_engine_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
@@ -94,7 +92,7 @@ presubmits:
       rerun_command: "/test pull-engine-integration-test"
       branches: *branches
       
-    - name: pingcap/tiflow/release-9.0/pull_verify
+    - name: pingcap/tiflow/release-9.0-beta/pull_verify
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed

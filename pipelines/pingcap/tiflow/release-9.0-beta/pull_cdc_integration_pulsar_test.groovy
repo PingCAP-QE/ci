@@ -1,13 +1,13 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for release-9.0 branches
+// should triggerd for release-9.0-beta branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0/pod-pull_cdc_integration_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0-beta/pod-pull_cdc_integration_pulsar_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
@@ -133,14 +133,13 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
-                        // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-pulsar-test')) { 
+                        // build cdc, pulsar_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
-                            [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
+                            [ -f ./bin/cdc_pulsar_consumer ] || make pulsar_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
@@ -162,8 +161,8 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 
-                            'G14', 'G15', 'G16', 'G17', 'G18', 'G19', 'G20', 'G21'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09',
+                            'G10', 'G11', 'G12', 'G13', 'G14', 'G15', 'G16', 'G17'
                     }
                 }
                 agent{
@@ -176,17 +175,13 @@ pipeline {
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment { 
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
-                        }
                         steps {
                             dir('tiflow') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
                                         chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh mysql ${TEST_GROUP}
+                                        ./tests/integration_tests/run_group.sh pulsar ${TEST_GROUP}
                                     """
                                 }
                             }

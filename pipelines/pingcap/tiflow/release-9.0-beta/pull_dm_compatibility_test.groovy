@@ -1,13 +1,13 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for release-9.0 branches
+// should triggerd for release-9.0-beta branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0/pod-pull_dm_compatibility_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0-beta/pod-pull_dm_compatibility_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
@@ -114,7 +114,7 @@ pipeline {
                                         cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh dm/tests/
                                         chmod +x dm/tests/download_test_binaries_by_tag.sh
                                         # First download binary using the release branch script
-                                        cd dm/tests && ./download-compatibility-test-binaries.sh release-9.0
+                                        cd dm/tests && ./download-compatibility-test-binaries.sh release-9.0-beta
                                         rm -rf bin/tidb-server
                                         mv bin tmp_bin
                                         # Then download and replace other components with exact versions
@@ -123,7 +123,7 @@ pipeline {
                                         cd -
                                     else
                                         echo "Release branch, downloading binaries from ${REFS.base_ref}"
-                                        cd dm/tests && ./download-compatibility-test-binaries.sh release-9.0
+                                        cd dm/tests && ./download-compatibility-test-binaries.sh release-9.0-beta
                                         cd -
                                     fi
                                     # Verify all required binaries
