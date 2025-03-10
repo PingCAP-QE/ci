@@ -9,13 +9,17 @@ postsubmits:
       max_concurrency: 1
       branches:
         - master
-        - ^release-7\.[5-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-        - ^release-[8-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-7[.][5-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-[8-9][.][0-9]+(-beta[.][0-9]+)(-\d+)?(-v[\.\d]+)?$
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.45.5
-            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
+            image: denoland/deno:2.2.2
+            command:
+              - deno
+              - run
+              - --allow-all
+              - https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
@@ -52,7 +56,13 @@ postsubmits:
         containers:
           - name: main
             image: denoland/deno:1.45.5
-            command: [deno, run, --allow-all, https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts]
+            command:
+              [
+                deno,
+                run,
+                --allow-all,
+                https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts,
+              ]
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
@@ -63,7 +73,7 @@ postsubmits:
               - --sub_ref=$(PULL_BASE_REF)
               - --path=extension/enterprise # old path
               - --add_labels=lgtm
-              - --add_labels=skip-issue-check              
+              - --add_labels=skip-issue-check
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
