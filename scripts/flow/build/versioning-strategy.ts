@@ -45,79 +45,81 @@ export function compute(
   rawVersion: string,
   commitInBranches: string[],
 ): builtControl {
-  const releaseVersion = semver.parse(rawVersion.trim());
+  const rv = semver.parse(rawVersion.trim());
 
   // Check if the current branch is a release branch.
   if (!commitInBranches.some(isReleaseBranch)) {
     console.info("Current commit is not contained in any release branches.");
-    return { releaseVersion: "v" + semver.format(releaseVersion) };
+    return { releaseVersion: "v" + semver.format(rv) };
   }
 
   // If it's a GA version, return it directly
-  if (isGaVer(releaseVersion)) {
+  if (isGaVer(rv)) {
     console.info("it's a normal GA version.");
-    return { releaseVersion: "v" + semver.format(releaseVersion) };
+    return { releaseVersion: "v" + semver.format(rv) };
   }
 
-  const preRelease = (releaseVersion.prerelease || []).join(".");
+  const preRelease = (rv.prerelease || []).join(".");
   let newGitTag = undefined;
   if (preRelease.startsWith("alpha")) {
-    newGitTag =
-      `v${releaseVersion.major}.${releaseVersion.minor}.${releaseVersion.patch}`;
-  } else if (releaseVersion.prerelease![0] == "beta") {
+    newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}`;
+    rv.prerelease = ["pre"];
+  } else if (rv.prerelease![0] == "beta") {
     if (
-      releaseVersion.prerelease!.length > 2 &&
-      releaseVersion.prerelease![2].toString().startsWith("pre")
+      rv.prerelease!.length > 2 &&
+      rv.prerelease![2].toString().startsWith("pre")
     ) {
       // for: v1.1.1-beta.0.pre | v1.1.1-beta.0.pre-2-g1234567
-      newGitTag =
-        `v${releaseVersion.major}.${releaseVersion.minor}.${releaseVersion.patch}-${
-          releaseVersion.prerelease?.slice(0, 2).join(".")
-        }`;
+      newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}-${
+        rv.prerelease?.slice(0, 2).join(".")
+      }`;
+      // v1.1.1-beta.0.pre-2-g1234567 => v1.1.1-beta.0.pre
+      rv.prerelease = rv.prerelease!.slice(0, 2);
+      rv.prerelease.push("pre");
     } else {
       console.warn("I will do nothing for this beta version:", rawVersion);
     }
-  } else if (releaseVersion.prerelease![0] == "rc") {
+  } else if (rv.prerelease![0] == "rc") {
     if (
-      releaseVersion.prerelease!.length == 2 &&
-      typeof releaseVersion.prerelease![1] === "string"
+      rv.prerelease!.length == 2 &&
+      typeof rv.prerelease![1] === "string"
     ) {
       console.info("Now i will increase the rc number.");
-      const rcIndexStr = releaseVersion.prerelease![1].toString().split("-")[0];
+      const rcIndexStr = rv.prerelease![1].toString().split("-")[0];
       const newRCIndex = parseInt(rcIndexStr) + 1;
-      newGitTag =
-        `v${releaseVersion.major}.${releaseVersion.minor}.${releaseVersion.patch}-${
-          releaseVersion.prerelease![0]
-        }.${newRCIndex}`;
+      newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}-${
+        rv.prerelease![0]
+      }.${newRCIndex}`;
+      rv.prerelease = [rv.prerelease![0], newRCIndex, "pre"];
     } else if (
-      releaseVersion.prerelease!.length > 2 &&
-      releaseVersion.prerelease![2].toString().startsWith("pre")
+      rv.prerelease!.length > 2 &&
+      rv.prerelease![2].toString().startsWith("pre")
     ) {
       // for: v1.1.1-rc.0.pre | v1.1.1-rc.0.pre-2-g1234567
-      newGitTag =
-        `v${releaseVersion.major}.${releaseVersion.minor}.${releaseVersion.patch}-${
-          releaseVersion.prerelease?.slice(0, 2).join(".")
-        }`;
+      newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}-${
+        rv.prerelease?.slice(0, 2).join(".")
+      }`;
+      // v1.1.1-beta.0.pre-2-g1234567 => v1.1.1-beta.0.pre
+      rv.prerelease = rv.prerelease!.slice(0, 2);
+      rv.prerelease.push("pre");
     } else {
       console.warn("I will do nothing for this rc version:", rawVersion);
     }
   } else if (preRelease.startsWith("pre")) {
-    newGitTag =
-      `v${releaseVersion.major}.${releaseVersion.minor}.${releaseVersion.patch}`;
+    newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}`;
+    rv.prerelease = ["pre"];
   } else {
     // Handle the case where there are new commits after a GA tag
-    newGitTag = `v${releaseVersion.major}.${releaseVersion.minor}.${
-      releaseVersion.patch + 1
-    }`;
-    releaseVersion.patch++;
-    releaseVersion.prerelease = ["pre"];
+    newGitTag = `v${rv.major}.${rv.minor}.${rv.patch + 1}`;
+    rv.patch++;
+    rv.prerelease = ["pre"];
   }
 
   if (newGitTag) {
     console.info(`Computed new tag: ${newGitTag}`);
   }
 
-  return { releaseVersion: "v" + semver.format(releaseVersion), newGitTag };
+  return { releaseVersion: "v" + semver.format(rv), newGitTag };
 }
 
 /**
