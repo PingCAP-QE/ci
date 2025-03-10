@@ -96,11 +96,10 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      optional: true # TODO: remove this after the test is ready.
-      # skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$" # TODO: uncomment this after the test is ready.
-      context: wip/pull-syncdiff-integration-test # TODO: remove wip after the test is ready.
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-syncdiff-integration-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(pull-syncdiff-integration-test)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-syncdiff-integration-test|all)(?: .*?)?$"
       rerun_command: "/test pull-syncdiff-integration-test"
       branches: *branches
 
