@@ -5,7 +5,8 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
 
     // - release-6.2
-    final releaseBranchReg = /^release\-(\d+\.\d+)$/
+    // - release-9.0-beta.1, it's new style for beta release.
+    final releaseBranchReg = /^release\-((\d+\.\d+)(-beta\.\d+)?)$/
     // - feature/release-8.1-abcdefg
     // - feature_release-8.1-abcdefg
     final wipReleaseFeatureBranchReg = /^feature[\/_]release\-(\d+\.\d+)-.+/
@@ -33,7 +34,7 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
         // - feat: add new faeture | tidb=<tidb-repo-commit-sha1>
         componentBranch = (prTitle =~ componentParamReg)[0][1]
     } else if (prTargetBranch =~ releaseBranchReg ) {
-        componentBranch = String.format('release-%s', (prTargetBranch =~ releaseBranchReg)[0][1]) // => release-X.Y
+        componentBranch = String.format('release-%s', (prTargetBranch =~ releaseBranchReg)[0][1]) // => release-X.Y or release-X.Y-beta.M
     } else if (prTargetBranch =~ wipReleaseFeatureBranchReg ) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ wipReleaseFeatureBranchReg)[0][1]) // => release-X.Y
     } else if (prTargetBranch =~ oldHotfixBranchReg) {
@@ -439,13 +440,13 @@ def validateAndFilterRefs(componentRefs) {
 
     def prRefs = componentRefs.findAll { it.startsWith("PR:") }
     def branchRefs = componentRefs.findAll { it.startsWith("Branch:") }
-    
+
     // Check if all refs are PRs
     // if all refs are PRs, need to merge the PRs with the same base branch
     if (prRefs.size() == componentRefs.size()) {
         return [true, prRefs.unique()]
     }
-    
+
     // Check if all refs are Branches and there's only one unique branch
     // 1. for hotfix branch batch merge, valid
     // 2. for feature branch batch merge, valid
@@ -458,7 +459,7 @@ def validateAndFilterRefs(componentRefs) {
         }
         return [true, uniqueBranches]
     }
-    
+
     // Mixed refs is invalid - return false and the combined unique refs
     return [false, (prRefs + branchRefs).unique()]
 }
