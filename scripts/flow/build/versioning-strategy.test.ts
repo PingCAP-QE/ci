@@ -30,7 +30,7 @@ Deno.test("compute", () => {
       gitVer: "v8.5.0-alpha",
       branches: ["master", "release-8.5"],
       expect: {
-        version: "v8.5.0-alpha",
+        version: "v8.5.0-pre",
         newBuildTag: "v8.5.0",
       },
     },
@@ -40,7 +40,7 @@ Deno.test("compute", () => {
       gitVer: "v8.5.0-alpha-2-g1234567",
       branches: ["master", "release-8.5"],
       expect: {
-        version: "v8.5.0-alpha-2-g1234567",
+        version: "v8.5.0-pre",
         newBuildTag: "v8.5.0",
       },
     },
@@ -112,7 +112,7 @@ Deno.test("compute", () => {
       gitVer: "v9.0.0-beta.0.pre-2-g1234567",
       branches: ["master", "release-9.0-beta.0"],
       expect: {
-        version: "v9.0.0-beta.0.pre-2-g1234567",
+        version: "v9.0.0-beta.0.pre",
         newBuildTag: "v9.0.0-beta.0",
       },
     },
@@ -167,7 +167,7 @@ Deno.test("compute", () => {
       gitVer: "v9.0.0-rc.0.pre-2-g1234567",
       branches: ["release-9.0"],
       expect: {
-        version: "v9.0.0-rc.0.pre-2-g1234567",
+        version: "v9.0.0-rc.0.pre",
         newBuildTag: "v9.0.0-rc.0", // prepare for rc releasing (saving builds).
       },
     },
@@ -185,7 +185,7 @@ Deno.test("compute", () => {
       gitVer: "v9.0.0-rc.0-2-g1234567",
       branches: ["release-9.0"],
       expect: {
-        version: "v9.0.0-rc.0-2-g1234567",
+        version: "v9.0.0-rc.1.pre",
         newBuildTag: "v9.0.0-rc.1", // bump the rc number
       },
     },
@@ -204,7 +204,7 @@ Deno.test("compute", () => {
       gitVer: "v9.0.0-pre-2-g1234567",
       branches: ["release-9.0"],
       expect: {
-        version: "v9.0.0-pre-2-g1234567",
+        version: "v9.0.0-pre",
         newBuildTag: "v9.0.0",
       },
     },
