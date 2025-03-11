@@ -14,7 +14,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_build
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: &skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
@@ -23,7 +23,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_check
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: &skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
@@ -32,7 +32,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_check2
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: &skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev_2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
@@ -41,7 +41,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: &skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
@@ -50,7 +50,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_unit_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: &skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
