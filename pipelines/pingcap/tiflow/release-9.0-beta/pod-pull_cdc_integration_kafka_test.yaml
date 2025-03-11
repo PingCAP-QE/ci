@@ -24,12 +24,9 @@ spec:
       imagePullPolicy: Always
       name: golang
       resources:
-        requests:
-          cpu: "12"
-          memory: 32Gi
         limits:
-          cpu: "12"
-          memory: 32Gi
+          cpu: "4"
+          memory: 16Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
