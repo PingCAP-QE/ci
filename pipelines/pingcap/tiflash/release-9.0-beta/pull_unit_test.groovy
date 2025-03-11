@@ -6,14 +6,12 @@
 final K8S_NAMESPACE = "jenkins-tiflash"  // TODO: need to adjust namespace after test
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-merged_unit_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-9.0-beta/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
 final dependency_dir = "/home/jenkins/agent/dependency"
-final proxy_cache_dir = "/home/jenkins/agent/proxy-cache/refactor-pipelines"
+Boolean build_cache_ready = false
 Boolean proxy_cache_ready = false
-Boolean update_proxy_cache = true
-Boolean update_ccache = true
 String proxy_commit_hash = null
 
 pipeline {
@@ -30,7 +28,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 120, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -51,34 +49,61 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
+                    script {
+                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
+                    }
+                }
+                script {
+                    // test build cache, if cache is exist, then skip the following build steps
+                    try {
+                        dir("test-build-cache") { 
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')){
+                                // if file README.md not exist, then build-cache-ready is false
+                                build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('tiflash', REFS, 'ut-build')}"
+                                println "skip build..."
+                                // if build cache not ready, then throw error to avoid cache empty directory
+                                // for the same cache key, if throw error, will skip the cache step
+                                // the cache gets not stored if the key already exists or the inner-step has been failed
+                                if (!build_cache_ready) {
+                                    error "build cache not exist, start build..."
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        println "build cache not ready: ${e}"
+                    }
                 }
             }
         }
         stage('Checkout') {
+            when {
+                expression { !build_cache_ready }
+            }
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
-                    retry(2) {
-                        script {
-                            container("util") {
-                                withCredentials(
-                                    [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) { 
-                                    sh "rm -rf ./*"
-                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
-                                    sh """
-                                    ls -alh
-                                    chown 1000:1000 src-tiflash.tar.gz
-                                    tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
-                                    ls -alh
-                                    """
-                                }
+                    script {
+                        container("util") {
+                            withCredentials(
+                                [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
+                            ) { 
+                                sh "rm -rf ./*"
+                                sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
+                                sh """
+                                ls -alh
+                                chown 1000:1000 src-tiflash.tar.gz
+                                tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
+                                ls -alh
+                                """
                             }
-                            sh """
-                            git config --global --add safe.directory "*"
-                            git version
-                            git status
-                            """
+                        }
+                        sh """
+                        git config --global --add safe.directory "*"
+                        git version
+                        git status
+                        """
+                        retry(2) {
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
@@ -93,13 +118,16 @@ pipeline {
             }
         }
         stage("Prepare Cache") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Ccache") {
                     steps {
                     script {
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
-                            pwd & ls -alh
+                            pwd
                             ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
                             if [ -f \$ccache_tar_file ]; then
                                 echo "ccache found"
@@ -117,7 +145,7 @@ pipeline {
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
-                            ccache -o read_only=false
+                            ccache -o read_only=true
                             ccache -z
                             """
                         }
@@ -127,8 +155,9 @@ pipeline {
                 stage("Proxy-Cache") {
                     steps {
                         script {
-                            proxy_cache_ready = fileExists("/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm")
+                            proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                             println "proxy_cache_ready: ${proxy_cache_ready}"
+
                             sh label: "copy proxy if exist", script: """
                             proxy_suffix="amd64-linux-llvm"
                             proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
@@ -168,27 +197,33 @@ pipeline {
             }
         }
         stage("Build Dependency and Utils") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Cluster Manage") { 
                     steps {
-                        // NOTE: cluster_manager is deprecated since release-6.0 (include)
-                        echo "cluster_manager is deprecated"
+                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
+                    echo "cluster_manager is deprecated"
                     }
                 }
                 stage("TiFlash Proxy") {
                     steps {
                         script {
-                            if (proxy_cache_ready) {
-                                echo "skip becuase of cache"
-                            } else {
-                               echo "skip because proxy build is integrated(llvm)"
-                            }
+                        if (proxy_cache_ready) {
+                            echo "skip becuase of cache"
+                        } else {
+                            echo "proxy cache not ready"
+                        }
                         }
                     }
                 }
             }
         }
         stage("Configure Project") {
+            when {
+                expression { !build_cache_ready }
+            }
             // TODO: need to simplify this part, all config and build logic should be in script in tiflash repo
             steps {
                 script {
@@ -231,6 +266,9 @@ pipeline {
             }
         }
         stage("Build TiFlash") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                 sh """
@@ -258,43 +296,46 @@ pipeline {
         }
 
         stage("Post Build") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
-                stage("Archive Build Artifacts") {
+                stage("Upload Build Artifacts") {
                     steps {
                         dir("${WORKSPACE}/install") {
-                            sh """
+                            sh label: "archive tiflash binary", script: """
                             tar -czf 'tiflash.tar.gz' 'tiflash'
                             """
                             archiveArtifacts artifacts: "tiflash.tar.gz"
+                            sh """
+                            du -sh tiflash.tar.gz
+                            rm -rf tiflash.tar.gz
+                            """
                         }
                     }
                 }
-                stage("Archive Build Data") {
+                stage("Upload Build Data") {
                     steps {
                         dir("${WORKSPACE}/build") {
-                            sh """
+                            sh label: "archive build data", script: """
                             tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
                             """
                             archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
+                            sh """
+                            du -sh build-data.tar.xz
+                            rm -rf build-data.tar.xz
+                            """
                         }
                         dir("${WORKSPACE}/tiflash") {
-                            sh """
+                            sh label: "archive source patch", script: """
                             tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
                             """
                             archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
+                            sh """
+                            du -sh source-patch.tar.xz
+                            rm -rf source-patch.tar.xz
+                            """
                         }
-                    }
-                }
-                stage("Upload Ccache") {
-                    steps {
-                        sh label: "upload ccache", script: """
-                            cd /tmp
-                            rm -rf ccache.tar
-                            tar -cf ccache.tar .ccache
-                            ls -alh ccache.tar
-                            cp ccache.tar /home/jenkins/agent/ccache/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar
-                            cd -
-                        """
                     }
                 }
             }
@@ -302,17 +343,52 @@ pipeline {
 
         stage("Unit Test Prepare") {
             steps {
-                sh label: "link unit test dir", script: """
-                ln -sf ${WORKSPACE}/install/tiflash /tiflash
+                script {
+                    dir("${WORKSPACE}/tiflash") {
+                        sh label: "change permission", script: """
+                            chown -R 1000:1000 ./
+                        """
+                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')) {
+                            if (build_cache_ready) {
+                                println "build cache exist, restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'ut-build')}"
+                                sh """
+                                du -sh ./
+                                ls -alh ./
+                                ls -alh tests/.build/
+                                """
+                            } else {
+                                println "build cache not exist, clean git repo for cache"
+                                sh label: "clean git repo", script: """
+                                git status
+                                git show --oneline -s
+                                mkdir tests/.build
+                                cp -r ${WORKSPACE}/install/* tests/.build/
+                                rm -rf .git
+                                rm -rf contrib
+                                du -sh ./
+                                ls -alh
+                                """ 
+                            }
+                        }     
+                    }
+                }
+                sh label: "link tiflash and tests", script: """
                 ls -lha ${WORKSPACE}/tiflash
+                ln -sf ${WORKSPACE}/tiflash/tests/.build/tiflash /tiflash
                 ln -sf ${WORKSPACE}/tiflash/tests /tests
                 """
+                dir("${WORKSPACE}/tiflash") {
+                    echo "temp skip here"
+                }
+                dir("${WORKSPACE}/build") {
+                    echo "temp skip here"
+                }
             }
         }
         stage("Run Tests") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    sh label: "run unit tests", script: """
+                    sh label: "run tests", script: """
                     parallelism=${PARALLELISM}
                     rm -rf /tmp-memfs/tiflash-tests
                     mkdir -p /tmp-memfs/tiflash-tests
