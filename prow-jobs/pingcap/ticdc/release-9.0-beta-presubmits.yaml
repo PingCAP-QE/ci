@@ -36,7 +36,7 @@ presubmits:
     - name: pull-unit-test
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: true
+      always_run: false
       skip_report: false
       optional: false
       skip_if_only_changed: *skip_if_only_changed
@@ -63,7 +63,7 @@ presubmits:
     - name: pull-build
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: true
+      always_run: false
       skip_report: false
       optional: false
       skip_if_only_changed: *skip_if_only_changed
@@ -88,7 +88,7 @@ presubmits:
     - name: pull-check
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: true
+      always_run: false
       skip_report: false
       optional: false
       skip_if_only_changed: *skip_if_only_changed
