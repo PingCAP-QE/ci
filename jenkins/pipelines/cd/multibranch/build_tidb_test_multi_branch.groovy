@@ -3,6 +3,11 @@
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        // Handle v9.0.0-beta.n tags
+        if (branchNameOrTag.startsWith("v9.0.0-beta")) {
+            println "tag ${branchNameOrTag} is beta release, use go 1.23"
+            return "go1.23"
+        }
         if (branchNameOrTag >= "v8.4") {
             println "tag ${branchNameOrTag} use go 1.23"
             return "go1.23"
@@ -35,12 +40,17 @@ def selectGoVersion(branchNameOrTag) {
             println "tag ${branchNameOrTag} use go 1.13"
             return "go1.13"
         }
-        println "tag ${branchNameOrTag} use default version go 1.21"
-        return "go1.21"
+        println "tag ${branchNameOrTag} use default version go 1.23"
+        return "go1.23"
     } else { 
         println "this is a branch"
         if (branchNameOrTag == "master") {
             println("branchNameOrTag: master  use go1.23")
+            return "go1.23"
+        }
+        // Handle release-9.0-beta branches
+        if (branchNameOrTag.startsWith("release-9.0-beta")) {
+            println("branchNameOrTag: ${branchNameOrTag} is beta release, use go1.23")
             return "go1.23"
         }
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-8.4") {
