@@ -24,6 +24,11 @@ function create_tag() {
     local branch=$2
     local tag=$3
 
+    if gh api /repos/$full_repo/git/refs/tags/$tag; then
+        echo "Tag $tag already exists in $repo. Skipping."
+        return 0
+    fi
+
     # get commit sha from branch.
     commit=$(gh api /repos/$full_repo/git/refs/heads/$branch | jq -r .object.sha)
 
@@ -71,10 +76,6 @@ function main_create_tags() {
     )
 
     for repo in "${repos[@]}"; do
-        # extract the repo and special branch from `repo`.
-        repo=$(echo $repo | sed 's/#.*//')
-        special_branch=$(echo $repo | sed 's/.*#//')
-        # if special_branch is empty, use `branch` var.
         if [[ $special_branch == "" ]]; then
             create_tag $repo $branch $tag
         else
