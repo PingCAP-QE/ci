@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: runner
+      image: "hub.pingcap.net/jenkins/tikv-ci:rocky8-base-cached-master"
+      imagePullPolicy: Always
+      tty: true
+      command:
+        - "/bin/sh"
+        - "-c"
+      args:
+        - "cat"
+      resources:
+        requests:
+          memory: 16Gi
+          cpu: "8"
+      securityContext:
+        privileged: true
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent/memvolume"
+        name: "volume-memory"
+        readOnly: false
+      - mountPath: "/tmp"
+        name: "volume-tmp"
+        readOnly: false
+    - name: net-tool
+      image: hub.pingcap.net/jenkins/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+  volumes:
+  - emptyDir:
+      medium: ""
+    name: "volume-tmp"
+  - emptyDir:
+      medium: Memory
+    name: "volume-memory"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+              - key: ci-nvme-high-performance
+                operator: In
+                values:
+                  - "true"
