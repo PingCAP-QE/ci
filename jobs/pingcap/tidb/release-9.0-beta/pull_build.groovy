@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
+// For release-9.0-beta.M branches.
 pipelineJob('pingcap/tidb/release-9.0-beta/pull_build') {
     logRotator {
         daysToKeep(30)
