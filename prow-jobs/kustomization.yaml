@@ -114,7 +114,7 @@ configMapGenerator:
       - tikv_pd_release-7.5-presubmits.yaml=tikv/pd/release-7.5-presubmits.yaml
       - tikv_pd_release-8.1-presubmits.yaml=tikv/pd/release-8.1-presubmits.yaml
       - tikv_pd_release-8.5-presubmits.yaml=tikv/pd/release-8.5-presubmits.yaml
-      - tikv_pd_release-9.0-presubmits.yaml=tikv/pd/release-9.0-presubmits.yaml
+      - tikv_pd_release-9.0-beta-presubmits.yaml=tikv/pd/release-9.0-beta-presubmits.yaml
       - tikv_raft-engine_presubmits.yaml=tikv/raft-engine/presubmits.yaml
       - tikv_tikv_latest-presubmits.yaml=tikv/tikv/latest-presubmits.yaml
       - tikv_tikv_release-6.1-presubmits.yaml=tikv/tikv/release-6.1-presubmits.yaml
@@ -126,4 +126,4 @@ configMapGenerator:
       - tikv_tikv_release-8.3-presubmits.yaml=tikv/tikv/release-8.3-presubmits.yaml
       - tikv_tikv_release-8.4-presubmits.yaml=tikv/tikv/release-8.4-presubmits.yaml
       - tikv_tikv_release-8.5-presubmits.yaml=tikv/tikv/release-8.5-presubmits.yaml
-      - tikv_tikv_release-9.0-presubmits.yaml=tikv/tikv/release-9.0-presubmits.yaml
+      - tikv_tikv_release-9.0-beta-presubmits.yaml=tikv/tikv/release-9.0-beta-presubmits.yaml

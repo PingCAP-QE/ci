@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-pd"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'tikv/pd'
-final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/release-9.0/pod-pull_integration_copr_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/release-9.0-beta/pod-pull_integration_copr_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {

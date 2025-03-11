@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-final folder = 'tikv/tikv/release-9.0'
+final folder = 'tikv/tikv/release-9.0-beta'
 final jobName = 'pull_unit_test'
 
 pipelineJob("${folder}/${jobName}") {

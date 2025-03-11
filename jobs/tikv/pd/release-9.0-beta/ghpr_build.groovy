@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For release branches.
-pipelineJob('tikv/pd/release-9.0/pull_integration_copr_test') {
+pipelineJob('tikv/pd/release-9.0-beta/ghpr_build') {
     logRotator {
         daysToKeep(30)
     }
@@ -11,14 +11,14 @@ pipelineJob('tikv/pd/release-9.0/pull_integration_copr_test') {
         stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
     properties {
-        buildFailureAnalyzer(false) // disable failure analyze
+        // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/tikv/pd")
     }
  
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/tikv/pd/release-9.0/pull_integration_copr_test.groovy")
+            scriptPath("pipelines/tikv/pd/release-9.0-beta/ghpr_build.groovy")
             scm {
                 git{
                     remote {
