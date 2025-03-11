@@ -42,6 +42,11 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
+        // Handle v9.0.0-beta.n tags
+        if (branchNameOrTag.startsWith("v9.0.0-beta")) {
+            println "tag ${branchNameOrTag} is beta release, use go 1.23"
+            return "go1.23"
+        }
         if (branchNameOrTag >= "v8.4") {
             println "tag ${branchNameOrTag} use go 1.23"
             return "go1.23"
@@ -74,12 +79,17 @@ def selectGoVersion(branchNameOrTag) {
             println "tag ${branchNameOrTag} use go 1.13"
             return "go1.13"
         }
-        println "tag ${branchNameOrTag} use default version go 1.21"
-        return "go1.21"
+        println "tag ${branchNameOrTag} use default version go 1.23"
+        return "go1.23"
     } else { 
         println "this is a branch"
         if (branchNameOrTag == "master") {
             println("branchNameOrTag: master  use go1.23")
+            return "go1.23"
+        }
+        // Handle release-9.0-beta branches
+        if (branchNameOrTag.startsWith("release-9.0-beta")) {
+            println("branchNameOrTag: ${branchNameOrTag} is beta release, use go1.23")
             return "go1.23"
         }
         if (branchNameOrTag.startsWith("release-") && branchNameOrTag >= "release-8.4") {
@@ -156,22 +166,38 @@ def isNeedBuildBr = false
 def isNeedBuildDumpling = false
 releaseBranchBuildBr = "release-5.2"
 releaseBranchBuildDumpling = "release-5.3"
+
+// First check the master branch
 if (!isNeedBuildBr) {
     isNeedBuildBr = isBranchMatched(["master"], env.BRANCH_NAME)
 }
 if (!isNeedBuildDumpling) {
     isNeedBuildDumpling = isBranchMatched(["master"], env.BRANCH_NAME)
 }
+
+// Add special handling for beta version branches
+if (!isNeedBuildBr && env.BRANCH_NAME.startsWith("release-9.0-beta")) {
+    println "Beta branch ${env.BRANCH_NAME} detected, building BR"
+    isNeedBuildBr = true
+}
+if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("release-9.0-beta")) {
+    println "Beta branch ${env.BRANCH_NAME} detected, building Dumpling"
+    isNeedBuildDumpling = true
+}
+
+// Check standard version tags
 if (!isNeedBuildBr && env.BRANCH_NAME.startsWith("v") && env.BRANCH_NAME > "v5.2") {
     isNeedBuildBr = true
 }
 if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("v") && env.BRANCH_NAME > "v5.3") {
     isNeedBuildDumpling = true
 }
-if (!isNeedBuildBr && env.BRANCH_NAME.startsWith("release-")) {
+
+// Handling for normal release branches
+if (!isNeedBuildBr && env.BRANCH_NAME.startsWith("release-") && !env.BRANCH_NAME.contains("beta")) {
     isNeedBuildBr = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchBuildBr))
 }
-if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("release-")) {
+if (!isNeedBuildDumpling && env.BRANCH_NAME.startsWith("release-") && !env.BRANCH_NAME.contains("beta")) {
     isNeedBuildDumpling = isMoreRecentOrEqual(trimPrefix(env.BRANCH_NAME), trimPrefix(releaseBranchBuildDumpling))
 }
 
@@ -260,8 +286,8 @@ try {
         stage("Checkout") {
             dir(build_path) {
                 deleteDir()
-                // 如果不是 TAG，直接传 branch 给下面的 checkout 语句； 否则就应该 checkout 到 refs/tags 下 .
-                // 值得注意的是，即使传入的是 TAG，环境变量里的 BRANCH_NAME 和 TAG_NAME 同时会是 TAG 名，如 v3.0.0
+                // If not a TAG, directly pass branch to the checkout statement below; otherwise, it should check out to refs/tags.
+                // Note that even if a TAG is passed, the environment variables BRANCH_NAME and TAG_NAME will both be the TAG name, such as v3.0.0
                 println branch
                 retry(3) {
                     if(branch.startsWith("refs/tags")) {
