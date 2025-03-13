@@ -133,4 +133,29 @@ pipeline {
             }        
         }
     }
+
+    post {
+        failure {
+            script {
+                def status = currentBuild.result ?: 'SUCCESS'
+                def title = "Daily BR Integration Test: ${status}"
+                def content = "Daily BR Integration Test: ${status}\\n" +
+                    "Branch: ${TARGET_BRANCH}\\n" +
+                    "Build URL: ${RUN_DISPLAY_URL}\\n" +
+                    "Job Page: https://prow.tidb.net/?repo=pingcap%2Ftidb&type=periodic&job=*periodics_br_*\\n"
+                
+                withCredentials([string(credentialsId: 'daily-br-integration-test-feishu-webhook-url', variable: 'WEBHOOK_URL')]) {
+                    sh """
+                        curl -X POST ${WEBHOOK_URL} -H 'Content-Type: application/json' \
+                        -d '{
+                            "msg_type": "text",
+                            "content": {
+                              "text": "$content"
+                            }
+                        }'
+                    """
+                }
+            }
+        }
+    }
 }
