@@ -2,6 +2,8 @@ global_definitions:
   branches: &branches
     - ^master$
     - ^feature/.+
+  skip_if_only_changed: &skip_if_only_changed
+    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -10,11 +12,11 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      # skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: wip/pull-cdc-mysql-integration-light
-      optional: true # change this after test passed.
+      optional: false
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light"
       branches: *branches
 
@@ -22,11 +24,11 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      # skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: wip/pull-cdc-mysql-integration-heavy
-      optional: true # change this after test passed.
+      optional: false
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy"
       branches: *branches
 
