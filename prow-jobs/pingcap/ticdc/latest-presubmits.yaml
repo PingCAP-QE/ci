@@ -13,7 +13,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
-      context: wip/pull-cdc-mysql-integration-light
+      context: pull-cdc-mysql-integration-light
       optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light|all)(?: .*?)?$"
@@ -25,7 +25,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
-      context: wip/pull-cdc-mysql-integration-heavy
+      context: pull-cdc-mysql-integration-heavy
       optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy|all)(?: .*?)?$"
