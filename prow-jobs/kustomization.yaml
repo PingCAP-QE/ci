@@ -9,6 +9,7 @@ configMapGenerator:
     files:
       - pingcap-inc_enterprise-extensions_postsubmits.yaml=pingcap-inc/enterprise-extensions/postsubmits.yaml
       - pingcap-inc_enterprise-extensions_presubmits.yaml=pingcap-inc/enterprise-extensions/presubmits.yaml
+      - pingcap-qe_ci_periodics.yaml=pingcap-qe/ci/periodics.yaml
       - pingcap-qe_ci_presubmits.yaml=pingcap-qe/ci/presubmits.yaml
       - pingcap-qe_ee-apps_presubmits.yaml=pingcap-qe/ee-apps/presubmits.yaml
       - pingcap_community_postsubmits.yaml=pingcap/community/postsubmits.yaml

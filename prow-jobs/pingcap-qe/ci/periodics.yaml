@@ -1,0 +1,26 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Periodic
+periodics:
+  - name: periodic-crawl-ci-run-data
+    decorate: true # need add this.
+    cron: "0 0 * * *" # @daily
+    hidden: true
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - name: main
+          image: denoland/deno:2.2.3
+          command:
+            - deno
+            - run
+            - https://github.com/PingCAP-QE/ee-apps/raw/main/insight/crawlers/ci/prow-jobs.ts
+          args: [--dsn="$(DSN)"]
+          env:
+            - name: DSN
+              valueFrom:
+                secretKeyRef:
+                  key: DSN
+                  name: job-insight
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 200m
