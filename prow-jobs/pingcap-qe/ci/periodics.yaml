@@ -2,7 +2,7 @@
 periodics:
   - name: periodic-crawl-ci-run-data
     decorate: true # need add this.
-    cron: "0 0 * * *" # @daily
+    cron: "0 * * * *" # @hourly
     hidden: true
     spec:
       activeDeadlineSeconds: 300
@@ -12,6 +12,7 @@ periodics:
           command:
             - deno
             - run
+            - --allow-net
             - https://github.com/PingCAP-QE/ee-apps/raw/main/insight/crawlers/ci/prow-jobs.ts
           args: [--dsn="$(DSN)"]
           env:
