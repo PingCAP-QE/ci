@@ -14,7 +14,7 @@ periodics:
             - run
             - --allow-net
             - https://github.com/PingCAP-QE/ee-apps/raw/main/insight/crawlers/ci/prow-jobs.ts
-          args: [--dsn="$(DSN)"]
+          args: [--dsn=$(DSN)]
           env:
             - name: DSN
               valueFrom:
