@@ -22,9 +22,6 @@ spec:
       args:
         - cat
       resources:
-        requests:
-          memory: 12Gi
-          cpu: "4"
         limits:
           memory: 16Gi
           cpu: "6"

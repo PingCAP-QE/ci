@@ -26,9 +26,6 @@ spec:
         - name: DOCKER_REGISTRY_MIRROR
           value: "https://registry-mirror.pingcap.net/"
       resources:
-        requests:
-          memory: 8Gi
-          cpu: "4"
         limits:
           memory: 16Gi
           cpu: "6"
@@ -47,9 +44,6 @@ spec:
       command:
         - "cat"
       resources:
-        requests:
-          memory: 8Gi
-          cpu: "4"
         limits:
           memory: 16Gi
           cpu: "6"
