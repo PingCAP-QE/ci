@@ -62,6 +62,7 @@ pipeline {
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin')
                     }
                     sh label: "download enterprise-tools", script: """
+                        # The current internal cache is from the address http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz, and this content has stopped updating.
                         wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools.tar.gz ${FILE_SERVER_URL}/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
                         tar -xzf tidb-enterprise-tools.tar.gz
                         mv tidb-enterprise-tools/bin/loader bin/
