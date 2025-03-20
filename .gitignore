@@ -20,3 +20,6 @@ lib/
 .vscode/
 
 *.iml
+
+.cursor
+.cursorrules
