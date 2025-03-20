@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
       tty: true
       resources:
         limits:
@@ -26,6 +26,9 @@ spec:
         - name: DOCKER_REGISTRY_MIRROR
           value: "https://registry-mirror.pingcap.net/"
       resources:
+        requests:
+          memory: 8Gi
+          cpu: "4"
         limits:
           memory: 16Gi
           cpu: "6"
@@ -61,6 +64,13 @@ spec:
       resources:
         limits:
           memory: 128Mi
+          cpu: 100m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        limits:
+          memory: 256Mi
           cpu: 100m
   volumes:
     - name: "volume-docker"

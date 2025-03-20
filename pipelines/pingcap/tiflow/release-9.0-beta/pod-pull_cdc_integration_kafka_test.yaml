@@ -9,10 +9,10 @@ spec:
       name: zookeeper
       resources:
         requests:
-          cpu: 2000m
+          cpu: 1000m
           memory: 4Gi
         limits:
-          cpu: 2000m
+          cpu: 1000m
           memory: 4Gi
       tty: true
       volumeMounts:
@@ -20,10 +20,13 @@ spec:
           name: volume-0
     - args:
         - cat
-      image: hub.pingcap.net/jenkins/golang-tini:1.23
+      image: hub.pingcap.net/jenkins/rocky8_golang-1.23:tini
       imagePullPolicy: Always
       name: golang
       resources:
+        requests:
+          cpu: "4"
+          memory: 16Gi
         limits:
           cpu: "4"
           memory: 16Gi
@@ -65,10 +68,10 @@ spec:
       name: kafka
       resources:
         requests:
-          cpu: 4000m
+          cpu: 2000m
           memory: 6Gi
         limits:
-          cpu: 4000m
+          cpu: 2000m
           memory: 6Gi
       tty: true
       volumeMounts:
@@ -108,6 +111,13 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
+    - name: report
+      image: hub.pingcap.net/jenkins/python3-requests:latest
+      tty: true
+      resources:
+        requests:
+          cpu: 200m
+          memory: 4Gi
     - name: mysql
       image: quay.io/debezium/example-mysql:2.4
       imagePullPolicy: IfNotPresent
