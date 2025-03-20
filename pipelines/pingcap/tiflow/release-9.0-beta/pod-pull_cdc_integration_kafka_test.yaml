@@ -24,9 +24,6 @@ spec:
       imagePullPolicy: Always
       name: golang
       resources:
-        requests:
-          cpu: "4"
-          memory: 16Gi
         limits:
           cpu: "4"
           memory: 16Gi
@@ -67,9 +64,6 @@ spec:
       imagePullPolicy: IfNotPresent
       name: kafka
       resources:
-        requests:
-          cpu: 2000m
-          memory: 6Gi
         limits:
           cpu: 2000m
           memory: 6Gi
