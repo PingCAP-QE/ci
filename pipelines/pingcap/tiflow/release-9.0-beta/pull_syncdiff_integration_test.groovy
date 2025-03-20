@@ -62,11 +62,11 @@ pipeline {
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin')
                     }
                     sh label: "download enterprise-tools-nightly", script: """
-                        wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools-nightly-linux-amd64.tar.gz https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
-                        tar -xzf tidb-enterprise-tools-nightly-linux-amd64.tar.gz
-                        mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/
-                        mv tidb-enterprise-tools-nightly-linux-amd64/bin/importer bin/
-                        rm -r tidb-enterprise-tools-nightly-linux-amd64
+                        wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools.tar.gz ${FILE_SERVER_URL}/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
+                        tar -xzf tidb-enterprise-tools.tar.gz
+                        mv tidb-enterprise-tools/bin/loader bin/
+                        mv tidb-enterprise-tools/bin/importer bin/
+                        rm -r tidb-enterprise-tools
                     """
                     sh label: "check", script: """
                         which bin/tikv-server
