@@ -9,10 +9,10 @@ spec:
       name: zookeeper
       resources:
         requests:
-          cpu: 2000m
+          cpu: 1000m
           memory: 4Gi
         limits:
-          cpu: 2000m
+          cpu: 1000m
           memory: 4Gi
       tty: true
       volumeMounts:
@@ -20,7 +20,7 @@ spec:
           name: volume-0
     - args:
         - cat
-      image: hub.pingcap.net/jenkins/golang-tini:1.23
+      image: hub.pingcap.net/jenkins/rocky8_golang-1.23:tini
       imagePullPolicy: Always
       name: golang
       resources:
@@ -64,11 +64,8 @@ spec:
       imagePullPolicy: IfNotPresent
       name: kafka
       resources:
-        requests:
-          cpu: 4000m
-          memory: 6Gi
         limits:
-          cpu: 4000m
+          cpu: 2000m
           memory: 6Gi
       tty: true
       volumeMounts:
