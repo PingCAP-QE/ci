@@ -61,7 +61,7 @@ pipeline {
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin')
                     }
-                    sh label: "download enterprise-tools-nightly", script: """
+                    sh label: "download enterprise-tools", script: """
                         wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools.tar.gz ${FILE_SERVER_URL}/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
                         tar -xzf tidb-enterprise-tools.tar.gz
                         mv tidb-enterprise-tools/bin/loader bin/
