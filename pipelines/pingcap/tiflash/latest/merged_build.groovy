@@ -279,9 +279,29 @@ pipeline {
                 }
                 stage("Upload Proxy Cache") {
                     steps {
-                        sh label: "upload proxy cache", script: """
-                            echo "TODO: upload proxy cache"
-                        """
+                        script {
+                            if (update_proxy_cache) {
+                                if (proxy_commit_hash && proxy_commit_hash =~ /^[0-9a-f]{40}$/) {
+                                    def proxy_suffix = "amd64-linux-llvm"
+                                    def cache_destination = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
+                                    
+                                    sh label: "upload proxy cache", script: """
+                                        if [ -f "${cache_destination}" ]; then
+                                            echo "Proxy cache already exists at ${cache_destination}, skip uploading"
+                                        elif [ -f "${WORKSPACE}/install/tiflash/libtiflash_proxy.so" ]; then
+                                            cp "${WORKSPACE}/install/tiflash/libtiflash_proxy.so" "${cache_destination}"
+                                            echo "Proxy cache uploaded to ${cache_destination}"
+                                        else
+                                            echo "Proxy library not found, cache not updated"
+                                        fi
+                                    """
+                                } else {
+                                    echo "Skip uploading proxy cache because commit hash '${proxy_commit_hash}' is not valid"
+                                }
+                            } else {
+                                echo "Skip because proxy cache refresh is disabled"
+                            }
+                        }
                     }
                 }
             }

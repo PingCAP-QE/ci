@@ -280,7 +280,7 @@ pipeline {
                 stage("Upload Proxy Cache") {
                     steps {
                         sh label: "upload proxy cache", script: """
-                            echo "TODO: upload proxy cache"
+                            echo "skip upload proxy cache, only upload for master branch to avoid duplicate uploads."
                         """
                     }
                 }
