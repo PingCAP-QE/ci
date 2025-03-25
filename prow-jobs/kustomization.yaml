@@ -38,7 +38,6 @@ configMapGenerator:
       - pingcap_tidb_latest-postsubmits.yaml=pingcap/tidb/latest-postsubmits.yaml
       - pingcap_tidb_latest-presubmits-canary.yaml=pingcap/tidb/latest-presubmits-canary.yaml
       - pingcap_tidb_latest-presubmits.yaml=pingcap/tidb/latest-presubmits.yaml
-      - pingcap_tidb_release-6.1-periodics.yaml=pingcap/tidb/release-6.1-periodics.yaml
       - pingcap_tidb_release-6.1-presubmits.yaml=pingcap/tidb/release-6.1-presubmits.yaml
       - pingcap_tidb_release-6.2-presubmits.yaml=pingcap/tidb/release-6.2-presubmits.yaml
       - pingcap_tidb_release-6.3-presubmits.yaml=pingcap/tidb/release-6.3-presubmits.yaml
