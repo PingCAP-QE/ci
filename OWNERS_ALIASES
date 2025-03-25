@@ -5,11 +5,14 @@ aliases:
     - lilin90
     - Oreoxmt
     - qiancai
+
   sig-approvers-tidb-tools: # approvers for CI scope of tidb-tools project.
     - Benjamin2037
+
   sig-approvers-ee: # approvers for engineering efficiency scopes.
     - wuhuizuo
     - purelind
+
   sig-approvers-raft-engine: # approvers for raft-engine project.
     - LykxSassinator
     - zhangjinpeng87
@@ -17,6 +20,14 @@ aliases:
   sig-reviewers-security: # reviewers for security scopes.
     - TopScrew
     - xiabee
+
+  sig-approvers-ticdc: # approvers for ticdc project.
+    - asddongmen
+    - wlwilliamx
+
+  sig-approvers-tiflash: # approvers for tiflash project.
+    - Lloyd-Pottiger
+    - JaySon-Huang
 
   emeritus_reviewers: # emeritus reviewers will be keeped here, but will not be used.
     - lijie0123 # ee reviewer
