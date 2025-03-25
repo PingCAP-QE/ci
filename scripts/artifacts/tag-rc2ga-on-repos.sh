@@ -20,7 +20,7 @@ function tag_oci_repo() {
   else
     oras discover --distribution-spec v1.1-referrers-tag ${repo}:${base_tag} && oras tag ${repo}:${base_tag} ${dst_tag} || exit 1
   fi
-  
+
   echo "✅ Taged '$dst_tag' on '$registry/${repo}:${base_tag}'"
 }
 
@@ -51,6 +51,13 @@ function tag_oci_artifact_repos() {
       "pingcap/tidb-binlog/package"
     )
   fi
+  # pingcap/ticdc/package published since v9.0.0
+  if [[ "$(printf '%s\n' "v9.0.0" "$ga_ver" | sort -V | head -n1)" == "v9.0.0" ]]; then
+    repos+=(
+      "pingcap/ticdc/package"
+    )
+  fi
+
   platforms=("linux_amd64" "linux_arm64" "darwin_amd64" "darwin_arm64")
 
   # enterprise
@@ -71,7 +78,7 @@ function tag_oci_artifact_repos() {
   for repo in "${enterprise_repos[@]}"; do
     for platform in "${enterprise_platforms[@]}"; do
       tag_oci_repo "$registry/${repo}" "${rc_ver}-enterprise_${platform}" "${ga_ver}-enterprise_${platform}" "$force"
-      yq -i ".packages += \"$registry/${repo}:${ga_ver}-enterprise_${platform}\"" $save_results_file      
+      yq -i ".packages += \"$registry/${repo}:${ga_ver}-enterprise_${platform}\"" $save_results_file
     done
   done
 
@@ -106,6 +113,16 @@ function tag_oci_image_repos() {
   if [[ "$(printf '%s\n' "v8.4.0" "$ga_ver" | sort -V | head -n1)" == "$ga_ver" ]]; then
     images+=(
       "pingcap/tidb-binlog/image"
+    )
+  fi
+  # ticdc will publish from ticdc repo since v9.0.0
+  if [[ "$(printf '%s\n' "v9.0.0" "$ga_ver" | sort -V | head -n1)" == "9.0.0" ]]; then
+    # remove "pingcap/tiflow/images/cdc":
+    images=("${images[@]/pingcap\/tiflow\/images\/cdc/}")
+    # Filter out empty elements that might result from the removal
+    images=(${images[@]})
+    images+=(
+      "pingcap/ticdc/image"
     )
   fi
 

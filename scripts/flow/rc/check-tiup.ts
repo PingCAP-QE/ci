@@ -32,6 +32,9 @@ const OCI2Tiup: Record<string, string[]> = {
     "dm-worker",
     "dmctl",
   ],
+  "pingcap/ticdc/package": [
+    "cdc",
+  ],
   "pingcap/ng-monitoring/package": [],
   "pingcap/monitoring/package": [
     "grafana",
@@ -164,9 +167,13 @@ async function gatheringGithubGitSha(
 ) {
   const [owner, repo] = fullRepo.split("/", 2);
   const sha = await Promise.race([
-    ghClient.rest.repos.getCommit({ owner, repo, ref: branch }).then(res => res.data.sha),
-    new Promise<string>((_, reject) => setTimeout(() => reject(new Error('Timeout after 5 seconds')), 5000))
-  ]).catch(() => '');
+    ghClient.rest.repos.getCommit({ owner, repo, ref: branch }).then((res) =>
+      res.data.sha
+    ),
+    new Promise<string>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout after 5 seconds")), 5000)
+    ),
+  ]).catch(() => "");
   console.info(`got github git sha of ${fullRepo}@${branch}: ${sha}`);
   return sha;
 }
