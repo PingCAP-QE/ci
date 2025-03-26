@@ -8,7 +8,6 @@ final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/latest/pod-pull_cdc_mysql_integration_heavy.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-def skipRemainingStages = false
 
 pipeline {
     agent {
