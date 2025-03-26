@@ -72,7 +72,7 @@ pipeline {
                                 export PD_BRANCH=${pdBranch}
                                 export TIKV_BRANCH=${tikvBranch}
                                 export TIFLASH_BRANCH=${tiflashBranch}
-                                cd ../ticdc && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
+                                cd ../ticdc && ./tests/scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
                                 make check_third_party_binary
                                 cd - && mkdir -p bin && mv ../ticdc/bin/* ./bin/
                                 ls -alh ./bin
