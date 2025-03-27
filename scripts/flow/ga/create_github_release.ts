@@ -7,7 +7,7 @@ import {
   parseRange,
   satisfies,
   type SemVer,
-} from "jsr:@std/semver@^1.0.3";
+} from "jsr:@std/semver@^1.0.4";
 
 interface RepoInfo {
   owner: string;
@@ -93,7 +93,12 @@ async function fillRepoTagInfo(
   octokit: Octokit,
 ) {
   const v = parse(version);
-  const releaseBranch = `release-${v.major}.${v.minor}`;
+  const isNewBetaVer = satisfies(v, parseRange(">=9.0.0-0")) && v.patch == 0 &&
+    v.prerelease?.[0] == "beta" && v.prerelease?.[1];
+  const releaseBranch = isNewBetaVer
+    ? `release-${v.major}.${v.minor}-beta.${v.prerelease![1]}`
+    : `release-${v.major}.${v.minor}`;
+
   console.log("default create release on branch: ", releaseBranch);
 
   // "tidb-binlog" repo stops to release since 8.4.0, but the history release branches is still there and keep releasing patches.
