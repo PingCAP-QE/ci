@@ -31,6 +31,9 @@ periodics:
     decorate: true
     decoration_config:
       timeout: 6h
+      ssh_key_secrets:
+        - ssh-secret-ti-chi-bot
+    clone_uri: git@github.com:{{.Org}}/{{.Repo}}.git
     extra_refs:
       - org: PingCAP-QE
         repo: gitinsight
