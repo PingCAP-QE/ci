@@ -107,7 +107,7 @@ spec:
       resources:
         limits:
           memory: 128Mi
-          cpu: 100m
+          cpu: 300m
     - name: mysql
       image: quay.io/debezium/example-mysql:2.4
       imagePullPolicy: IfNotPresent
