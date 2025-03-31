@@ -45,6 +45,7 @@ function gather_results() {
         pingcap/tidb/package
         pingcap/tiflash/package
         pingcap/tiflow/package
+        pingcap/ticdc/package
         tikv/pd/package
         tikv/tikv/package
     )
