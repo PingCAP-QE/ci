@@ -45,7 +45,6 @@ function gather_results() {
         pingcap/tidb/package
         pingcap/tiflash/package
         pingcap/tiflow/package
-        pingcap/ticdc/package
         tikv/pd/package
         tikv/tikv/package
     )
@@ -58,6 +57,17 @@ function gather_results() {
         )
         source_oci_pkg_repos+=(
             pingcap/tidb-binlog/package
+        )
+    fi
+    # if VERSION is greater then v9.0.0, then we:
+    # - add sync-diff-inspector to the tiup pkgs
+    # - add oci repo for new cdc
+    if [[ "$(printf '%s\n' "v9.0.0" "$VERSION" | sort -V | head -n1)" == "v9.0.0" ]]; then
+        tiup_pkgs+=(
+            sync-diff-inspector
+        )
+        source_oci_pkg_repos+=(
+            pingcap/ticdc/package
         )
     fi
 
