@@ -1,125 +1,130 @@
 import { Octokit } from "https://esm.sh/octokit@4.0.2?dts";
 import { parseArgs } from "jsr:@std/cli@^1.0.1/parse-args";
-import { parse } from "jsr:@std/semver";
+import { parse, parseRange, satisfies } from "jsr:@std/semver@^1.0.4";
 
 interface RepoInfo {
-    owner: string;
-    repo: string;
-    tag_githash?: string;
-    version?: string;
-    branch_name?: string;
+  owner: string;
+  repo: string;
+  tag_githash?: string;
+  version?: string;
+  branch_name?: string;
 }
 
 interface CliParams {
-    token: string;
-    version: string;
-    dryrun?: boolean;
+  token: string;
+  version: string;
+  dryrun?: boolean;
 }
 
 const REPO_LIST: RepoInfo[] = [
-    { owner: "PingCAP-QE", repo: "tidb-test" },
-    { owner: "pingcap-inc", repo: "enterprise-plugin" },
+  { owner: "PingCAP-QE", repo: "tidb-test" },
+  { owner: "pingcap-inc", repo: "enterprise-plugin" },
 ];
 
 async function fillRepoTagInfo(
-    repos: RepoInfo[],
-    version: string,
-    octokit: Octokit,
+  repos: RepoInfo[],
+  version: string,
+  octokit: Octokit,
 ) {
-    const v = parse(version);
-    const releaseBranch = `release-${v.major}.${v.minor}`;
-    console.dir({ version, releaseBranch });
+  const v = parse(version);
+  const isNewBetaVer = satisfies(v, parseRange(">=9.0.0-0")) && v.patch == 0 &&
+    v.prerelease?.[0] == "beta" && v.prerelease?.[1];
+  const releaseBranch = isNewBetaVer
+    ? `release-${v.major}.${v.minor}-beta.${v.prerelease![1]}`
+    : `release-${v.major}.${v.minor}`;
 
-    return await Promise.all(
-        repos.map(async (repo) => {
-            const info = {
-                ...repo,
-                version,
-            } as RepoInfo;
-            info.branch_name ||= releaseBranch;
-            info.tag_githash = await lastCommitShaOfBranch(info, octokit);
-            return info;
-        }),
-    );
+  console.dir({ version, releaseBranch });
+
+  return await Promise.all(
+    repos.map(async (repo) => {
+      const info = {
+        ...repo,
+        version,
+      } as RepoInfo;
+      info.branch_name ||= releaseBranch;
+      info.tag_githash = await lastCommitShaOfBranch(info, octokit);
+      return info;
+    }),
+  );
 }
 
 async function lastCommitShaOfBranch(
-    { owner, repo, ...rest }: RepoInfo,
-    octokit: Octokit,
+  { owner, repo, ...rest }: RepoInfo,
+  octokit: Octokit,
 ) {
-    const res = await octokit.rest.repos.listCommits({
-        owner,
-        repo,
-        sha: rest.branch_name,
-        per_page: 1,
-    });
-    return res.data[0].sha;
+  const res = await octokit.rest.repos.listCommits({
+    owner,
+    repo,
+    sha: rest.branch_name,
+    per_page: 1,
+  });
+  return res.data[0].sha;
 }
 
 async function createPatchReleaseBranch(
-    repo: RepoInfo,
-    octokit: Octokit,
-    dryrun = false,
+  repo: RepoInfo,
+  octokit: Octokit,
+  dryrun = false,
 ) {
-    const newBranchName = repo.version?.replace("v", "release-");
-    const createFunc = async () => {
-        if (!dryrun) {
-            await octokit.rest.git.createRef({
-                owner: repo.owner,
-                repo: repo.repo,
-                ref: `refs/heads/${newBranchName}`,
-                sha: repo.tag_githash!,
-            });
-        }
-        console.log(
-            `✅ Branch ${newBranchName} created successfully for ${repo.owner}/${repo.repo} based on commit: ${repo.tag_githash}`,
-        );
-    };
-
-    console.group("Create branch: ", newBranchName);
-    if (dryrun) console.info("🐒 dryrun enabled");
-
-    const branchRef = await octokit.rest.git.getRef({
+  const newBranchName = repo.version?.replace("v", "release-");
+  const createFunc = async () => {
+    if (!dryrun) {
+      await octokit.rest.git.createRef({
         owner: repo.owner,
         repo: repo.repo,
-        ref: `heads/${newBranchName!}`,
-    }).catch((error) => {
-        console.error(error);
-        if (error.status !== 404) throw error;
-        console.info(
-            `🚀 No branch ${newBranchName} found for ${repo.owner}/${repo.repo}.`,
-        );
-        return null;
-    });
-
-    if (branchRef) {
-        console.warn(
-            `🎯 Branch ${newBranchName} existed in ${repo.owner}/${repo.repo}.`,
-        );
-    } else {
-        await createFunc();
+        ref: `refs/heads/${newBranchName}`,
+        sha: repo.tag_githash!,
+      });
     }
+    console.log(
+      `✅ Branch ${newBranchName} created successfully for ${repo.owner}/${repo.repo} based on commit: ${repo.tag_githash}`,
+    );
+  };
 
-    console.groupEnd();
+  console.group("Create branch: ", newBranchName);
+  if (dryrun) console.info("🐒 dryrun enabled");
+
+  const branchRef = await octokit.rest.git.getRef({
+    owner: repo.owner,
+    repo: repo.repo,
+    ref: `heads/${newBranchName!}`,
+  }).catch((error) => {
+    console.error(error);
+    if (error.status !== 404) throw error;
+    console.info(
+      `🚀 No branch ${newBranchName} found for ${repo.owner}/${repo.repo}.`,
+    );
+    return null;
+  });
+
+  if (branchRef) {
+    console.warn(
+      `🎯 Branch ${newBranchName} existed in ${repo.owner}/${repo.repo}.`,
+    );
+  } else {
+    await createFunc();
+  }
+
+  console.groupEnd();
 }
 
 async function main(args: CliParams) {
-    const octokit = new Octokit({
-        auth: args.token,
-        userAgent: "PingCAP Release v1.0.0",
-    });
+  const octokit = new Octokit({
+    auth: args.token,
+    userAgent: "PingCAP Release v1.0.0",
+  });
 
-    new Octokit();
+  new Octokit();
 
-    const repos = await fillRepoTagInfo(
-        REPO_LIST,
-        args.version,
-        octokit,
-    );
+  const repos = await fillRepoTagInfo(
+    REPO_LIST,
+    args.version,
+    octokit,
+  );
 
-    for (const repo of repos) {
-        await createPatchReleaseBranch(repo, octokit, args.dryrun);
-    }
+  for (const repo of repos) {
+    await createPatchReleaseBranch(repo, octokit, args.dryrun);
+  }
 }
 
 // parase cli params with `CliParams` and pass to main
