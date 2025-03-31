@@ -26,8 +26,8 @@ def check_version(version_info, expected_version, expected_edition, expected_com
 
     # 解析输出并检查版本信息
     # 使用正则表达式匹配 Release Version, Edition, 和 Git Commit Hash，忽略大小写
-    # dumpling -V 输出的版本信息中，大小写不标准，所以这里忽略大小写
-    version_match = re.search(r'(?i)release\s+version:\s*v?(\d+\.\d+\.\d+)', output)
+    # 修改版本号匹配规则，支持 beta、rc 版本以及带 v 前缀的版本号
+    version_match = re.search(r'(?i)release\s+version:\s*v?(\d+\.\d+\.\d+(?:-(?:beta|rc)\.\d+)?)', output)
     edition_match = re.search(r'(?i)edition:\s*(\w+)', output)
     commit_hash_match = re.search(r'(?i)git\s+commit\s+hash:\s*([0-9a-fA-F]+)', output)
 
@@ -69,18 +69,36 @@ def check_version(version_info, expected_version, expected_edition, expected_com
 if __name__ == "__main__":
     info = """
     TiKV
-    Release Version:   8.0.0-alpha
+    Release Version:   8.0.0
     Edition:           Community
     Git Commit Hash:   e4e273f758c289df9ddf47b73371185bf867b2cd
-    Git Commit Branch: heads/refs/tags/v8.0.0-alpha
+    Git Commit Branch: heads/refs/tags/v8.0.0
     UTC Build Time:    2024-02-06 11:42:45
     Rust Version:      rustc 1.77.0-nightly (89e2160c4 2023-12-27)
     Enable Features:   pprof-fp jemalloc mem-profiling portable sse test-engine-kv-rocksdb test-engine-raft-raft-engine cloud-aws cloud-gcp cloud-azure trace-async-tasks openssl-vendored
     Profile:           dist_release
     """
-    expected_version = "v8.0.0-alpha"
+    expected_version = "v8.0.0"
     expected_edition = "Community"
     expected_commit = "e4e273f758c289df9ddf47b73371185bf867b2cd"
 
     check_version(info, expected_version, expected_edition, expected_commit, check_version=True, check_edition=True,
+                  check_commit_hash=True)
+
+    info_beta = """
+    TiKV
+    Release Version:   v9.0.0-beta.1
+    Edition:           Community
+    Git Commit Hash:   e4e273f758c289df9ddf47b73371185bf867b2cd
+    Git Commit Branch: heads/refs/tags/v9.0.0-beta.1
+    UTC Build Time:    2024-02-06 11:42:45
+    Rust Version:      rustc 1.77.0-nightly (89e2160c4 2023-12-27)
+    Enable Features:   pprof-fp jemalloc mem-profiling portable sse test-engine-kv-rocksdb test-engine-raft-raft-engine cloud-aws cloud-gcp cloud-azure trace-async-tasks openssl-vendored
+    Profile:           dist_release
+    """
+    expected_version = "v9.0.0-beta.1"
+    expected_edition = "Community"
+    expected_commit = "e4e273f758c289df9ddf47b73371185bf867b2cd"
+
+    check_version(info_beta, expected_version, expected_edition, expected_commit, check_version=True, check_edition=True,
                   check_commit_hash=True)
