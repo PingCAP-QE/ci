@@ -116,7 +116,7 @@ function tag_oci_image_repos() {
     )
   fi
   # ticdc will publish from ticdc repo since v9.0.0
-  if [[ "$(printf '%s\n' "v9.0.0" "$ga_ver" | sort -V | head -n1)" == "9.0.0" ]]; then
+  if [[ "$(printf '%s\n' "v9.0.0" "$ga_ver" | sort -V | head -n1)" == "v9.0.0" ]]; then
     # remove "pingcap/tiflow/images/cdc":
     images=("${images[@]/pingcap\/tiflow\/images\/cdc/}")
     # Filter out empty elements that might result from the removal
