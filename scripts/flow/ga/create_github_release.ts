@@ -101,6 +101,7 @@ async function fillRepoTagInfo(
 
   console.log("default create release on branch: ", releaseBranch);
 
+  v.prerelease = undefined; // delete the pre release version for comparing.
   // "tidb-binlog" repo stops to release since 8.4.0, but the history release branches is still there and keep releasing patches.
   const binlogRemovedRange = parseRange(">=8.4.0-0");
   if (satisfies(v, binlogRemovedRange)) {
@@ -127,6 +128,7 @@ async function fillRepoTagInfo(
       } as RepoInfo;
       info.branch_name ||= releaseBranch;
       info.tag_githash = await lastCommitShaOfBranch(info, octokit);
+      // console.log("repo done:", info.repo);
       info.release_msg = await releaseNote(info, octokit);
 
       return info;
@@ -161,13 +163,17 @@ async function previousRelease(repo: RepoInfo, octokit: Octokit) {
   const range = parseRange(`< ${repo.version!}`);
   const ret = maxSatisfying(versionTags, range);
   if (!ret) {
-    throw new Error(`no previous release found for ${repo.repo}`);
+    console.warn(`no previous release found for ${repo.repo}`);
+    return undefined;
   }
   return "v" + format(ret);
 }
 
 async function releaseNote(repo: RepoInfo, octokit: Octokit) {
   const previousTag = await previousRelease(repo, octokit);
+  if (!previousTag) {
+    return "";
+  }
   console.info(
     `previous release of ${repo.product_name}@${repo.version}: ${previousTag}`,
   );
