@@ -31,9 +31,9 @@ periodics:
     decorate: true
     decoration_config:
       timeout: 6h
-      ssh_key_secrets:
-        - ssh-secret-ti-chi-bot
-    clone_uri: git@github.com:{{.Org}}/{{.Repo}}.git
+      oauth_token_secret:
+        name: github-token
+        key: token
     extra_refs:
       - org: PingCAP-QE
         repo: gitinsight
@@ -70,20 +70,12 @@ periodics:
             - name: insight-config
               mountPath: /tmp/ids.csv
               subPath: pingcap-ids.csv
-            - name: github-token
-              mountPath: /etc/github
-              readOnly: true
           command:
             - /bin/bash
             - -ceo
             - pipefail
           args:
             - |
-              # check tools
-              which git || apt-get install -y git
-              which curl || apt-get install -y curl
-              which wget || apt-get install -y wget
-
               # Install dependencies
               apt-get update && apt-get install -y git curl wget
 
@@ -148,6 +140,3 @@ periodics:
         - name: insight-config
           secret:
             secretName: job-insight
-        - name: github-token
-          secret:
-            secretName: github-token
