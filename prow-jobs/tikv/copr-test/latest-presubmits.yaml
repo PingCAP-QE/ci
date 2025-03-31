@@ -13,10 +13,10 @@ presubmits:
       name: tikv/copr-test/pull_integration_test
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
-      always_run: false # update here after test passed 
-      optional: true # update here after test passed
-      skip_report: true # update here after test passed
+      skip_if_only_changed: *skip_if_only_changed
+      always_run: false
+      optional: false
+      skip_report: false
       context: pull-integration-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-test(?: .*?)?$"
       rerun_command: "/test pull-integration-test"
