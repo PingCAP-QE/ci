@@ -26,25 +26,25 @@ periodics:
               memory: 1Gi
               cpu: 200m
   - name: periodic-crawl-commits
-    cron: "0 16 * * *" # Run at 16:00 UTC every day
+    cron: "0 * * * *" # Run @hourly
     hidden: true
     decorate: true
     decoration_config:
-      timeout: 6h
+      timeout: 1h
       oauth_token_secret:
         name: github-token
         key: token
     extra_refs:
       - org: PingCAP-QE
         repo: gitinsight
-        path: app
+        path_alias: app
         base_ref: main
         clone_depth: 1
         workdir: true
       - org: PingCAP-QE
         repo: gitinsight-data
         base_ref: main
-        path: data
+        path_alias: data
         workdir: false
     max_concurrency: 1 # Only allow one instance of this job to run at a time
     spec:
@@ -55,7 +55,7 @@ periodics:
             - name: IDS_CSV_FILE
               value: /tmp/ids.csv
             - name: CRAWL_ORGS
-              value: pingcap tikv tidbcloud PingCAP-QE
+              value: pingcap
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -93,7 +93,7 @@ periodics:
               # Crawl.
               for org in $CRAWL_ORGS; do
                 # Crawl commits in 10 years
-                pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120
+                timeout 3400 pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120 || echo "⌚️ timeout in 1 hour."
               done
 
               # Cleanup
