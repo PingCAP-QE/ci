@@ -26,11 +26,11 @@ periodics:
               memory: 1Gi
               cpu: 200m
   - name: periodic-crawl-commits
-    cron: "0 * * * *" # Run @hourly
+    cron: "0 0 * * *" # Run @daily
     hidden: true
     decorate: true
     decoration_config:
-      timeout: 1h
+      timeout: 12h
       oauth_token_secret:
         name: github-token
         key: token
@@ -55,7 +55,7 @@ periodics:
             - name: IDS_CSV_FILE
               value: /tmp/ids.csv
             - name: CRAWL_ORGS
-              value: pingcap
+              value: tikv
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -88,6 +88,8 @@ periodics:
 
               # Prepare for crawl
               mkdir -p ../data/repos
+              # TODO: try to restore from cache
+
               cp "$IDS_CSV_FILE" ../data/.ci/config/pingcap-ids.csv
 
               # Crawl.
@@ -95,6 +97,8 @@ periodics:
                 # Crawl commits in 10 years
                 timeout 3400 pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120 || echo "⌚️ timeout in 1 hour."
               done
+
+              # TODO: save cache for ../data/repos
 
               # Cleanup
               rm ../data/.ci/config/pingcap-ids.csv
@@ -128,14 +132,13 @@ periodics:
                   gh pr merge --auto --squash --delete-branch
                 fi
               popd
-
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: "1"
+              memory: 4Gi
             limits:
-              cpu: 2000m
-              memory: 8Gi
+              cpu: "4"
+              memory: 16Gi
       volumes:
         - name: insight-config
           secret:
