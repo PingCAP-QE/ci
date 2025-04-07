@@ -66,6 +66,8 @@ periodics:
                 secretKeyRef:
                   name: job-insight
                   key: GITHUB_USER
+            - name: CACHE_BUCKET
+              value: prow-job-cache
           volumeMounts:
             - name: insight-config
               mountPath: /tmp/ids.csv
@@ -84,17 +86,34 @@ periodics:
 
               # Prepare for crawl
               mkdir -p ../data/repos
-              # TODO: try to restore from cache
-
               cp "$IDS_CSV_FILE" ../data/.ci/config/pingcap-ids.csv
 
               # Crawl.
               for org in $CRAWL_ORGS; do
+                # Try to restore the git clone folders from cache
+                # CACHE_FILE="repos-${org}.tar.gz"
+                # CACHE_PATH="gs://${CACHE_BUCKET}/pingcap-qe/ci/${JOB_NAME}/${CACHE_FILE}"
+                # echo "⏬ Trying to restore cache from ${CACHE_PATH} ..."
+                # if gcloud storage objects describe ${CACHE_PATH} --quiet 2>/dev/null; then
+                #   echo "Cache found! Downloading and extracting..."
+                #   gcloud storage cp ${CACHE_PATH} /tmp/${CACHE_FILE}
+                #   tar -xzf /tmp/${CACHE_FILE} -C ../data/repos $org
+                #   rm /tmp/${CACHE_FILE}
+                #   echo "Cache restored successfully!"
+                # else
+                #   echo "No cache found cloned repos, will crawl from scratch."
+                # fi
+
                 # Crawl commits in 10 years
                 timeout 3400 uv run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120 || echo "⌚️ timeout in 1 hour."
-              done
 
-              # TODO: save cache for ../data/repos
+                # Save cache for ../data/repos/${org}
+                # tar -czf /tmp/${CACHE_FILE} -C ../data/repos $org
+                # echo "Uploading cache to ${CACHE_PATH}..."
+                # gcloud storage cp /tmp/${CACHE_FILE} ${CACHE_PATH}
+                # rm /tmp/${CACHE_FILE}
+                # echo "Cache saved successfully!"
+              done
 
               # Cleanup
               rm ../data/.ci/config/pingcap-ids.csv
