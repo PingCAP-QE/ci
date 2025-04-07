@@ -108,7 +108,7 @@ periodics:
                 # fi
 
                 # Crawl commits in 10 years
-                timeout 3400 pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120 || echo "⌚️ timeout in 1 hour."
+                pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120
 
                 # Save cache for ../data/repos/${org}
                 # tar -czf /tmp/${CACHE_FILE} -C ../data/repos $org
