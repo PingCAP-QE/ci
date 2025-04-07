@@ -77,7 +77,7 @@ periodics:
           args:
             - |
               # Install dependencies
-              apt-get update && apt-get install -y git curl wget
+              apt-get update && apt-get install -y git curl wget jq
 
               # Set up pixi.
               curl -fsSL https://pixi.sh/install.sh | bash
@@ -107,6 +107,7 @@ periodics:
                 # Set git account
                 git config user.name "ti-chi-bot[bot]"
                 git config user.email "108142056+ti-chi-bot[bot]@users.noreply.github.com"
+                git remote set-url origin https://${GITHUB_TOKEN}@github.com/PingCAP-QE/gitinsight-data.git
 
                 # Checkout to a new branch with timestamp
                 head_branch="auto/update-data-commits-$(date +%Y%m%d%H%M%S)"
@@ -117,8 +118,7 @@ periodics:
                 git add github
 
                 git commit -m "${pr_title} [skip ci]"
-                git push
-
+                git push --set-upstream origin "$head_branch"
                 # create a pull request
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
@@ -189,7 +189,7 @@ periodics:
           args:
             - |
               # Install dependencies
-              apt-get update && apt-get install -y git curl wget
+              apt-get update && apt-get install -y git curl wget jq
 
               # Set up pixi.
               curl -fsSL https://pixi.sh/install.sh | bash
@@ -208,6 +208,7 @@ periodics:
                 # Set git account
                 git config user.name "ti-chi-bot[bot]"
                 git config user.email "108142056+ti-chi-bot[bot]@users.noreply.github.com"
+                git remote set-url origin https://${GITHUB_TOKEN}@github.com/PingCAP-QE/gitinsight-data.git
 
                 # Checkout to a new branch with timestamp
                 head_branch="auto/update-data-issues-pulls-$(date +%Y%m%d%H%M%S)"
@@ -218,7 +219,7 @@ periodics:
                 git add github
 
                 git commit -m "${pr_title} [skip ci]"
-                git push
+                git push --set-upstream origin $head_branch
 
                 # create a pull request
                 which gh || pixi global install gh
