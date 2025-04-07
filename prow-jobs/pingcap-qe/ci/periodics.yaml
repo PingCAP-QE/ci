@@ -116,17 +116,10 @@ periodics:
 
                 git commit -m "${pr_title} [skip ci]"
                 git push --set-upstream origin "$head_branch"
-                # create a pull request
+
+                # create a pull request and merge it.
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                # Assert the folder `github/<org>/<org>` not exists.
-                # Previously, we have a issue that created a duplicate level folder.
-                if [ -d "github/${{ matrix.org }}/${{ matrix.org }}" ]; then
-                  # close the pull request
-                  gh pr close --delete-branch
-                else
-                  # merge the pull request
-                  gh pr merge --auto --squash --delete-branch
-                fi
+                gh pr merge --auto --squash --delete-branch
               popd
           resources:
             requests:
@@ -214,17 +207,9 @@ periodics:
                 git commit -m "${pr_title} [skip ci]"
                 git push --set-upstream origin $head_branch
 
-                # create a pull request
+                # create a pull request and merge it.
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                # Assert the folder `github/<org>/<org>` not exists.
-                # Previously, we have a issue that created a duplicate level folder.
-                if [ -d "github/${{ matrix.org }}/${{ matrix.org }}" ]; then
-                  # close the pull request
-                  gh pr close --delete-branch
-                else
-                  # merge the pull request
-                  gh pr merge --auto --squash --delete-branch
-                fi
+                gh pr merge --auto --squash --delete-branch
               popd
           resources:
             requests:
