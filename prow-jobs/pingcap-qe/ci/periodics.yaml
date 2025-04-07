@@ -107,7 +107,7 @@ periodics:
                 # Set git account
                 git config user.name "ti-chi-bot[bot]"
                 git config user.email "108142056+ti-chi-bot[bot]@users.noreply.github.com"
-                git remote set-url origin https://${GITHUB_TOKEN}@github.com/PingCAP-QE/gitinsight-data.git
+                git remote add origin https://${GITHUB_TOKEN}@github.com/PingCAP-QE/gitinsight-data.git
 
                 # Checkout to a new branch with timestamp
                 head_branch="auto/update-data-commits-$(date +%Y%m%d%H%M%S)"
@@ -208,7 +208,7 @@ periodics:
                 # Set git account
                 git config user.name "ti-chi-bot[bot]"
                 git config user.email "108142056+ti-chi-bot[bot]@users.noreply.github.com"
-                git remote set-url origin https://${GITHUB_TOKEN}@github.com/PingCAP-QE/gitinsight-data.git
+                git remote add origin https://${GITHUB_TOKEN}@github.com/PingCAP-QE/gitinsight-data.git
 
                 # Checkout to a new branch with timestamp
                 head_branch="auto/update-data-issues-pulls-$(date +%Y%m%d%H%M%S)"
