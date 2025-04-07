@@ -118,8 +118,7 @@ periodics:
                 git add github
 
                 git commit -m "${pr_title} [skip ci]"
-                git push --set-upstream origin $head_branch
-
+                git push --set-upstream origin "$head_branch"
                 # create a pull request
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
