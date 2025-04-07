@@ -10,14 +10,14 @@ spec:
       resources:
         limits:
           memory: 16Gi
-          cpu: "6"
+          cpu: "4"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
-          cpu: 100m
+          cpu: 400m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

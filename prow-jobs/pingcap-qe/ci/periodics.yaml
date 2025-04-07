@@ -50,7 +50,7 @@ periodics:
     spec:
       containers:
         - name: main
-          image: gcr.io/google.com/cloudsdktool/google-cloud-cli:517.0.0-alpine
+          image: ubuntu:latest
           env:
             - name: IDS_CSV_FILE
               value: /tmp/ids.csv
@@ -78,11 +78,14 @@ periodics:
             - pipefail
           args:
             - |
-              # Install tools
-              apk add github-cli jq
-              curl -LsSf https://astral.sh/uv/install.sh | sh
-              source $HOME/.local/bin/env
-              uv --version
+              # Install dependencies
+              apt-get update && apt-get install -y git curl wget jq
+
+              # Set up pixi.
+              curl -fsSL https://pixi.sh/install.sh | bash
+              export PATH="$HOME/.pixi/bin:$PATH"
+              pixi install
+              # install some packages with pixi
 
               # Prepare for crawl
               mkdir -p ../data/repos
@@ -106,6 +109,7 @@ periodics:
 
                 # Crawl commits in 10 years
                 timeout 3400 uv run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120 || echo "⌚️ timeout in 1 hour."
+                timeout 3400 pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120 || echo "⌚️ timeout in 1 hour."
 
                 # Save cache for ../data/repos/${org}
                 # tar -czf /tmp/${CACHE_FILE} -C ../data/repos $org
@@ -137,6 +141,7 @@ periodics:
                 git push --set-upstream origin "$head_branch"
 
                 # create a pull request and merge it.
+                which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
                 gh pr merge --auto --squash --delete-branch
               popd
@@ -176,7 +181,7 @@ periodics:
     spec:
       containers:
         - name: main
-          image: gcr.io/google.com/cloudsdktool/google-cloud-cli:517.0.0-alpine
+          image: ubuntu:latest
           env:
             - name: CRAWL_ORGS
               value: tikv
@@ -196,16 +201,19 @@ periodics:
             - pipefail
           args:
             - |
-              # Install tools
-              apk add github-cli jq
-              curl -LsSf https://astral.sh/uv/install.sh | sh
-              source $HOME/.local/bin/env
-              uv --version
+              # Install dependencies
+              apt-get update && apt-get install -y git curl wget jq
+
+              # Set up pixi.
+              curl -fsSL https://pixi.sh/install.sh | bash
+              export PATH="$HOME/.pixi/bin:$PATH"
+              pixi install
+              # install some packages with pixi
 
               # Crawl.
               for org in $CRAWL_ORGS; do
                 # Crawl pull and issues since 2015
-                timeout 36000 uv run ../data/.ci/crawl_org_pulls_issues.sh $org ../data 2015-01-01 || echo "⌚️ timeout in 10 hour."
+                timeout 36000 pixi run ../data/.ci/crawl_org_pulls_issues.sh $org ../data 2015-01-01 || echo "⌚️ timeout in 10 hour."
               done
 
               # Publish data.
@@ -226,7 +234,9 @@ periodics:
                 git commit -m "${pr_title} [skip ci]"
                 git push --set-upstream origin $head_branch
 
+
                 # create a pull request and merge it.
+                which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
                 gh pr merge --auto --squash --delete-branch
               popd
