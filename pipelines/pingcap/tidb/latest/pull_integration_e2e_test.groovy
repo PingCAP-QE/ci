@@ -53,6 +53,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     script {
+                        // Computes the branch name for downloading binaries based on the PR target branch and title.
                         def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
                         retry(3) {
                             sh label: 'download binary', script: """
