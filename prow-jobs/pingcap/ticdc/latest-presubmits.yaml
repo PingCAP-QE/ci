@@ -36,8 +36,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      # skip_if_only_changed: *skip_if_only_changed # TODO: uncomment this after the job is ready
-      context: wip/pull-cdc-kafka-integration-light # TODO: remove this after the job is ready
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-kafka-integration-light
       optional: true # TODO: change this after the job is ready
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light)(?: .*?)?$"
@@ -48,8 +48,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      # skip_if_only_changed: *skip_if_only_changed # TODO: uncomment this after the job is ready
-      context: wip/pull-cdc-pulsar-integration-light # TODO: remove this after the job is ready
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-pulsar-integration-light
       optional: true # TODO: change this after the job is ready
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light)(?: .*?)?$"
@@ -60,9 +60,9 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      # skip_if_only_changed: *skip_if_only_changed # TODO: uncomment this after the job is ready
-      context: wip/pull-cdc-storage-integration-light # TODO: remove this after the job is ready
-      optional: true # TODO: change this after the job is ready
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-storage-integration-light
+      optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light"
