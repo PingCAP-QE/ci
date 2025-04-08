@@ -52,15 +52,19 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    retry(3) {
-                        sh label: 'download binary', script: """
-                            cd tests/integrationtest2 && ./download_integration_test_binaries.sh ${REFS.base_ref}
-                            ls -alh third_bin/
-                            ./third_bin/tikv-server -V
-                            ./third_bin/pd-server -V
-                            ./third_bin/tiflash --version
-                            ./third_bin/cdc version
-                        """
+                    script {
+                        // Computes the branch name for downloading binaries based on the PR target branch and title.
+                        def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        retry(3) {
+                            sh label: 'download binary', script: """
+                                cd tests/integrationtest2 && ./download_integration_test_binaries.sh ${otherComponentBranch}
+                                ls -alh third_bin/
+                                ./third_bin/tikv-server -V
+                                ./third_bin/pd-server -V
+                                ./third_bin/tiflash --version
+                                ./third_bin/cdc version
+                            """
+                        }
                     }
                 }
             }
