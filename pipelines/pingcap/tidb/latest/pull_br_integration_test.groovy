@@ -96,17 +96,20 @@ pipeline {
                                 }
                             }
                             dir("third_party_download") {
-                                retry(2) {
-                                    sh label: "download third_party", script: """
-                                        chmod +x ../tidb/br/tests/*.sh
-                                        ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh master
-                                        rm -rf bin/ && mkdir -p bin
-                                        mv third_bin/* bin/
-                                        ls -alh bin/
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tiflash --version
-                                    """
+                                script {
+                                    def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                    retry(2) {
+                                        sh label: "download third_party", script: """
+                                            chmod +x ${WORKSPACE}/tidb/br/tests/*.sh
+                                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh ${otherComponentBranch}
+                                            rm -rf bin/ && mkdir -p bin
+                                            mv third_bin/* bin/
+                                            ls -alh bin/
+                                            ./bin/pd-server -V
+                                            ./bin/tikv-server -V
+                                            ./bin/tiflash --version
+                                        """
+                                    }
                                 }
                             }
                             dir('tidb') {
@@ -139,17 +142,17 @@ pipeline {
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     chmod +x br/tests/*.sh
                                     ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
-                                """  
+                                """
                             }
                         }
                         post{
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/backup_restore_test
-                                    tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
                                 dir('tidb'){
@@ -163,8 +166,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
-
