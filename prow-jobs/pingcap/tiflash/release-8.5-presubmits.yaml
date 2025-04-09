@@ -2,8 +2,8 @@
 global_definitions:
   branches: &branches
     - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
-  skip_if_only_changed: &skip_if_only_changed
-    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+    - ^feature/release-8\.5(.\d+)?-.+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 presubmits:
   pingcap/tiflash:
