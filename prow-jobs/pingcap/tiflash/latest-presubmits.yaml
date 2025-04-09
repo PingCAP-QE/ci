@@ -1,28 +1,34 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^feature/.+
+    skip_branches: # skip feature branches based on released version.
+      - ^feature/release-\d+\.\d+(.\d+)?-.+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tiflash:
-    - name: pingcap/tiflash/pull_unit_test
+    - <<: *brancher
       agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-unit-test
-      skip_report: false
-      optional: false
-      trigger: "(?m)^/test (?:.*? )?(pull-unit-test)(?: .*?)?$"
-      rerun_command: "/test pull-unit-test"
-      branches:
-        - ^master$
-        - ^feature/.+
-
-    - name: pingcap/tiflash/pull_integration_test
-      agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: pull-integration-test
-      skip_report: false
+      name: pingcap/tiflash/pull_unit_test
       optional: false
-      trigger: "(?m)^/test (?:.*? )?(pull-integration-test)(?: .*?)?$"
+      rerun_command: "/test pull-unit-test"
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-unit-test)(?: .*?)?$"
+
+    - <<: *brancher
+      agent: jenkins
+      context: pull-integration-test
+      decorate: false # need add this.
+      name: pingcap/tiflash/pull_integration_test
+      optional: false
       rerun_command: "/test pull-integration-test"
-      branches:
-        - ^master$
-        - ^feature/.+
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-integration-test)(?: .*?)?$"
