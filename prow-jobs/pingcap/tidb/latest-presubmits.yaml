@@ -233,6 +233,7 @@ presubmits:
       skip_report: true
       optional: true
       always_run: false
+      skip_submodules: true # Avoid fetching private submodules during dependency scanning
       spec:
         containers:
           - name: vul
