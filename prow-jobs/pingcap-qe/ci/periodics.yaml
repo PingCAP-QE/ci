@@ -55,7 +55,7 @@ periodics:
             - name: IDS_CSV_FILE
               value: /tmp/ids.csv
             - name: CRAWL_ORGS
-              value: tikv
+              value: pingcap tikv tidbcloud PingCAP-QE
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -107,8 +107,8 @@ periodics:
                 #   echo "No cache found cloned repos, will crawl from scratch."
                 # fi
 
-                # Crawl commits in 10 years
-                pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 120
+                # Crawl commits in 11 years
+                pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 132
 
                 # Save cache for ../data/repos/${org}
                 # tar -czf /tmp/${CACHE_FILE} -C ../data/repos $org
@@ -142,15 +142,15 @@ periodics:
                 # create a pull request and merge it.
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                gh pr merge --auto --squash --delete-branch
+                gh pr merge --auto --squash --delete-branch | echo "Some error happened when merge the pr"
               popd
           resources:
             requests:
-              cpu: "1"
-              memory: 4Gi
+              cpu: "2"
+              memory: 2Gi
             limits:
-              cpu: "4"
-              memory: 16Gi
+              cpu: "8"
+              memory: 8Gi
       volumes:
         - name: insight-config
           secret:
@@ -160,7 +160,7 @@ periodics:
     hidden: true
     decorate: true
     decoration_config:
-      timeout: 12h
+      timeout: 23h30m
       oauth_token_secret:
         name: github-token
         key: token
@@ -212,7 +212,7 @@ periodics:
               # Crawl.
               for org in $CRAWL_ORGS; do
                 # Crawl pull and issues since 2015
-                timeout 36000 pixi run ../data/.ci/crawl_org_pulls_issues.sh $org ../data 2015-01-01 || echo "⌚️ timeout in 10 hour."
+                timeout 82800 pixi run ../data/.ci/crawl_org_pulls_issues.sh $org ../data 2015-01-01 || echo "⌚️ timeout in 23 hour."
               done
 
               # Publish data.
@@ -236,15 +236,15 @@ periodics:
                 # create a pull request and merge it.
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                gh pr merge --auto --squash --delete-branch
+                gh pr merge --auto --squash --delete-branch | echo "Some error happened when merge the pr"
               popd
           resources:
             requests:
               cpu: "1"
-              memory: 4Gi
+              memory: 1Gi
             limits:
               cpu: "4"
-              memory: 16Gi
+              memory: 4Gi
       volumes:
         - name: insight-config
           secret:
