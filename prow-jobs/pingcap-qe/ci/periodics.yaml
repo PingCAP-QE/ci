@@ -272,12 +272,34 @@ periodics:
         workdir: false
     max_concurrency: 1 # Only allow one instance of this job to run at a time
     spec:
-      containers:
-        - name: main
+      volumes:
+        - name: insight-config
+          secret:
+            secretName: job-insight
+        - name: shared-data
+          emptyDir: {}
+      initContainers:
+        - name: setup
           image: ubuntu:latest
+          command:
+            - /bin/bash
+            - -ceo
+            - pipefail
+          args:
+            - |
+              # Prepare directory structure
+              mkdir -p ../data/repos
+              mkdir -p ../data/.ci/config
+
+              # Copy to shared volume for status tracking
+              mkdir -p /shared/status
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+      containers:
+        - &issues-pulls-crawler-base
+          name: crawl-pingcap-tidb
           env:
-            - name: CRAWL_ORGS
-              value: tikv
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -288,28 +310,192 @@ periodics:
                 secretKeyRef:
                   name: job-insight
                   key: GITHUB_USER
+            - name: CRAWL_REPO
+              value: pingcap/tidb
+            - name: START_DATE
+              value: "2015-01-01"
+          image: ubuntu:latest
           command:
             - /bin/bash
             - -ceo
             - pipefail
           args:
             - |
-              # Install dependencies
+              # Setup environment
               apt-get update && apt-get install -y git curl wget jq
 
-              # Set up pixi.
+              # Set up pixi
               curl -fsSL https://pixi.sh/install.sh | bash
               export PATH="$HOME/.pixi/bin:$PATH"
               pixi install
-              # install some packages with pixi
 
-              # Crawl.
-              for org in $CRAWL_ORGS; do
-                # Crawl pull and issues since 2015
-                timeout 82800 pixi run ../data/.ci/crawl_org_pulls_issues.sh $org ../data 2015-01-01 || echo "⌚️ timeout in 23 hour."
+              # Crawl pulls and issues for the repo.
+              timeout 82800 pixi run ../data/.ci/crawl_repo_pulls_issues.sh ${CRAWL_REPO} ../data ${START_DATE} || echo "⌚️ timeout in 23 hour."
+
+              # Mark as finished
+              mkdir -p $(dirname /shared/status/${CRAWL_REPO}.done)
+              touch /shared/status/${CRAWL_FULL_REPO}.done
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 4Gi
+        - name: crawl-tikv
+          <<: *issues-pulls-crawler-base
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_ORG
+              value: tikv
+            - name: START_DATE
+              value: "2015-01-01"
+        - <<: *issues-pulls-crawler-base
+          name: crawl-pingcap-tiflash
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_REPO
+              value: pingcap/tiflash
+            - name: START_DATE
+              value: "2015-01-01"
+        - <<: *issues-pulls-crawler-base
+          name: crawl-pingcap-tiflow
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_REPO
+              value: pingcap/tiflow
+            - name: START_DATE
+              value: "2015-01-01"
+        - <<: *issues-pulls-crawler-base
+          name: crawl-pingcap-ticdc
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_REPO
+              value: pingcap/ticdc
+            - name: START_DATE
+              value: "2015-01-01"
+        - <<: *issues-pulls-crawler-base
+          name: crawl-tikv-pd
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_REPO
+              value: tikv/pd
+            - name: START_DATE
+              value: "2015-01-01"
+        - <<: *issues-pulls-crawler-base
+          name: crawl-tikv-tikv
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_REPO
+              value: tikv/tikv
+            - name: START_DATE
+              value: "2015-01-01"
+        - name: publish
+          image: ubuntu:latest
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_REPOS
+              value: pingcap/tidb pingcap/tiflash pingcap/tiflow pingcap/ticdc tikv/pd tikv/tikv
+          command:
+            - /bin/bash
+            - -ceo
+            - pipefail
+          args:
+            - |
+              # Wait for all crawling to complete
+              while true; do
+                all_done=true
+                for repo in $CRAWL_REPOS; do
+                  if [[ ! -f "/shared/status/${repo}.done" ]]; then
+                    all_done=false
+                    break
+                  fi
+                done
+
+                if [[ "$all_done" == "true" ]]; then
+                  echo "All crawling jobs completed."
+                  break
+                else
+                  echo "Waiting for all crawling to complete..."
+                  sleep 30
+                fi
               done
 
-              # Publish data.
+              # Setup environment
+              apt-get update && apt-get install -y git curl wget jq
+
+              # Set up pixi
+              curl -fsSL https://pixi.sh/install.sh | bash
+              export PATH="$HOME/.pixi/bin:$PATH"
+              pixi install
+
+              # Publish data
               pushd ../data
                 # Set git account
                 git config user.name "ti-chi-bot[bot]"
@@ -327,19 +513,15 @@ periodics:
                 git commit -m "${pr_title} [skip ci]"
                 git push --set-upstream origin $head_branch
 
-                # create a pull request and merge it.
+                # create a pull request and merge it
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                gh pr merge --squash --delete-branch | echo "Some error happened when merge the pr"
+                gh pr merge --squash --delete-branch || echo "Some error happened when merge the pr"
               popd
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
           resources:
             requests:
-              cpu: "1"
-              memory: 1Gi
-            limits:
-              cpu: "4"
-              memory: 4Gi
-      volumes:
-        - name: insight-config
-          secret:
-            secretName: job-insight
+              cpu: "100m"
+              memory: 128Mi
