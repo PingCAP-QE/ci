@@ -54,31 +54,6 @@ periodics:
             secretName: job-insight
         - name: shared-data
           emptyDir: {}
-      initContainers:
-        - name: setup
-          image: ubuntu:latest
-          command:
-            - /bin/bash
-            - -ceo
-            - pipefail
-          args:
-            - |
-              # Prepare directory structure
-              mkdir -p ../data/repos
-              mkdir -p ../data/.ci/config
-              cp "$IDS_CSV_FILE" ../data/.ci/config/pingcap-ids.csv
-
-              # Copy to shared volume for status tracking
-              mkdir -p /shared/status
-          env:
-            - name: IDS_CSV_FILE
-              value: /tmp/ids.csv
-          volumeMounts: &shared-volume-mount
-            - name: shared-data
-              mountPath: /shared
-            - name: insight-config
-              mountPath: /tmp/ids.csv
-              subPath: pingcap-ids.csv
       containers:
         - &crawler-base
           name: crawl-pingcap
@@ -95,6 +70,8 @@ periodics:
                   key: GITHUB_USER
             - name: CRAWL_ORG
               value: pingcap
+            - name: IDS_CSV_FILE
+              value: /tmp/ids.csv
           image: ubuntu:latest
           command:
             - /bin/bash
@@ -110,14 +87,25 @@ periodics:
               export PATH="$HOME/.pixi/bin:$PATH"
               pixi install
 
+              # Prepare directory structure
+              mkdir -p ../data/repos
+              mkdir -p ../data/.ci/config
+              if [[ ! -f "../data/.ci/config/pingcap-ids.csv" ]]; then
+                cp "$IDS_CSV_FILE" ../data/.ci/config/pingcap-ids.csv
+              fi
+
               # Crawl commits for the org
               pixi run ../data/.ci/crawl_org_commits.sh ${CRAWL_ORG} ../data ../data/.ci/config 132
 
               # Mark as finished
+              mkdir -p /shared/status
               touch /shared/status/${CRAWL_ORG}.done
           volumeMounts:
             - name: shared-data
               mountPath: /shared
+            - name: insight-config
+              mountPath: /tmp/ids.csv
+              subPath: pingcap-ids.csv
           resources:
             requests:
               cpu: "2"
@@ -137,6 +125,8 @@ periodics:
                   key: GITHUB_USER
             - name: CRAWL_ORG
               value: tikv
+            - name: IDS_CSV_FILE
+              value: /tmp/ids.csv
         - <<: *crawler-base
           name: crawl-tidbcloud
           env:
@@ -152,6 +142,8 @@ periodics:
                   key: GITHUB_USER
             - name: CRAWL_ORG
               value: tidbcloud
+            - name: IDS_CSV_FILE
+              value: /tmp/ids.csv
         - <<: *crawler-base
           name: crawl-pingcap-qe
           env:
@@ -167,6 +159,8 @@ periodics:
                   key: GITHUB_USER
             - name: CRAWL_ORG
               value: PingCAP-QE
+            - name: IDS_CSV_FILE
+              value: /tmp/ids.csv
         - name: publish
           image: ubuntu:latest
           env:
