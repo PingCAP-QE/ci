@@ -278,24 +278,6 @@ periodics:
             secretName: job-insight
         - name: shared-data
           emptyDir: {}
-      initContainers:
-        - name: setup
-          image: ubuntu:latest
-          command:
-            - /bin/bash
-            - -ceo
-            - pipefail
-          args:
-            - |
-              # Prepare directory structure
-              mkdir -p ../data/repos
-              mkdir -p ../data/.ci/config
-
-              # Copy to shared volume for status tracking
-              mkdir -p /shared/status
-          volumeMounts:
-            - name: shared-data
-              mountPath: /shared
       containers:
         - &issues-pulls-crawler-base
           name: crawl-pingcap-tidb
@@ -329,12 +311,12 @@ periodics:
               export PATH="$HOME/.pixi/bin:$PATH"
               pixi install
 
-              # Crawl pulls and issues for the repo.
+              # Crawl pulls and issues for the repo
               timeout 82800 pixi run ../data/.ci/crawl_repo_pulls_issues.sh ${CRAWL_REPO} ../data ${START_DATE} || echo "⌚️ timeout in 23 hour."
 
               # Mark as finished
               mkdir -p $(dirname /shared/status/${CRAWL_REPO}.done)
-              touch /shared/status/${CRAWL_FULL_REPO}.done
+              touch /shared/status/${CRAWL_REPO}.done
           volumeMounts:
             - name: shared-data
               mountPath: /shared
@@ -345,23 +327,6 @@ periodics:
             limits:
               cpu: "4"
               memory: 4Gi
-        - <<: *issues-pulls-crawler-base
-          name: crawl-tikv
-          env:
-            - name: GITHUB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: job-insight
-                  key: GITHUB_TOKEN
-            - name: GITHUB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: job-insight
-                  key: GITHUB_USER
-            - name: CRAWL_ORG
-              value: tikv
-            - name: START_DATE
-              value: "2015-01-01"
         - <<: *issues-pulls-crawler-base
           name: crawl-pingcap-tiflash
           env:
