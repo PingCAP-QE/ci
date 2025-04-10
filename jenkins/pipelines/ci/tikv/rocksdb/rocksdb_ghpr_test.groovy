@@ -119,15 +119,6 @@ parallel(
             test("", "db_block_cache_test", "", do_cache)
         }
     },
-    /*
-    mac: {
-        node("mac-i7") {
-            def do_cache = false
-            build("all", do_cache)
-            test("", "db_block_cache_test", "", do_cache)
-        }
-    },
-    */
     x86: {
         def do_cache = true
         run_with_x86_pod {
