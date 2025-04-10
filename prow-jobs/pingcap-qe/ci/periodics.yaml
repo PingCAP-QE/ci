@@ -26,7 +26,7 @@ periodics:
               memory: 1Gi
               cpu: 200m
   - name: periodic-crawl-commits
-    cron: "0 0 * * *" # Run @daily
+    cron: "0 * * * *" # Run @hourly
     hidden: true
     decorate: true
     decoration_config:
@@ -48,14 +48,65 @@ periodics:
         workdir: false
     max_concurrency: 1 # Only allow one instance of this job to run at a time
     spec:
-      containers:
-        - name: main
+      volumes:
+        - name: insight-config
+          secret:
+            secretName: job-insight
+        - name: shared-data
+          emptyDir: {}
+      initContainers:
+        - name: setup
           image: ubuntu:latest
+          command:
+            - /bin/bash
+            - -ceo
+            - pipefail
+          args:
+            - |
+              # Prepare directory structure
+              mkdir -p ../data/repos
+              mkdir -p ../data/.ci/config
+              cp "$IDS_CSV_FILE" ../data/.ci/config/pingcap-ids.csv
+
+              # Copy to shared volume for status tracking
+              mkdir -p /shared/status
           env:
             - name: IDS_CSV_FILE
               value: /tmp/ids.csv
-            - name: CRAWL_ORGS
-              value: pingcap tikv tidbcloud PingCAP-QE
+          volumeMounts: &shared-volume-mount
+            - name: shared-data
+              mountPath: /shared
+            - name: insight-config
+              mountPath: /tmp/ids.csv
+              subPath: pingcap-ids.csv
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+      containers:
+        - name: crawl-pingcap
+          <<: &crawler-base
+          image: ubuntu:latest
+          command:
+            - /bin/bash
+            - -ceo
+            - pipefail
+          args:
+            - |
+              # Setup environment
+              apt-get update && apt-get install -y git curl wget jq
+
+              # Set up pixi
+              curl -fsSL https://pixi.sh/install.sh | bash
+              export PATH="$HOME/.pixi/bin:$PATH"
+              pixi install
+
+              # Crawl commits for the org
+              pixi run ../data/.ci/crawl_org_commits.sh ${CRAWL_ORG} ../data ../data/.ci/config 132
+
+              # Mark as finished
+              touch /shared/status/${CRAWL_ORG}.done
+          env:
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -66,62 +117,109 @@ periodics:
                 secretKeyRef:
                   name: job-insight
                   key: GITHUB_USER
-            - name: CACHE_BUCKET
-              value: prow-job-cache
+            - name: CRAWL_ORG
+              value: pingcap
           volumeMounts:
-            - name: insight-config
-              mountPath: /tmp/ids.csv
-              subPath: pingcap-ids.csv
+            - name: shared-data
+              mountPath: /shared
+          resources:
+            requests:
+              cpu: "2"
+              memory: 2Gi
+            limits:
+              cpu: "8"
+              memory: 8Gi
+
+        - name: crawl-tikv
+          <<: *crawler-base
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_ORG
+              value: tikv
+
+        - name: crawl-tidbcloud
+          <<: *crawler-base
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_ORG
+              value: tidbcloud
+
+        - name: crawl-pingcap-qe
+          <<: *crawler-base
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_ORG
+              value: PingCAP-QE
+
+        - name: publish
+          image: ubuntu:latest
+          env:
+            - name: CRAWL_ORGS
+              value: pingcap tikv tidbcloud PingCAP-QE
           command:
             - /bin/bash
             - -ceo
             - pipefail
           args:
             - |
-              # Install dependencies
+              # Wait for all crawling to complete
+              while true; do
+                all_done=true
+                for org in $CRAWL_ORGS; do
+                  if [[ ! -f "/shared/status/${org}.done" ]]; then
+                    all_done=false
+                    break
+                  fi
+                done
+
+                if [[ "$all_done" == "true" ]]; then
+                  echo "All crawling jobs completed."
+                  break
+                else
+                  echo "Waiting for all crawling to complete..."
+                  sleep 30
+                fi
+              done
+
+              # Setup environment
               apt-get update && apt-get install -y git curl wget jq
 
-              # Set up pixi.
+              # Set up pixi
               curl -fsSL https://pixi.sh/install.sh | bash
               export PATH="$HOME/.pixi/bin:$PATH"
               pixi install
-              # install some packages with pixi
-
-              # Prepare for crawl
-              mkdir -p ../data/repos
-              cp "$IDS_CSV_FILE" ../data/.ci/config/pingcap-ids.csv
-
-              # Crawl.
-              for org in $CRAWL_ORGS; do
-                # Try to restore the git clone folders from cache
-                # CACHE_FILE="repos-${org}.tar.gz"
-                # CACHE_PATH="gs://${CACHE_BUCKET}/pingcap-qe/ci/${JOB_NAME}/${CACHE_FILE}"
-                # echo "⏬ Trying to restore cache from ${CACHE_PATH} ..."
-                # if gcloud storage objects describe ${CACHE_PATH} --quiet 2>/dev/null; then
-                #   echo "Cache found! Downloading and extracting..."
-                #   gcloud storage cp ${CACHE_PATH} /tmp/${CACHE_FILE}
-                #   tar -xzf /tmp/${CACHE_FILE} -C ../data/repos $org
-                #   rm /tmp/${CACHE_FILE}
-                #   echo "Cache restored successfully!"
-                # else
-                #   echo "No cache found cloned repos, will crawl from scratch."
-                # fi
-
-                # Crawl commits in 11 years
-                pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 132
-
-                # Save cache for ../data/repos/${org}
-                # tar -czf /tmp/${CACHE_FILE} -C ../data/repos $org
-                # echo "Uploading cache to ${CACHE_PATH}..."
-                # gcloud storage cp /tmp/${CACHE_FILE} ${CACHE_PATH}
-                # rm /tmp/${CACHE_FILE}
-                # echo "Cache saved successfully!"
-              done
 
               # Cleanup
-              rm ../data/.ci/config/pingcap-ids.csv
+              rm -f ../data/.ci/config/pingcap-ids.csv
 
-              # Publish data.
+              # Publish data
               pushd ../data
                 # Set git account
                 git config user.name "ti-chi-bot[bot]"
@@ -139,22 +237,22 @@ periodics:
                 git commit -m "${pr_title} [skip ci]"
                 git push --set-upstream origin "$head_branch"
 
-                # create a pull request and merge it.
+                # create a pull request and merge it
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                gh pr merge --squash --delete-branch | echo "Some error happened when merge the pr"
+                gh pr merge --squash --delete-branch || echo "Some error happened when merge the pr"
               popd
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
           resources:
             requests:
-              cpu: "2"
-              memory: 2Gi
+              cpu: "1"
+              memory: 1Gi
             limits:
-              cpu: "8"
-              memory: 8Gi
-      volumes:
-        - name: insight-config
-          secret:
-            secretName: job-insight
+              cpu: "1"
+              memory: 1Gi
+
   - name: periodic-crawl-pulls-issues
     cron: "0 4 * * *" # Run @daily
     hidden: true
