@@ -122,8 +122,8 @@ periodics:
             requests:
               cpu: "2"
               memory: 2Gi
-        - name: crawl-tikv
-          <<: *crawler-base
+        - <<: *crawler-base
+          name: crawl-tikv
           env:
             - name: GITHUB_TOKEN
               valueFrom:
@@ -345,8 +345,8 @@ periodics:
             limits:
               cpu: "4"
               memory: 4Gi
-        - name: crawl-tikv
-          <<: *issues-pulls-crawler-base
+        - <<: *issues-pulls-crawler-base
+          name: crawl-tikv
           env:
             - name: GITHUB_TOKEN
               valueFrom:
