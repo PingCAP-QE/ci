@@ -79,13 +79,22 @@ periodics:
             - name: insight-config
               mountPath: /tmp/ids.csv
               subPath: pingcap-ids.csv
-          resources:
-            requests:
-              cpu: "1"
-              memory: 1Gi
       containers:
-        - name: crawl-pingcap
-          <<: &crawler-base
+        - &crawler-base
+          name: crawl-pingcap
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
+            - name: CRAWL_ORG
+              value: pingcap
           image: ubuntu:latest
           command:
             - /bin/bash
@@ -106,19 +115,6 @@ periodics:
 
               # Mark as finished
               touch /shared/status/${CRAWL_ORG}.done
-          env:
-            - name: GITHUB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: job-insight
-                  key: GITHUB_TOKEN
-            - name: GITHUB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: job-insight
-                  key: GITHUB_USER
-            - name: CRAWL_ORG
-              value: pingcap
           volumeMounts:
             - name: shared-data
               mountPath: /shared
@@ -126,10 +122,6 @@ periodics:
             requests:
               cpu: "2"
               memory: 2Gi
-            limits:
-              cpu: "8"
-              memory: 8Gi
-
         - name: crawl-tikv
           <<: *crawler-base
           env:
@@ -145,9 +137,8 @@ periodics:
                   key: GITHUB_USER
             - name: CRAWL_ORG
               value: tikv
-
-        - name: crawl-tidbcloud
-          <<: *crawler-base
+        - <<: *crawler-base
+          name: crawl-tidbcloud
           env:
             - name: GITHUB_TOKEN
               valueFrom:
@@ -161,9 +152,8 @@ periodics:
                   key: GITHUB_USER
             - name: CRAWL_ORG
               value: tidbcloud
-
-        - name: crawl-pingcap-qe
-          <<: *crawler-base
+        - <<: *crawler-base
+          name: crawl-pingcap-qe
           env:
             - name: GITHUB_TOKEN
               valueFrom:
@@ -177,10 +167,19 @@ periodics:
                   key: GITHUB_USER
             - name: CRAWL_ORG
               value: PingCAP-QE
-
         - name: publish
           image: ubuntu:latest
           env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_TOKEN
+            - name: GITHUB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: job-insight
+                  key: GITHUB_USER
             - name: CRAWL_ORGS
               value: pingcap tikv tidbcloud PingCAP-QE
           command:
@@ -247,14 +246,11 @@ periodics:
               mountPath: /shared
           resources:
             requests:
-              cpu: "1"
-              memory: 1Gi
-            limits:
-              cpu: "1"
-              memory: 1Gi
+              cpu: "100m"
+              memory: 128Mi
 
   - name: periodic-crawl-pulls-issues
-    cron: "0 4 * * *" # Run @daily
+    cron: "30 * * * *" # @hourly
     hidden: true
     decorate: true
     decoration_config:
