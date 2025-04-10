@@ -6,7 +6,7 @@ presubmits:
       decorate: true # need add this.
       always_run: true
       skip_submodules: true
-      clone_depth: 1
+      clone_depth: 0 # do a full clone.
       branches:
         - ^master$
         - ^raftstore-proxy$
