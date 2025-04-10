@@ -142,7 +142,7 @@ periodics:
                 # create a pull request and merge it.
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                gh pr merge --auto --squash --delete-branch | echo "Some error happened when merge the pr"
+                gh pr merge --squash --delete-branch | echo "Some error happened when merge the pr"
               popd
           resources:
             requests:
@@ -236,7 +236,7 @@ periodics:
                 # create a pull request and merge it.
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                gh pr merge --auto --squash --delete-branch | echo "Some error happened when merge the pr"
+                gh pr merge --squash --delete-branch | echo "Some error happened when merge the pr"
               popd
           resources:
             requests:
