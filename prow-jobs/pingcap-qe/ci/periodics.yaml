@@ -86,7 +86,7 @@ periodics:
 
               # Prepare for crawl
               mkdir -p ../data/repos
-              cp -r /tmp/config/* ../data/.ci/config/
+              cp -rv /tmp/config/* ../data/.ci/config/
 
               # Crawl.
               for org in $CRAWL_ORGS; do
@@ -105,6 +105,7 @@ periodics:
                 # fi
 
                 # Crawl commits in 11 years
+                ls -l ../data/.ci/config/pingcap-ids.csv
                 pixi run ../data/.ci/crawl_org_commits.sh $org ../data ../data/.ci/config 132
 
                 # Save cache for ../data/repos/${org}
