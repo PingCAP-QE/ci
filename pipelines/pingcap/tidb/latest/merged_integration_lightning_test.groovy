@@ -59,7 +59,7 @@ pipeline {
                             rm -rf third_bin/
                             rm -rf bin/
                             chmod +x ../tidb/lightning/tests/*.sh
-                            ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh master
+                            ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh ${REFS.base_ref}
                             mkdir -p bin && mv third_bin/* bin/
                             ls -alh bin/
                             ./bin/pd-server -V
@@ -79,7 +79,7 @@ pipeline {
                         ls -alh ./bin
                         ./bin/tidb-server -V
                     """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") {
                         sh label: "prepare cache binary", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -102,29 +102,29 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x lightning/tests/*.sh
                                         ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
-                                    """  
+                                    """
                                 }
                             }
-                            
+
                         }
                         post{
                             failure {
                                 sh label: "collect logs", script: """#!/usr/bin/env bash
                                     ls /tmp/lightning_test
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/lightning_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/lightning_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                         }
                     }
