@@ -238,11 +238,11 @@ periodics:
               popd
           resources:
             requests:
-              cpu: "1"
-              memory: 1Gi
-            limits:
               cpu: "4"
               memory: 4Gi
+            limits:
+              cpu: "8"
+              memory: 8Gi
       volumes:
         - name: insight-config
           secret:
