@@ -59,16 +59,20 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            chmod +x ../tidb/lightning/tests/*.sh
-                            ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh master
-                            mkdir -p bin && mv third_bin/* bin/
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                        """
+                    script {
+                        // Computes the branch name for downloading binaries based on the PR target branch and title.
+                        def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        retry(2) {
+                            sh label: "download third_party", script: """
+                                chmod +x ../tidb/lightning/tests/*.sh
+                                ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh ${otherComponentBranch}
+                                mkdir -p bin && mv third_bin/* bin/
+                                ls -alh bin/
+                                ./bin/pd-server -V
+                                ./bin/tikv-server -V
+                                ./bin/tiflash --version
+                            """
+                        }
                     }
                 }
                 dir('tidb') {
@@ -84,9 +88,10 @@ pipeline {
                             [ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test
                             ls -alh ./bin
                             ./bin/tidb-server -V
-                        """
+                            """
+                        }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -116,11 +121,11 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x lightning/tests/*.sh
                                         ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
-                                    """  
+                                    """
                                 }
                             }
                         }
@@ -129,9 +134,9 @@ pipeline {
                                 sh label: "collect logs", script: """
                                     ls /tmp/lightning_test
                                     tar --warning=no-file-changed  -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/lightning_test/ -type f -name "*.log")
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
                                 dir('tidb'){
