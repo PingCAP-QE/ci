@@ -89,7 +89,6 @@ pipeline {
                             ls -alh ./bin
                             ./bin/tidb-server -V
                             """
-                        }
                     }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
                         sh label: "prepare", script: """
