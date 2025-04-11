@@ -53,7 +53,7 @@ pipeline {
             steps {
                 dir('tidb') {
                     script {
-                        def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
                         retry(3) {
                             sh label: 'download binary', script: """
                                 cd tests/integrationtest2 && ./download_integration_test_binaries.sh ${otherComponentBranch}
