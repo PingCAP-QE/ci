@@ -26,7 +26,7 @@ periodics:
               memory: 1Gi
               cpu: 200m
   - name: periodic-crawl-commits
-    cron: "0 0 * * *" # Run @daily
+    cron: "0 * * * *" # Run @hourly
     hidden: true
     decorate: true
     decoration_config:
@@ -142,7 +142,7 @@ periodics:
                 # create a pull request and merge it.
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                gh pr merge --auto --squash --delete-branch | echo "Some error happened when merge the pr"
+                gh pr merge --auto --squash --delete-branch || echo "Some error happened when merge the pr"
               popd
           resources:
             requests:
@@ -156,7 +156,7 @@ periodics:
           secret:
             secretName: job-insight
   - name: periodic-crawl-pulls-issues
-    cron: "0 4 * * *" # Run @daily
+    cron: "30 * * * *" # @hourly
     hidden: true
     decorate: true
     decoration_config:
@@ -182,8 +182,8 @@ periodics:
         - name: main
           image: ubuntu:latest
           env:
-            - name: CRAWL_ORGS
-              value: tikv
+            - name: CRAWL_REPOS
+              value: pingcap/tidb pingcap/tiflash pingcap/tiflow tikv/tikv tikv/pd
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -210,9 +210,9 @@ periodics:
               # install some packages with pixi
 
               # Crawl.
-              for org in $CRAWL_ORGS; do
+              for repo in $CRAWL_REPOS; do
                 # Crawl pull and issues since 2015
-                timeout 82800 pixi run ../data/.ci/crawl_org_pulls_issues.sh $org ../data 2015-01-01 || echo "⌚️ timeout in 23 hour."
+                timeout 82800 pixi run ../data/.ci/crawl_repo_pulls_issues.sh $repo ../data 2015-01-01 || echo "⌚️ timeout in 23 hour."
               done
 
               # Publish data.
@@ -236,7 +236,7 @@ periodics:
                 # create a pull request and merge it.
                 which gh || pixi global install gh
                 gh pr create --title "$pr_title" --body "$pr_desc" --head $head_branch --base main
-                gh pr merge --auto --squash --delete-branch | echo "Some error happened when merge the pr"
+                gh pr merge --auto --squash --delete-branch || echo "Some error happened when merge the pr"
               popd
           resources:
             requests:
