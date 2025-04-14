@@ -350,7 +350,7 @@ pipeline {
                                     def cache_destination = "/home/jenkins/agent/libclara-cache/${libclara_commit_hash}-${libclara_suffix}"
 
                                     sh label: "upload libclara cache", script: """
-                                        if [ -f "${cache_destination}" ]; then
+                                        if [ -d "${cache_destination}" ]; then
                                             echo "Libclara cache already exists at ${cache_destination}, skip uploading"
                                         elif [ -f "${WORKSPACE}/build/libs/libclara-cmake/libclara_sharedd.so" ]; then
                                             mkdir -p "${cache_destination}_tmp"
