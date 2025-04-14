@@ -13,6 +13,8 @@ final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean build_cache_ready = false
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
+Boolean libclara_cache_ready = false
+String libclara_commit_hash = null
 
 pipeline {
     agent {
@@ -109,6 +111,10 @@ pipeline {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
                             }
+
+                            libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
+                            println "libclara_commit_hash: ${libclara_commit_hash}"
+
                             sh """
                             chown 1000:1000 -R ./
                             """
@@ -194,6 +200,28 @@ pipeline {
                         }
                     }
                 }
+                stage("Libclara Cache") {
+                    steps {
+                        script {
+                            libclara_cache_ready = sh(script: "test -d /home/jenkins/agent/libclara-cache/${libclara_commit_hash}-amd64-linux-debug && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                            println "libclara_cache_ready: ${libclara_cache_ready}"
+
+                            sh label: "copy libclara if exist", script: """
+                            libclara_suffix="amd64-linux-debug"
+                            libclara_cache_dir="/home/jenkins/agent/libclara-cache/${libclara_commit_hash}-\${libclara_suffix}"
+                            if [ -d \$libclara_cache_dir ]; then
+                                echo "libclara cache found"
+                                mkdir -p ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                cp -r \$libclara_cache_dir ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                chmod +x ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
+                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
+                            else
+                                echo "libclara cache not found"
+                            fi
+                            """
+                        }
+                    }
+                }
             }
         }
         stage("Build Dependency and Utils") {
@@ -234,6 +262,7 @@ pipeline {
                     def compatible_flag = ""
                     def openssl_root_dir = ""
                     def prebuilt_dir_flag = ""
+                    def libclara_flag = ""
                     if (proxy_cache_ready) {
                         // only for toolchain is llvm
                         prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
@@ -242,6 +271,9 @@ pipeline {
                         cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
                         """
                     }
+                    if (libclara_cache_ready) {
+                        libclara_flag = "-DLIBCLARA_CXXBRIDGE_DIR='${WORKSPACE}/tiflash/libs/libclara-prebuilt/cxxbridge' -DLIBCLARA_LIBRARY='${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so'"
+                    }
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -249,7 +281,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
+                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} ${libclara_flag} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -259,6 +291,7 @@ pipeline {
                             -DUSE_CCACHE=true \\
                             -DDEBUG_WITHOUT_DEBUG_INFO=true \\
                             -DUSE_INTERNAL_TIFLASH_PROXY=${!proxy_cache_ready} \\
+                            -DUSE_INTERNAL_LIBCLARA=${!libclara_cache_ready} \\
                             -DRUN_HAVE_STD_REGEX=0 \\
                         """
                     }
