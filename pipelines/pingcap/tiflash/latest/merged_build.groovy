@@ -11,10 +11,16 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
 final dependency_dir = "/home/jenkins/agent/dependency"
 final proxy_cache_dir = "/home/jenkins/agent/proxy-cache/refactor-pipelines"
+
 Boolean proxy_cache_ready = false
-Boolean update_proxy_cache = true
-Boolean update_ccache = true
 String proxy_commit_hash = null
+Boolean update_proxy_cache = true
+
+Boolean libclara_cache_ready = false
+String libclara_commit_hash = null
+Boolean update_libclara_cache = true
+
+Boolean update_ccache = true
 
 pipeline {
     agent {
@@ -63,7 +69,7 @@ pipeline {
                             container("util") {
                                 withCredentials(
                                     [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) { 
+                                ) {
                                     sh "rm -rf ./*"
                                     sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                     sh """
@@ -84,6 +90,10 @@ pipeline {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
                             }
+
+                            libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
+                            println "libclara_commit_hash: ${libclara_commit_hash}"
+
                             sh """
                             chown 1000:1000 -R ./
                             """
@@ -96,7 +106,7 @@ pipeline {
             parallel {
                 stage("Ccache") {
                     steps {
-                        script { 
+                        script {
                             dir("tiflash") {
                                 sh label: "copy ccache if exist", script: """
                                 ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
@@ -143,7 +153,29 @@ pipeline {
                                 echo "proxy cache not found"
                             fi
                             """
-                        }   
+                        }
+                    }
+                }
+                stage("Libclara Cache") {
+                    steps {
+                        script {
+                            libclara_cache_ready = sh(script: "test -d /home/jenkins/agent/libclara-cache/${libclara_commit_hash}-amd64-linux-debug && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                            println "libclara_cache_ready: ${libclara_cache_ready}"
+
+                            sh label: "copy libclara if exist", script: """
+                            libclara_suffix="amd64-linux-debug"
+                            libclara_cache_dir="/home/jenkins/agent/libclara-cache/${libclara_commit_hash}-\${libclara_suffix}"
+                            if [ -d \$libclara_cache_dir ]; then
+                                echo "libclara cache found"
+                                mkdir -p ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                cp -r \$libclara_cache_dir ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                chmod +x ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
+                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
+                            else
+                                echo "libclara cache not found"
+                            fi
+                            """
+                        }
                     }
                 }
                 stage("Cargo-Cache") {
@@ -182,6 +214,7 @@ pipeline {
                     def compatible_flag = ""
                     def openssl_root_dir = ""
                     def prebuilt_dir_flag = ""
+                    def libclara_flag = ""
                     if (proxy_cache_ready) {
                         // only for toolchain is llvm
                         prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
@@ -190,6 +223,9 @@ pipeline {
                         cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
                         """
                     }
+                    if (libclara_cache_ready) {
+                        libclara_flag = "-DLIBCLARA_CXXBRIDGE_DIR='${WORKSPACE}/tiflash/libs/libclara-prebuilt/cxxbridge' -DLIBCLARA_LIBRARY='${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so'"
+                    }
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -197,7 +233,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
+                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} ${libclara_flag} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -207,6 +243,7 @@ pipeline {
                             -DUSE_CCACHE=true \\
                             -DDEBUG_WITHOUT_DEBUG_INFO=true \\
                             -DUSE_INTERNAL_TIFLASH_PROXY=${!proxy_cache_ready} \\
+                            -DUSE_INTERNAL_LIBCLARA=${!libclara_cache_ready} \\
                             -DRUN_HAVE_STD_REGEX=0 \\
                         """
                     }
@@ -215,7 +252,7 @@ pipeline {
         }
         stage("Build TiFlash") {
             steps {
-                dir("${WORKSPACE}/tiflash") {  
+                dir("${WORKSPACE}/tiflash") {
                     sh """
                     cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
                     """
@@ -284,7 +321,7 @@ pipeline {
                                 if (proxy_commit_hash && proxy_commit_hash =~ /^[0-9a-f]{40}$/) {
                                     def proxy_suffix = "amd64-linux-llvm"
                                     def cache_destination = "/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-                                    
+
                                     sh label: "upload proxy cache", script: """
                                         if [ -f "${cache_destination}" ]; then
                                             echo "Proxy cache already exists at ${cache_destination}, skip uploading"
@@ -300,6 +337,36 @@ pipeline {
                                 }
                             } else {
                                 echo "Skip because proxy cache refresh is disabled"
+                            }
+                        }
+                    }
+                }
+                stage("Upload Libclara Cache") {
+                    steps {
+                        script {
+                            if (update_libclara_cache) {
+                                if (libclara_commit_hash && libclara_commit_hash =~ /^[0-9a-f]{40}$/) {
+                                    def libclara_suffix = "amd64-linux-debug"
+                                    def cache_destination = "/home/jenkins/agent/libclara-cache/${libclara_commit_hash}-${libclara_suffix}"
+
+                                    sh label: "upload libclara cache", script: """
+                                        if [ -f "${cache_destination}" ]; then
+                                            echo "Libclara cache already exists at ${cache_destination}, skip uploading"
+                                        elif [ -f "${WORKSPACE}/build/libs/libclara-cmake/libclara_sharedd.so" ]; then
+                                            mkdir -p "${cache_destination}_tmp"
+                                            cp "${WORKSPACE}/build/libs/libclara-cmake/libclara_sharedd.so" "${cache_destination}_tmp/"
+                                            cp -r "${WORKSPACE}/build/libs/libclara-cmake/cxxbridge" "${cache_destination}_tmp/"
+                                            mv "${cache_destination}_tmp" "${cache_destination}"
+                                            echo "Libclara cache uploaded to ${cache_destination}"
+                                        else
+                                            echo "Libclara library not found in local build, cache not updated"
+                                        fi
+                                    """
+                                } else {
+                                    echo "Skip uploading libclara cache because commit hash '${libclara_commit_hash}' is not valid"
+                                }
+                            } else {
+                                echo "Skip because libclara cache refresh is disabled"
                             }
                         }
                     }

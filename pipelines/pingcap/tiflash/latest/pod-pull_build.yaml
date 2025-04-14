@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:llvm-17.0.6-rocky8"
+      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:rocky8-llvm-17.0.6-v2"
       command:
         - "/bin/bash"
         - "-c"
@@ -19,27 +19,30 @@ spec:
           memory: 48Gi
           cpu: "12"
       volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
+        - mountPath: "/home/jenkins/agent/rust"
+          name: "volume-0"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/ccache"
+          name: "volume-1"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/dependency"
+          name: "volume-2"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+          name: "volume-4"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/proxy-cache"
+          name: "volume-5"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/libclara-cache"
+          name: "volume-6"
+          readOnly: false
+        - mountPath: "/tmp"
+          name: "volume-7"
+          readOnly: false
+        - mountPath: "/tmp-memfs"
+          name: "volume-8"
+          readOnly: false
     - name: util
       image: hub.pingcap.net/jenkins/ks3util
       args: ["sleep", "infinity"]
@@ -84,8 +87,13 @@ spec:
         readOnly: true
         server: "10.2.12.82"
     - name: "volume-6"
-      emptyDir: {}
+      nfs:
+        path: "/data/nvme1n1/nfs/tiflash/libclara-cache"
+        readOnly: true
+        server: "10.2.12.82"
     - name: "volume-7"
+      emptyDir: {}
+    - name: "volume-8"
       emptyDir:
         medium: Memory
   affinity:
@@ -101,4 +109,3 @@ spec:
                 operator: In
                 values:
                   - "true"
-
