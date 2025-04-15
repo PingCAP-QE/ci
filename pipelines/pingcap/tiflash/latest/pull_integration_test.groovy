@@ -14,6 +14,8 @@ Boolean proxy_cache_ready = false
 Boolean build_cache_ready = false
 String proxy_commit_hash = null
 String tiflash_commit_hash = null
+Boolean libclara_cache_ready = false
+String libclara_commit_hash = null
 
 pipeline {
     agent {
@@ -57,7 +59,7 @@ pipeline {
                 script {
                     // test build cache, if cache is exist, then skip the following build steps
                     try {
-                        dir("test-build-cache") { 
+                        dir("test-build-cache") {
                             cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
@@ -88,7 +90,7 @@ pipeline {
                         container("util") {
                             withCredentials(
                                 [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) { 
+                            ) {
                                 sh "rm -rf ./*"
                                 sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                 sh """
@@ -112,6 +114,10 @@ pipeline {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
                             }
+
+                            libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
+                            println "libclara_commit_hash: ${libclara_commit_hash}"
+
                             sh """
                             chown 1000:1000 -R ./
                             """
@@ -148,7 +154,7 @@ pipeline {
             parallel {
                 stage("Ccache") {
                     steps {
-                    script { 
+                    script {
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
                             ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
@@ -195,7 +201,30 @@ pipeline {
                                 echo "proxy cache not found"
                             fi
                             """
-                        }   
+                        }
+                    }
+                }
+                stage("Libclara Cache") {
+                    steps {
+                        script {
+                            libclara_cache_ready = sh(script: "test -d /home/jenkins/agent/libclara-cache/${libclara_commit_hash}-amd64-linux-debug && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                            println "libclara_cache_ready: ${libclara_cache_ready}"
+
+                            sh label: "copy libclara if exist", script: """
+                            libclara_suffix="amd64-linux-debug"
+                            libclara_cache_dir="/home/jenkins/agent/libclara-cache/${libclara_commit_hash}-\${libclara_suffix}"
+                            if [ -d \$libclara_cache_dir ]; then
+                                echo "libclara cache found"
+                                mkdir -p ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                cp -r \$libclara_cache_dir/* ${WORKSPACE}/tiflash/libs/libclara-prebuilt/
+                                chmod +x ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
+                                chown -R 1000:1000 ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                ls -R ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                            else
+                                echo "libclara cache not found"
+                            fi
+                            """
+                        }
                     }
                 }
                 stage("Cargo-Cache") {
@@ -237,6 +266,7 @@ pipeline {
                     def compatible_flag = ""
                     def openssl_root_dir = ""
                     def prebuilt_dir_flag = ""
+                    def libclara_flag = ""
                     if (proxy_cache_ready) {
                         // only for toolchain is llvm
                         prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
@@ -245,6 +275,9 @@ pipeline {
                         cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
                         """
                     }
+                    if (libclara_cache_ready) {
+                        libclara_flag = "-DLIBCLARA_CXXBRIDGE_DIR='${WORKSPACE}/tiflash/libs/libclara-prebuilt/cxxbridge' -DLIBCLARA_LIBRARY='${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so'"
+                    }
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -252,7 +285,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
+                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} ${libclara_flag} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -262,6 +295,7 @@ pipeline {
                             -DUSE_CCACHE=true \\
                             -DDEBUG_WITHOUT_DEBUG_INFO=true \\
                             -DUSE_INTERNAL_TIFLASH_PROXY=${!proxy_cache_ready} \\
+                            -DUSE_INTERNAL_LIBCLARA=${!libclara_cache_ready} \\
                             -DRUN_HAVE_STD_REGEX=0 \\
                         """
                     }
@@ -273,8 +307,8 @@ pipeline {
                 expression { !build_cache_ready }
             }
             steps {
-                script { 
-                    def target_branch = REFS.base_ref 
+                script {
+                    def target_branch = REFS.base_ref
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                     def fileExists = sh(script: "test -f ${WORKSPACE}/tiflash/format-diff.py && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                     if (!fileExists) {
@@ -301,7 +335,7 @@ pipeline {
                 expression { !build_cache_ready }
             }
             steps {
-                dir("${WORKSPACE}/tiflash") {  
+                dir("${WORKSPACE}/tiflash") {
                     sh """
                     cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
                     """
@@ -375,7 +409,7 @@ pipeline {
                         chown -R 1000:1000 ./
                     """
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
-                       dir('tests/.build') { 
+                       dir('tests/.build') {
                             sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
@@ -388,8 +422,8 @@ pipeline {
                         rm -rf contrib
                         du -sh ./
                         ls -alh
-                        """ 
-                    }      
+                        """
+                    }
                 }
             }
         }
@@ -410,11 +444,11 @@ pipeline {
                         retries 5
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         steps {
-                            dir("${WORKSPACE}/tiflash") { 
+                            dir("${WORKSPACE}/tiflash") {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
                                     println "restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build')}"
                                     sh label: "debug info", script: """

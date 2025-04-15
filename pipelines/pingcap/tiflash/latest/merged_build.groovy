@@ -168,9 +168,10 @@ pipeline {
                             if [ -d \$libclara_cache_dir ]; then
                                 echo "libclara cache found"
                                 mkdir -p ${WORKSPACE}/tiflash/libs/libclara-prebuilt
-                                cp -r \$libclara_cache_dir ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                cp -r \$libclara_cache_dir/* ${WORKSPACE}/tiflash/libs/libclara-prebuilt/
                                 chmod +x ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
-                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
+                                chown -R 1000:1000 ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                ls -R ${WORKSPACE}/tiflash/libs/libclara-prebuilt
                             else
                                 echo "libclara cache not found"
                             fi
@@ -355,7 +356,7 @@ pipeline {
                                         elif [ -f "${WORKSPACE}/build/libs/libclara-cmake/libclara_sharedd.so" ]; then
                                             mkdir -p "${cache_destination}_tmp"
                                             cp "${WORKSPACE}/build/libs/libclara-cmake/libclara_sharedd.so" "${cache_destination}_tmp/"
-                                            cp -r "${WORKSPACE}/build/libs/libclara-cmake/cxxbridge" "${cache_destination}_tmp/"
+                                            cp -RL "${WORKSPACE}/build/libs/libclara-cmake/cxxbridge" "${cache_destination}_tmp/"
                                             mv "${cache_destination}_tmp" "${cache_destination}"
                                             echo "Libclara cache uploaded to ${cache_destination}"
                                         else
