@@ -212,9 +212,10 @@ pipeline {
                             if [ -d \$libclara_cache_dir ]; then
                                 echo "libclara cache found"
                                 mkdir -p ${WORKSPACE}/tiflash/libs/libclara-prebuilt
-                                cp -r \$libclara_cache_dir ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                cp -r \$libclara_cache_dir/* ${WORKSPACE}/tiflash/libs/libclara-prebuilt/
                                 chmod +x ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
-                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
+                                chown -R 1000:1000 ${WORKSPACE}/tiflash/libs/libclara-prebuilt
+                                ls -R ${WORKSPACE}/tiflash/libs/libclara-prebuilt
                             else
                                 echo "libclara cache not found"
                             fi
