@@ -2,6 +2,13 @@
 def computeBranchFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     // pr title xxx | dep1=release-x.y
     println("computeBranchFromPR component: ${component}, prTargetBranch: ${prTargetBranch}, prTitle: ${prTitle}, trunkBranch: ${trunkBranch}")
+
+    // <main pr title> (#<main pr number>)
+    final cherryPickTitleReg = /\s+\(#\d+\)$/
+    if (prTitle =~ cherryPickTitleReg) {
+        println("the CI params in title seems are inherited from the master PR, if you want to set CI params, make sure to put them in the suffix of the title!")
+    }
+
     final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
 
     // - release-6.2
@@ -27,7 +34,7 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     final componentsSupportPatchReleaseBranch = ['tidb-test', 'plugin']
 
     def componentBranch = prTargetBranch
-    if (prTitle =~ componentParamReg) {
+    if (prTitle =~ componentParamReg && !(prTitle =~ cherryPickTitleReg)) {
         // example PR tiltes:
         // - feat: add new feature | tidb=pr/123
         // - feat: add new faeture | tidb=release-8.1
