@@ -1,0 +1,44 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+    # skip_branches: # skip feature branches based on released version.
+    #   - ^feature/release-\d+\.\d+(.\d+)?-.+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+presubmits:
+  pingcap-inc/tici:
+    - <<: *brancher
+      name: pull-verify
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        containers:
+          - name: build-debug
+            image: docker.io/library/rust:1.85.0
+            command: [/bin/bash, -lc]
+            args:
+              - |
+                # install protoc tool
+                apt-get update && apt-get install -y protobuf-compiler
+                cargo build && ./target/debug/tici --version
+            resources:
+              limits:
+                cpu: "1"
+                memory: 4Gi
+          # run parallel test containers.
+          # - name: test
+          #   image: docker.io/library/rust:1.85.0
+          #   command: [/bin/bash, -lc]
+          #   args:
+          #     - |
+          #       # install protoc tool
+          #       apt-get update && apt-get install -y protobuf-compiler
+          #       make test
+          #   resources:
+          #     requests:
+          #       cpu: "1"
+          #       memory: 4Gi
+          #     limits:
+          #       cpu: "4"
+          #       memory: 16Gi
