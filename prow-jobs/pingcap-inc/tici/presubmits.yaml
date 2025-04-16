@@ -16,11 +16,17 @@ presubmits:
         containers:
           - name: build-debug
             image: docker.io/library/rust:1.85.0
-            command: [/bin/bash, -lc]
+            command: [/bin/bash, -ce]
             args:
               - |
+                # Verify Rust environment
+                echo "Rust version: $(rustc --version)"
+                echo "Cargo version: $(cargo --version)"
+
                 # install protoc tool
                 apt-get update && apt-get install -y protobuf-compiler
+
+                # Build and verify
                 cargo build && ./target/debug/tici --version
             resources:
               limits:
