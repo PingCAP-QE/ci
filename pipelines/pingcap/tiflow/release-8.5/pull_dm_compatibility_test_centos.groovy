@@ -111,10 +111,10 @@ pipeline {
                                 cd - && cp -r dm/tests/bin/* ./bin
 
                                 rm -f bin/tidb*
-                                wget -q -O tidb-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tidb/package?tag=v8.5.0-centos7_linux_amd64&file=tidb-v8.5.0-linux-amd64.tar.gz"
+                                wget -q -O tidb-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/pingcap/tidb/package?tag=v8.5.2-pre_linux_amd64&file=tidb-v8.5.2-pre-linux-amd64.tar.gz"
                                 tar xzf tidb-server.tar.gz -C bin
                                 rm -rf tidb-server.tar.gz
-                                
+
                                 ls -alh ./bin
                                 ./bin/tidb-server -V
                                 ./bin/sync_diff_inspector -V
@@ -150,8 +150,8 @@ pipeline {
                 failure {
                     sh label: "collect logs", script: """
                         ls /tmp/dm_test
-                        tar -cvzf log.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
-                        ls -alh  log.tar.gz  
+                        tar -cvzf log.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")
+                        ls -alh  log.tar.gz
                     """
                     archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true
                 }

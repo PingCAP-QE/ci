@@ -65,7 +65,7 @@ pipeline {
                         }
                     }
                 }
-            }  
+            }
         }
         stage('Checkout') {
             when { expression { !skipRemainingStages} }
@@ -86,7 +86,7 @@ pipeline {
             when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                container("docker") { 
+                container("docker") {
                     dir("tiflow") {
                         withCredentials([usernamePassword(credentialsId: 'harbor-tiflow-engine', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
                             sh label: "check env", script: """
@@ -105,7 +105,7 @@ pipeline {
                             make engine_image_from_local
                             docker tag ${ENGINE_TEST_TAG} hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
                             docker push hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
-                        """                              
+                        """
                     }
                 }
             }
@@ -125,7 +125,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'docker'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 30, unit: 'MINUTES') }
@@ -140,7 +140,7 @@ pipeline {
                                             mkdir -p ./bin/ && cd ./bin/
                                             curl \${sync_diff_download_url} | tar -xz
                                             ./sync_diff_inspector -V
-                                            cd -        
+                                            cd -
                                         """
                                     }
                                     withCredentials([usernamePassword(credentialsId: 'harbor-tiflow-engine', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
@@ -165,12 +165,12 @@ pipeline {
                                         docker tag hub.pingcap.net/tiflow/mysql:8.0 mysql:8.0
                                         docker pull hub.pingcap.net/tiflow/etcd:latest
                                         docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
-                                        docker pull hub.pingcap.net/devbuild/pingcap/tidb/images/tidb-server:v8.5.0-centos7_linux_amd64
-                                        docker tag hub.pingcap.net/devbuild/pingcap/tidb/images/tidb-server:v8.5.0-centos7_linux_amd64 pingcap/tidb:\${TIDB_TEST_TAG}
-                                        docker pull hub.pingcap.net/devbuild/tikv/tikv/image:v8.5.0-centos7_linux_amd64
-                                        docker tag hub.pingcap.net/devbuild/tikv/tikv/image:v8.5.0-centos7_linux_amd64 pingcap/tikv:\${TIDB_TEST_TAG}
-                                        docker pull hub.pingcap.net/devbuild/tikv/pd/image:v8.5.0-centos7_linux_amd64
-                                        docker tag hub.pingcap.net/devbuild/tikv/pd/image:v8.5.0-centos7_linux_amd64 pingcap/pd:\${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/pingcap/tidb/images/tidb-server:v8.5.2-pre_linux_amd64
+                                        docker tag hub.pingcap.net/pingcap/tidb/images/tidb-server:v8.5.2-pre_linux_amd64 pingcap/tidb:\${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/tikv/tikv/image:v8.5.2-pre_linux_amd64
+                                        docker tag hub.pingcap.net/tikv/tikv/image:v8.5.2-pre_linux_amd64 pingcap/tikv:\${TIDB_TEST_TAG}
+                                        docker pull hub.pingcap.net/tikv/pd/image:v8.5.2-pre_linux_amd64
+                                        docker tag hub.pingcap.net/tikv/pd/image:v8.5.2-pre_linux_amd64 pingcap/pd:\${TIDB_TEST_TAG}
                                         docker pull hub.pingcap.net/tiflow/engine:${IMAGE_TAG}
                                         docker tag hub.pingcap.net/tiflow/engine:${IMAGE_TAG} ${ENGINE_TEST_TAG}
                                         docker images
@@ -187,7 +187,7 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tiflow_engine_test/ || true
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tiflow_engine_test/ -type f -name "*.log") || true  
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tiflow_engine_test/ -type f -name "*.log") || true
                                     ls -alh log-${TEST_GROUP}.tar.gz || true
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", allowEmptyArchive: true
@@ -195,12 +195,12 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
         stage("cleanup") {
             when { expression { !skipRemainingStages} }
             steps {
-                container("docker") { 
+                container("docker") {
                     withCredentials([usernamePassword(credentialsId: 'harbor-tiflow-engine', usernameVariable: 'HARBOR_CRED_USR', passwordVariable: 'HARBOR_CRED_PSW')]) {
                         sh label: "check env", script: """
                             sleep 10

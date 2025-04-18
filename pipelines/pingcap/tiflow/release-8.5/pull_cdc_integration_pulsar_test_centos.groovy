@@ -89,12 +89,12 @@ pipeline {
                             make check_third_party_binary
                             cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
                             rm -rf bin/pd-* bin/tikv-* bin/tiflash bin/lib* bin/tidb*
-                            
-                            wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O pd-ctl.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-ctl-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O tidb-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tidb/package?tag=v8.5.0-centos7_linux_amd64&file=tidb-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O tiflash.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tiflash/package?tag=v8.5.0-centos7_linux_amd64&file=tiflash-v8.5.0-linux-amd64.tar.gz"
+
+                            wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/tikv/tikv/package?tag=v8.5.2-pre_linux_amd64&file=tikv-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/tikv/pd/package?tag=v8.5.2-pre_linux_amd64&file=pd-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O pd-ctl.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/tikv/pd/package?tag=v8.5.2-pre_linux_amd64&file=pd-ctl-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O tidb-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/pingcap/tidb/package?tag=v8.5.2-pre_linux_amd64&file=tidb-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O tiflash.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/pingcap/tiflash/package?tag=v8.5.2-pre_linux_amd64&file=tiflash-v8.5.2-pre-linux-amd64.tar.gz"
                             tar xzf tikv-server.tar.gz -C bin
                             tar xzf pd-server.tar.gz -C bin
                             tar xzf pd-ctl.tar.gz -C bin
@@ -112,7 +112,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-pulsar-test')) { 
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-pulsar-test')) {
                         // build cdc, pulsar_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
@@ -124,7 +124,7 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -150,7 +150,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
@@ -169,15 +169,15 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tidb_cdc_test/
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

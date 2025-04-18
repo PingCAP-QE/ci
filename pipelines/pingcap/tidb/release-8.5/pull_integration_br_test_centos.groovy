@@ -67,13 +67,13 @@ pipeline {
                             mv third_bin/* bin/
                             ls -alh bin/
                             rm -f bin/pd-* bin/tikv-* bin/tiflash bin/cdc bin/lib*
-                            
-                            wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O tikv-ctl.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/tikv/package?tag=v8.5.0-centos7_linux_amd64&file=tikv-ctl-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O pd-ctl.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/tikv/pd/package?tag=v8.5.0-centos7_linux_amd64&file=pd-ctl-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O cdc.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tiflow/package?tag=v8.5.0-centos7_linux_amd64&file=cdc-v8.5.0-linux-amd64.tar.gz"
-                            wget -q -O tiflash.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/devbuild/pingcap/tiflash/package?tag=v8.5.0-centos7_linux_amd64&file=tiflash-v8.5.0-linux-amd64.tar.gz"
+
+                            wget -q -O tikv-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/tikv/tikv/package?tag=v8.5.2-pre_linux_amd64&file=tikv-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O tikv-ctl.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/tikv/tikv/package?tag=v8.5.2-pre_linux_amd64&file=tikv-ctl-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O pd-server.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/tikv/pd/package?tag=v8.5.2-pre_linux_amd64&file=pd-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O pd-ctl.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/tikv/pd/package?tag=v8.5.2-pre_linux_amd64&file=pd-ctl-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O cdc.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/pingcap/tiflow/package?tag=v8.5.2-pre_linux_amd64&file=cdc-v8.5.2-pre-linux-amd64.tar.gz"
+                            wget -q -O tiflash.tar.gz "https://internal-do.pingcap.net/dl/oci-file/hub.pingcap.net/pingcap/tiflash/package?tag=v8.5.2-pre_linux_amd64&file=tiflash-v8.5.2-pre-linux-amd64.tar.gz"
                             tar xzf tikv-server.tar.gz -C bin
                             tar xzf tikv-ctl.tar.gz -C bin
                             tar xzf pd-server.tar.gz -C bin
@@ -82,7 +82,7 @@ pipeline {
                             tar xzf tiflash.tar.gz && mv tiflash/* bin/ && rm -rf tiflash/
                             rm -rf tikv-server.tar.gz tikv-ctl.tar.gz pd-server.tar.gz pd-ctl.tar.gz cdc.tar.gz tiflash.tar.gz
                             ls -alh bin/
-                            
+
                             ./bin/cdc version
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
@@ -105,7 +105,7 @@ pipeline {
                             ./bin/tidb-server -V
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -135,11 +135,11 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
                                         ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
-                                    """  
+                                    """
                                 }
                             }
                         }
@@ -147,10 +147,10 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/backup_restore_test
-                                    tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
                                 dir('tidb'){
@@ -164,8 +164,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }
-
