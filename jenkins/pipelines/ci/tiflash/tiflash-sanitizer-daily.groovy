@@ -72,7 +72,7 @@ def runBuilderClosure(label, Closure body) {
                     alwaysPullImage: true, envVars: [
                     envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375'),
             ], ttyEnabled: true, command: 'cat'),
-            containerTemplate(name: 'builder', image: 'hub.pingcap.net/tiflash/tiflash-llvm-base:amd64-llvm-17.0.6',
+            containerTemplate(name: 'builder', image: 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2024.10.8-135-g43bfc3c-centos7',
                     alwaysPullImage: true, ttyEnabled: true, command: 'cat',
                     resourceRequestCpu: '10000m', resourceRequestMemory: '32Gi',
                     resourceLimitCpu: '20000m', resourceLimitMemory: '64Gi'),
@@ -176,9 +176,9 @@ ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
             writeFile(file: 'prepare.sh', text: CI_PREPARE_SCRIPT)
             sh "env UPDATE_CCACHE=${params.UPDATE_CCACHE} CMAKE_BUILD_TYPE=${type} bash prepare.sh"
         }
-    }   
+    }
 }
-    
+
 def runWithCache(type, cwd) {
     stage("preparation") {
         prepareBuildCache(type, cwd)
@@ -251,7 +251,7 @@ def run_with_pod(Closure body) {
                         image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
                         resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -278,7 +278,7 @@ run_with_pod {
             sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
             githash = sh(returnStdout: true, script: "python gethash.py -repo=tiflash -source=github -version=${target_branch} -s=${FILE_SERVER_URL}").trim()
         }
-        
+
         try {
             def cwd = pwd()
             def sanitizer = params.SANITIZER
@@ -289,15 +289,15 @@ run_with_pod {
             result = "FAILURE"
             echo "${e}"
         }
-        
+
         stage('Summary') {
             def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
             def msg = "Build Result: `${result}`" + "\n" +
                     "Elapsed Time: `${duration} mins`" + "\n" +
                     "${env.RUN_DISPLAY_URL}"
-        
+
             echo "${msg}"
-        
+
             if (result != "SUCCESS" && !params.TARGET_PULL_REQUEST) {
                 stage("sendLarkMessage") {
                     def result_mark = "❌"
