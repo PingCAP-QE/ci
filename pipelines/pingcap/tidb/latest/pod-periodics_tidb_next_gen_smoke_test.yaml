@@ -18,9 +18,12 @@ spec:
       image: "ghcr.io/pingcap-qe/cd/builders/tikv:v2024.10.8-139-g74d1fec-centos7-devtoolset10"
       tty: true
       resources:
+        requests:
+          memory: 32Gi
+          cpu: "16"
         limits:
-          memory: 16Gi
-          cpu: "6"
+          memory: 32Gi
+          cpu: "16"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
