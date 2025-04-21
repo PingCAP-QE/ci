@@ -113,10 +113,8 @@ pipeline {
                         ./bin/tikv-server -V
 
                         # Ensure tiup and mysql client are installed in agent environment
-                        # If not, you might need:
-                        # curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
-                        # source /root/.profile # Or appropriate path for the user
-                        # apt-get update && apt-get install -y mysql-client # Example for Debian/Ubuntu
+                        curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
+                        source ~/.profile && which tiup
 
                         # Start cluster using tiup playground with local binaries
                         echo "Starting TiDB cluster with tiup playground..."
