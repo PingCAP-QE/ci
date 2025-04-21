@@ -101,13 +101,53 @@ pipeline {
             steps {
                 dir('smoke_test') {
                     sh label: "run tests", script: """
-                        cp -r ../tidb/bin/* ./bin/
-                        cp -r ../pd/bin/* ./bin/
-                        cp -r ../tikv/bin/* ./bin/
+                        set -ex # Exit on error, print commands
+
+                        mkdir -p ./bin
+                        cp ../tidb/bin/tidb-server ./bin/
+                        cp ../pd/bin/pd-server ./bin/
+                        cp ../tikv/bin/tikv-server ./bin/
+                        
                         ./bin/tidb-server -V
                         ./bin/pd-server -V
                         ./bin/tikv-server -V
-                        # TODO: add some tests here, tiup to start tidb cluster and run some tests
+
+                        # Ensure tiup and mysql client are installed in agent environment
+                        # If not, you might need:
+                        # curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
+                        # source /root/.profile # Or appropriate path for the user
+                        # apt-get update && apt-get install -y mysql-client # Example for Debian/Ubuntu
+
+                        # Start cluster using tiup playground with local binaries
+                        echo "Starting TiDB cluster with tiup playground..."
+                        tiup playground \\
+                          --pd.binpath ./bin/pd-server \\
+                          --kv.binpath ./bin/tikv-server \\
+                          --db.binpath ./bin/tidb-server \\
+                          --pd 1 --kv 1 --db 1 --monitor=false \\
+                          --tag smoke-test & # Run in background with a specific tag
+
+                        # Wait for cluster to be ready
+                        echo "Waiting for cluster to start (30s)..."
+                        sleep 30
+
+                        # Run smoke test SQL commands
+                        echo "Running smoke tests..."
+                        mysql -h 127.0.0.1 -P 4000 -u root --connect-timeout=10 --execute " \\
+                          SHOW DATABASES; \\
+                          CREATE DATABASE IF NOT EXISTS smoke_test_db; \\
+                          USE smoke_test_db; \\
+                          CREATE TABLE IF NOT EXISTS smoke_test_table (id INT PRIMARY KEY); \\
+                          INSERT INTO smoke_test_table (id) VALUES (1), (2), (3) ON DUPLICATE KEY UPDATE id=id; \\
+                          SELECT COUNT(*) FROM smoke_test_table; \\
+                          DROP DATABASE IF EXISTS smoke_test_db; \\
+                        "
+
+                        # Stop the playground cluster
+                        echo "Stopping TiDB cluster..."
+                        tiup clean smoke-test --all # Clean up the specific playground instance
+
+                        echo "Smoke test completed successfully."
                     """
                 }
             }
