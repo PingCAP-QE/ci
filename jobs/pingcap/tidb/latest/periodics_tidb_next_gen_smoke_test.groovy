@@ -1,8 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-final folder = 'pingcap/tidb'
+final folder = 'pingcap/tidb/latest'
 final jobName = 'periodics_tidb_next_gen_smoke_test'
 
-pipelineJob("${folder}/${jobName}") {
+pipelineJob("pingcap/tidb/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
