@@ -22,16 +22,13 @@ presubmits:
       spec:
         containers:
           - name: build-debug
-            image: docker.io/library/rust:1.85.0
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2024.10.8-139-g74d1fec-centos7-devtoolset10
             command: [/bin/bash, -ce]
             args:
               - |
                 # Verify Rust environment
                 echo "Rust version: $(rustc --version)"
                 echo "Cargo version: $(cargo --version)"
-
-                # install protoc tool
-                apt-get update && apt-get install -y protobuf-compiler
 
                 # Build and verify
                 cargo build && ./target/debug/tici --version
