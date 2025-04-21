@@ -104,6 +104,7 @@ pipeline {
                         ./bin/tidb-server -V
                         ./bin/pd-server -V
                         ./bin/tikv-server -V
+                        # TODO: add some tests here, tiup to start tidb cluster and run some tests
                     """
                 }
             }
