@@ -116,22 +116,19 @@ pipeline {
                         curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
                         source ~/.profile && which tiup
 
-                        # Start cluster using tiup playground with local binaries
                         echo "Starting TiDB cluster with tiup playground..."
                         tiup playground \\
                           --pd.binpath ./bin/pd-server \\
                           --kv.binpath ./bin/tikv-server \\
                           --db.binpath ./bin/tidb-server \\
                           --pd 1 --kv 1 --db 1 --monitor=false \\
-                          --tag smoke-test & # Run in background with a specific tag
+                          --tag smoke-test &
                     """
                     sh label: "run tests", script: """
                         set -ex # Exit on error, print commands
-                        # Wait for cluster to be ready
                         echo "Waiting for cluster to start (30s)..."
                         sleep 30
 
-                        # Run smoke test SQL commands
                         echo "Running smoke tests..."
                         mysql -h 127.0.0.1 -P 4000 -u root --connect-timeout=10 --execute " \\
                           SHOW DATABASES; \\
@@ -143,9 +140,8 @@ pipeline {
                           DROP DATABASE IF EXISTS smoke_test_db; \\
                         "
 
-                        # Stop the playground cluster
                         echo "Stopping TiDB cluster..."
-                        tiup clean smoke-test --all # Clean up the specific playground instance
+                        tiup clean smoke-test --all
 
                         echo "Smoke test completed successfully."
                     """
