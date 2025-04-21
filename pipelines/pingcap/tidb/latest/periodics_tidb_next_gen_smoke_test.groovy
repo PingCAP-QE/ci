@@ -76,18 +76,21 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh label: "build tidb", script: """
+                        set -e
                         export NEXT_GEN=1
                         make build
                     """
                 }
                 dir('pd') {
                     sh label: "build pd", script: """
+                        set -e
                         make build
                     """
                 }   
                 dir('tikv') {
                     container('rust') { 
                         sh label: "build tikv", script: """
+                            set -e
                             make dist_release
                         """
                     }
