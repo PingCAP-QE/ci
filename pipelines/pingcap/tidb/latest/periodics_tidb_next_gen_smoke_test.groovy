@@ -65,7 +65,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/tidbcloud/cloud-storage-engine/rev-${TARGET_BRANCH_TIKV}", restoreKeys: ['git/tidbcloud/cloud-storage-engine/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutWithMergeBase('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', TARGET_BRANCH_TIKV, "", trunkBranch=TARGET_BRANCH_TIKV, timeout=5, credentialsId=GIT_CREDENTIALS_ID)
+                                component.checkoutSupportBatch('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', TARGET_BRANCH_TIKV, "", [], GIT_CREDENTIALS_ID)
                             }   
                         }
                     }
@@ -74,11 +74,59 @@ pipeline {
         }
         stage('Prepare') {
             steps {
+                dir('tikv') {
+                    container('rust') {
+                        // Cache cargo registry and git dependencies
+                        // Use TARGET_BRANCH_TIKV and the pipeline file name in the key for better scoping
+                        script {
+                            def pipelineIdentifier = env.JOB_BASE_NAME ?: "periodics-tidb-next-gen-smoke-test"
+                            // Clean workspace .cargo directory before attempting cache restore/build
+                            sh "rm -rf .cargo"
+                            // Cache paths relative to the current workspace directory ('tikv')
+                            cache(path: ".cargo/git", key: "cargo-git-ws-tikv-next-gen-${TARGET_BRANCH_TIKV}-${pipelineIdentifier}") {
+                                sh label: "build tikv", script: """
+                                    set -e
+                                    source /opt/rh/devtoolset-10/enable
+                                    cmake --version
+                                    protoc --version
+                                    gcc --version
+
+                                    # Set CARGO_HOME to a path within the workspace for caching
+                                    export CARGO_HOME="\$(pwd)/.cargo"
+                                    echo "Set CARGO_HOME to: \${CARGO_HOME}"
+
+                                    mkdir -vp "\${CARGO_HOME}"
+
+                                    # Create cargo config inside the workspace CARGO_HOME
+                                    cat << EOF | tee "\${CARGO_HOME}/config.toml"
+[source.crates-io]
+replace-with = 'aliyun'
+[source.aliyun]
+registry = "sparse+https://mirrors.aliyun.com/crates.io-index/"
+EOF
+                                    echo "Current CARGO_HOME is: \${CARGO_HOME}"
+                                    echo "Listing cached directories before build (relative path):"
+                                    ls -lad "\${CARGO_HOME}/registry" || echo "Registry cache miss or empty."
+                                    ls -lad "\${CARGO_HOME}/git" || echo "Git cache miss or empty."
+
+                                    make release
+
+                                    echo "Listing cached directories after build (relative path):"
+                                    du -sh "\${CARGO_HOME}/registry" || echo "Registry dir not found."
+                                    du -sh "\${CARGO_HOME}/git" || echo "Git dir not found."
+
+                                    # Ensure all filesystem writes are flushed before cache archiving begins
+                                    sync
+                                """
+                            }
+                        }
+                    }
+                }
                 dir('tidb') {
                     sh label: "build tidb", script: """
                         set -e
                         export NEXT_GEN=1
-                        make build
+                        make server
                     """
                 }
                 dir('pd') {
@@ -87,26 +135,18 @@ pipeline {
                         make build
                     """
                 }   
-                dir('tikv') {
-                    container('rust') { 
-                        sh label: "build tikv", script: """
-                            set -e
-                            make dist_release
-                        """
-                    }
-                }
             }
         }
         stage('Tests') {
             steps {
                 dir('smoke_test') {
                     sh label: "start tidb cluster", script: """
-                        set -ex # Exit on error, print commands
+                        set -ex
 
                         mkdir -p ./bin
                         cp ../tidb/bin/tidb-server ./bin/
                         cp ../pd/bin/pd-server ./bin/
-                        cp ../tikv/bin/tikv-server ./bin/
+                        cp ../tikv/target/release/tikv-server ./bin/
                         
                         ./bin/tidb-server -V
                         ./bin/pd-server -V
@@ -114,7 +154,7 @@ pipeline {
 
                         # Ensure tiup and mysql client are installed in agent environment
                         curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
-                        source ~/.profile && which tiup
+                        source ~/.bash_profile  && which tiup
 
                         echo "Starting TiDB cluster with tiup playground..."
                         tiup playground \\
@@ -122,12 +162,16 @@ pipeline {
                           --kv.binpath ./bin/tikv-server \\
                           --db.binpath ./bin/tidb-server \\
                           --pd 1 --kv 1 --db 1 --monitor=false \\
-                          --tag smoke-test &
+                          --tag smoke-test > playground.log 2>&1 &
                     """
                     sh label: "run tests", script: """
-                        set -ex # Exit on error, print commands
+                        set -ex
                         echo "Waiting for cluster to start (30s)..."
                         sleep 30
+                        echo "--- Displaying playground startup log (playground.log) ---"
+                        cat playground.log || true
+                        echo "--- End of playground startup log ---"
+                        export PATH=\$PATH:\$HOME/.tiup/bin && which tiup
 
                         echo "Running smoke tests..."
                         mysql -h 127.0.0.1 -P 4000 -u root --connect-timeout=10 --execute " \\
@@ -145,6 +189,24 @@ pipeline {
 
                         echo "Smoke test completed successfully."
                     """
+                }
+            }
+            post {
+                unsuccessful {
+                    sh label: "Archive Logs on Failure", script: """
+                        set +e
+                        mkdir -p smoke_test/logs
+                        cp smoke_test/playground.log smoke_test/logs/playground.log || echo "Failed to copy playground.log"
+                        TIUP_DATA_DIR=\${TIUP_HOME:-\$HOME/.tiup}/data/smoke-test
+                        if [ -d "\$TIUP_DATA_DIR" ]; then
+                            cp "\$TIUP_DATA_DIR"/*/*.log smoke_test/logs/ || echo "Failed to copy component logs"
+                        else
+                            echo "TIUP data directory \$TIUP_DATA_DIR not found."
+                        fi
+                        echo "--- Log files in archive target directory: ---"
+                        ls -alh smoke_test/logs/
+                    """
+                    archiveArtifacts(artifacts: 'smoke_test/logs/*.log', allowEmptyArchive: true)
                 }
             }
         }
