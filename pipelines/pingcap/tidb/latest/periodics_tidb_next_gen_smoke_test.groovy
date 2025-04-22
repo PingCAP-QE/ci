@@ -75,6 +75,25 @@ pipeline {
         }
         stage('Prepare') {
             steps {
+                dir('tikv') {
+                    container('rust') {
+                        sh script: 'mkdir -vp ${CARGO_HOME:-$HOME/.cargo}'
+
+                        sh label: "build tikv", script: """
+                            set -e
+                            cmake --version
+                            protoc --version
+                            # Create cargo config using heredoc inside the container
+                            cat << EOF | tee \${CARGO_HOME:-\$HOME/.cargo}/config.toml
+                            [source.crates-io]
+                            replace-with = 'aliyun'
+                            [source.aliyun]
+                            registry = "sparse+https://mirrors.aliyun.com/crates.io-index/"
+EOF
+                            make release
+                        """
+                    }
+                }
                 dir('tidb') {
                     sh label: "build tidb", script: """
                         set -e
@@ -88,23 +107,6 @@ pipeline {
                         make build
                     """
                 }   
-                dir('tikv') {
-                    container('rust') { 
-                        sh label: "build tikv", script: """
-                            set -e
-                            cmake --version
-                            protoc --version
-                            mkdir -vp \${CARGO_HOME:-\$HOME/.cargo}
-                            cat << EOF | tee \${CARGO_HOME:-\$HOME/.cargo}/config.toml
-                            [source.crates-io]
-                            replace-with = 'aliyun'
-                            [source.aliyun]
-                            registry = "sparse+https://mirrors.aliyun.com/crates.io-index/"
-                            EOF
-                            make release
-                        """
-                    }
-                }
             }
         }
         stage('Tests') {
