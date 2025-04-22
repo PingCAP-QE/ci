@@ -65,7 +65,8 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/tidbcloud/cloud-storage-engine/rev-${TARGET_BRANCH_TIKV}", restoreKeys: ['git/tidbcloud/cloud-storage-engine/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutWithMergeBase('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', TARGET_BRANCH_TIKV, "", trunkBranch=TARGET_BRANCH_TIKV, timeout=5, credentialsId=GIT_CREDENTIALS_ID)
+                                // component.checkoutWithMergeBase('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', TARGET_BRANCH_TIKV, "", trunkBranch=TARGET_BRANCH_TIKV, timeout=5, credentialsId=GIT_CREDENTIALS_ID)
+                                component.checkoutSupportBatch('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', TARGET_BRANCH_TIKV, "", [], GIT_CREDENTIALS_ID)
                             }   
                         }
                     }
@@ -78,7 +79,7 @@ pipeline {
                     sh label: "build tidb", script: """
                         set -e
                         export NEXT_GEN=1
-                        make build
+                        make server
                     """
                 }
                 dir('pd') {
@@ -91,7 +92,16 @@ pipeline {
                     container('rust') { 
                         sh label: "build tikv", script: """
                             set -e
-                            make dist_release
+                            cmake --version
+                            protoc --version
+                            mkdir -vp ${CARGO_HOME:-$HOME/.cargo}
+                            cat << EOF | tee ${CARGO_HOME:-$HOME/.cargo}/config.toml
+                            [source.crates-io]
+                            replace-with = 'aliyun'
+                            [source.aliyun]
+                            registry = "sparse+https://mirrors.aliyun.com/crates.io-index/"
+                            EOF
+                            make release
                         """
                     }
                 }
@@ -106,7 +116,7 @@ pipeline {
                         mkdir -p ./bin
                         cp ../tidb/bin/tidb-server ./bin/
                         cp ../pd/bin/pd-server ./bin/
-                        cp ../tikv/bin/tikv-server ./bin/
+                        cp ../tikv/target/release/tikv-server ./bin/
                         
                         ./bin/tidb-server -V
                         ./bin/pd-server -V
