@@ -94,8 +94,8 @@ pipeline {
                             set -e
                             cmake --version
                             protoc --version
-                            mkdir -vp ${CARGO_HOME:-$HOME/.cargo}
-                            cat << EOF | tee ${CARGO_HOME:-$HOME/.cargo}/config.toml
+                            mkdir -vp \${CARGO_HOME:-\$HOME/.cargo}
+                            cat << EOF | tee \${CARGO_HOME:-\$HOME/.cargo}/config.toml
                             [source.crates-io]
                             replace-with = 'aliyun'
                             [source.aliyun]
