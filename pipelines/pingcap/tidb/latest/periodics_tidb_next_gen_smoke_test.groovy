@@ -81,8 +81,10 @@ pipeline {
 
                         sh label: "build tikv", script: """
                             set -e
+                            source /opt/rh/devtoolset-10/enable
                             cmake --version
                             protoc --version
+                            gcc --version
                             # Create cargo config using heredoc inside the container
                             cat << EOF | tee \${CARGO_HOME:-\$HOME/.cargo}/config.toml
                             [source.crates-io]
