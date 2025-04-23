@@ -161,7 +161,7 @@ EOF
                           --pd.binpath ./bin/pd-server \\
                           --kv.binpath ./bin/tikv-server \\
                           --db.binpath ./bin/tidb-server \\
-                          --pd 1 --kv 1 --db 1 --monitor=false \\
+                          --pd 1 --kv 1 --db 1 --without-monitor \\
                           --tag smoke-test > playground.log 2>&1 &
                     """
                     sh label: "run tests", script: """
