@@ -129,7 +129,7 @@ periodics:
                 operator: In
                 values:
                   - "true"
-  - name: periodics_tidb_next_gen_smoke_test
+  - name: pingcap/tidb/periodics_tidb_next_gen_smoke_test
     agent: jenkins
     decorate: false # need add this.
     cron: "0 */12 * * *" # every 12 hour
