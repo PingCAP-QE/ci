@@ -6,7 +6,7 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     // <main pr title> (#<main pr number>)
     final cherryPickTitleReg = /\s+\(#\d+\)$/
     if (prTitle =~ cherryPickTitleReg) {
-        println("The CI params in title seem to be inherited from the master PR. To set CI params, add them as a suffix to the title after the PR number (e.g., 'Fix: ... (#123) | component=value').")```
+        println("The CI params in title seem to be inherited from the master PR. To set CI params, add them as a suffix to the title after the PR number (e.g., 'Fix: ... (#123) | component=value').")
     }
 
     final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
