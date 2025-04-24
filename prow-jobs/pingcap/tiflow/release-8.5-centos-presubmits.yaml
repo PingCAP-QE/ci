@@ -59,12 +59,3 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test-centos)(?: .*?)?$"
       rerun_command: "/test pull-dm-integration-test-centos"
       branches: *branches
-    - name: pingcap/tiflow/release-8.5/pull_engine_integration_test_centos
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false
-      optional: true
-      context: pull-engine-integration-test-centos
-      trigger: "(?m)^/test (?:.*? )?(pull-engine-integration-test-centos)(?: .*?)?$"
-      rerun_command: "/test pull-engine-integration-test-centos"
-      branches: *branches
