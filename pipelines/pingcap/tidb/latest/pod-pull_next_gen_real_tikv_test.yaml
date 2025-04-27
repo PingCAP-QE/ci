@@ -46,7 +46,7 @@ spec:
           memory: 128Mi
           cpu: 100m
     - name: rust
-      image: "ghcr.io/pingcap-qe/cd/builders/tikv:v2024.10.8-139-g74d1fec-centos7-devtoolset10"
+      image: "ghcr.io/pingcap-qe/cd/builders/tikv:v2024.10.8-139-g74d1fec-centos7-devtoolset8"
       tty: true
       resources:
         requests:

@@ -88,7 +88,7 @@ pipeline {
                             cache(path: ".cargo/git", key: "cargo-git-ws-tikv-next-gen-${TARGET_BRANCH_TIKV}-${pipelineIdentifier}") {
                                 sh label: "build tikv", script: """
                                     set -e
-                                    source /opt/rh/devtoolset-10/enable
+                                    source /opt/rh/devtoolset-8/enable
                                     cmake --version
                                     protoc --version
                                     gcc --version
