@@ -5,8 +5,10 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check2.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_next_gen_real_tikv_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final TARGET_BRANCH_PD = "master"
+final TARGET_BRANCH_TIKV = "dedicated"
 
 pipeline {
     agent {
@@ -52,26 +54,101 @@ pipeline {
                         }
                     }
                 }
+                dir("pd") {
+                    cache(path: "./", includes: '**/*', key: "git/tikv/pd/rev-${TARGET_BRANCH_PD}", restoreKeys: ['git/tikv/pd/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkoutWithMergeBase('https://github.com/tikv/pd.git', 'pd', TARGET_BRANCH_PD, "", trunkBranch=TARGET_BRANCH_PD, timeout=5, credentialsId="")
+                            }
+                        }
+                    }
+                }
+                dir("tikv") {
+                    cache(path: "./", includes: '**/*', key: "git/tidbcloud/cloud-storage-engine/rev-${TARGET_BRANCH_TIKV}", restoreKeys: ['git/tidbcloud/cloud-storage-engine/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkoutSupportBatch('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', TARGET_BRANCH_TIKV, "", [], GIT_CREDENTIALS_ID)
+                            }   
+                        }
+                    }
+                }
             }
         }
         stage("Prepare") {
             steps {
+                dir('tikv') {
+                    container('rust') {
+                        // Cache cargo registry and git dependencies
+                        // Use TARGET_BRANCH_TIKV and the pipeline file name in the key for better scoping
+                        script {
+                            def pipelineIdentifier = env.JOB_BASE_NAME ?: "pull-next-gen-real-tikv-test"
+                            // Clean workspace .cargo directory before attempting cache restore/build
+                            sh "rm -rf .cargo"
+                            // Cache paths relative to the current workspace directory ('tikv')
+                            cache(path: ".cargo/git", key: "cargo-git-ws-tikv-next-gen-${TARGET_BRANCH_TIKV}-${pipelineIdentifier}") {
+                                sh label: "build tikv", script: """
+                                    set -e
+                                    source /opt/rh/devtoolset-10/enable
+                                    cmake --version
+                                    protoc --version
+                                    gcc --version
+
+                                    # Set CARGO_HOME to a path within the workspace for caching
+                                    export CARGO_HOME="\$(pwd)/.cargo"
+                                    echo "Set CARGO_HOME to: \${CARGO_HOME}"
+
+                                    mkdir -vp "\${CARGO_HOME}"
+
+                                    # Create cargo config inside the workspace CARGO_HOME
+                                    cat << EOF | tee "\${CARGO_HOME}/config.toml"
+[source.crates-io]
+replace-with = 'aliyun'
+[source.aliyun]
+registry = "sparse+https://mirrors.aliyun.com/crates.io-index/"
+EOF
+                                    echo "Current CARGO_HOME is: \${CARGO_HOME}"
+                                    echo "Listing cached directories before build (relative path):"
+                                    ls -lad "\${CARGO_HOME}/registry" || echo "Registry cache miss or empty."
+                                    ls -lad "\${CARGO_HOME}/git" || echo "Git cache miss or empty."
+
+                                    make release
+
+                                    echo "Listing cached directories after build (relative path):"
+                                    du -sh "\${CARGO_HOME}/registry" || echo "Registry dir not found."
+                                    du -sh "\${CARGO_HOME}/git" || echo "Git dir not found."
+
+                                    # Ensure all filesystem writes are flushed before cache archiving begins
+                                    sync
+                                """
+                            }
+                        }
+                    }
+                }
+                dir('pd') {
+                    sh label: "build pd", script: 'make build'
+                } 
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
-                    }
-                    script {
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                    }
+                    sh label: 'next-gen tidb-server', script: 'NEXT_GEN=1 make server'
+
+                    // script {
+                    //      component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
+                    //      component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
+                    // }
+
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
+                        sh label: 'copy pd and tikv-server', script: """
+                            cp ../pd/bin/pd-server ./bin/
+                            cp ../tikv/target/release/tikv-server ./bin/
+                            bin/tidb-server -V
+                            bin/tikv-server -V
+                            bin/pd-server -V
                             mv bin/tidb-server bin/integration_test_tidb-server
                             touch rev-${REFS.pulls[0].sha}
                         """
                     }
                 }
+                
             }
         }
         stage('Checks') {
@@ -80,8 +157,6 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'integrationtest_with_tikv.sh y',
-                            'integrationtest_with_tikv.sh n',
                             'run_real_tikv_tests.sh bazel_brietest',
                             'run_real_tikv_tests.sh bazel_pessimistictest',
                             'run_real_tikv_tests.sh bazel_sessiontest',
@@ -110,7 +185,6 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
-                        environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
@@ -148,13 +222,6 @@ pipeline {
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
                             }
-                            success {
-                                dir("tidb") {
-                                    script {
-                                        prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -162,16 +229,7 @@ pipeline {
         }
     }
     post {
-        success {
-            // Upload check flag to fileserver
-            sh "echo done > done && curl -F ci_check/${JOB_NAME}/${REFS.pulls[0].sha}=@done ${FILE_SERVER_URL}/upload"
-        }
-
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
         always {
-            container('report') {
-                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
-            }
             archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
