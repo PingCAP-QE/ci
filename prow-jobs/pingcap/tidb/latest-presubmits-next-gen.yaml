@@ -1,0 +1,20 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^feature/next-gen-tidb$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tidb:
+    - <<: *brancher
+      name: pingcap/tidb/pull_next_gen_real_tikv_test
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+      optional: true
+      always_run: false
+      context: pull-next-gen-real-tikv-test
+      trigger: "(?m)^/test (?:.*? )?pull-next-gen-real-tikv-test(?: .*?)?$"
+      rerun_command: "/test pull-next-gen-real-tikv-test"
