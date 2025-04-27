@@ -30,25 +30,12 @@ presubmits:
                 echo "Rust version: $(rustc --version)"
                 echo "Cargo version: $(cargo --version)"
 
+                # enable devtoolset
+                source /opt/rh/devtoolset-10/enable
+
                 # Build and verify
                 cargo build && ./target/debug/tici --version
             resources:
               limits:
-                cpu: "1"
-                memory: 4Gi
-          # run parallel test containers.
-          # - name: test
-          #   image: docker.io/library/rust:1.85.0
-          #   command: [/bin/bash, -lc]
-          #   args:
-          #     - |
-          #       # install protoc tool
-          #       apt-get update && apt-get install -y protobuf-compiler
-          #       make test
-          #   resources:
-          #     requests:
-          #       cpu: "1"
-          #       memory: 4Gi
-          #     limits:
-          #       cpu: "4"
-          #       memory: 16Gi
+                cpu: "2"
+                memory: 8Gi
