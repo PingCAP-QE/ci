@@ -21,7 +21,7 @@ pipeline {
     }
     options {
         timeout(time: 65, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        // parallelsAlwaysFailFast()
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
