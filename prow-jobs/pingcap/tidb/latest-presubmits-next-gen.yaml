@@ -8,7 +8,7 @@ global_definitions:
 presubmits:
   pingcap/tidb:
     - <<: *brancher
-      name: pingcap/tidb/pull-next-gen-real-tikv-test
+      name: pingcap/tidb/pull_next_gen_real_tikv_test
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
