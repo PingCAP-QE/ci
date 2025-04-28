@@ -10,51 +10,29 @@ const platforms = [
 
 const imageMap: Record<string, GitRepoImageMap> = {
   comunity: {
-    "tikv/pd": {
-      "tikv/pd/image": "qa/pd",
-    },
-    "tikv/tikv": {
-      "tikv/tikv/image": "qa/tikv",
-    },
-    "pingcap/tidb": {
-      "pingcap/tidb/images/tidb-server": "qa/tidb",
-      "pingcap/tidb/images/br": "qa/br",
-      "pingcap/tidb/images/dumpling": "qa/dumpling",
-      "pingcap/tidb/images/tidb-lightning": "qa/tidb-lightning",
-    },
-    "pingcap/tiflash": {
-      "pingcap/tiflash/image": "qa/tiflash",
-    },
-    "pingcap/tiflow": {
-      "pingcap/tiflow/images/cdc": "qa/ticdc",
-      "pingcap/tiflow/images/dm": "qa/dm",
-    },
-    "pingcap/ticdc": {
-      "pingcap/ticdc/image": "qa/ticdc",
-    },
-    "pingcap/tidb-binlog": {
-      "pingcap/tidb-binlog/image": "qa/tidb-binlog",
-    },
-    "pingcap/monitoring": {
-      "pingcap/monitoring/image": "qa/tidb-monitor-initializer",
-    },
-    "pingcap/ng-monitoring": {
-      "pingcap/ng-monitoring/image": "qa/ng-monitoring",
-    },
+    "tikv/pd": ["tikv/pd/image"],
+    "tikv/tikv": ["tikv/tikv/image"],
+    "pingcap/tidb": [
+      "pingcap/tidb/images/tidb-server",
+      "pingcap/tidb/images/br",
+      "pingcap/tidb/images/dumpling",
+      "pingcap/tidb/images/tidb-lightning",
+    ],
+    "pingcap/tiflash": ["pingcap/tiflash/image"],
+    "pingcap/tiflow": [
+      "pingcap/tiflow/images/cdc",
+      "pingcap/tiflow/images/dm",
+    ],
+    "pingcap/ticdc": ["pingcap/ticdc/image"],
+    "pingcap/tidb-binlog": ["pingcap/tidb-binlog/image"],
+    "pingcap/monitoring": ["pingcap/monitoring/image"],
+    "pingcap/ng-monitoring": ["pingcap/ng-monitoring/image"],
   },
   enterprise: {
-    "pingcap/tidb": {
-      "pingcap/tidb/images/tidb-server": "qa/tidb-enterprise",
-    },
-    "pingcap/tiflash": {
-      "pingcap/tiflash/image": "qa/tiflash-enterprise",
-    },
-    "tikv/pd": {
-      "tikv/pd/image": "qa/pd-enterprise",
-    },
-    "tikv/tikv": {
-      "tikv/tikv/image": "qa/tikv-enterprise",
-    },
+    "tikv/pd": ["tikv/pd/image"],
+    "tikv/tikv": ["tikv/tikv/image"],
+    "pingcap/tidb": ["pingcap/tidb/images/tidb-server"],
+    "pingcap/tiflash": ["pingcap/tiflash/image"],
   },
 };
 
@@ -72,9 +50,6 @@ interface ImageInfo {
   oci?: {
     [key: string]: OciMetadata;
   };
-  src_oci?: {
-    [key: string]: OciMetadata;
-  };
   git_sha?: string;
 }
 
@@ -89,7 +64,7 @@ interface Results {
   };
 }
 
-type GitRepoImageMap = Record<string, Record<string, string>>;
+type GitRepoImageMap = Record<string, string[]>;
 
 function validate(info: ImageInfo) {
   info.ok = true;
@@ -107,15 +82,6 @@ function validate(info: ImageInfo) {
         info.ok = false;
         info.error = (info.error || "") + "\n" +
           "- git sha not same with git branch.";
-      }
-    }
-
-    // deep compare src_oci with oci
-    if (info.src_oci) {
-      if (JSON.stringify(info.oci) !== JSON.stringify(info.src_oci)) {
-        info.ok = false;
-        info.error = (info.error || "") + "\n" +
-          "- src_oci not same with oci.";
       }
     }
   }
@@ -193,19 +159,15 @@ async function checkImages(
     console.group(gitRepo);
     const gitSha = await gatheringGithubGitSha(ghClient, gitRepo, branch);
 
-    for (const [src, dst] of Object.entries(map)) {
-      const srcInfos = await getMultiArchImageInfo(
-        `${oci_registry}/${src}:${version}`,
-      );
-      const qaInfos = await getMultiArchImageInfo(
-        `${oci_registry}/${dst}:${version}`,
-      );
+    for (const src of map) {
+      const imageUrl = `${oci_registry}/${src}:${version}`;
+      const infos = await getMultiArchImageInfo(imageUrl);
       const info = {
-        oci: qaInfos,
-        src_oci: srcInfos,
+        oci: infos,
+        image_url: imageUrl,
         git_sha: gitSha,
       } as ImageInfo;
-      results[dst] = info;
+      results[src] = info;
       validate(info);
     }
 
