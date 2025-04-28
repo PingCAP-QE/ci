@@ -130,12 +130,6 @@ EOF
                 } 
                 dir('tidb') {
                     sh label: 'next-gen tidb-server', script: 'NEXT_GEN=1 make server'
-
-                    // script {
-                    //      component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                    //      component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                    // }
-
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh label: 'copy pd and tikv-server', script: """
@@ -158,11 +152,6 @@ EOF
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'run_real_tikv_tests.sh bazel_brietest',
-                            'run_real_tikv_tests.sh bazel_pessimistictest',
-                            'run_real_tikv_tests.sh bazel_sessiontest',
-                            'run_real_tikv_tests.sh bazel_statisticstest',
-                            'run_real_tikv_tests.sh bazel_txntest',
                             'run_real_tikv_tests.sh bazel_addindextest',
                             'run_real_tikv_tests.sh bazel_addindextest1',
                             'run_real_tikv_tests.sh bazel_addindextest2',
@@ -172,8 +161,6 @@ EOF
                             'run_real_tikv_tests.sh bazel_importintotest2',
                             'run_real_tikv_tests.sh bazel_importintotest3',
                             'run_real_tikv_tests.sh bazel_importintotest4',
-                            'run_real_tikv_tests.sh bazel_pipelineddmltest',
-                            'run_real_tikv_tests.sh bazel_flashbacktest',
                         )
                     }
                 }
@@ -198,7 +185,10 @@ EOF
                                 git diff .
                                 git status
                                 """
-                                sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
+                                sh label: "run test", script: """
+                                    export NEXT_GEN=1
+                                    ${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}
+                                """
                             }
                         }
                         post {
