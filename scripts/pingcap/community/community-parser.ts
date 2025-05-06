@@ -23,6 +23,16 @@ interface CommunityTeamConfig {
 type PathOwners = Record<RightRole, string[]>;
 type RepoOwners = Record<string, PathOwners>;
 
+async function parseCommunityMembershipFiles(inputFiles: string[]) {
+  return await Promise.all(
+    Array.from(inputFiles).map((input) =>
+      Deno.readTextFile(input).then((content) => {
+        return JSON.parse(content) as CommunityTeamConfig;
+      })
+    ),
+  );
+}
+
 // Parsing for community membership json files.
 class CommunityParser {
   private teamConfigs: CommunityTeamConfig[];
@@ -34,13 +44,7 @@ class CommunityParser {
   }
 
   async initialize() {
-    this.teamConfigs = await Promise.all(
-      Array.from(this.inputFiles).map((input) =>
-        Deno.readTextFile(input).then((content) => {
-          return JSON.parse(content) as CommunityTeamConfig;
-        })
-      ),
-    );
+    this.teamConfigs = await parseCommunityMembershipFiles(this.inputFiles);
   }
 
   /**
