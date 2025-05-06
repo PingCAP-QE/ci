@@ -6,6 +6,7 @@ spec:
   containers:
     - name: runner
       image: "hub.pingcap.net/tiflash/tiflash-llvm-base:rocky8-llvm-17.0.6-v2"
+      imagePullPolicy: Always
       command:
         - "/bin/bash"
         - "-c"
