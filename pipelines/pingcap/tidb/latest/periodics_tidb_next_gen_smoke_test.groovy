@@ -6,7 +6,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-periodics_tidb_next_gen_smoke_test.yaml'
-final TARGET_BRANCH_TIDB = "feature/next-gen-tidb"
+final TARGET_BRANCH_TIDB = "master"
 final TARGET_BRANCH_PD = "master"
 final TARGET_BRANCH_TIKV = "dedicated"
 
