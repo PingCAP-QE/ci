@@ -13,3 +13,5 @@ presubmits:
         - ^master$
         - ^release-\d+\.\d+$
         - ^release-cloud$
+        - ^feature/.+
+        - ^support-azure$
