@@ -12,3 +12,4 @@ presubmits:
       branches:
         - ^master$
         - ^release-\d+\.\d+$
+        - ^feature/.+
