@@ -21,6 +21,7 @@ postsubmits:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --inputs=teams/pd/team.json
               - --inputs=teams/tikv/team.json
+              - --filterMode
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
