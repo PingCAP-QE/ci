@@ -57,6 +57,7 @@ presubmits:
                 value: /cache
             args:
               - |
+                set -ex
                 echo "Preparing test assets..."
                 mkdir -p /cache
                 wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > /cache/hdfs-logs-multitenants.json
