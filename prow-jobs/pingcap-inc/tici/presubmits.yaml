@@ -47,18 +47,6 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       always_run: false
       spec:
-        initContainers:
-          - name: cache-preparation
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.4.24-7-g3a888d8
-            command: ['/bin/sh', '-c']
-            args:
-              - |
-                echo "Preparing test assets..."
-                cd /cache
-                wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > hdfs-logs-multitenants.json
-            volumeMounts:
-              - name: cache-volume
-                mountPath: /cache
         containers:
           - name: e2e
             image: ghcr.io/pingcap-qe/ci/tici:v2025.4.24-7-g3a888d8
@@ -68,15 +56,13 @@ presubmits:
                 value: /cache
             args:
               - |
+                echo "Preparing test assets..."
+                mkdir -p /cache
+                wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > /cache/hdfs-logs-multitenants.json
+                echo "Running tests..."
                 make ci-prepare-test
                 make ci-run-test
-            volumeMounts:
-              - name: cache-volume
-                mountPath: /cache
             resources:
               limits:
                 cpu: "4"
                 memory: 16Gi
-        volumes:
-          - name: cache-volume
-            emptyDir: {}
