@@ -64,5 +64,5 @@ presubmits:
                 make ci-run-test
             resources:
               limits:
-                cpu: "4"
-                memory: 16Gi
+                cpu: "2"
+                memory: 8Gi
