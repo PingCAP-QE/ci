@@ -108,6 +108,7 @@ configMapGenerator:
       - pingcap_tiflow_release-9.0-beta-presubmits.yaml=pingcap/tiflow/release-9.0-beta-presubmits.yaml
       - pingcap_tiproxy_latest-postsubmits.yaml=pingcap/tiproxy/latest-postsubmits.yaml
       - pingcap_tiproxy_latest-presubmits.yaml=pingcap/tiproxy/latest-presubmits.yaml
+      - pingcap_tispark_latest-presubmits.yaml=pingcap/tispark/latest-presubmits.yaml
       - ti-community-infra_configs_periodics.yaml=ti-community-infra/configs/periodics.yaml
       - ti-community-infra_configs_postsubmits.yaml=ti-community-infra/configs/postsubmits.yaml
       - ti-community-infra_configs_presubmits.yaml=ti-community-infra/configs/presubmits.yaml
