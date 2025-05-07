@@ -39,3 +39,30 @@ presubmits:
               limits:
                 cpu: "2"
                 memory: 8Gi
+
+    - <<: *brancher
+      name: pull-e2e-test
+      decorate: true
+      decoration_config: *decoration_config
+      # skip_if_only_changed: *skip_if_only_changed
+      always_run: false
+      spec:
+        containers:
+          - name: e2e
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.4.24-7-g3a888d8
+            command: [/bin/bash, -ce]
+            env:
+              - name: ASSET_DIR
+                value: /cache
+            args:
+              - |
+                echo "Preparing test assets..."
+                mkdir -p /cache
+                wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > /cache/hdfs-logs-multitenants.json
+                echo "Running tests..."
+                make ci-prepare-test
+                make ci-run-test
+            resources:
+              limits:
+                cpu: "4"
+                memory: 16Gi
