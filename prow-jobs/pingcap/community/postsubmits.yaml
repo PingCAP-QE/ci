@@ -27,6 +27,7 @@ postsubmits:
               - --inputs=teams/kubernetes/membership.json
               - --inputs=teams/migration/membership.json
               - --inputs=teams/bigdata/membership.json
+              - --filterMode
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
