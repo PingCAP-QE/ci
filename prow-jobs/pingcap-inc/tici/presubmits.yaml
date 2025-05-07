@@ -50,7 +50,7 @@ presubmits:
       spec:
         containers:
           - name: e2e
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.4.24-8-gaa30e13
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.4.24-9-gc26c715
             command: [/bin/bash, -ce]
             env:
               - name: ASSET_DIR
