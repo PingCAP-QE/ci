@@ -36,6 +36,9 @@ presubmits:
 
                 # Build and verify
                 cargo build && ./target/debug/tici --version
+
+                # check format & clippy
+                make check
             resources:
               limits:
                 cpu: "2"
