@@ -45,8 +45,7 @@ presubmits:
       name: pull-e2e
       decorate: true
       decoration_config: *decoration_config
-      # skip_if_only_changed: *skip_if_only_changed
-      always_run: false
+      skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
           - name: e2e
