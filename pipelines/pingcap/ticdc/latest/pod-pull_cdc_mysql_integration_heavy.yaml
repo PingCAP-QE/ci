@@ -9,7 +9,7 @@ spec:
       tty: true
       resources:
         limits:
-          memory: 32Gi
+          memory: 24Gi
           cpu: "12"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
