@@ -1,3 +1,6 @@
+global_definitions:
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
 presubmits:
   tikv/raft-engine:
     - name: rust-nightly

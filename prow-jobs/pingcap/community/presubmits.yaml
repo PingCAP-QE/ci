@@ -2,7 +2,7 @@ presubmits:
   pingcap/community:
     - name: pull-verify
       decorate: true
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       branches:
         - ^master$
       spec:

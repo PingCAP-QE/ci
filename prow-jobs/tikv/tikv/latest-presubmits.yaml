@@ -6,7 +6,7 @@ global_definitions:
       - ^feature/.+
     skip_branches:
       - ^feature/release-\d+\.\d+(.\d+)?-.+$
-  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 presubmits:
   tikv/tikv:

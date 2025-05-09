@@ -1,161 +1,166 @@
-# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
 postsubmits:
   pingcap/tidb:
-    - name: pingcap/tidb/merged_e2e_test
+    - <<: *brancher
+      name: pingcap/tidb/merged_e2e_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/e2e-test
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_e2e_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_e2e_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: wip/integration-e2e-test
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_common_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_common_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/common-test
       max_concurrency: 1
       skip_report: false
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_common_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_common_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-common-test
       max_concurrency: 1
       skip_report: true # TODO: change to false after failed test is fixed.
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_ddl_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_ddl_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-ddl-test
       max_concurrency: 1
       skip_report: false
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_jdbc_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_jdbc_test
       agent: jenkins
       decorate: false # need add this.
       context: ci/integration-jdbc-test
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_mysql_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_mysql_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-mysql-test
       max_concurrency: 1
       skip_report: false
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_sqllogic_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/sqllogic-test
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_copr_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_copr_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-copr-test
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_tiflash_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_tiflash_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/tiflash-test
       max_concurrency: 1
       skip_report: false
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_build
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_build
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/build
       max_concurrency: 1
       skip_report: false
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_unit_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_unit_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/unit-test
       max_concurrency: 1
       skip_report: false
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_unit_test_ddlv1
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_unit_test_ddlv1
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: wip/unit-test-ddlv1 # TODO: change to ci/ after test.
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_python_orm_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
       context: ci/integration-python-orm-test
       max_concurrency: 1
       skip_report: false
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_nodejs_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-nodejs-test
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_mysql_client_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_mysql_client_test
       agent: jenkins
       decorate: false # need add this.
       context: ci/mysql-client-test
       max_concurrency: 1
       skip_report: false
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_br_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_br_test
       agent: jenkins
       decorate: false # need add this.
       context: wip/integration-br-test
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$
-    - name: pingcap/tidb/merged_integration_lightning_test
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_integration_lightning_test
       agent: jenkins
       decorate: false # need add this.
       context: wip/integration-lightning-test
       max_concurrency: 1
       skip_report: true
-      branches:
-        - ^master$

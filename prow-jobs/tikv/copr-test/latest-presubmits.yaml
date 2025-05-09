@@ -5,7 +5,7 @@ global_definitions:
       - ^master$
       - ^feature/.+
       - ^release-.+
-  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 presubmits:
   tikv/copr-test:
