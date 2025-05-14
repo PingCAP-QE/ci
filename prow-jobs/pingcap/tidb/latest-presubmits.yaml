@@ -224,3 +224,15 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test pull-integration-python-orm-test"
+
+
+    - <<: *brancher
+      name: pingcap/tidb/pull_vector_search_test
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      optional: true
+      context: pull-vector-search-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?pull-vector-search-test(?: .*?)?$"
+      rerun_command: "/test pull-vector-search-test"
