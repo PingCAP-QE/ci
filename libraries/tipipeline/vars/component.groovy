@@ -343,6 +343,7 @@ def checkoutWithMergeBase(gitUrl, component, prTargetBranch, prTitle, trunkBranc
 }
 
 // fetch component artifact from artifactory(current http server)
+// Note: useBranchInArtifactUrl is used for tiflash component, only support master branch and common release branch
 def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artifactPath, pathInArchive="", trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=false) {
     def componentBranch = computeBranchFromPR(component, prTargetBranch, prTitle, trunkBranch)
     sh(label: 'download and extract from server', script: """
@@ -358,7 +359,7 @@ def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artif
             echo "🔍 ref url: \${refUrl}"
             sha1="\$(curl --fail \${refUrl} | head -1)"
         fi
-        
+
         artifactUrl="${serverUrl}/download/builds/pingcap/${component}/\${sha1}/${artifactPath}"
         if [[ "${useBranchInArtifactUrl}" = "true" ]]; then
             artifactUrl="${serverUrl}/download/builds/pingcap/${component}/\${componentBranch}/\${sha1}/${artifactPath}"
