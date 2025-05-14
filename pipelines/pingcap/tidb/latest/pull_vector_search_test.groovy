@@ -69,8 +69,20 @@ pipeline {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
+                    sh label: 'print version', script: """
+                        bin/tidb-server -V
+                        bin/tikv-server -V
+                        bin/pd-server -V
+                        bin/tiflash --version
+                    """
                     sh label: 'test', script: """
+                        python3 -m pip install --user pipx
+                        pipx install uv
+
                         cd tests/clusterintegrationtest/
+                        uv venv --python python3.9
+                        source .venv/bin/activate
+                        uv pip install -r requirements.txt
                         ./run_mysql_tester.sh
                         ./run_python_tester.sh
                         ./run_upgrade_test.sh
