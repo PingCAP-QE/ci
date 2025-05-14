@@ -362,7 +362,7 @@ def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artif
 
         artifactUrl="${serverUrl}/download/builds/pingcap/${component}/\${sha1}/${artifactPath}"
         if [[ "${useBranchInArtifactUrl}" = "true" ]]; then
-            artifactUrl="${serverUrl}/download/builds/pingcap/${component}/\${componentBranch}/\${sha1}/${artifactPath}"
+            artifactUrl="${serverUrl}/download/builds/pingcap/${component}/${componentBranch}/\${sha1}/${artifactPath}"
         fi
         echo "⬇️📦 artifact url: \${artifactUrl}"
         saveFile=\$(basename \${artifactUrl})
