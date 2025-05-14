@@ -343,7 +343,7 @@ def checkoutWithMergeBase(gitUrl, component, prTargetBranch, prTitle, trunkBranc
 }
 
 // fetch component artifact from artifactory(current http server)
-def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artifactPath, pathInArchive="", trunkBranch="master", artifactVerify=false) {
+def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artifactPath, pathInArchive="", trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=false) {
     def componentBranch = computeBranchFromPR(component, prTargetBranch, prTitle, trunkBranch)
     sh(label: 'download and extract from server', script: """
         sha1=""
@@ -358,8 +358,11 @@ def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artif
             echo "🔍 ref url: \${refUrl}"
             sha1="\$(curl --fail \${refUrl} | head -1)"
         fi
-
+        
         artifactUrl="${serverUrl}/download/builds/pingcap/${component}/\${sha1}/${artifactPath}"
+        if [[ "${useBranchInArtifactUrl}" = "true" ]]; then
+            artifactUrl="${serverUrl}/download/builds/pingcap/${component}/\${componentBranch}/\${sha1}/${artifactPath}"
+        fi
         echo "⬇️📦 artifact url: \${artifactUrl}"
         saveFile=\$(basename \${artifactUrl})
         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -c -O \${saveFile} \${artifactUrl}
