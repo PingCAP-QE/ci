@@ -72,7 +72,7 @@ pipeline {
                         cd tests/clusterintegrationtest/
                         ./run_mysql_tester.sh
                         ./run_python_tester.sh
-                        ./run_upgra
+                        ./run_upgrade_test.sh
                     """
                 }
             }
