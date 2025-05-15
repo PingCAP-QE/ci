@@ -35,7 +35,7 @@ presubmits:
                 source /opt/rh/devtoolset-10/enable
 
                 # Build and verify
-                cargo build && ./target/debug/tici --version
+                make rust && ./target/debug/tici --version
 
                 # check format & clippy
                 make check
