@@ -76,10 +76,11 @@ pipeline {
                         bin/tiflash --version
                     """
                     sh label: 'test', script: """
-                        python3 -m pip install --user pipx
-                        pipx install uv
+                        export PATH="\$HOME/.local/bin:\$PATH"
+                        curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.7.3/uv-installer.sh | sh
 
                         cd tests/clusterintegrationtest/
+
                         uv venv --python python3.9
                         source .venv/bin/activate
                         uv pip install -r requirements.txt
