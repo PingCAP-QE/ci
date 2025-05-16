@@ -79,6 +79,9 @@ pipeline {
                         export PATH="\$HOME/.local/bin:\$PATH"
                         curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.7.3/uv-installer.sh | sh
 
+                        curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
+                        export PATH="\$HOME/.tiup/bin:\$PATH"
+
                         cd tests/clusterintegrationtest/
 
                         uv venv --python python3.9
