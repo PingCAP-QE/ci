@@ -26,7 +26,7 @@ presubmits:
                     - amd64
         containers:
           - name: rust
-            image: rust:1.75.0
+            image: rust:1.85.0
             command: ["/bin/sh", "-c"]
             env:
               - name: RUST_BACKTRACE
@@ -76,7 +76,7 @@ presubmits:
                     - amd64
         containers:
           - name: rust
-            image: rust:1.75.0
+            image: rust:1.85.0
             command: ["/bin/sh", "-c"]
             env:
               - name: WITH_STABLE_TOOLCHAIN
