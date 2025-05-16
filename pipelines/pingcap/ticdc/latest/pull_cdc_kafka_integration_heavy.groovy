@@ -143,7 +143,7 @@ pipeline {
                                         }
                                     }
                                     sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_light_it_in_ci.sh kafka ${TEST_GROUP}
+                                        ./tests/integration_tests/run_heavy_it_in_ci.sh kafka ${TEST_GROUP}
                                     """
                                 }
                             }
