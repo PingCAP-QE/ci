@@ -38,8 +38,8 @@ presubmits:
                 set -ex
                 apt-get update; apt-get install -y cmake
                 rustup show
-                rustup toolchain install nightly-2023-12-31
-                rustup default nightly-2023-12-31
+                rustup toolchain install nightly-2025-04-03
+                rustup default nightly-2025-04-03
                 rustup component add rustfmt clippy rust-src
                 cargo install grcov
                 make format && git diff --exit-code
