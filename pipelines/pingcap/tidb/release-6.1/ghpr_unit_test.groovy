@@ -81,6 +81,7 @@ pipeline {
                 always {
                     dir('tidb') {
                         // archive test report to Jenkins.
+                        archiveArtifacts(artifacts: '**/*-junit-report.xml', fingerprint: true, allowEmptyArchive: true)
                         junit(testResults: "**/*-junit-report.xml", allowEmptyResults: true)
                     }
                 }
