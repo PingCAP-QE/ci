@@ -174,9 +174,7 @@ class RepoUpdater {
           `# The members of 'sig-community-*' are synced from memberships defined in repository: https://github.com/${this.owner}/community.`,
         );
       }
-      yamlContentLines.push(yaml.stringify(
-        JSON.parse(JSON.stringify(ownersMap.owners[scope])),
-      ));
+      yamlContentLines.push(yaml.stringify(ownersMap.owners[scope]));
       const yamlContent = yamlContentLines.join("\n");
 
       const filePath = scope.startsWith("/")
@@ -191,9 +189,7 @@ class RepoUpdater {
       const fileContent = [
         `# See the OWNERS docs at https://www.kubernetes.dev/docs/guide/owners/#owners_aliases`,
         `# The members of 'sig-community-*' are synced from memberships defined in repository: https://github.com/${this.owner}/community.`,
-        yaml.stringify(
-          JSON.parse(JSON.stringify({ alias: ownersMap.aliases })),
-        ),
+        yaml.stringify({ aliases: ownersMap.aliases }),
       ].join("\n");
 
       updateFileAndContents["OWNERS_ALIASES"] = fileContent;

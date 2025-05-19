@@ -22,8 +22,6 @@ async function main(
 ) {
   const owners = await CommunityParser.GetAllOwners(inputs);
 
-  console.log("parsed");
-
   // Create a new Octokit instance using the provided token
   const octokit = new Octokit({ auth: github_private_token });
 
