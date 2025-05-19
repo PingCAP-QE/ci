@@ -192,7 +192,7 @@ class RepoUpdater {
         `# See the OWNERS docs at https://www.kubernetes.dev/docs/guide/owners/#owners_aliases`,
         `# The members of 'sig-community-*' are synced from memberships defined in repository: https://github.com/${this.owner}/community.`,
         yaml.stringify(
-          JSON.parse(JSON.stringify({ alias: ownersMap.aliases })),
+          JSON.parse(JSON.stringify({ aliases: ownersMap.aliases })),
         ),
       ].join("\n");
 
