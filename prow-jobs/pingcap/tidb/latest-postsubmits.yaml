@@ -128,6 +128,7 @@ postsubmits:
       name: pingcap/tidb/merged_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-python-orm-test
       max_concurrency: 1
       skip_report: false
@@ -145,6 +146,7 @@ postsubmits:
       name: pingcap/tidb/merged_mysql_client_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/mysql-client-test
       max_concurrency: 1
       skip_report: false
@@ -153,6 +155,7 @@ postsubmits:
       name: pingcap/tidb/merged_integration_br_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
       context: wip/integration-br-test
       max_concurrency: 1
       skip_report: true
@@ -161,6 +164,7 @@ postsubmits:
       name: pingcap/tidb/merged_integration_lightning_test
       agent: jenkins
       decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
       context: wip/integration-lightning-test
       max_concurrency: 1
       skip_report: true
