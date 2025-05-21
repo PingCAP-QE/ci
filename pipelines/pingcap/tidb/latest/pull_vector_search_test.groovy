@@ -63,6 +63,13 @@ pipeline {
                          sh label: 'move tiflash', script: 'mv tiflash/* bin/ && rm -rf tiflash'
                     } 
                 }
+                dir('test-assets') {
+                    sh label: 'download test assets', script: """
+                        # wget https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
+                        # wget https://ann-benchmarks.com/mnist-784-euclidean.hdf5
+                        # Use internal file server to download test assets
+                    """
+                }
             }
         }
         stage('Tests') {
