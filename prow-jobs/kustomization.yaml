@@ -27,6 +27,7 @@ configMapGenerator:
       - pingcap_tidb-binlog_latest-presubmits.yaml=pingcap/tidb-binlog/latest-presubmits.yaml
       - pingcap_tidb-engine-ext_latest-presubmits.yaml=pingcap/tidb-engine-ext/latest-presubmits.yaml
       - pingcap_tidb-engine-ext_release-6.1-latest-presubmits.yaml=pingcap/tidb-engine-ext/release-6.1-latest-presubmits.yaml
+      - pingcap_tidb-operator_latest-presubmits.yaml=pingcap/tidb-operator/latest-presubmits.yaml
       - pingcap_tidb-test_latest-presubmits.yaml=pingcap/tidb-test/latest-presubmits.yaml
       - pingcap_tidb-test_release-6.0-presubmits.yaml=pingcap/tidb-test/release-6.0-presubmits.yaml
       - pingcap_tidb-test_release-6.1-presubmits.yaml=pingcap/tidb-test/release-6.1-presubmits.yaml

@@ -1,0 +1,89 @@
+global_definitions:
+  branches: &branches
+    - ^feature/v2$
+  skip_if_only_changed: &skip_if_only_changed
+    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  decoration_config: &decoration_config
+    timeout: 45m
+
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tidb-operator:
+    - name: pull-e2e
+      decorate: true # need add this.
+      decoration_config: *decoration_config
+      always_run: false
+      optional: true
+      # skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      spec:
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+        containers:
+          - name: dind-daemon
+            image: docker:28.1-dind-rootless
+            command: ["docker-entrypoint.sh"]
+            securityContext:
+              privileged: true
+              runAsUser: 1001
+              runAsGroup: 1001
+            env:
+              - name: XDG_RUNTIME_DIR # Explicitly set for consistency
+                value: /run/user/1001
+            volumeMounts:
+              - name: docker-sock-dir
+                # This is where dockerd-rootless typically creates its socket,
+                # corresponding to $XDG_RUNTIME_DIR.
+                mountPath: /run/user/1001
+            resources:
+              requests:
+                memory: "4Gi"
+                cpu: "1"
+              limits:
+                memory: "4Gi"
+                cpu: "1"
+
+          - name: e2e-runner
+            image: golang:1.23-bullseye
+            command: ["/bin/bash", "-ce"]
+            args:
+              - |
+                set -ex pipefail
+                
+                apt-get update -qq && apt-get install -y -qq --no-install-recommends docker-ce-cli
+                echo "Docker CLI installed."
+                
+                # Set DOCKER_HOST to use the shared socket
+                export DOCKER_HOST="unix:///run/user/1001/docker.sock"
+                
+                echo "Waiting for Docker daemon to be responsive on ${DOCKER_HOST}..."
+                timeout_seconds=120
+                # Loop until docker info succeeds or timeout is reached
+                if ! timeout ${timeout_seconds}s bash -c " \
+                  until docker info > /dev/null 2>&1; do \
+                    echo \\"Waiting for Docker... \\\$(date)\\""; sleep 5; \
+                  done"; then
+                  echo "Error: Docker daemon did not start within ${timeout_seconds} seconds." >&2
+                  echo "Listing contents of /run/user/1001 to help debug:" >&2
+                  ls -la /run/user/1001 || echo "Warning: Failed to list /run/user/1001" >&2
+                  exit 1
+                fi
+                echo "Docker daemon is responsive."
+                
+                echo "Running 'make e2e'..."
+                make e2e
+            securityContext:
+              runAsUser: 1001
+              runAsGroup: 1001
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /run/user/1001 # Mount the shared socket directory
+            resources:
+              requests:
+                memory: 32Gi
+                cpu: "6"
+              limits:
+                memory: 32Gi
+                cpu: "6"
