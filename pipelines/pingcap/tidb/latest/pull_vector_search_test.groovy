@@ -63,6 +63,15 @@ pipeline {
                          sh label: 'move tiflash', script: 'mv tiflash/* bin/ && rm -rf tiflash'
                     } 
                 }
+                dir('test-assets') {
+                    sh label: 'download test assets', script: """
+                        # wget https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
+                        # wget https://ann-benchmarks.com/mnist-784-euclidean.hdf5
+                        # Use internal file server to download test assets
+                        wget ${FILE_SERVER_URL}/download/ci-artifacts/tidb/vector-search-test/v20250521/fashion-mnist-784-euclidean.hdf5
+                        wget ${FILE_SERVER_URL}/download/ci-artifacts/tidb/vector-search-test/v20250521/mnist-784-euclidean.hdf5
+                    """
+                }
             }
         }
         stage('Tests') {
@@ -81,7 +90,8 @@ pipeline {
 
                         curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
                         export PATH="\$HOME/.tiup/bin:\$PATH"
-
+                        
+                        export ASSETS_DIR=\$(pwd)/../test-assets
                         cd tests/clusterintegrationtest/
 
                         uv venv --python python3.9
