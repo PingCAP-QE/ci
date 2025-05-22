@@ -24,7 +24,8 @@ presubmits:
         containers:
           - name: dind-daemon
             image: docker:28.1-dind-rootless
-            command: ["docker-entrypoint.sh"]
+            command: ["/usr/local/bin/dockerd-entrypoint.sh"]
+            args: ["--experimental"]
             securityContext:
               privileged: true
               runAsUser: 1001
@@ -74,9 +75,6 @@ presubmits:
                 
                 echo "Running 'make e2e'..."
                 make e2e
-            securityContext:
-              runAsUser: 1001
-              runAsGroup: 1001
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /run/user/1001 # Mount the shared socket directory
