@@ -20,11 +20,26 @@ presubmits:
       spec:
         containers:
           - name: e2e
-            image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            image: docker:28.1-dind-rootless
             command: [bash, -ce]
             args:
               - |
+                set -e
+                # Start rootless Docker daemon
+                echo "Starting dockerd-rootless.sh..."
+                dockerd-rootless.sh &
+                
+                # Wait for Docker to start.
+                echo "Waiting for Docker to start..."
+                timeout 60s sh -c 'until docker info > /dev/null 2>&1; do echo "Waiting for Docker to start $(date)..."; sleep 1; done'
+                echo "Docker started."
+
+                # Run the original command
                 make e2e
+            securityContext:
+              privileged: true
+              runAsUser: 1001
+              runAsGroup: 1001
             resources:
               requests:
                 memory: 32Gi
