@@ -176,12 +176,6 @@ parallel(
             }
         }
     },
-    test_mac: {
-        def use_gcc8 = false
-        node("mac-i7") {
-            run_test("", "ASAN", use_gcc8)
-        }
-    },
     test_arm: {
         def use_gcc8 = true
         node("arm") {

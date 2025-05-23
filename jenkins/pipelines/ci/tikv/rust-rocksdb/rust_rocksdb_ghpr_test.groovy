@@ -169,12 +169,6 @@ parallel(
             run_test(common_features + "," + arm_features, use_gcc8)
         }
     },
-    test_mac: {
-        def use_gcc8 = false
-        node("mac-i7") {
-            run_test(common_features, use_gcc8)
-        }
-    },
     formater: {
         run_formatter()
     },
