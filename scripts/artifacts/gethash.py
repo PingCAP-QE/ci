@@ -14,9 +14,11 @@ The script is primarily used in devbuild pipeline to:
 
 Example usage in devbuild:
 - Get hash for a specific tag: python gethash.py -repo tidb -version v5.0.0
+- Get hash for a specific tag: python gethash.py -repo tidb -version tag/v5.0.0
 - Get hash for a branch: python gethash.py -repo tikv -version master
 - Get hash for a pull request: python gethash.py -repo tidb -version pull/12345
 - Get hash for a commit: python gethash.py -repo tidb -version 10e4318eb8b3337ae493b8220ff296b544603c3e
+- Get hash for a commit: python gethash.py -repo tidb -version commit/10e4318eb8b3337ae493b8220ff296b544603c3e
 """
 
 
@@ -90,14 +92,12 @@ def get_hash_by_branch_from_fileserver(repo, branch, fileserver):
 def get_hash_main(args):
     if re.match(r'[0-9a-fA-F]{40}', args.version):
         hash = args.version
-    elif args.source == 'fileserver':
-        hash = get_hash_by_branch_from_fileserver(args.repo, args.version, args.s)
-    elif args.source != 'github' and ('nightly' == args.version or 'alpha' in args.version):
-        hash = get_hash_by_branch_from_fileserver(args.repo, args.version, args.s)
-    elif args.version == 'v5.0.0-nightly':
-        hash = get_hash_by_branch_from_github(args.repo, "release-5.0")
+    elif args.version.startswith("commit/"):
+        hash = args.version[7:]
     elif args.version[0] == 'v':
         hash = get_hash_by_tag(args.repo, args.version)
+    elif args.version.startswith("tag/"):
+        hash = get_hash_by_tag(args.repo, args.version[4:])
     elif args.version.startswith("pull/"):
         hash = get_hash_by_pr_from_github(args.repo, args.version[5:])
     elif args.version.startswith("branch/"):
@@ -111,20 +111,29 @@ def get_hash_main(args):
 
 def main(args):
     if args.repo is None:
-        raise ValueError("no repo is given")
+        raise ValueError("repo parameter is required")
     if args.version is None:
-        raise ValueError("no version given")
-    if args.source not in ['fileserver', 'github', None]:
-        raise ValueError("bad source given")
+        raise ValueError("version parameter is required")
     hash = get_hash_main(args)
     print(hash)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-repo", type=str, help="github repo")
-    parser.add_argument("-version", type=str, help="branch/tag/pr/commit_sha")
-    parser.add_argument("-source", type=str, help="from github or fileserver")
-    parser.add_argument("-s", type=str, help="file server url", default='http://fileserver.pingcap.net')
+    parser = argparse.ArgumentParser(
+        description="Get git hash from GitHub API for devbuild pipeline",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s -repo tidb -version v8.0.0                    # Get hash for tag
+  %(prog)s -repo tikv -version master                    # Get hash for branch
+  %(prog)s -repo tidb -version pull/12345                # Get hash for PR
+  %(prog)s -repo pd -version branch/release-8.0          # Get hash for specific branch
+  %(prog)s -repo tidb -version commit/abc123def456       # Use specific commit hash(40 characters)
+  %(prog)s -repo pingcap/tidb -version v8.0.0            # Specify org/repo explicitly
+        """)
+    parser.add_argument("-repo", type=str, 
+                        help="GitHub repository name (e.g., 'tidb', 'tikv', 'pingcap/tidb')")
+    parser.add_argument("-version", type=str, 
+                        help="Version specification: tag (v8.0.0), branch (master), PR (pull/123), or commit hash")
     args = parser.parse_args()
     main(args)
