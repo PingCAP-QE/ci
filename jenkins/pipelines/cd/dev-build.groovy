@@ -38,7 +38,7 @@ final DockerImgRepoMapping = [
 ]
 
 // image prefix with `gcr.io/pingcap-public/dbaas/`
-final GcrDockerImgRepoMapping = ["drainer":"tidb-binlog", "pump":"tidb-binlog"]
+final GcrDockerImgRepoMapping = ["drainer":"tidb-binlog", "pump":"tidb-binlog", "ticdc-newarch":"ticdc"]
 
 final FileserverDownloadURL = "https://fileserver.pingcap.net/download"
 
