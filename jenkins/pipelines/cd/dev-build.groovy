@@ -120,7 +120,7 @@ pipeline{
 spec:
   containers:
   - name: gethash
-    image: hub.pingcap.net/jenkins/gethash:latest
+    image: hub.pingcap.net/jenkins/gethash:v20250526
     imagePullPolicy: Always
     command: ["sleep", "infinity"]
 '''
