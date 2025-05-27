@@ -64,13 +64,32 @@ pipeline {
                     }
                 }
                 dir('test-assets') {
-                    cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test") {
+                    cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/euclidean-hdf5") {
                         sh label: 'download test assets', script: """
                         # wget https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
                         # wget https://ann-benchmarks.com/mnist-784-euclidean.hdf5
                         # Use internal file server to download test assets
                         wget -q ${FILE_SERVER_URL}/download/ci-artifacts/tidb/vector-search-test/v20250521/fashion-mnist-784-euclidean.hdf5
                         wget -q ${FILE_SERVER_URL}/download/ci-artifacts/tidb/vector-search-test/v20250521/mnist-784-euclidean.hdf5
+                        """
+                    }
+                }
+                dir('v8.5.1') {
+                    cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/tiup-v8.5.1") {
+                        sh label: 'download v8.5.1 if not cached', script: """
+                            # Only download if components directory doesn't exist (cache miss)
+                            if [ ! -d "components" ]; then
+                                echo "Cache miss, downloading from tiup..."
+                                curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
+                                export PATH="\$HOME/.tiup/bin:\$PATH"
+                                tiup install tidb v8.5.1
+                                tiup install pd v8.5.1
+                                tiup install tikv v8.5.1
+                                tiup install tiflash v8.5.1
+                                cp -r ~/.tiup/components ./
+                            else
+                                echo "Cache hit, using cached components"
+                            fi
                         """
                     }
                 }
@@ -110,9 +129,22 @@ pipeline {
                                 }
                             }
                             dir('test-assets') {
-                                cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test") {
+                                cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/euclidean-hdf5") {
                                 sh label: 'print assets', script: """
                                         ls -alh
+                                    """
+                                }
+                            }
+                            dir('v8.5.1') {
+                                cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/tiup-v8.5.1") {
+                                    sh label: 'print v8.5.1', script: """
+                                        ls -alh
+                                        curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
+                                        export PATH="\$HOME/.tiup/bin:\$PATH"
+                                        cp -r components ~/.tiup/
+                                        tiup pd:v8.5.1 --version
+                                        tiup tikv:v8.5.1 --version
+                                        tiup tiflash:v8.5.1 --version
                                     """
                                 }
                             }
@@ -123,11 +155,9 @@ pipeline {
                         steps {
                             dir('tidb') {
                                 sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash
+                                    export PATH="\$HOME/.tiup/bin:\$PATH"
                                     export PATH="\$HOME/.local/bin:\$PATH"
                                     curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.7.3/uv-installer.sh | sh
-
-                                    curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
-                                    export PATH="\$HOME/.tiup/bin:\$PATH"
                                     
                                     export ASSETS_DIR=\$(pwd)/../test-assets
                                     cd tests/clusterintegrationtest/
