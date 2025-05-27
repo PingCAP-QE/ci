@@ -2,6 +2,7 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
+      - ^feature/next[-]gen.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
