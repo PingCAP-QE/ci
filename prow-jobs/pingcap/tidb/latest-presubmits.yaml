@@ -227,12 +227,12 @@ presubmits:
 
 
     - <<: *brancher
-      name: pingcap/tidb/pull_vector_search_test
+      name: pingcap/tidb/pull_tiflash_integration_test
       agent: jenkins
       decorate: false # need add this.
       always_run: false
       optional: true
-      context: pull-vector-search-test
+      context: pull-tiflash-integration-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-vector-search-test(?: .*?)?$"
-      rerun_command: "/test pull-vector-search-test"
+      trigger: "(?m)^/test (?:.*? )?pull-tiflash-integration-test(?: .*?)?$"
+      rerun_command: "/test pull-tiflash-integration-test"

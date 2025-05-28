@@ -4,7 +4,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_vector_search_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_tiflash_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
