@@ -16,9 +16,6 @@ String proxy_commit_hash = null
 String tiflash_commit_hash = null
 Boolean libclara_cache_ready = false
 String libclara_commit_hash = null
-Boolean is_branch_next_gen = false
-String next_gen_branch_prefix = "feature/next-gen"
-String next_gen_tikv_image_tag = "dedicated-next-gen_linux_amd64"
 
 pipeline {
     agent {
@@ -64,9 +61,6 @@ pipeline {
                     try {
                         dir("test-build-cache") {
                             cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
-                                if (REFS.base_ref.startsWith(next_gen_branch_prefix)) {
-                                    is_branch_next_gen = true
-                                }
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                                 println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build')}"
@@ -192,12 +186,12 @@ pipeline {
                 stage("Proxy-Cache") {
                     steps {
                         script {
-                            def proxy_suffix = is_branch_next_gen ? "amd64-linux-llvm-next-gen" : "amd64-linux-llvm"
-                            proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix} && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                            proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                             println "proxy_cache_ready: ${proxy_cache_ready}"
 
                             sh label: "copy proxy if exist", script: """
-                            proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
+                            proxy_suffix="amd64-linux-llvm"
+                            proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
                             if [ -f \$proxy_cache_file ]; then
                                 echo "proxy cache found"
                                 mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
@@ -214,12 +208,12 @@ pipeline {
                 stage("Libclara Cache") {
                     steps {
                         script {
-                            def libclara_suffix = "amd64-linux-debug"
-                            libclara_cache_ready = sh(script: "test -d /home/jenkins/agent/libclara-cache/${libclara_commit_hash}-${libclara_suffix} && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
+                            libclara_cache_ready = sh(script: "test -d /home/jenkins/agent/libclara-cache/${libclara_commit_hash}-amd64-linux-debug && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                             println "libclara_cache_ready: ${libclara_cache_ready}"
 
                             sh label: "copy libclara if exist", script: """
-                            libclara_cache_dir="/home/jenkins/agent/libclara-cache/${libclara_commit_hash}-${libclara_suffix}"
+                            libclara_suffix="amd64-linux-debug"
+                            libclara_cache_dir="/home/jenkins/agent/libclara-cache/${libclara_commit_hash}-\${libclara_suffix}"
                             if [ -d \$libclara_cache_dir ]; then
                                 echo "libclara cache found"
                                 mkdir -p ${WORKSPACE}/tiflash/libs/libclara-prebuilt
@@ -274,7 +268,6 @@ pipeline {
                     def openssl_root_dir = ""
                     def prebuilt_dir_flag = ""
                     def libclara_flag = ""
-                    def next_gen_flag = ""
                     if (proxy_cache_ready) {
                         // only for toolchain is llvm
                         prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
@@ -286,9 +279,6 @@ pipeline {
                     if (libclara_cache_ready) {
                         libclara_flag = "-DLIBCLARA_CXXBRIDGE_DIR='${WORKSPACE}/tiflash/libs/libclara-prebuilt/cxxbridge' -DLIBCLARA_LIBRARY='${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so'"
                     }
-                    if (is_branch_next_gen) {
-                        next_gen_flag = "-DENABLE_NEXT_GEN=ON"
-                    }
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -296,7 +286,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} ${libclara_flag} ${next_gen_flag} \\
+                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} ${libclara_flag} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -475,10 +465,6 @@ pipeline {
                                             def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                            if (is_branch_next_gen) {
-                                                println "is_branch_next_gen: ${is_branch_next_gen}, use next gen tikv image tag: ${next_gen_tikv_image_tag}"
-                                                tikvBranch = next_gen_tikv_image_tag
-                                            }
                                             sh label: "run integration tests", script: """
                                             PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
                                             """
