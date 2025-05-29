@@ -111,11 +111,12 @@ pipeline {
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
-                            dir("contrib/tiflash-proxy") {
-                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                println "proxy_commit_hash: ${proxy_commit_hash}"
-                            }
 
+                            // get tiflash-proxy commit hash
+                            proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- contrib/tiflash-proxy').trim()
+                            println "proxy_commit_hash: ${proxy_commit_hash}"
+
+                            // get clara commit hash
                             libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
                             println "libclara_commit_hash: ${libclara_commit_hash}"
 

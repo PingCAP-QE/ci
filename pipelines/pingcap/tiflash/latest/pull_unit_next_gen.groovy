@@ -108,11 +108,12 @@ pipeline {
                         git.setSshKey(GIT_CREDENTIALS_ID)
                         retry(2) {
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
-                            dir("contrib/tiflash-proxy") {
-                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                println "proxy_commit_hash: ${proxy_commit_hash}"
-                            }
 
+                            // get next-gen tiflash-proxy commit hash
+                            proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- contrib/tiflash-proxy-next-gen').trim()
+                            println "proxy_commit_hash: ${proxy_commit_hash}"
+
+                            // get clara commit hash
                             libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
                             println "libclara_commit_hash: ${libclara_commit_hash}"
 
