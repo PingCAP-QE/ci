@@ -109,9 +109,12 @@ pipeline {
                         retry(2) {
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
 
-                            // get next-gen tiflash-proxy commit hash
-                            proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- contrib/tiflash-proxy-next-gen').trim()
-                            println "proxy_commit_hash: ${proxy_commit_hash}"
+                            // Get next-gen tiflash-proxy commit hash.
+                            // For submodule, we need to enter the submodule directory and get the commit hash from there.
+                            dir("contrib/tiflash-proxy-next-gen") {
+                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                                println "proxy_commit_hash: ${proxy_commit_hash}"
+                            }
 
                             // get clara commit hash
                             libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
