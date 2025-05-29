@@ -10,7 +10,7 @@ spec:
         memory: "32Gi"
         cpu: "16000m"
       requests:
-        memory: "10Gi"
+        memory: "12Gi"
         cpu: "5000m"
     securityContext:
       privileged: true

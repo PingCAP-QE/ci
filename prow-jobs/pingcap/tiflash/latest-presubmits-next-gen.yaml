@@ -1,0 +1,31 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^feature/next-gen.*$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tiflash:
+    - <<: *brancher
+      agent: jenkins
+      context: pull-unit-next-gen
+      decorate: false # need add this.
+      name: pingcap/tiflash/pull_unit_next_gen
+      optional: false
+      rerun_command: "/test pull-unit-next-gen"
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-unit-next-gen)(?: .*?)?$"
+
+    - <<: *brancher
+      agent: jenkins
+      context: pull-integration-next-gen
+      decorate: false # need add this.
+      name: pingcap/tiflash/pull_integration_next_gen
+      optional: false
+      rerun_command: "/test pull-integration-next-gen"
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-integration-next-gen)(?: .*?)?$"

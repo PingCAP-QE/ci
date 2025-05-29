@@ -70,6 +70,7 @@ configMapGenerator:
       - pingcap_tidb_release-8.5-presubmits.yaml=pingcap/tidb/release-8.5-presubmits.yaml
       - pingcap_tidb_release-9.0-beta-presubmits.yaml=pingcap/tidb/release-9.0-beta-presubmits.yaml
       - pingcap_tiflash_latest-postsubmits.yaml=pingcap/tiflash/latest-postsubmits.yaml
+      - pingcap_tiflash_latest-presubmits-next-gen.yaml=pingcap/tiflash/latest-presubmits-next-gen.yaml
       - pingcap_tiflash_latest-presubmits.yaml=pingcap/tiflash/latest-presubmits.yaml
       - pingcap_tiflash_release-6.1-presubmits.yaml=pingcap/tiflash/release-6.1-presubmits.yaml
       - pingcap_tiflash_release-6.5-presubmits.yaml=pingcap/tiflash/release-6.5-presubmits.yaml
