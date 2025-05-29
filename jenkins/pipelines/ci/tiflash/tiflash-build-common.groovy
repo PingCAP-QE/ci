@@ -314,6 +314,7 @@ def fetchTiFlashProxy(repo_path, target_dir) {
         return false
     }
     def proxy_suffix = getProxySuffix(repo_path)
+    // TODO: next-gen proxy cache?
     def proxy_commit_hash = null
     def status = true;
     dir("${repo_path}/contrib/tiflash-proxy") {
@@ -836,6 +837,7 @@ def uploadProxyCache(repo_path, install_dir) {
         echo "skip because proxy is not built or packaged"
     } else if (params.UPDATE_PROXY_CACHE) {
         def proxy_suffix = getProxySuffix(repo_path)
+        // TODO: next-gen proxy cache?
         def proxy_commit_hash = null
         def status = true;
         dir("${repo_path}/contrib/tiflash-proxy") {
