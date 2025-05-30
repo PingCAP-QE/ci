@@ -17,3 +17,11 @@ postsubmits:
       skip_report: true # need change this after test pass.
       branches:
         - ^master$
+    - name: pingcap/tiflash/merged_build_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      context: merged-build-next-gen
+      max_concurrency: 1
+      skip_report: true # need change this after test pass.
+      branches:
+        - ^feature/.+
