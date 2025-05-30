@@ -275,10 +275,10 @@ pipeline {
                     def libclara_flag = ""
                     if (proxy_cache_ready) {
                         // only for toolchain is llvm
-                        prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
+                        prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy-next-gen/'"
                         sh """
-                        mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
+                        mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy-next-gen/target/release
+                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy-next-gen/target/release/
                         """
                     }
                     if (libclara_cache_ready) {
