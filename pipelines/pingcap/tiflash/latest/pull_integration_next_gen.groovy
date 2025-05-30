@@ -439,7 +439,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_PATH'
-                        values 'tidb-ci', 'delta-merge-test', 'fullstack-test', 'fullstack-test2'
+                        values 'delta-merge-test', 'fullstack-test-next-gen'
                     }
                 }
                 agent{
