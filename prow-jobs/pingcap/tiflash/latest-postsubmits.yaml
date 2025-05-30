@@ -4,7 +4,7 @@ postsubmits:
     - name: pingcap/tiflash/merged_unit_test
       agent: jenkins
       decorate: false # need add this.
-      context: wip/merged-unit-test # need change this after test pass.
+      context: merged-unit-test # need change this after test pass.
       max_concurrency: 1
       skip_report: true # need change this after test pass.
       branches:
@@ -12,7 +12,7 @@ postsubmits:
     - name: pingcap/tiflash/merged_build
       agent: jenkins
       decorate: false # need add this.
-      context: wip/merged-build # need change this after test pass.
+      context: merged-build # need change this after test pass.
       max_concurrency: 1
       skip_report: true # need change this after test pass.
       branches:
