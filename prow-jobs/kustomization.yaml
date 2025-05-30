@@ -66,7 +66,6 @@ configMapGenerator:
       - pingcap_tidb_release-8.2-presubmits.yaml=pingcap/tidb/release-8.2-presubmits.yaml
       - pingcap_tidb_release-8.3-presubmits.yaml=pingcap/tidb/release-8.3-presubmits.yaml
       - pingcap_tidb_release-8.4-presubmits.yaml=pingcap/tidb/release-8.4-presubmits.yaml
-      - pingcap_tidb_release-8.5-centos-presubmits.yaml=pingcap/tidb/release-8.5-centos-presubmits.yaml
       - pingcap_tidb_release-8.5-presubmits.yaml=pingcap/tidb/release-8.5-presubmits.yaml
       - pingcap_tidb_release-9.0-beta-presubmits.yaml=pingcap/tidb/release-9.0-beta-presubmits.yaml
       - pingcap_tiflash_latest-postsubmits.yaml=pingcap/tiflash/latest-postsubmits.yaml
