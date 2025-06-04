@@ -220,6 +220,10 @@ async function main(
     if (version >= "v8.4.0" && ociRepo === "pingcap/tidb-binlog/package") {
       continue;
     }
+    // ticdc is initilized since v9.0.0
+    if (version <= "v9.0.0" && ociRepo === "pingcap/ticdc/package") {
+      continue;
+    }
 
     console.group(ociRepo);
     const ociInfos = {} as Record<string, OciMetadata>;
@@ -265,8 +269,10 @@ async function main(
   }
 
   console.info("🏅🏅🏅 check success!");
+  Deno.exit(0);
 }
 
-// parase cli params with `CliParams` and pass to main
-const args = parseArgs(Deno.args) as CliParams;
-await main(args);
+if (import.meta.main) {
+  const args = parseArgs(Deno.args) as CliParams;
+  await main(args);
+}
