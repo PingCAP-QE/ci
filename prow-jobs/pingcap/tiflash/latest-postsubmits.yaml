@@ -24,4 +24,5 @@ postsubmits:
       max_concurrency: 1
       skip_report: true # need change this after test pass.
       branches:
-        - ^feature/.+
+        - ^master$
+        - ^feature/next-gen.*$
