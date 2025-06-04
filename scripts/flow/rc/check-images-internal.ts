@@ -155,6 +155,10 @@ async function checkImages(
     if (version >= "v8.4.0" && gitRepo === "pingcap/tidb-binlog") {
       continue;
     }
+    // ticdc is initilized since v9.0.0
+    if (version <= "v9.0.0" && gitRepo === "pingcap/ticdc") {
+      continue;
+    }
 
     console.group(gitRepo);
     const gitSha = await gatheringGithubGitSha(ghClient, gitRepo, branch);
