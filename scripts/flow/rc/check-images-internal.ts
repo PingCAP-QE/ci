@@ -249,8 +249,10 @@ async function main(
   }
 
   console.info("🏅🏅🏅 check success!");
+  Deno.exit(0);
 }
 
-// parase cli params with `CliParams` and pass to main
-const args = parseArgs(Deno.args) as CliParams;
-await main(args);
+if (import.meta.main) {
+  const args = parseArgs(Deno.args) as CliParams;
+  await main(args);
+}
