@@ -104,7 +104,6 @@ configMapGenerator:
       - pingcap_tiflow_release-8.2-presubmits.yaml=pingcap/tiflow/release-8.2-presubmits.yaml
       - pingcap_tiflow_release-8.3-presubmits.yaml=pingcap/tiflow/release-8.3-presubmits.yaml
       - pingcap_tiflow_release-8.4-presubmits.yaml=pingcap/tiflow/release-8.4-presubmits.yaml
-      - pingcap_tiflow_release-8.5-centos-presubmits.yaml=pingcap/tiflow/release-8.5-centos-presubmits.yaml
       - pingcap_tiflow_release-8.5-presubmits.yaml=pingcap/tiflow/release-8.5-presubmits.yaml
       - pingcap_tiflow_release-9.0-beta-presubmits.yaml=pingcap/tiflow/release-9.0-beta-presubmits.yaml
       - pingcap_tiproxy_latest-postsubmits.yaml=pingcap/tiproxy/latest-postsubmits.yaml
