@@ -42,27 +42,38 @@ presubmits:
                 cpu: "1"
 
           - name: e2e-runner
-            image: golang:1.23-bullseye
-            command: ["/bin/bash", "-ce"]
+            image: docker:28.1-cli
+            command: ["/bin/sh", "-ce"]
             args:
               - |
-                set -ex pipefail
+                set -ex
                 
-                apt-get update -qq && apt-get install -y -qq --no-install-recommends docker-ce-cli
-                echo "Docker CLI installed."
+                # Install Go 1.23
+                apk add --no-cache curl tar
+                curl -fsSL https://go.dev/dl/go1.23.9.linux-amd64.tar.gz | tar -C /usr/local -xz
+                export PATH=/usr/local/go/bin:$PATH
+                export GOPATH=/go
+                export GOCACHE=/tmp/go-cache
+                
+                echo "Go version: $(go version)"
+                echo "Docker version: $(docker version --format '{{.Client.Version}}')"
                 
                 echo "Waiting for Docker daemon to be responsive..."
                 timeout_seconds=120
                 # Loop until docker info succeeds or timeout is reached
-                if ! timeout ${timeout_seconds}s bash -c " \
-                  until docker info > /dev/null 2>&1; do \
-                    echo \\"Waiting for Docker... \\\$(date)\\""; sleep 5; \
-                  done"; then
-                  echo "Error: Docker daemon did not start within ${timeout_seconds} seconds." >&2
-                  echo "Listing contents of /var/run to help debug:" >&2
-                  ls -la /var/run || echo "Warning: Failed to list /var/run" >&2
-                  exit 1
-                fi
+                start_time=$(date +%s)
+                while ! docker info > /dev/null 2>&1; do
+                  current_time=$(date +%s)
+                  elapsed=$((current_time - start_time))
+                  if [ $elapsed -ge $timeout_seconds ]; then
+                    echo "Error: Docker daemon did not start within ${timeout_seconds} seconds." >&2
+                    echo "Listing contents of /var/run to help debug:" >&2
+                    ls -la /var/run || echo "Warning: Failed to list /var/run" >&2
+                    exit 1
+                  fi
+                  echo "Waiting for Docker... $(date)"
+                  sleep 5
+                done
                 echo "Docker daemon is responsive."
                 
                 echo "Running 'make e2e'..."
