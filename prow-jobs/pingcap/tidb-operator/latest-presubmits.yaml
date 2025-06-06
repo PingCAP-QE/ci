@@ -42,15 +42,38 @@ presubmits:
                 cpu: "1"
 
           - name: e2e-runner
-            image: docker:28.1-cli
+            image: ubuntu:22.04
             command: ["/bin/sh", "-ce"]
             args:
               - |
                 set -ex
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update
+                apt-get install -y --no-install-recommends \
+                  ca-certificates \
+                  curl \
+                  git \
+                  make \
+                  cmake \
+                  tar
+                
+                # Add Docker's official GPG key
+                install -m 0755 -d /etc/apt/keyrings
+                curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+                chmod a+r /etc/apt/keyrings/docker.asc
+                
+                # Add the repository to Apt sources
+                echo \
+                  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+                  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+                  tee /etc/apt/sources.list.d/docker.list > /dev/null
+                apt-get update
+                
+                # Install Docker CLI
+                apt-get install -y --no-install-recommends docker-ce-cli
                 
                 # Install Go 1.23
-                apk add --no-cache curl tar
-                curl -fsSL https://go.dev/dl/go1.23.9.linux-amd64.tar.gz | tar -C /usr/local -xz
+                curl -fsSL https://go.dev/dl/go1.23.10.linux-amd64.tar.gz | tar -C /usr/local -xz
                 export PATH=/usr/local/go/bin:$PATH
                 export GOPATH=/go
                 export GOCACHE=/tmp/go-cache
@@ -75,8 +98,7 @@ presubmits:
                   sleep 5
                 done
                 echo "Docker daemon is responsive."
-                
-                echo "Running 'make e2e'..."
+
                 make e2e
             volumeMounts:
               - name: docker-sock-dir
