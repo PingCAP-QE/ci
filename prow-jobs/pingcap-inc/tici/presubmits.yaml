@@ -52,7 +52,7 @@ presubmits:
       spec:
         containers:
           - name: e2e
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.6.8-1-g5c4ef89
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.6.8-1-g5c4ef89 # Use a patched CDC version to output handle.
             command: [/bin/bash, -ce]
             env:
               - name: ASSET_DIR
