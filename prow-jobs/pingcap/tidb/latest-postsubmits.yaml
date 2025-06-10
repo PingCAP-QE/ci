@@ -17,15 +17,6 @@ postsubmits:
       skip_report: true
 
     - <<: *brancher
-      name: pingcap/tidb/merged_integration_e2e_test
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: wip/integration-e2e-test
-      max_concurrency: 1
-      skip_report: true
-
-    - <<: *brancher
       name: pingcap/tidb/merged_common_test
       agent: jenkins
       decorate: false # need add this.
@@ -42,15 +33,6 @@ postsubmits:
       context: ci/integration-common-test
       max_concurrency: 1
       skip_report: true # TODO: change to false after failed test is fixed.
-
-    - <<: *brancher
-      name: pingcap/tidb/merged_integration_ddl_test
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: ci/integration-ddl-test
-      max_concurrency: 1
-      skip_report: false
 
     - <<: *brancher
       name: pingcap/tidb/merged_integration_jdbc_test
@@ -98,15 +80,6 @@ postsubmits:
       skip_report: false
 
     - <<: *brancher
-      name: pingcap/tidb/merged_build
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: ci/build
-      max_concurrency: 1
-      skip_report: false
-
-    - <<: *brancher
       name: pingcap/tidb/merged_unit_test
       agent: jenkins
       decorate: false # need add this.
@@ -141,15 +114,6 @@ postsubmits:
       context: ci/integration-nodejs-test
       max_concurrency: 1
       skip_report: true
-
-    - <<: *brancher
-      name: pingcap/tidb/merged_mysql_client_test
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: ci/mysql-client-test
-      max_concurrency: 1
-      skip_report: false
 
     - <<: *brancher
       name: pingcap/tidb/merged_integration_br_test
