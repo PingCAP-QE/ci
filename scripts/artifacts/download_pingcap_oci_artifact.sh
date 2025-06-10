@@ -151,7 +151,7 @@ function parse_cli_args() {
     # get the tag suffix by current runtime os and arch, it will be "[linux|darwin]_[amd64|arm64]" format.
     local tag_suffix=$(compute_tag_platform_suffix)
 
-    registry_host="${artifact_oci_host:-hub.pingcap.net}"
+    registry_host="${OCI_ARTIFACT_HOST:-hub.pingcap.net}"
     tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
