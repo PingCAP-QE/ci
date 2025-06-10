@@ -75,6 +75,7 @@ function compute_tag_platform_suffix() {
 }
 
 function main() {
+    check_tools
     parse_cli_args "$@"
 
     if [[ ! -z $TIDB ]]; then
@@ -156,6 +157,12 @@ function parse_cli_args() {
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
     pd_oci_url="${registry_host}/tikv/pd/package:${PD}_${tag_suffix}"
+}
+
+function check_tools() {
+    command -v oras >/dev/null || { echo "Error: 'oras' not found"; exit 1; }
+    command -v yq >/dev/null || { echo "Error: 'yq' not found"; exit 1; }
+    command -v tar >/dev/null || { echo "Error: 'tar' not found"; exit 1; }
 }
 
 main "$@"
