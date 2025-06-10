@@ -60,8 +60,8 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     sh label: 'tidb-server', script: 'NEXT_GEN=1 make server'
-                    contaienr("utils") {
-                        dir('bin')
+                    container("utils") {
+                        dir('bin') {
                             sh """
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
@@ -108,7 +108,6 @@ pipeline {
                     stage('Test')  {
                         options { timeout(time: 50, unit: 'MINUTES') }
                         environment {
-                            CODECOV_TOKEN = credentials('codecov-token-tidb')
                             NEXT_GEN = '1'
                         }
                         steps {
