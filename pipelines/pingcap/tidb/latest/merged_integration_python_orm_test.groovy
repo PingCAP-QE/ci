@@ -65,8 +65,8 @@ pipeline {
                         retry(3) {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                             sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                            ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             mv third_bin/tikv-server bin/
                             mv third_bin/pd-server bin/
                             rm -rf bin/bin
@@ -107,7 +107,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'python'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
@@ -127,7 +127,7 @@ pipeline {
                                             TEST_SCRIPT=\$2
                                             echo "TEST_DIR=\${TEST_DIR}"
                                             echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-   
+
                                             export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                             export TIDB_TEST_STORE_NAME="unistore"
                                             cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}

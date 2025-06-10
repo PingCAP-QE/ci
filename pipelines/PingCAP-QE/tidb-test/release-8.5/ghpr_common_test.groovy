@@ -73,8 +73,8 @@ pipeline {
                         sh label: 'tidb-server', script: 'make'
                         retry(2) {
                             sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                                 mv third_bin/* bin/
                                 ls -alh bin/
                             """
@@ -106,7 +106,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'java'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         steps {
@@ -161,7 +161,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

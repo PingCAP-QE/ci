@@ -62,7 +62,7 @@ pipeline {
                             }
                         }
                     }
-                }  
+                }
             }
         }
         stage('Prepare') {
@@ -76,14 +76,14 @@ pipeline {
                                 def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
                                 def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
                                 sh label: 'download binary', script: """
-                                    chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                    ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${pdBranch} --tikv=${tikvBranch}
+                                    chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${pdBranch} --tikv=${tikvBranch}
                                     mv third_bin/tikv-server bin/
                                     mv third_bin/pd-server bin/
                                     ls -alh bin/
                                 """
                             }
-                            
+
                         }
                     }
                 }
@@ -107,7 +107,7 @@ pipeline {
                 axes {
                     axis {
                         name 'DDL_TEST'
-                        values "^TestSimple.*Insert\$", "^TestSimple.*Update\$",  "^TestSimple.*Delete\$", 
+                        values "^TestSimple.*Insert\$", "^TestSimple.*Update\$",  "^TestSimple.*Delete\$",
                             "^TestSimp(le\$|leMixed\$|leInc\$)", "^TestColumn\$",  "^TestIndex\$"
                     }
                 }
@@ -117,7 +117,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }

@@ -91,8 +91,8 @@ pipeline {
                     sh label: 'prepare', script: """
                         make build
                         ls -alh bin/
-                        chmod +x ${WORKSPACE}/scripts/pingcap/tidb-binlog/*.sh
-                        ${WORKSPACE}/scripts/pingcap/tidb-binlog/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                        chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                        ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                         mv third_bin/* bin/
                         ls -alh bin/
                     """
