@@ -18,6 +18,10 @@ for i in "$@"; do
       TIFLASH="${i#*=}"
       shift # past argument=value
       ;;
+    -tidb-tools=*|--tidb-tools=*)
+      TIDB_TOOLS="${i#*=}"
+      shift # past argument=value
+      ;;      
     --default)
       DEFAULT=YES
       shift # past argument with no value
@@ -35,6 +39,7 @@ echo "TIDB          = ${TIDB}"
 echo "TIKV          = ${TIKV}"
 echo "PD            = ${PD}"
 echo "TIFLASH       = ${TIFLASH}"
+echo "TIDB-TOOLS    = ${TIDB_TOOLS}"
 
 
 if [[ -n $1 ]]; then
@@ -47,6 +52,7 @@ tidb_sha1_url="${file_server_url}/download/refs/pingcap/tidb/${TIDB}/sha1"
 tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${TIKV}/sha1"
 pd_sha1_url="${file_server_url}/download/refs/pingcap/pd/${PD}/sha1"
 tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${TIFLASH}/sha1"
+tidb_tools_sha1_url="${file_server_url}/download/refs/pingcap/tidb-tools/${TIDB_TOOLS}/sha1"
 
 
 function download() {
@@ -105,6 +111,15 @@ function main() {
         mv third_bin/tiflash third_bin/_tiflash
         mv third_bin/_tiflash/* third_bin && rm -rf third_bin/_tiflash
     fi
+    if [[ ! -z $TIDB_TOOLS ]]; then
+        echo ">>> start download tidb-tools "
+        tidb_tools_sha1=$(curl -s ${tidb_tools_sha1_url})
+        echo "tidb-tools ${TIDB_TOOLS} sha1 is ${tidb_tools_sha1}"
+        tidb_tools_download_url="${file_server_url}/download/builds/pingcap/tidb-tools/${tidb_tools_sha1}/centos7/tidb-tools.tar.gz"
+        echo "TIDB-TOOLS: ${tidb_tools_download_url}"
+        download "$tidb_tools_download_url" "tidb-tools.tar.gz" "tmp/tidb-tools.tar.gz"
+        tar -xz -C third_bin bin/sync_diff_inspector -f tmp/tidb-tools.tar.gz && mv third_bin/bin/sync_diff_inspector third_bin/
+    fi    
 
     chmod +x third_bin/*
     ls -alh third_bin/

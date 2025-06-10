@@ -67,8 +67,8 @@ pipeline {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                         retry(2) {
                             sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                                 mv third_bin/tikv-server bin/
                                 mv third_bin/pd-server bin/
                                 rm -rf bin/bin

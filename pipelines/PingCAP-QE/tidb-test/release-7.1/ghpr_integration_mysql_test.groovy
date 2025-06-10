@@ -71,8 +71,8 @@ pipeline {
                         sh label: 'tidb-server', script: 'make'
                         retry(2) {
                             sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                                 mv third_bin/* bin/
                                 ls -alh bin/
                             """
@@ -129,7 +129,7 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                                     sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
-                                        ls -alh 
+                                        ls -alh
                                         echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                         bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                         export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
@@ -147,7 +147,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

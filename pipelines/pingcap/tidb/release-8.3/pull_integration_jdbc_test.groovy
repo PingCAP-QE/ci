@@ -68,8 +68,8 @@ pipeline {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                         retry(3) {
                             sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/*.sh
-                                ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                                 mv third_bin/tikv-server bin/
                                 mv third_bin/pd-server bin/
                                 ls -alh bin/
@@ -103,7 +103,7 @@ pipeline {
                         name 'TEST_PARAMS'
                         values 'jdbc8_test ./test_fast.sh', 'jdbc8_test ./test_slow.sh', 'mybatis_test ./test.sh',
                             'jooq_test ./test.sh', 'tidb_jdbc_test/tidb_jdbc_unique_test ./test.sh',
-                            'tidb_jdbc_test/tidb_jdbc8_test ./test_fast.sh', 'tidb_jdbc_test/tidb_jdbc8_test ./test_slow.sh', 
+                            'tidb_jdbc_test/tidb_jdbc8_test ./test_fast.sh', 'tidb_jdbc_test/tidb_jdbc8_test ./test_slow.sh',
                             'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_slow.sh', 'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_tls.sh'
                     }
                     axis {
@@ -117,7 +117,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'java'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
@@ -164,7 +164,7 @@ pipeline {
                         }
                     }
                 }
-            } 
+            }
         }
     }
 }
