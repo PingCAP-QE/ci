@@ -23,7 +23,7 @@ function download() {
     local to_match_file=$2
     local file_path=$3
     if [[ -f "${file_path}" ]]; then
-        echo "file ${file_name} already exists, skip download"
+        echo "file $(basename "${file_path}") already exists, skip download"
         return
     fi
     echo "🚀 Downloading file with name matched regex: '${to_match_file}' from ${url}"
