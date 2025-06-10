@@ -141,8 +141,6 @@ function parse_cli_args() {
     echo "TIKV          = ${TIKV}"
     echo "PD            = ${PD}"
     echo "TIFLASH       = ${TIFLASH}"
-    echo "TIFLOW        = ${TIFLOW}"
-    echo "TICDC         = ${TICDC}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
