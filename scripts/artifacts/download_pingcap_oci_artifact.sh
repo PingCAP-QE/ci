@@ -78,35 +78,35 @@ function main() {
     check_tools
     parse_cli_args "$@"
 
-    if [[ ! -z $TIDB ]]; then
+    if [[ -n "$TIDB" ]]; then
         echo "🚀 start download TiDB server"
         download_and_extract_with_path "$tidb_oci_url" '^tidb-v.+.tar.gz$' tidb.tar.gz tidb-server
         chmod +x tidb-server
         ./tidb-server -V
         echo "🎉 download TiDB server success"
     fi
-    if [[ ! -z $TIKV ]]; then
+    if [[ -n "$TIKV" ]]; then
         echo "🚀 start download TiKV server"
         download_and_extract_with_path "$tikv_oci_url" '^tikv-v.+.tar.gz$' tikv.tar.gz tikv-server
         chmod +x tikv-server
         ./tikv-server --version
         echo "🎉 download TiKV server success"
     fi
-    if [[ ! -z $TIKV_WORKER ]]; then
+    if [[ -n "$TIKV_WORKER" ]]; then
         echo "🚀 start download TiKV worker"
         download_and_extract_with_path "$tikv_oci_url" '^tikv-worker-v.+.tar.gz$' tikv.tar.gz tikv-worker
         chmod +x tikv-worker
         ./tikv-worker --version
         echo "🎉 download TiKV worker success"
     fi
-    if [[ ! -z $PD ]]; then
+    if [[ -n "$PD" ]]; then
         echo "🚀 start download PD server"
         download_and_extract_with_path "$pd_oci_url" '^pd-v.+.tar.gz$' pd.tar.gz pd-server
         chmod +x pd-server
         ./pd-server --version
         echo "🎉 download PD server success"
     fi
-    if [[ ! -z $TIFLASH ]]; then
+    if [[ -n "$TIFLASH" ]]; then
         echo "🚀 start download TiFlash"
         download_and_extract_with_path "$tiflash_oci_url" '^tiflash-v.+.tar.gz$' tiflash.tar.gz tiflash
         chmod +x tiflash/tiflash
