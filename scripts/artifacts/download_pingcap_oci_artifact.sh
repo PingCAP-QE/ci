@@ -82,18 +82,28 @@ function main() {
         echo "🚀 start download TiDB server"
         download_and_extract_with_path "$tidb_oci_url" '^tidb-v.+.tar.gz$' tidb.tar.gz tidb-server
         chmod +x tidb-server
+        ./tidb-server -V
         echo "🎉 download TiDB server success"
     fi
     if [[ ! -z $TIKV ]]; then
         echo "🚀 start download TiKV server"
         download_and_extract_with_path "$tikv_oci_url" '^tikv-v.+.tar.gz$' tikv.tar.gz tikv-server
         chmod +x tikv-server
+        ./tikv-server --version
         echo "🎉 download TiKV server success"
+    fi
+    if [[ ! -z $TIKV_WORKER ]]; then
+        echo "🚀 start download TiKV worker"
+        download_and_extract_with_path "$tikv_oci_url" '^tikv-worker-v.+.tar.gz$' tikv.tar.gz tikv-worker
+        chmod +x tikv-worker
+        ./tikv-worker --version
+        echo "🎉 download TiKV worker success"
     fi
     if [[ ! -z $PD ]]; then
         echo "🚀 start download PD server"
         download_and_extract_with_path "$pd_oci_url" '^pd-v.+.tar.gz$' pd.tar.gz pd-server
         chmod +x pd-server
+        ./pd-server --version
         echo "🎉 download PD server success"
     fi
     if [[ ! -z $TIFLASH ]]; then
@@ -101,6 +111,7 @@ function main() {
         download_and_extract_with_path "$tiflash_oci_url" '^tiflash-v.+.tar.gz$' tiflash.tar.gz tiflash
         chmod +x tiflash/tiflash
         ls -alh tiflash
+        ./tiflash/tiflash --version
         echo "🎉 download TiFlash success"
     fi
 }
@@ -120,6 +131,10 @@ function parse_cli_args() {
         TIKV="${i#*=}"
         shift # past argument=value
         ;;
+        -tikv-worker=*|--tikv-worker=*)
+        TIKV_WORKER="${i#*=}"
+        shift # past argument=value
+        ;;
         -tiflash=*|--tiflash=*)
         TIFLASH="${i#*=}"
         shift # past argument=value
@@ -137,10 +152,11 @@ function parse_cli_args() {
     esac
     done
 
-    echo "TIDB          = ${TIDB}"
-    echo "TIKV          = ${TIKV}"
-    echo "PD            = ${PD}"
-    echo "TIFLASH       = ${TIFLASH}"
+    [[ -n "${TIDB}" ]]          && echo "TIDB        = ${TIDB}"
+    [[ -n "${TIKV}" ]]          && echo "TIKV        = ${TIKV}"
+    [[ -n "${TIKV_WORKER}" ]]   && echo "TIKV_WORKER = ${TIKV_WORKER}"
+    [[ -n "${PD}" ]]            && echo "PD          = ${PD}"
+    [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
