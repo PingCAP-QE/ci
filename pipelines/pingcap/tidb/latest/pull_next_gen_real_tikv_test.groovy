@@ -85,19 +85,19 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'run_real_tikv_tests.sh bazel_addindextest',
-                            'run_real_tikv_tests.sh bazel_addindextest1',
-                            'run_real_tikv_tests.sh bazel_addindextest2',
-                            'run_real_tikv_tests.sh bazel_addindextest3',
-                            'run_real_tikv_tests.sh bazel_addindextest4',
-                            'run_real_tikv_tests.sh bazel_importintotest',
-                            'run_real_tikv_tests.sh bazel_importintotest2',
-                            'run_real_tikv_tests.sh bazel_importintotest3',
-                            'run_real_tikv_tests.sh bazel_importintotest4',
+                            'run-tests.sh bazel_addindextest',
+                            'run-tests.sh bazel_addindextest1',
+                            'run-tests.sh bazel_addindextest2',
+                            'run-tests.sh bazel_addindextest3',
+                            'run-tests.sh bazel_addindextest4',
+                            'run-tests.sh bazel_importintotest',
+                            'run-tests.sh bazel_importintotest2',
+                            'run-tests.sh bazel_importintotest3',
+                            'run-tests.sh bazel_importintotest4',
                         )
                     }
                 }
-                agent{
+                agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
@@ -116,13 +116,12 @@ pipeline {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
-                                sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh """
                                 sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                                 git diff .
                                 git status
                                 """
-                                sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
+                                sh "tests/realtikvtest/scripts/next-gen/${SCRIPT_AND_ARGS}"
                             }
                         }
                         post {
@@ -140,7 +139,6 @@ pipeline {
                                     mkdir -p \${logs_dir}
                                     mv pd*.log \${logs_dir} || true
                                     mv tikv*.log \${logs_dir} || true
-                                    mv tests/integrationtest/integration-test.out \${logs_dir} || true
                                     tar -czvf \${logs_dir}.tar.gz \${logs_dir} || true
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
@@ -150,11 +148,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        always {
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
