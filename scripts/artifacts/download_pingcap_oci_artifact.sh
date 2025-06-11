@@ -82,28 +82,24 @@ function main() {
         echo "🚀 start download TiDB server"
         download_and_extract_with_path "$tidb_oci_url" '^tidb-v.+.tar.gz$' tidb.tar.gz tidb-server
         chmod +x tidb-server
-        ./tidb-server -V
         echo "🎉 download TiDB server success"
     fi
     if [[ -n "$TIKV" ]]; then
         echo "🚀 start download TiKV server"
         download_and_extract_with_path "$tikv_oci_url" '^tikv-v.+.tar.gz$' tikv.tar.gz tikv-server
         chmod +x tikv-server
-        ./tikv-server --version
         echo "🎉 download TiKV server success"
     fi
     if [[ -n "$TIKV_WORKER" ]]; then
         echo "🚀 start download TiKV worker"
         download_and_extract_with_path "$tikv_oci_url" '^tikv-worker-v.+.tar.gz$' tikv.tar.gz tikv-worker
         chmod +x tikv-worker
-        ./tikv-worker --version
         echo "🎉 download TiKV worker success"
     fi
     if [[ -n "$PD" ]]; then
         echo "🚀 start download PD server"
         download_and_extract_with_path "$pd_oci_url" '^pd-v.+.tar.gz$' pd.tar.gz pd-server
         chmod +x pd-server
-        ./pd-server --version
         echo "🎉 download PD server success"
     fi
     if [[ -n "$TIFLASH" ]]; then
@@ -111,7 +107,6 @@ function main() {
         download_and_extract_with_path "$tiflash_oci_url" '^tiflash-v.+.tar.gz$' tiflash.tar.gz tiflash
         chmod +x tiflash/tiflash
         ls -alh tiflash
-        ./tiflash/tiflash --version
         echo "🎉 download TiFlash success"
     fi
 }
