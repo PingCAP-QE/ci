@@ -65,7 +65,7 @@ pipeline {
                             sh """
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
-                                \${script} --pd=${TARGET_BRANCH_PD}-next-gen --tikv=${TARGET_BRANCH_TIKV}-next-gen
+                                \${script} --pd=${TARGET_BRANCH_PD}-next-gen --tikv=${TARGET_BRANCH_TIKV}-next-gen --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen
                             """
                         }
                     }
