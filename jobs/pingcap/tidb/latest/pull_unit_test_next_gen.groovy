@@ -1,23 +1,27 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For feature/next-gen-tidb branch.
-pipelineJob('pingcap/tidb/pull_next_gen_real_tikv_test') {
+final fullRepo = 'pingcap/tidb'
+final branchAlias = 'latest' // For trunk and latest release branches.
+final jobName = 'pull_unit_test_next_gen'
+
+pipelineJob("${fullRepo}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
     parameters {
+        // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
-        stringParam("JOB_SPEC", "", "Prow job spec struct data")
+        stringParam("JOB_SPEC")
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb")
+        githubProjectUrl("https://github.com/${fullRepo}")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/latest/pull_next_gen_real_tikv_test.groovy")
+            scriptPath("pipelines/${fullRepo}/${branchAlias}/${jobName}/pipeline.groovy")
             scm {
                 git{
                     remote {
@@ -29,7 +33,7 @@ pipelineJob('pingcap/tidb/pull_next_gen_real_tikv_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

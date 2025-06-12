@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: golang
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      tty: true
+      resources:
+        requests:
+          memory: 4Gi
+          cpu: "2"
+        limits:
+          memory: 6Gi
+          cpu: "3"
+      # env:
+      #   - name: GOPATH
+      #     value: /share/.go
+      #   - name: GOCACHE
+      #     value: /share/.cache/go-build
+      volumeMounts:
+        - name: gocache
+          mountPath: /share/.cache/go-build
+        - name: gopathcache
+          mountPath: /share/.go
+    - name: net-tool
+      image: hub.pingcap.net/jenkins/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 100m
+  volumes:
+    - name: gopathcache
+      persistentVolumeClaim:
+        claimName: gopathcache
+    - name: gocache
+      persistentVolumeClaim:
+        claimName: gocache
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
