@@ -18,7 +18,7 @@ presubmits:
     - name: pull-build-next-gen
       agent: kubernetes
       decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
       branches:
         - ^master$
@@ -27,18 +27,40 @@ presubmits:
           - name: build
             image: ghcr.io/pingcap-qe/cd/builders/pd:v2025.5.11-8-g6a5de16-centos7-go1.23
             command: [bash, -ce]
-            env:
-              - { name: NEXT_GEN, value: "1" }
             args:
               - |
-                WITH_RACE=1 make && make
+                NEXT_GEN=1 WITH_RACE=1 make # build for race mode
+                NEXT_GEN=1 make             # build for normal mode
             resources:
               requests:
-                cpu: "1"
-                memory: "4Gi"
+                cpu: "3"
+                memory: "6Gi"
               limits:
-                cpu: "4"
-                memory: 8Gi
+                cpu: "6"
+                memory: 12Gi
+        affinity: *affinity
+    - name: pull-build
+      agent: kubernetes
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/cd/builders/pd:v2025.5.11-8-g6a5de16-centos7-go1.23
+            command: [bash, -ce]
+            args:
+              - |
+                WITH_RACE=1 make # build for race mode
+                make             # build for normal mode
+            resources:
+              requests:
+                cpu: "3"
+                memory: 6Gi
+              limits:
+                cpu: "6"
+                memory: 12Gi
         affinity: *affinity
 
     - name: pull-unit-test-next-gen
@@ -71,14 +93,45 @@ presubmits:
 
                 # ls -alh covprofile_*
             resources:
-              requests:
-                cpu: "2"
-                memory: "4Gi"
               limits:
-                cpu: "4"
-                memory: 8Gi
+                cpu: "6"
+                memory: 12Gi
         affinity: *affinity
 
+    - name: pull-unit-test
+      agent: kubernetes
+      decorate: true # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      optional: true
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: test
+            image: ghcr.io/pingcap-qe/ci/base:v2025.6.8-1-g5c4ef89-go1.23
+            command: [bash, -ce]
+            args:
+              - |
+                for i in $(seq 1 10); do
+                  echo "🚀 Testing for job index: ${i} ..."
+                  make ci-test-job JOB_INDEX=${i} || exit 1
+                  echo "🎉 Passed for job index: ${i}."
+
+                  # unit test coverage data
+                  # mv covprofile covprofile_${JOB_INDEX}
+                  # if [ -f junitfile ]; then
+                  #     cat junitfile
+                  # fi
+                done
+
+                # ls -alh covprofile_*
+            resources:
+              limits:
+                cpu: "6"
+                memory: 12Gi
+        affinity: *affinity
+
+    # we will deprecate it!
     - name: tikv/pd/ghpr_build
       agent: jenkins
       decorate: false # need add this.
@@ -91,18 +144,6 @@ presubmits:
         - ^feature/.+
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
       skip_branches: *skip_branches
-
-    - name: tikv/pd/pull_unit_test
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false # TODO: change to true after test pass
-      optional: true # TODO: change to false after test pass
-      skip_report: true # TODO: change to false after test pass
-      context: wip/pull-unit-test
-      trigger: "(?m)^/debug (?:.*? )?pull-unit-test(?: .*?)?$"
-      rerun_command: "/debug pull-unit-test"
-      branches:
-        - ^master$
 
     - name: tikv/pd/pull_integration_copr_test
       agent: jenkins
