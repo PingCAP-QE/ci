@@ -14,7 +14,11 @@ presubmits:
             env:
               - name: JENKINS_URL
                 value: https://do.pingcap.net/jenkins
-            command: [/bin/bash, .ci/verify-jenkins-pipelines.sh]
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                apk add parallel
+                .ci/verify-jenkins-pipelines.sh
             resources:
               limits:
                 memory: 128Mi
@@ -36,49 +40,49 @@ presubmits:
         - ^main$
       spec:
         containers:
-        - command: [sh, -c]
-          args:
-            - |
-              mkdir -p flatten-prow-jobs;
-              for f in $(find prow-jobs -name "*.yaml" -type f | sed 's|prow-jobs/||' | grep -v kustomization.yaml | sort); do
-                flatten_f=$(echo $f | sed 's|/|-|g');
-                cp -v prow-jobs/$f flatten-prow-jobs/$flatten_f;
-              done;
+          - command: [sh, -c]
+            args:
+              - |
+                mkdir -p flatten-prow-jobs;
+                for f in $(find prow-jobs -name "*.yaml" -type f | sed 's|prow-jobs/||' | grep -v kustomization.yaml | sort); do
+                  flatten_f=$(echo $f | sed 's|/|-|g');
+                  cp -v prow-jobs/$f flatten-prow-jobs/$flatten_f;
+                done;
 
-              /ko-app/checkconfig \
-              --plugin-config=../../ti-community-infra/configs/prow/config/plugins.yaml \
-              --config-path=../../ti-community-infra/configs/prow/config/config.yaml \
-              --job-config-path=flatten-prow-jobs/
-          image: ticommunityinfra/checkconfig:v20230621-df5abce
-          name: checkconfig
-          resources: {}
-        - name: verify-gitops
-          image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
-          securityContext:
-            runAsUser: 0 # the default user or the image is not root.
-          command: [flux, -n, apps]
-          args:
-            - build
-            - kustomization 
-            - prow-jobs
-            - --path=prow-jobs
-            - --kustomization-file=../ee-ops/apps/gcp/prow/pre/prow-jobs.yaml
-            - --dry-run
-          resources:
-            limits:
-              memory: 256Mi
-              cpu: 200m
-        - name: verify-kustomization
-          image: mikefarah/yq:4.44.1
-          securityContext:
-            runAsUser: 0 # the default user or the image is not root.
-          command: [sh, -c]
-          args:
-            - |
-              apk add bash
-              apk add git
-              .ci/update-prow-job-kustomization.sh
-          resources:
-            limits:
-              memory: 256Mi
-              cpu: 200m
+                /ko-app/checkconfig \
+                --plugin-config=../../ti-community-infra/configs/prow/config/plugins.yaml \
+                --config-path=../../ti-community-infra/configs/prow/config/config.yaml \
+                --job-config-path=flatten-prow-jobs/
+            image: ticommunityinfra/checkconfig:v20230621-df5abce
+            name: checkconfig
+            resources: {}
+          - name: verify-gitops
+            image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
+            securityContext:
+              runAsUser: 0 # the default user or the image is not root.
+            command: [flux, -n, apps]
+            args:
+              - build
+              - kustomization
+              - prow-jobs
+              - --path=prow-jobs
+              - --kustomization-file=../ee-ops/apps/gcp/prow/pre/prow-jobs.yaml
+              - --dry-run
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+          - name: verify-kustomization
+            image: mikefarah/yq:4.44.1
+            securityContext:
+              runAsUser: 0 # the default user or the image is not root.
+            command: [sh, -c]
+            args:
+              - |
+                apk add bash
+                apk add git
+                .ci/update-prow-job-kustomization.sh
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m

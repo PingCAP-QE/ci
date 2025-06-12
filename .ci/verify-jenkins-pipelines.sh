@@ -1,4 +1,6 @@
-#!/bin/bash +x
+#!/usr/bin/env bash
+
+set -eo pipefail
 
 # Linting via HTTP POST using curl
 # curl (REST API)
@@ -7,9 +9,10 @@
 # JENKINS_CRUMB is needed if your Jenkins controller has CRSF protection enabled as it should
 
 JENKINS_CRUMB=$(curl -fsS "$JENKINS_URL/crumbIssuer/api/json" | jq .crumb)
-for f in $(find pipelines -name "*.groovy"); do
-    echo -ne "validating $f:\\t"
-    result="$(curl -fsS -X POST -H "$JENKINS_CRUMB" -F "jenkinsfile=<${f}" "$JENKINS_URL/pipeline-model-converter/validate")"
-    echo "$result"
-    echo "$result" | grep "successfully validated" >/dev/null || exit 1
-done
+SCRIPT_DIR="$(realpath $(dirname "${BASH_SOURCE[0]}"))"
+
+if command -v parallel > /dev/null; then
+    find pipelines -name "*.groovy" | parallel -j+0 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
+else
+        find pipelines -name "*.groovy" -exec "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh" {} \;
+fi
