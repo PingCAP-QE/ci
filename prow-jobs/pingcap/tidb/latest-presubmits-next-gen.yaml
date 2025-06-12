@@ -35,8 +35,8 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       always_run: false
-      context: pull-next-gen-real-tikv-test
-      trigger: "(?m)^/test (?:.*? )?pull-next-gen-real-tikv-test(?: .*?)?$"
+      context: pull-real-tikv-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-real-tikv-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-real-tikv-test-next-gen"
 
     - <<: *brancher
