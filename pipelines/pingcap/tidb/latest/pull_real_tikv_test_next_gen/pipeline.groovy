@@ -3,10 +3,12 @@
 // should triggerd for master and latest release branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_next_gen_real_tikv_test.yaml'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
+
 final TARGET_BRANCH_PD = "master"
 final TARGET_BRANCH_TIKV = "dedicated"
 
@@ -23,6 +25,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment {
+        NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
         OCI_ARTIFACT_HOST = 'hub-mig.pingcap.net'
     }
     stages {
@@ -59,7 +62,7 @@ pipeline {
         stage("Prepare") {
             steps {
                 dir(REFS.repo) {
-                    sh label: 'tidb-server', script: 'NEXT_GEN=1 make server'
+                    sh label: 'tidb-server', script: 'make server'
                     container("utils") {
                         dir('bin') {
                             sh """
@@ -107,9 +110,6 @@ pipeline {
                 stages {
                     stage('Test')  {
                         options { timeout(time: 50, unit: 'MINUTES') }
-                        environment {
-                            NEXT_GEN = '1'
-                        }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
