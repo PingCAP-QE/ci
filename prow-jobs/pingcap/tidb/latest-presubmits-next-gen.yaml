@@ -29,15 +29,15 @@ presubmits:
       rerun_command: "/test pull-check-next-gen"
 
     - <<: *brancher
-      name: pingcap/tidb/pull_real_tikv_test_next_gen
+      name: pingcap/tidb/pull_integration_real_cluster_next_gen
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       always_run: false
-      context: pull-real-tikv-test-next-gen
-      trigger: "(?m)^/test (?:.*? )?pull-real-tikv-test-next-gen(?: .*?)?$"
-      rerun_command: "/test pull-real-tikv-test-next-gen"
+      context: pull-integration-realcluster-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
+      rerun_command: "/test pull-integration-realcluster-test-next-gen"
 
     - <<: *brancher
       name: pingcap/tidb/pull_mysql_test_next_gen
