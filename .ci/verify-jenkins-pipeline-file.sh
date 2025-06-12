@@ -10,7 +10,7 @@ set -eo pipefail
 
 function main() {
     local f="$1"
-    echo -ne "validating $f:\\t"
+    printf "validating %s:\t" "$f"
     result="$(curl -fsS -X POST -H "$JENKINS_CRUMB" -F "jenkinsfile=<${f}" "$JENKINS_URL/pipeline-model-converter/validate")"
     echo "$result"
     echo "$result" | grep "successfully validated" >/dev/null || exit 1
