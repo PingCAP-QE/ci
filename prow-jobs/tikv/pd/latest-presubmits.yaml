@@ -44,7 +44,7 @@ presubmits:
     - name: pull-unit-test-next-gen
       agent: kubernetes
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       optional: true
       branches:
         - ^master$
