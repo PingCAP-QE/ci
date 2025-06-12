@@ -131,7 +131,7 @@ presubmits:
                 memory: 12Gi
         affinity: *affinity
 
-    # we will depreacate it!
+    # we will deprecate it!
     - name: tikv/pd/ghpr_build
       agent: jenkins
       decorate: false # need add this.
