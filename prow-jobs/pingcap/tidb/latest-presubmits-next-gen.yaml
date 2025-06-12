@@ -55,9 +55,9 @@ presubmits:
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: idc-jenkins-ci-tidb/unit-test
-      trigger: "(?m)^/test (?:.*? )?pull-unit-test-test(?: .*?)?$"
-      rerun_command: "/test unit-test-next-gen"
+      context: pull-unit-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-unit-test-next-gen(?: .*?)?$"
+      rerun_command: "/test pull-unit-test-next-gen"
 
     - <<: *brancher
       name: pingcap/tidb/pull_unit_test_ddlv1_next_gen
