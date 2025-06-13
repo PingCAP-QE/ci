@@ -29,7 +29,7 @@ presubmits:
       rerun_command: "/test pull-check-next-gen"
 
     - <<: *brancher
-      name: pingcap/tidb/pull_integration_real_cluster_next_gen
+      name: pingcap/tidb/pull_integration_realcluster_test_next_gen
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
