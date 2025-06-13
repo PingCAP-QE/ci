@@ -76,10 +76,10 @@ pipeline {
                                 --ticdc-new=${TARGET_BRANCH_TICDC}
                                 mv tiflash tiflash_dir && mv tiflash_dir/* ./
 
-                                ./third_bin/tikv-server -V
-                                ./third_bin/pd-server -V
-                                ./third_bin/tiflash --version
-                                ./third_bin/cdc version
+                                ./tikv-server -V
+                                ./pd-server -V
+                                ./tiflash --version
+                                ./cdc version
                             """
                     }
                 }
