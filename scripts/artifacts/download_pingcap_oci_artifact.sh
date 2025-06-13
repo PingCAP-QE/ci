@@ -109,6 +109,18 @@ function main() {
         ls -alh tiflash
         echo "🎉 download TiFlash success"
     fi
+    if [[ -n "$TICDC" ]]; then
+        echo "🚀 start download TiCDC"
+        download_and_extract_with_path "$ticdc_oci_url" '^cdc-v.+.tar.gz$' cdc.tar.gz cdc
+        chmod +x cdc
+        echo "🎉 download TiCDC success"
+    fi
+    if [[ -n "$TICDC_NEW" ]]; then
+        echo "🚀 start download TiCDC(new)"
+        download_and_extract_with_path "$ticdc_new_oci_url" '^cdc-v.+.tar.gz$' cdc.tar.gz cdc
+        chmod +x cdc
+        echo "🎉 download TiCDC(new) success"
+    fi
 }
 
 function parse_cli_args() {
@@ -134,6 +146,14 @@ function parse_cli_args() {
         TIFLASH="${i#*=}"
         shift # past argument=value
         ;;
+        -ticdc=*|--ticdc=*)
+        TICDC="${i#*=}"
+        shift # past argument=value
+        ;;
+        -ticdc-new=*|--ticdc-new=*)
+        TICDC_NEW="${i#*=}"
+        shift # past argument=value
+        ;;
         --default)
         DEFAULT=YES
         shift # past argument with no value
@@ -152,6 +172,8 @@ function parse_cli_args() {
     [[ -n "${TIKV_WORKER}" ]]   && echo "TIKV_WORKER = ${TIKV_WORKER}"
     [[ -n "${PD}" ]]            && echo "PD          = ${PD}"
     [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
+    [[ -n "${TICDC}" ]]         && echo "TICDC       = ${TICDC}"
+    [[ -n "${TICDC_NEW}" ]]     && echo "TICDC_NEW   = ${TICDC_NEW}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
@@ -166,6 +188,8 @@ function parse_cli_args() {
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
     pd_oci_url="${registry_host}/tikv/pd/package:${PD}_${tag_suffix}"
+    ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
+    ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
 }
 
 function check_tools() {

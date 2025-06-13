@@ -113,7 +113,6 @@ presubmits:
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-e2e-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-integration-e2e-test"
 
@@ -123,8 +122,6 @@ presubmits:
       decorate: false # need add this.
       context: pull-br-integration-test
       run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
 
@@ -134,8 +131,6 @@ presubmits:
       decorate: false # need add this.
       context: pull-lightning-integration-test
       run_if_changed: "(lightning|pkg/(domain|statistics|ddl|infoschema)|br/pkg/(checksum|httputil|membuf|pdutil|restore/split|storage))/.*"
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
       rerun_command: "/test pull-lightning-integration-test"
 
@@ -143,10 +138,8 @@ presubmits:
       name: pingcap/tidb/pull_common_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       optional: true
       context: pull-common-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
       rerun_command: "/test pull-common-test"
 
@@ -175,10 +168,8 @@ presubmits:
       name: pingcap/tidb/pull_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       optional: true
       context: pull-sqllogic-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
 
@@ -188,7 +179,6 @@ presubmits:
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-mysql-client-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
       rerun_command: "/test pull-mysql-client-test"
 
