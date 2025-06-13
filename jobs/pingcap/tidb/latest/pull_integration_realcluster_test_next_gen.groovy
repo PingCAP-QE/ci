@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 final fullRepo = 'pingcap/tidb'
 final branchAlias = 'latest' // For trunk and latest release branches.
-final jobName = 'pull_integration_real_cluster_next_gen'
+final jobName = 'pull_integration_realcluster_test_next_gen'
 
 pipelineJob("${fullRepo}/${jobName}") {
     logRotator {
