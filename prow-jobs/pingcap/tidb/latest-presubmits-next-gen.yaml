@@ -34,7 +34,6 @@ presubmits:
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
-      always_run: false
       context: pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-realcluster-test-next-gen"
@@ -78,3 +77,13 @@ presubmits:
       context: pull-integration-e2e-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-e2e-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-e2e-test-next-gen"
+
+    - <<: *brancher
+      name: pingcap/tidb/pull_mysql_client_test_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      optional: true
+      context: pull-mysql-client-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
+      rerun_command: "/test pull-mysql-client-test-next-gen"
