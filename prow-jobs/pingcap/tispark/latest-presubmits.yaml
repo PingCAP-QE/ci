@@ -1,0 +1,15 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tispark:
+    - name: pingcap/tispark/pull_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
+      optional: true # delete it when the job is stable
+      context: wip-pull-integration-test
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(integration-test)(?: .*?)?$"
+      rerun_command: "/test integration-test"
+      branches:
+        - .+
