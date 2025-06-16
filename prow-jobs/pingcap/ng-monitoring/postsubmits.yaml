@@ -51,6 +51,8 @@ postsubmits:
       max_concurrency: 1
       branches:
         - ^release-[0-9]+[.][0-9]+(-beta[.][0-9]+)?$
+      skip_branches:
+        - ^release-6[.]1(.[0-9]+)?(-.+)?$
       spec:
         containers:
           - name: main

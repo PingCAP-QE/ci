@@ -26,11 +26,8 @@ configMapGenerator:
       - pingcap_ticdc_release-9.0-beta-presubmits.yaml=pingcap/ticdc/release-9.0-beta-presubmits.yaml
       - pingcap_tidb-binlog_latest-presubmits.yaml=pingcap/tidb-binlog/latest-presubmits.yaml
       - pingcap_tidb-engine-ext_latest-presubmits.yaml=pingcap/tidb-engine-ext/latest-presubmits.yaml
-      - pingcap_tidb-engine-ext_release-6.1-latest-presubmits.yaml=pingcap/tidb-engine-ext/release-6.1-latest-presubmits.yaml
       - pingcap_tidb-operator_latest-presubmits.yaml=pingcap/tidb-operator/latest-presubmits.yaml
       - pingcap_tidb-test_latest-presubmits.yaml=pingcap/tidb-test/latest-presubmits.yaml
-      - pingcap_tidb-test_release-6.0-presubmits.yaml=pingcap/tidb-test/release-6.0-presubmits.yaml
-      - pingcap_tidb-test_release-6.1-presubmits.yaml=pingcap/tidb-test/release-6.1-presubmits.yaml
       - pingcap_tidb-test_release-6.2-presubmits.yaml=pingcap/tidb-test/release-6.2-presubmits.yaml
       - pingcap_tidb-test_release-7.1-presubmits.yaml=pingcap/tidb-test/release-7.1-presubmits.yaml
       - pingcap_tidb-test_release-8.5-presubmits.yaml=pingcap/tidb-test/release-8.5-presubmits.yaml
@@ -41,7 +38,6 @@ configMapGenerator:
       - pingcap_tidb_latest-presubmits-canary.yaml=pingcap/tidb/latest-presubmits-canary.yaml
       - pingcap_tidb_latest-presubmits-next-gen.yaml=pingcap/tidb/latest-presubmits-next-gen.yaml
       - pingcap_tidb_latest-presubmits.yaml=pingcap/tidb/latest-presubmits.yaml
-      - pingcap_tidb_release-6.1-presubmits.yaml=pingcap/tidb/release-6.1-presubmits.yaml
       - pingcap_tidb_release-6.2-presubmits.yaml=pingcap/tidb/release-6.2-presubmits.yaml
       - pingcap_tidb_release-6.3-presubmits.yaml=pingcap/tidb/release-6.3-presubmits.yaml
       - pingcap_tidb_release-6.4-presubmits.yaml=pingcap/tidb/release-6.4-presubmits.yaml
@@ -71,7 +67,6 @@ configMapGenerator:
       - pingcap_tiflash_latest-postsubmits.yaml=pingcap/tiflash/latest-postsubmits.yaml
       - pingcap_tiflash_latest-presubmits-next-gen.yaml=pingcap/tiflash/latest-presubmits-next-gen.yaml
       - pingcap_tiflash_latest-presubmits.yaml=pingcap/tiflash/latest-presubmits.yaml
-      - pingcap_tiflash_release-6.1-presubmits.yaml=pingcap/tiflash/release-6.1-presubmits.yaml
       - pingcap_tiflash_release-6.5-presubmits.yaml=pingcap/tiflash/release-6.5-presubmits.yaml
       - pingcap_tiflash_release-7.1-presubmits.yaml=pingcap/tiflash/release-7.1-presubmits.yaml
       - pingcap_tiflash_release-7.5-presubmits.yaml=pingcap/tiflash/release-7.5-presubmits.yaml
@@ -87,7 +82,6 @@ configMapGenerator:
       - pingcap_tiflow_latest-presubmits-wip.yaml=pingcap/tiflow/latest-presubmits-wip.yaml
       - pingcap_tiflow_latest-presubmits.yaml=pingcap/tiflow/latest-presubmits.yaml
       - pingcap_tiflow_release-6.0-presubmits.yaml=pingcap/tiflow/release-6.0-presubmits.yaml
-      - pingcap_tiflow_release-6.1-presubmits.yaml=pingcap/tiflow/release-6.1-presubmits.yaml
       - pingcap_tiflow_release-6.2-presubmits.yaml=pingcap/tiflow/release-6.2-presubmits.yaml
       - pingcap_tiflow_release-6.5-20241101-v6.5.7-presubmits.yaml=pingcap/tiflow/release-6.5-20241101-v6.5.7-presubmits.yaml
       - pingcap_tiflow_release-6.5-fips-presubmits.yaml=pingcap/tiflow/release-6.5-fips-presubmits.yaml
@@ -119,7 +113,6 @@ configMapGenerator:
       - tikv_copr-test_latest-presubmits.yaml=tikv/copr-test/latest-presubmits.yaml
       - tikv_migration_latest-presubmits.yaml=tikv/migration/latest-presubmits.yaml
       - tikv_pd_latest-presubmits.yaml=tikv/pd/latest-presubmits.yaml
-      - tikv_pd_release-6.1-presubmits.yaml=tikv/pd/release-6.1-presubmits.yaml
       - tikv_pd_release-6.5-fips-presubmits.yaml=tikv/pd/release-6.5-fips-presubmits.yaml
       - tikv_pd_release-6.5-presubmits.yaml=tikv/pd/release-6.5-presubmits.yaml
       - tikv_pd_release-7.1-presubmits.yaml=tikv/pd/release-7.1-presubmits.yaml
@@ -129,7 +122,6 @@ configMapGenerator:
       - tikv_pd_release-9.0-beta-presubmits.yaml=tikv/pd/release-9.0-beta-presubmits.yaml
       - tikv_raft-engine_presubmits.yaml=tikv/raft-engine/presubmits.yaml
       - tikv_tikv_latest-presubmits.yaml=tikv/tikv/latest-presubmits.yaml
-      - tikv_tikv_release-6.1-presubmits.yaml=tikv/tikv/release-6.1-presubmits.yaml
       - tikv_tikv_release-6.5-presubmits.yaml=tikv/tikv/release-6.5-presubmits.yaml
       - tikv_tikv_release-7.1-presubmits.yaml=tikv/tikv/release-7.1-presubmits.yaml
       - tikv_tikv_release-7.5-presubmits.yaml=tikv/tikv/release-7.5-presubmits.yaml
