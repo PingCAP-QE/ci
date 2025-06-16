@@ -87,3 +87,13 @@ presubmits:
       context: pull-mysql-client-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-mysql-client-test-next-gen"
+
+    - <<: *brancher
+      name: pingcap/tidb/pull_br_integration_test_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      # run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
+      optional: true
+      context: pull-br-integration-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-br-integration-test-next-gen(?: .*?)?$"
+      rerun_command: "/test pull-br-integration-test-next-gen"
