@@ -1,15 +1,27 @@
+global_definitions:
+  branches: &branches
+    - ^release-6\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+    - ^feature/release-6.1(.\d+)?-.+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  affinity: &affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
-    - name: pull-build-release-6.1
+    - <<: *branches
+      name: pull-build-release-6.1
       agent: kubernetes
-      cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: true
-      context: idc-jenkins-ci/build
-      branches:
-        - ^release-6\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      skip_if_only_changed: *skip_if_only_changed
       spec:
+        affinity: *affinity
         containers:
           - name: build
             image: hub.pingcap.net/ee/ci/base:v20230803-go1.19.12
