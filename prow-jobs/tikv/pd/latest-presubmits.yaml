@@ -26,7 +26,7 @@ presubmits:
         - ^master$
         - ^feature/.+
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
-      skip_branches: *skip_branches      
+      skip_branches: *skip_branches
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity: *affinity

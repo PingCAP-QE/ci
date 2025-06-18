@@ -38,7 +38,7 @@ presubmits:
               limits:
                 cpu: "6"
                 memory: 12Gi
-   
+
     - <<: *brancher
       name: pull-unit-test-next-gen
       agent: kubernetes
@@ -52,38 +52,6 @@ presubmits:
             command: [bash, -ce]
             env:
               - { name: NEXT_GEN, value: "1" }
-            args:
-              - |
-                for i in $(seq 1 10); do
-                  echo "🚀 Testing for job index: ${i} ..."
-                  make ci-test-job JOB_INDEX=${i} || exit 1
-                  echo "🎉 Passed for job index: ${i}."
-
-                  # unit test coverage data
-                  # mv covprofile covprofile_${JOB_INDEX}
-                  # if [ -f junitfile ]; then
-                  #     cat junitfile
-                  # fi
-                done
-
-                # ls -alh covprofile_*
-            resources:
-              limits:
-                cpu: "6"
-                memory: 12Gi
-        affinity: *affinity
-
-    - <<: *brancher
-      name: pull-unit-test
-      agent: kubernetes
-      decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
-      optional: true
-      spec:
-        containers:
-          - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2025.6.8-1-g5c4ef89-go1.23
-            command: [bash, -ce]
             args:
               - |
                 for i in $(seq 1 10); do
