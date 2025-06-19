@@ -96,11 +96,11 @@ pipeline {
 
                     # compile go plugin: audit
                     pushd enterprise-plugin/audit && go mod tidy && popd
-                    pushd ${REFS.repo} && go run ./cmd/pluginpkg -pkg-dir ../enterprise-plugin/audit -out-dir ../plugin-so && popd
+                    pushd ${REFS.repo} && go run ./cmd/pluginpkg -next-gen -pkg-dir ../enterprise-plugin/audit -out-dir ../plugin-so && popd
 
                     # compile go plugin: whitelist
                     pushd enterprise-plugin/whitelist && go mod tidy && popd
-                    pushd ${REFS.repo} && go run ./cmd/pluginpkg -pkg-dir ../enterprise-plugin/whitelist -out-dir ../plugin-so && popd
+                    pushd ${REFS.repo} && go run ./cmd/pluginpkg -next-gen -pkg-dir ../enterprise-plugin/whitelist -out-dir ../plugin-so && popd
 
                     # test them.
                     make server -C ${REFS.repo}
