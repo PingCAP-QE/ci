@@ -118,6 +118,7 @@ configMapGenerator:
       - tikv_community_presubmits.yaml=tikv/community/presubmits.yaml
       - tikv_copr-test_latest-presubmits.yaml=tikv/copr-test/latest-presubmits.yaml
       - tikv_migration_latest-presubmits.yaml=tikv/migration/latest-presubmits.yaml
+      - tikv_pd_latest-presubmits-next-gen.yaml=tikv/pd/latest-presubmits-next-gen.yaml
       - tikv_pd_latest-presubmits.yaml=tikv/pd/latest-presubmits.yaml
       - tikv_pd_release-6.1-presubmits.yaml=tikv/pd/release-6.1-presubmits.yaml
       - tikv_pd_release-6.5-fips-presubmits.yaml=tikv/pd/release-6.5-fips-presubmits.yaml
