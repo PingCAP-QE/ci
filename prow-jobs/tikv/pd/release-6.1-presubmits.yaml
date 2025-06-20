@@ -18,6 +18,7 @@ presubmits:
     - <<: *branches
       name: pull-build-release-6.1
       agent: kubernetes
+      cluster: gcp-prow-ksyun      
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
       spec:
