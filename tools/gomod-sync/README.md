@@ -40,7 +40,7 @@ go run main.go ../../mainrepo/go.mod ./go.mod
 
 ## Requirements
 
-- Go 1.18 or later
+- Go 1.23 or later
 - `golang.org/x/mod` module
 
 ## Installation
