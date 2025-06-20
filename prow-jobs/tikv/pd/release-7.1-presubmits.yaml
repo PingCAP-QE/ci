@@ -22,8 +22,6 @@ presubmits:
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
       branches: *branches
-      skip_branches:
-        - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
       spec:
         affinity: *affinity
         containers:
