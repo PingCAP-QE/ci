@@ -1,12 +1,38 @@
+global_definitions:
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  affinity: &affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
-    - name: tikv/pd/release-6.5-fips/ghpr_build
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: true
-      context: idc-jenkins-ci/build
-      trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
-      rerun_command: "/test build"
+    - name: pull-build-release-6.5-fips
+      agent: kubernetes
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^feature/release-6.5-fips$
+      spec:
+        affinity: *affinity
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/cd/builders/pd:v2024.10.8-91-g6221afa-centos7-go1.19
+            command: [bash, -ce]
+            args:
+              - |
+                ENABLE_FIPS=1 WITH_RACE=1 make # build for race mode
+                ENABLE_FIPS=1 make             # build for normal mode
+            resources:
+              requests:
+                cpu: "2"
+                memory: "4Gi"
+              limits:
+                cpu: "4"
+                memory: 8Gi

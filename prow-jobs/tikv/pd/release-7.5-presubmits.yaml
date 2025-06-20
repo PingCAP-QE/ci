@@ -3,18 +3,42 @@ global_definitions:
     - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
     # for feature branch based on release versions
     - ^feature/release-7.5(.\d+)?-.+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  affinity: &affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
-    - name: tikv/pd/release-7.5/ghpr_build
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: true
-      context: idc-jenkins-ci/build
-      trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
-      rerun_command: "/test build"
+    - name: pull-build-release-7.5
+      agent: kubernetes
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
       branches: *branches
+      spec:
+        affinity: *affinity
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/cd/builders/pd:v2024.10.8-91-g6221afa-centos7-go1.21
+            command: [bash, -ce]
+            args:
+              - |
+                WITH_RACE=1 make # build for race mode
+                make             # build for normal mode
+            resources:
+              requests:
+                cpu: "2"
+                memory: "4Gi"
+              limits:
+                cpu: "4"
+                memory: 8Gi
 
     - name: tikv/pd/release-7.5/pull_integration_copr_test
       agent: jenkins
