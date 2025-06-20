@@ -51,7 +51,3 @@ Clone this repository or copy the `main.go` file into your project. Then build o
 go build -o gomod-sync
 ./gomod-sync <main_repo_go_mod_path> <plugin_repo_go_mod_path>
 ```
-
-## License
-
-MIT License
