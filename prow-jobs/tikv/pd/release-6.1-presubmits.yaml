@@ -15,12 +15,12 @@ global_definitions:
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
-    - <<: *branches
-      name: pull-build-release-6.1
+    - name: pull-build-release-6.1
       agent: kubernetes
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
       spec:
         affinity: *affinity
         containers:
@@ -47,12 +47,3 @@ presubmits:
           - name: gomod-cache
             persistentVolumeClaim:
               claimName: gomod-cache
-        affinity:
-          nodeAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              nodeSelectorTerms:
-                - matchExpressions:
-                    - key: kubernetes.io/arch
-                      operator: In
-                      values:
-                        - amd64
