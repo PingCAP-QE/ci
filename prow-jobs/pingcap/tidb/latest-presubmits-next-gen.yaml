@@ -12,7 +12,7 @@ presubmits:
       name: pingcap/tidb/pull_build_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: pull-build-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-build-next-gen(?: .*?)?$"
