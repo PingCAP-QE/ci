@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"golang.org/x/mod/modfile"
 )
@@ -22,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	pluginFile, _, err := loadModFile(pluginModPath)
+	pluginFile, err := loadModFile(pluginModPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading plugin go.mod: %v\n", err)
 		os.Exit(1)
@@ -56,17 +57,13 @@ func main() {
 		fmt.Println("Plugin go.mod updated with main repo versions.")
 
 		// Run 'go mod tidy -go <version>' in the plugin repo directory
-		dir := getDir(pluginModPath)
-		if dir == "" {
-			dir = "."
-		}
 		goVersion, err := loadGoVersion(mainModPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to get Go version from main go.mod: %v\n", err)
 			os.Exit(1)
 		}
 		fmt.Printf("Running 'go mod tidy -go=%s'...\n", goVersion)
-		if err := runGoModTidy(dir, goVersion); err != nil {
+		if err := runGoModTidy(filepath.Dir(pluginModPath), goVersion); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to run 'go mod tidy': %v\n", err)
 			os.Exit(1)
 		}
@@ -74,34 +71,6 @@ func main() {
 	} else {
 		fmt.Println("No shared dependencies needed updating.")
 	}
-}
-
-func loadModuleVersions(modPath string) (map[string]string, error) {
-	modBytes, err := os.ReadFile(modPath)
-	if err != nil {
-		return nil, err
-	}
-	modFile, err := modfile.Parse(modPath, modBytes, nil)
-	if err != nil {
-		return nil, err
-	}
-	versions := make(map[string]string)
-	for _, req := range modFile.Require {
-		versions[req.Mod.Path] = req.Mod.Version
-	}
-	return versions, nil
-}
-
-// getDir returns the directory part of a file path.
-func getDir(path string) string {
-	i := len(path) - 1
-	for i >= 0 && path[i] != '/' && path[i] != '\\' {
-		i--
-	}
-	if i > 0 {
-		return path[:i]
-	}
-	return "."
 }
 
 // runGoModTidy runs 'go mod tidy -go <version>' in the specified directory using os/exec.
@@ -122,22 +91,22 @@ func runCmd(cmdArgs []string, dir string) error {
 	return cmd.Run()
 }
 
-func loadModFile(modPath string) (*modfile.File, []byte, error) {
-	modBytes, err := os.ReadFile(modPath)
+// loadModuleVersions loads the module versions from a go.mod file.
+func loadModuleVersions(modPath string) (map[string]string, error) {
+	modFile, err := loadModFile(modPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	modFile, err := modfile.Parse(modPath, modBytes, nil)
-	return modFile, modBytes, err
+	versions := make(map[string]string)
+	for _, req := range modFile.Require {
+		versions[req.Mod.Path] = req.Mod.Version
+	}
+	return versions, nil
 }
 
 // loadGoVersion parses the go version from a go.mod file.
 func loadGoVersion(modPath string) (string, error) {
-	modBytes, err := os.ReadFile(modPath)
-	if err != nil {
-		return "", err
-	}
-	modFile, err := modfile.Parse(modPath, modBytes, nil)
+	modFile, err := loadModFile(modPath)
 	if err != nil {
 		return "", err
 	}
@@ -145,4 +114,13 @@ func loadGoVersion(modPath string) (string, error) {
 		return modFile.Go.Version, nil
 	}
 	return "", fmt.Errorf("go version not found in %s", modPath)
+}
+
+func loadModFile(modPath string) (*modfile.File, error) {
+	modBytes, err := os.ReadFile(modPath)
+	if err != nil {
+		return nil, err
+	}
+	modFile, err := modfile.Parse(modPath, modBytes, nil)
+	return modFile, err
 }
