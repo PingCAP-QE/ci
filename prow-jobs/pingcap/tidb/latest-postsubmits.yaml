@@ -123,3 +123,12 @@ postsubmits:
       context: wip/integration-lightning-test
       max_concurrency: 1
       skip_report: true
+
+    - <<: *brancher
+      name: pingcap/tidb/merged_tiflash_integration_test
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      context: wip/tiflash-integration-test
+      max_concurrency: 1
+      skip_report: true
