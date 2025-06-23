@@ -4,18 +4,18 @@ A command-line tool to synchronize shared Go module dependency versions between 
 
 ## Overview
 
-`gomod-sync` updates all dependencies in a plugin repository's `go.mod` file to match the versions found in a main repository's `go.mod`, but only for dependencies that exist in both files. This is useful for keeping plugin or extension repositories in sync with the main project's dependency versions.
+`gomod-sync` updates all dependencies in a target repository's `go.mod` file to match the versions found in a source repository's `go.mod`, but only for dependencies that exist in both files. This is useful for keeping target or extension repositories in sync with the source project's dependency versions.
 
 ## Usage
 
 ```sh
-go run main.go <main_repo_go_mod_path> <plugin_repo_go_mod_path>
+gomod-sync --source=from/repo/path/go.mod --target=to/repo/path/go.mod
 ```
 
-- `<main_repo_go_mod_path>`: Path to the main repository's `go.mod` file.
-- `<plugin_repo_go_mod_path>`: Path to the plugin repository's `go.mod` file.
+- `from/repo/path/go.mod`: Path to the source repository's `go.mod` file.
+- `to/repo/path/go.mod`: Path to the target repository's `go.mod` file.
 
-The tool will update the plugin repo's `go.mod` in-place, setting the version of any shared dependency to match the main repo.
+The tool will update the target repo's `go.mod` in-place, setting the version of any shared dependency to match the main repo.
 
 After updating, it will run:
 
@@ -23,19 +23,19 @@ After updating, it will run:
 go mod tidy -go=<version>
 ```
 
-in the plugin repo directory, where `<version>` is the Go version specified in the main repo's `go.mod`.
+in the target repo directory, where `<version>` is the Go version specified in the main repo's `go.mod`.
 
 ## Example
 
 ```sh
-go run main.go ../../mainrepo/go.mod ./go.mod
+go run ./ --source=from/repo/path/go.mod --target=to/repo/path/go.mod
 ```
 
 ## Features
 
 - Robust parsing and updating using `golang.org/x/mod/modfile`
 - Only updates dependencies present in both files (direct dependencies only, not indirect)
-- Runs `go mod tidy -go=<version>` in the plugin repo after updating, using the Go version from the main repo
+- Runs `go mod tidy -go=<version>` in the target repo after updating, using the Go version from the source repo
 - Preserves comments and formatting as much as possible
 
 ## Requirements
@@ -48,6 +48,6 @@ go run main.go ../../mainrepo/go.mod ./go.mod
 Clone this repository or copy the `main.go` file into your project. Then build or run with Go:
 
 ```sh
-go build -o gomod-sync
-./gomod-sync <main_repo_go_mod_path> <plugin_repo_go_mod_path>
+go install github.com/PingCAP-QE/ci/tools/gomod-sync@main
+$(go env GOPATH)/bin/gomod-sync --source=from/repo/path/go.mod --target=to/repo/path/go.mod
 ```

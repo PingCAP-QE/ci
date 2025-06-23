@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,33 +11,45 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("Usage: bump-gomod <main_repo_go_mod_path> <plugin_repo_go_mod_path>")
+	var srcModPath string
+	var targetModPath string
+
+	flag.StringVar(&srcModPath, "source", "", "Path to source repo go.mod file")
+	flag.StringVar(&srcModPath, "s", "", "Path to source repo go.mod file (shorthand)")
+	flag.StringVar(&targetModPath, "target", "", "Path to target repo go.mod file")
+	flag.StringVar(&targetModPath, "t", "", "Path to target repo go.mod file (shorthand)")
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(),
+			"Usage: %s --source <main_repo_go_mod_path> --target <plugin_repo_go_mod_path>\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	if srcModPath == "" || targetModPath == "" {
+		flag.Usage()
 		os.Exit(1)
 	}
-	mainModPath := os.Args[1]
-	pluginModPath := os.Args[2]
 
-	mainVersions, err := loadModuleVersions(mainModPath)
+	sourceVersions, err := loadModuleVersions(srcModPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading main go.mod: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error loading source go.mod: %v\n", err)
 		os.Exit(1)
 	}
 
-	pluginFile, err := loadModFile(pluginModPath)
+	destModFile, err := loadModFile(targetModPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading plugin go.mod: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error loading target go.mod: %v\n", err)
 		os.Exit(1)
 	}
 
 	updated := false
-	for _, req := range pluginFile.Require {
+	for _, req := range destModFile.Require {
 		// Only update direct dependencies (not indirect)
 		if req.Indirect {
 			continue
 		}
-		if newVer, ok := mainVersions[req.Mod.Path]; ok && req.Mod.Version != newVer {
-			err := pluginFile.AddRequire(req.Mod.Path, newVer)
+		if newVer, ok := sourceVersions[req.Mod.Path]; ok && req.Mod.Version != newVer {
+			err := destModFile.AddRequire(req.Mod.Path, newVer)
 			if err == nil {
 				updated = true
 				fmt.Printf("Updated %s: %s -> %s\n", req.Mod.Path, req.Mod.Version, newVer)
@@ -45,25 +58,25 @@ func main() {
 	}
 
 	if updated {
-		newMod, err := pluginFile.Format()
+		newMod, err := destModFile.Format()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to format updated go.mod: %v\n", err)
 			os.Exit(1)
 		}
-		if err := os.WriteFile(pluginModPath, newMod, 0644); err != nil {
+		if err := os.WriteFile(targetModPath, newMod, 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to write updated plugin go.mod: %v\n", err)
 			os.Exit(1)
 		}
 		fmt.Println("Plugin go.mod updated with main repo versions.")
 
 		// Run 'go mod tidy -go <version>' in the plugin repo directory
-		goVersion, err := loadGoVersion(mainModPath)
+		goVersion, err := loadGoVersion(srcModPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to get Go version from main go.mod: %v\n", err)
 			os.Exit(1)
 		}
 		fmt.Printf("Running 'go mod tidy -go=%s'...\n", goVersion)
-		if err := runGoModTidy(filepath.Dir(pluginModPath), goVersion); err != nil {
+		if err := runGoModTidy(filepath.Dir(targetModPath), goVersion); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to run 'go mod tidy': %v\n", err)
 			os.Exit(1)
 		}
