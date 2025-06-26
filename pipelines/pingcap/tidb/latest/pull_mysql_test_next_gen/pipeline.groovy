@@ -90,7 +90,7 @@ pipeline {
                     }
                     // Cache for next test stages.
                     cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: 'chmod +x bin/* && touch ws-${BUILD_TAG}'
+                        sh label: 'cache tidb-test', script: 'touch ws-${BUILD_TAG}'
                     }
                 }
             }
@@ -123,7 +123,7 @@ pipeline {
                                 // restore the cache saved by previous stage.
                                 cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     // if cache missed, it will fail(should not miss).
-                                    sh 'ls mysql_test && ls -l bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
+                                    sh 'ls mysql_test && chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
                                 }
 
                                 // run the test.
@@ -135,7 +135,7 @@ pipeline {
                                         export TIKV_PATH="127.0.0.1:2379"
                                     fi
                                     pushd mysql_test
-                                        TIDB_SERVER_PATH=../bin/tidb-server TIDB_TEST_STORE_NAME="${STORE}" ./test.sh 1 ${TEST_PART}
+                                        TIDB_SERVER_PATH=../bin/tidb-server TIDB_TEST_STORE_NAME="${STORE}" ./test.sh 1 ${PART}
                                     popd
                                 """
                             }
