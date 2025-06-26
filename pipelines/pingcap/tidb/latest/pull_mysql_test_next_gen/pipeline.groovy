@@ -116,7 +116,7 @@ pipeline {
                     }
                 }
                 stages {
-                    stage("Test store=${STORE} part=${PART}") {
+                    stage('Test') {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
