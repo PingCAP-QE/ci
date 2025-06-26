@@ -50,6 +50,7 @@ postsubmits:
           key: token
       skip_report: true
       optional: true
+      skip_submodules: true
       max_concurrency: 3
       run_if_changed: go\.mod$
       branches:
@@ -77,7 +78,7 @@ postsubmits:
                 pushd ../../${TARGET_FULL_REPO}
                   git checkout "${PULL_BASE_REF}"
                   for modPath in audit/go.mod whitelist/go.mod; do
-                    go run github.com/PingCAP-QE/ci/tools/gomod-sync@main ../../${REPO_OWNER}/${REPO_NAME} ${modPath}
+                    go run github.com/PingCAP-QE/ci/tools/gomod-sync@main --source=../../${REPO_OWNER}/${REPO_NAME}/go.mod --target=${modPath}
                   done
                   if git diff --cached --exit-code --name-status .; then
                     echo "🤷 No changes happened."
