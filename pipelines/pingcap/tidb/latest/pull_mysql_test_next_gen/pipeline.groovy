@@ -10,6 +10,8 @@ final K8S_NAMESPACE = 'jenkins-tidb'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+final TARGET_BRANCH_PD = "master"
+final TARGET_BRANCH_TIKV = "dedicated"
 pipeline {
     agent {
         kubernetes {
@@ -75,8 +77,20 @@ pipeline {
                 }
                 dir('tidb-test') {
                     sh "git branch && git status"
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
+                    // Prepare component binaries.
+                    dir('bin') {
+                        container("utils") {
+                            sh """
+                                script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                chmod +x \$script
+                                \${script} --pd=${TARGET_BRANCH_PD}-next-gen --tikv=${TARGET_BRANCH_TIKV}-next-gen --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen
+                            """
+                            sh "cp ${WORKSPACE}/${REFS.repo}/bin/* ./"
+                        }
+                    }
+                    // Cache for next test stages.
+                    cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                        sh label: 'cache tidb-test', script: 'chmod +x bin/* && touch ws-${BUILD_TAG}'
                     }
                 }
             }
@@ -88,6 +102,11 @@ pipeline {
                         name 'PART'
                         values '1', '2', '3', '4'
                     }
+                    axis {
+                        name 'STORE'
+                        // values 'unistore', 'tikv'
+                        values 'unistore'
+                    }
                 }
                 agent{
                     kubernetes {
@@ -97,22 +116,28 @@ pipeline {
                     }
                 }
                 stages {
-                    stage("Test") {
+                    stage('Test') {
                         options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
-                            dir(REFS.repo) {
-                                cache(path: "./bin", includes: '**/*', key: "ng-binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
-                                }
-                            }
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh 'ls mysql_test' // if cache missed, fail it(should not miss).
-                                    dir('mysql_test') {
-                                        // TODO: fix the test.sh to correct the parameter parsing and numerical comparison.
-                                        sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh 1 ${PART}'
-                                    }
+                                // restore the cache saved by previous stage.
+                                cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                    // if cache missed, it will fail(should not miss).
+                                    sh 'ls mysql_test && ls -l bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
                                 }
+
+                                // run the test.
+                                // TODO: use a script for next-gen, consider merging the script.
+                                sh label: "store=${STORE} part=${PART}", script: """#!/usr/bin/env bash
+                                    if [ "$STORE" == "tikv" ]; then
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                        export TIKV_PATH="127.0.0.1:2379"
+                                    fi
+                                    pushd mysql_test
+                                        TIDB_SERVER_PATH=../bin/tidb-server TIDB_TEST_STORE_NAME="${STORE}" ./test.sh 1 ${TEST_PART}
+                                    popd
+                                """
                             }
                         }
                         post{
