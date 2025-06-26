@@ -80,7 +80,7 @@ pipeline {
                 }
             }
         }
-        stage('MySQL Tests') {
+        stage('Tests') {
             matrix {
                 axes {
                     axis {
@@ -91,8 +91,8 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
+                        defaultContainer 'golang'
                     }
                 }
                 stages {
@@ -114,7 +114,7 @@ pipeline {
                                 }
                             }
                         }
-                        post{
+                        post {
                             always {
                                 junit(testResults: "**/result.xml")
                             }
