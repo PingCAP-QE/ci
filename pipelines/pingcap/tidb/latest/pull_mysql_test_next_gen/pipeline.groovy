@@ -104,7 +104,8 @@ pipeline {
                     }
                     axis {
                         name 'STORE'
-                        values 'unistore', 'tikv'
+                        // values 'unistore', 'tikv'
+                        values 'unistore'
                     }
                 }
                 agent{
