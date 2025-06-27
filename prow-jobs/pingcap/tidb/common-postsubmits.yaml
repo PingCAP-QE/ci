@@ -12,6 +12,7 @@ postsubmits:
         - ^master$
         - ^feature/release-.*$
         - ^release-[0-9]+[.][0-9]+(-beta.[0-9]+)?$
+        - ^release-[0-9]+[.][0-9]+(-[0-9]+-v[0-9]+[.][0-9]+[.][0-9]+(-[0-9]+)?)?$
       spec:
         containers:
           - name: main
