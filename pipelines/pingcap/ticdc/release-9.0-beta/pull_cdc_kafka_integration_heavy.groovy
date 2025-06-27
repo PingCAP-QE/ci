@@ -6,15 +6,15 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc_mysql_integration_heavy.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc_kafka_integration_heavy.yaml'
+final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-def skipRemainingStages = false
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yamlFile POD_TEMPLATE_FILE_BUILD
             defaultContainer 'golang'
         }
     }
@@ -22,7 +22,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -81,16 +81,18 @@ pipeline {
                                 ./bin/tikv-server -V
                                 ./bin/tiflash --version
                             """
-                        }
-                    }   
+                        } 
+                    }
                 }
                 dir("ticdc") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-mysql-integration')) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
+                            [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
+                            [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
@@ -111,7 +113,8 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08',
+                            'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
                 agent{
@@ -123,12 +126,24 @@ pipeline {
                 } 
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
+                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('ticdc') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
+                                    container("kafka") {
+                                        timeout(time: 6, unit: 'MINUTES') {
+                                            sh label: "Waiting for kafka ready", script: """
+                                                echo "Waiting for zookeeper to be ready..."
+                                                while ! nc -z localhost 2181; do sleep 10; done
+                                                echo "Waiting for kafka to be ready..."
+                                                while ! nc -z localhost 9092; do sleep 10; done
+                                                echo "Waiting for kafka-broker to be ready..."
+                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                            """
+                                        }
+                                    }
                                     sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_heavy_it_in_ci.sh mysql ${TEST_GROUP}
+                                        ./tests/integration_tests/run_heavy_it_in_ci.sh kafka ${TEST_GROUP}
                                     """
                                 }
                             }

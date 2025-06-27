@@ -96,7 +96,7 @@ pipeline {
                                         cp ${WORKSPACE}/scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ${WORKSPACE}/tiflow/dm/tests/
                                         chmod +x ${WORKSPACE}/tiflow/dm/tests/download_test_binaries_by_tag.sh
                                         # First download binary using the release branch script
-                                        cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-9.0-beta.1
+                                        cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref}
                                         rm -rf bin/tidb-server bin/pd-* bin/tikv-server
                                         mv bin tmp_bin
                                         # Then download and replace other components with exact versions
@@ -105,7 +105,7 @@ pipeline {
                                         cd -
                                     else
                                         echo "Release branch, downloading binaries from ${REFS.base_ref}"
-                                        cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-9.0-beta.1
+                                        cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref}
                                         cd -
                                     fi
                                     # Verify all required binaries

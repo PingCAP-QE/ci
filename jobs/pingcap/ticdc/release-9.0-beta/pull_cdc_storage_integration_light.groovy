@@ -1,24 +1,23 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// for release-9.0-beta branches, disable this job because already removed in master.
-pipelineJob('pingcap/tidb/release-9.0-beta/pull_tiflash_test') {
-    disabled(true)
+// For trunk and latest release branches.
+pipelineJob('pingcap/ticdc/release-9.0-beta/pull_cdc_storage_integration_light') {
     logRotator {
         daysToKeep(30)
     }
     parameters {
+        // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
-        stringParam("JOB_SPEC", "", "Prow job spec struct data")
+        stringParam("JOB_SPEC")
     }
     properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb")
+        githubProjectUrl("https://github.com/pingcap/ticdc")
     }
  
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/release-9.0-beta/pull_tiflash_test.groovy")
+            scriptPath("pipelines/pingcap/ticdc/release-9.0-beta/pull_cdc_storage_integration_light.groovy")
             scm {
                 git{
                     remote {

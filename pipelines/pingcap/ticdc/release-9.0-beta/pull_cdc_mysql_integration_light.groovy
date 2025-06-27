@@ -24,7 +24,7 @@ pipeline {
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -63,10 +63,10 @@ pipeline {
             steps {
                 dir("third_party_download") {
                     script {
-                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-9.0-beta.1')
-                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-9.0-beta.1')
-                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-9.0-beta.1')
-                        def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'release-9.0-beta.1')
+                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'REFS.base_ref')
+                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'REFS.base_ref')
+                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'REFS.base_ref')
+                        def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'REFS.base_ref')
                         retry(2) {
                             sh label: "download third_party", script: """
                                 export TIDB_BRANCH=${tidbBranch}

@@ -13,9 +13,9 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      # skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: pull-cdc-mysql-integration-light
-      optional: true # change this after test passed.
+      optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light"
@@ -25,12 +25,72 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       always_run: false
-      # skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: pull-cdc-mysql-integration-heavy
-      optional: true # change this after test passed.
+      optional: false
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy"
+      branches: *branches
+  
+    - name: pingcap/ticdc/release-9.0-beta/pull_cdc_kafka_integration_light
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-kafka-integration-light
+      optional: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-light"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-9.0-beta/pull_cdc_kafka_integration_heavy
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-kafka-integration-heavy
+      optional: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-heavy"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-9.0-beta/pull_cdc_pulsar_integration_light
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-pulsar-integration-light
+      optional: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-pulsar-integration-light"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-9.0-beta/pull_cdc_storage_integration_light
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-storage-integration-light
+      optional: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-light"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-9.0-beta/pull_cdc_storage_integration_heavy
+      agent: jenkins
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-storage-integration-heavy
+      optional: false
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-heavy"
       branches: *branches
 
     - name: pull-unit-test
