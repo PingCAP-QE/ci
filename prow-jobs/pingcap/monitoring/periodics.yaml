@@ -96,7 +96,7 @@ periodics:
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
       - org: pingcap
         repo: monitoring
-        base_ref: release-9.0-beta.1 # update it to new branch name when it's finished.
+        base_ref: release-9.0-beta.2 # update it to new branch name when it's finished.
         skip_submodules: true
         clone_depth: 1
     spec:
