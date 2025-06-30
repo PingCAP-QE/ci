@@ -56,10 +56,10 @@ pipeline {
                     sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'vector-search-test')) {
                         script {
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
+                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, '', 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
+                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, '', 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
                             // Note tiflash need extract all files in tiflash dir (extract tar.gz to tiflash dir)
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tiflash', REFS.base_ref, REFS.pulls[0].title, 'centos7/tiflash.tar.gz', '', trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=true)
+                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tiflash', REFS.base_ref, '', 'centos7/tiflash.tar.gz', '', trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=true)
                             sh label: 'move tiflash', script: 'mv tiflash/* bin/ && rm -rf tiflash'
                         } 
                     }
