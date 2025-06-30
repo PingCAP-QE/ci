@@ -7,6 +7,5 @@ postsubmits:
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: ci/unit-test
       max_concurrency: 1
-      skip_report: true # change this after test passed
       branches:
         - ^master$

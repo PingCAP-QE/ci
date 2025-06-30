@@ -5,8 +5,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: pull-verify 
-      skip_report: false
+      context: pull-verify
       trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
       rerun_command: "/test pull-verify"
       branches:
