@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap/tiflash/pull_integration_test') {
+pipelineJob('pingcap/tispark/pull_integration_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -12,13 +12,13 @@ pipelineJob('pingcap/tiflash/pull_integration_test') {
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tiflash")
+        githubProjectUrl("https://github.com/pingcap/tispark/")
     }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflash/latest/pull_integration_test.groovy")
+            scriptPath("pipelines/pingcap/tispark/latest/pull_integration_test.groovy")
             scm {
                 git {
                     remote {
