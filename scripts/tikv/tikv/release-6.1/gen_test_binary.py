@@ -32,7 +32,7 @@ def move_file(full_source_path, src_base_dir="/home/jenkins/tikv-src", target_di
     relative_path = os.path.relpath(full_source_path, src_base_dir)
     # Construct the full target path
     full_target_path = os.path.join(target_dir, relative_path)
-    
+
     # Create the target directory if it doesn't exist
     target_path_dir = os.path.dirname(full_target_path)
     if not os.path.exists(target_path_dir):

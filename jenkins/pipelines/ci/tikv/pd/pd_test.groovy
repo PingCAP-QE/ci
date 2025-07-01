@@ -41,11 +41,11 @@ boolean isMoreRecentOrEqual( String a, String b ) {
     [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
        Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
        return (result == 1)
-    } 
+    }
 }
 
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
     }
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {

@@ -76,11 +76,11 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'integrationtest.sh y', 
-                            'integrationtest.sh n', 
-                            'run_real_tikv_tests.sh bazel_brietest', 
-                            'run_real_tikv_tests.sh bazel_pessimistictest', 
-                            'run_real_tikv_tests.sh bazel_sessiontest', 
+                            'integrationtest.sh y',
+                            'integrationtest.sh n',
+                            'run_real_tikv_tests.sh bazel_brietest',
+                            'run_real_tikv_tests.sh bazel_pessimistictest',
+                            'run_real_tikv_tests.sh bazel_sessiontest',
                             'run_real_tikv_tests.sh bazel_statisticstest',
                             'run_real_tikv_tests.sh bazel_txntest',
                             'run_real_tikv_tests.sh bazel_addindextest',
@@ -94,7 +94,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                     }
                 }
-                stages {                    
+                stages {
                     stage('Test')  {
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
@@ -127,7 +127,7 @@ pipeline {
 
         // TODO(wuhuizuo): put into container lifecyle preStop hook.
         always {
-            container('report') {                
+            container('report') {
                 sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
             }
             archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)

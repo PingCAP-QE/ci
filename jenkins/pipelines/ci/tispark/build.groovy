@@ -4,7 +4,7 @@ def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPul
     env.PATH = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
     env.PATH = "${env.GOROOT}/bin:/home/jenkins/bin:/bin:${env.PATH}"
     env.SPARK_HOME = "/usr/local/spark-2.1.1-bin-hadoop2.7"
-    
+
     catchError {
         def label = "${JOB_NAME}-${BUILD_NUMBER}"
         podTemplate(label: label,
@@ -18,7 +18,7 @@ def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPul
                         image: "hub.pingcap.net/jenkins/centos7_golang-1.12_java:cached", ttyEnabled: true,
                         resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -28,7 +28,7 @@ def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPul
         ) {
             node(label) {
                 println "debug command:\nkubectl -n jenkins-tibigdata exec -ti ${NODE_NAME} bash"
-                container("java") { 
+                container("java") {
                     deleteDir()
                     stage('Checkout') {
                         dir("/home/jenkins/agent/git/tispark") {
@@ -48,7 +48,7 @@ def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPul
                             checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: credentialsId, refspec: specStr, url: 'git@github.com:pingcap/tispark.git']]]
                         }
                     }
-        
+
                     stage('Format') {
                         dir("go/src/github.com/pingcap/tispark") {
                             sh """
@@ -85,7 +85,7 @@ def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPul
         }
         currentBuild.result = "SUCCESS"
     }
-    
+
     stage('Summary') {
         def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
         def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +
@@ -94,7 +94,7 @@ def call(ghprbActualCommit, ghprbPullId, ghprbPullTitle, ghprbPullLink, ghprbPul
         "Build Result: `${currentBuild.result}`" + "\n" +
         "Elapsed Time: `${duration} mins` " + "\n" +
         "${env.RUN_DISPLAY_URL}"
-    
+
         if (currentBuild.result != "SUCCESS") {
             slackSend channel: channel, color: 'danger', teamDomain: teamDomain, tokenCredentialId: tokenCredentialId, message: "${slackmsg}"
         }

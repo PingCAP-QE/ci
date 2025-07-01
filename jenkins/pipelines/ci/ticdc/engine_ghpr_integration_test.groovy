@@ -32,9 +32,9 @@ static def partition(array, size) {
 
 def list_pr_diff_files() {
     def list_pr_files_api_url = "https://api.github.com/repos/pingcap/tiflow/pulls/${ghprbPullId}/files"
-    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) { 
-        response = httpRequest consoleLogResponseBody: false, 
-            contentType: 'APPLICATION_JSON', httpMode: 'GET', 
+    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) {
+        response = httpRequest consoleLogResponseBody: false,
+            contentType: 'APPLICATION_JSON', httpMode: 'GET',
             customHeaders:[[name:'Authorization', value:"token ${github_token}", maskValue: true]],
             url: list_pr_files_api_url, validResponseCodes: '200'
 
@@ -42,7 +42,7 @@ def list_pr_diff_files() {
 
         echo "Status: ${response.status}"
         def files = []
-        for (element in json) { 
+        for (element in json) {
             files.add(element.filename)
         }
 
@@ -63,7 +63,7 @@ def pattern_match_any_file(pattern, files_list) {
     return false
 }
 
-if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) { 
+if (ghprbPullId != null && ghprbPullId != "" && !params.containsKey("triggered_by_upstream_pr_ci")) {
     def pr_diff_files = list_pr_diff_files()
     def pattern = /(^engine\/|^dm\/|^deployments\/engine\/|^go\.mod).*$/
     // if any diff files start with dm/ or engine/ , run the engine integration test
@@ -92,11 +92,11 @@ def prepare_binaries_and_images() {
     // prepare images
     final defaultDependencyBranch = "master"
     def releaseBranchReg = /^release\-(\d+)\.(\d+)/      // example: release-6.1
-    def hotfixBranchReg = /^release\-(\d+)\.(\d+)-(\d+)/ // example: release-6.1-20220719 
-    
+    def hotfixBranchReg = /^release\-(\d+)\.(\d+)-(\d+)/ // example: release-6.1-20220719
+
     def dependencyBranch
     switch( ghprbTargetBranch ) {
-        case ~releaseBranchReg: 
+        case ~releaseBranchReg:
             println "target branch is release branch, dependency use ${ghprbTargetBranch} branch to prepare binaries and images"
             dependencyBranch = ghprbTargetBranch
             break
@@ -105,7 +105,7 @@ def prepare_binaries_and_images() {
             println "target branch is hotfix branch, dependency use ${relBr} branch to prepare binaries and images"
             dependencyBranch = relBr
             break
-        default: 
+        default:
             dependencyBranch = defaultDependencyBranch
     }
     TIDB_CLUSTER_BRANCH = dependencyBranch
@@ -140,7 +140,7 @@ def prepare_binaries_and_images() {
     docker tag hub.pingcap.net/tiflow/etcd:latest quay.io/coreos/etcd:latest
 
     docker pull hub.pingcap.net/qa/tidb:${TIDB_CLUSTER_BRANCH}
-    docker tag hub.pingcap.net/qa/tidb:${TIDB_CLUSTER_BRANCH} pingcap/tidb:${TIDB_TEST_TAG} 
+    docker tag hub.pingcap.net/qa/tidb:${TIDB_CLUSTER_BRANCH} pingcap/tidb:${TIDB_TEST_TAG}
     docker pull hub.pingcap.net/qa/tikv:${TIDB_CLUSTER_BRANCH}
     docker tag hub.pingcap.net/qa/tikv:${TIDB_CLUSTER_BRANCH} pingcap/tikv:${TIDB_TEST_TAG}
     docker pull hub.pingcap.net/qa/pd:${TIDB_CLUSTER_BRANCH}
@@ -206,7 +206,7 @@ def run_with_pod(Closure body) {
                             image: "hub.pingcap.net/jenkins/centos7_golang-1.18.5:latest", ttyEnabled: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '6Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: [
@@ -263,7 +263,7 @@ def archiveLogs(log_tar_name) {
     sh """
     echo "archive logs..."
     ls /tmp/tiflow_engine_test/ || true
-    tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tiflow_engine_test/ -type f -name "*.log") || true  
+    tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tiflow_engine_test/ -type f -name "*.log") || true
     ls -alh log-${log_tar_name}.tar.gz || true
     """
     archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false, allowEmptyArchive: true
@@ -276,7 +276,7 @@ def run_test(cases) {
 
         sh """
         cd go/src/github.com/pingcap/tiflow
-        make engine_integration_test CASE="${cases}" 
+        make engine_integration_test CASE="${cases}"
         """
     } catch (Exception e) {
         println(e.getMessage());
@@ -332,7 +332,7 @@ run_with_pod {
             def tests = [:]
             dir("go/src/github.com/pingcap/tiflow/engine/test/integration_tests") {
                 sh """
-                pwd 
+                pwd
                 ls -alh .
                 """
                 def cases_name = sh(
@@ -354,7 +354,7 @@ run_with_pod {
                             container("docker") {
                                 run_test(case_names.join(" "))
                             }
-                        } 
+                        }
                     }
                 }
             }

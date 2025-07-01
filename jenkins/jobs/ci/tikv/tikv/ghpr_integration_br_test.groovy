@@ -82,7 +82,7 @@ pipelineJob('tikv_ghpr_integration_br_test') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

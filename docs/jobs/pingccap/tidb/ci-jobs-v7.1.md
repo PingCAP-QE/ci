@@ -9,7 +9,7 @@ CI Jobs
 - The runner requirement: `64` core cpu + `128GB` memory with golang `v1.20.10` installed
   - Tools and setting please refer to [container env](#dev-containers), you can setup in you bare hosts.
 - Run as `root` user.
- 
+
 | Job name                                                                 | Description                               | Trigger comment in PR | CI script                                                          | Can be run locally by contributors | Core Instructions to run locally                                                                                                                                                                                                                                                                    |
 | ------------------------------------------------------------------------ | ----------------------------------------- | --------------------- | ------------------------------------------------------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [ghpr_build](/jobs/pingcap/tidb/release-7.1/ghpr_build.groovy)           | lint check and build binary.              | `/test build`         | [link](/pipelines/pingcap/tidb/release-7.1/ghpr_build.groovy)      | yes                                | run `make bazel_build`                                                                                                                                                                                                                                                                              |
@@ -33,7 +33,7 @@ CI Jobs
 # nodev   cgroup
 grep cgroup /proc/filesystems
 
-############# disable cgroup2 in grub2 boot menu ################## 
+############# disable cgroup2 in grub2 boot menu ##################
 sed -i '/^GRUB_CMDLINE_LINUX/ s/"$/ systemd.unified_cgroup_hierarchy=0"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 # after that, please reboot the host.
@@ -52,7 +52,7 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
         apt-get clean
 
     # install bazel tool
-    ENV ARCH amd64    
+    ENV ARCH amd64
     RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-${ARCH}" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
 
     ######### run test for tidb steps ########
@@ -71,12 +71,12 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
     ENV GOPATH /go
     ENV GOROOT /usr/local/go
     ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
-    RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz && tar -C /usr/local -xzf golang.tar.gz && rm golang.tar.gz    
+    RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz && tar -C /usr/local -xzf golang.tar.gz && rm golang.tar.gz
 
     RUN yum update -y && \
         yum groupinstall 'Development Tools' -y && \
         yum install unzip -y && \
-        yum clean all        
+        yum clean all
 
     # bazel tool
     RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-${ARCH}" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
@@ -89,4 +89,3 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
 ## Run after merged
 
 None
-

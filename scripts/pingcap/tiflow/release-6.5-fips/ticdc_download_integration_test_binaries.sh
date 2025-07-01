@@ -41,7 +41,7 @@ function download_from_oci() {
         # TODO: remove --no-check-certificate after the certificate issue is fixed
         echo "download file: ${download_api}${file}"
         wget --no-check-certificate -q "${download_api}${file}" -O "tmp/$file"
-        
+
         # if download successfully, extract the file
         if [ $? -eq 0 ]; then
             echo "Extracting $file..."

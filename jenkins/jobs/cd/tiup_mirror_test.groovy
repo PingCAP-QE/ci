@@ -32,4 +32,3 @@ pipelineJob('tiup-mirror-test') {
         }
     }
 }
-

@@ -295,4 +295,3 @@ currentBuild.result = "SUCCESS"
         ]
     }
 }
-

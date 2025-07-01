@@ -96,7 +96,7 @@ pipeline {
                 axes {
                     axis {
                         name 'DDL_TEST'
-                        values '^TestSimple.*Insert$', 
+                        values '^TestSimple.*Insert$',
                             '^TestSimple.*Update$',
                             '^TestSimple.*Delete$',
                             '^TestSimple(Mixed|Inc)?$',

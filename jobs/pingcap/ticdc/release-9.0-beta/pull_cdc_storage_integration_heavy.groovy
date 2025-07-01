@@ -13,7 +13,7 @@ pipelineJob('pingcap/ticdc/release-9.0-beta/pull_cdc_storage_integration_heavy')
     properties {
         githubProjectUrl("https://github.com/pingcap/ticdc")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -29,7 +29,7 @@ pipelineJob('pingcap/ticdc/release-9.0-beta/pull_cdc_storage_integration_heavy')
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

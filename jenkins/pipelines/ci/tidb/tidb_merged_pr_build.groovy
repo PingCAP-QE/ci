@@ -60,7 +60,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -202,7 +202,7 @@ try {
                             timeout(10) {
                                 sh """
                                 curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload									
+                                curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
                                 """
                                 // archiveArtifacts artifacts: 'tidb-server.tar.gz', fingerprint: true
                             }

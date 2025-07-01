@@ -92,7 +92,7 @@ pipelineJob('tiflash_ghpr_build_release') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

@@ -2,7 +2,7 @@
 // example commit msg
 // expression: fix wrong result type for greatest/least (#29408) (#29912)
 // close #29019
-@NonCPS 
+@NonCPS
 def extract_pull_id(MSG){
     def resp = []
     def m1 = MSG =~ /(\#\b\d+)/
@@ -13,7 +13,7 @@ def extract_pull_id(MSG){
         }
     }
     m1 = null
-    
+
     return resp
 }
 
@@ -63,7 +63,7 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '1000m', resourceRequestMemory: '2Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+
                     )
             ],
             volumes: [
@@ -187,7 +187,7 @@ run_with_pod {
         println "catch_exception Exception"
         println e
     } finally {
-        container("golang") { 
+        container("golang") {
             stage("summary") {
                 for (result_map in triggered_job_result) {
                     def name = result_map["name"]

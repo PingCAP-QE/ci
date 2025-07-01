@@ -61,7 +61,7 @@ def upload_result_to_db() {
 
 }
 
-// choose which go version to use. 
+// choose which go version to use.
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
@@ -104,7 +104,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         println "tag ${branchNameOrTag} use default version go 1.23"
         return "go1.23"
-    } else { 
+    } else {
         println "this is a branch"
         if (branchNameOrTag == "master") {
             println("branchNameOrTag: master  use go1.23")
@@ -175,7 +175,7 @@ switch(goVersion) {
         GO_BUILD_SLAVE = "build_go1130"
         break
     default:
-        GO_BUILD_SLAVE = "build_go1210"        
+        GO_BUILD_SLAVE = "build_go1210"
         break
 }
 println "This build use ${goVersion}"
@@ -212,8 +212,8 @@ try {
                                                             url: "${BUILD_URL}"]]
                                 ]
                     } else {
-                        checkout scm: [$class: 'GitSCM', 
-                            branches: [[name: branch]],  
+                        checkout scm: [$class: 'GitSCM',
+                            branches: [[name: branch]],
                             extensions: [
                                     [$class             : 'SubmoduleOption',
                                     disableSubmodules  : false,
@@ -273,8 +273,8 @@ try {
                         mkdir ${target}/conf
                         mv bin/dm* ${target}/bin/
                         """
-                        
-                        // DM changed the folder after a PR later than v6.2.0. 
+
+                        // DM changed the folder after a PR later than v6.2.0.
                         // Hotfix branch will be named like release-6.2-yyyymmdd and we should keep old logic for it.
                         if ((branch.startsWith("release-") && branch < "release-6.3") || (branch.startsWith("v") && branch < "v6.3")) {
                             sh """
@@ -342,7 +342,7 @@ try {
                         writeFile file: 'dm-ansible-sha1', text: "${githash}"
                         sh """
                         # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key ${refspath} --file dm-ansible-sha1
-                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
+                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload
 
                         # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz --file dm-ansible.tar.gz
                         curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
@@ -395,7 +395,7 @@ try {
 
                         writeFile file: 'dm-ansible-sha1', text: "${githash}"
                         sh """
-                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
+                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload
                         curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }
@@ -428,7 +428,7 @@ try {
 
                         writeFile file: 'dm-ansible-sha1', text: "${githash}"
                         sh """
-                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
+                        curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload
                         curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
                         """
                     }

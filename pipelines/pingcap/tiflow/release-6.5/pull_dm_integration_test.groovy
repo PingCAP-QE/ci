@@ -63,7 +63,7 @@ pipeline {
                         }
                     }
                 }
-            }    
+            }
         }
         stage('Checkout') {
             when { expression { !skipRemainingStages} }
@@ -94,7 +94,7 @@ pipeline {
                                     if [[ "${branchInfo.isHotfix}" == "true" ]]; then
                                         echo "Hotfix version tag: ${branchInfo.versionTag}"
                                         echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
-                                        
+
                                         cp ${WORKSPACE}/scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ${WORKSPACE}/tiflow/dm/tests/
                                         chmod +x ${WORKSPACE}/tiflow/dm/tests/download_test_binaries_by_tag.sh
                                         # First download binary using the release branch script
@@ -121,7 +121,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) { 
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         // TODO: how to update cached binarys if needed
@@ -143,7 +143,7 @@ pipeline {
                             which ./bin/dm-test-tools/check_worker_online
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -161,7 +161,7 @@ pipeline {
                     axis {
                         name 'TEST_GROUP'
                         values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08',
-                            'G09', 'G10', 'G11', 'G12', 'G13', 'TLS_GROUP'                      
+                            'G09', 'G10', 'G11', 'G12', 'G13', 'TLS_GROUP'
                     }
                 }
                 agent{
@@ -171,13 +171,13 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment { 
-                            DM_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
-                            DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
+                        environment {
+                            DM_CODECOV_TOKEN = credentials('codecov-token-tiflow')
+                            DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
                         }
                         steps {
                             container("mysql1") {
@@ -189,7 +189,7 @@ pipeline {
                             }
 
                             dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
                                     timeout(time: 10, unit: 'MINUTES') {
                                         sh label: "wait mysql ready", script: """
                                             pwd && ls -alh
@@ -222,22 +222,22 @@ pipeline {
                                         export PATH=${WORKSPACE}/tiflow/dm/bin:\$PATH
                                         cd dm && ./tests/dm_run_group.sh "${TEST_GROUP}"
                                     """
-                                } 
+                                }
                             }
                         }
                         post {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/dm_test
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", allowEmptyArchive: true
                             }
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

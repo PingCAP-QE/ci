@@ -14,7 +14,7 @@ pipelineJob('pingcap/tiflash/pull_unit_next_gen') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tiflash")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

@@ -504,6 +504,3 @@ if (NEED_MULTIARCH) {
         }
     }
 }
-
-
-

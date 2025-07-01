@@ -29,7 +29,7 @@ pipelineJob('pingcap/docs-cn/pull_verify') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

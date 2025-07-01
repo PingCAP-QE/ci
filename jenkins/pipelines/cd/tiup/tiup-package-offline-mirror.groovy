@@ -28,7 +28,7 @@ def package_community = { arch ->
     sh """
     tar -czf ${dst}.tar.gz $dst
     curl --fail -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
-    
+
     export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
     upload.py ${dst}.tar.gz ${dst}.tar.gz
     echo "upload $dst successed!"
@@ -128,7 +128,7 @@ def package_tools = { plat, arch ->
 
         cd bin/
         cp arbiter reparo pd-recover pd-tso-bench sync_diff_inspector tidb-lightning tidb-lightning-ctl ../${toolkit_dir}/bin/
-        
+
         cd ../
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'

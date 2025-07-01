@@ -30,11 +30,11 @@ def load_components_from_url(url):
 def check_docker_image(component_info, edition, registry, project, is_rc_build=False):
     component = component_info["name"]
     version = component_info["version"]
-    
+
     if not COMPONENT_META[component]["image_name"]:
         print(f"Image for component {component} is not defined.")
         return True, None
-    
+
     if not COMPONENT_META[component]["image_edition"][edition] and registry == "registry.hub.docker.com":
         print(f"Image for component {component} does not have {edition} edition.")
         return True, None
@@ -56,7 +56,7 @@ def check_docker_image(component_info, edition, registry, project, is_rc_build=F
     ]
     if is_rc_build:
         args.append("--is_rc_build")
-    
+
     try:
         subprocess.run(args, check=True)
         return True, None
@@ -110,14 +110,14 @@ if __name__ == "__main__":
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)
-            
+
             print("checking docker images on uhub.service.ucloud.cn")
             for image in components["docker_images"]:
                 success, failure = check_docker_image(image, "community", "uhub.service.ucloud.cn", "pingcap")
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)
-            
+
             print("checking docker images on registry.hub.docker.com")
             for image in components["docker_images"]:
                 success, failure = check_docker_image(image, "enterprise", "registry.hub.docker.com", "pingcap")
@@ -128,14 +128,14 @@ if __name__ == "__main__":
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)
-        
+
         failed_count = all_results.count(False)
         total_count = len(all_results)
         print(f"\nDocker image check summary:")
         print(f"Total checks: {total_count}")
         print(f"Successful: {total_count - failed_count}")
         print(f"Failed: {failed_count}")
-        
+
         if failed_count > 0:
             print("\nFailed images:")
             for failed_image in failed_images:

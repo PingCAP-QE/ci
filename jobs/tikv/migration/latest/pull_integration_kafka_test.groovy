@@ -14,7 +14,7 @@ pipelineJob('tikv/migration/pull_integration_kafka_test') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/tikv/migration")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -30,7 +30,7 @@ pipelineJob('tikv/migration/pull_integration_kafka_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

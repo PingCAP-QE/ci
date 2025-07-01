@@ -57,7 +57,7 @@ pipeline {
                 script {
                     // test build cache, if cache is exist, then skip the following build steps
                     try {
-                        dir("test-build-cache") { 
+                        dir("test-build-cache") {
                             cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
@@ -88,7 +88,7 @@ pipeline {
                         container("util") {
                             withCredentials(
                                 [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) { 
+                            ) {
                                 sh "rm -rf ./*"
                                 sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                 sh """
@@ -127,7 +127,7 @@ pipeline {
             parallel {
                 stage("Ccache") {
                     steps {
-                    script { 
+                    script {
                         dir("tiflash") {
                             sh label: "copy ccache if exist", script: """
                             ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
@@ -174,7 +174,7 @@ pipeline {
                                 echo "proxy cache not found"
                             fi
                             """
-                        }   
+                        }
                     }
                 }
                 stage("Cargo-Cache") {
@@ -252,8 +252,8 @@ pipeline {
                 expression { !build_cache_ready }
             }
             steps {
-                script { 
-                    def target_branch = REFS.base_ref 
+                script {
+                    def target_branch = REFS.base_ref
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                     def fileExists = sh(script: "test -f ${WORKSPACE}/tiflash/format-diff.py && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                     if (!fileExists) {
@@ -280,7 +280,7 @@ pipeline {
                 expression { !build_cache_ready }
             }
             steps {
-                dir("${WORKSPACE}/tiflash") {  
+                dir("${WORKSPACE}/tiflash") {
                     sh """
                     cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
                     """
@@ -376,7 +376,7 @@ pipeline {
                         chown -R 1000:1000 ./
                     """
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
-                       dir('tests/.build') { 
+                       dir('tests/.build') {
                             sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
@@ -389,8 +389,8 @@ pipeline {
                         rm -rf contrib
                         du -sh ./
                         ls -alh
-                        """ 
-                    }      
+                        """
+                    }
                 }
             }
         }
@@ -411,11 +411,11 @@ pipeline {
                         retries 5
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         steps {
-                            dir("${WORKSPACE}/tiflash") { 
+                            dir("${WORKSPACE}/tiflash") {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')){
                                     println "restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build')}"
                                     sh label: "debug info", script: """

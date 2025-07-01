@@ -2,7 +2,7 @@
 // example commit msg
 // expression: fix wrong result type for greatest/least (#29408) (#29912)
 // close #29019
-@NonCPS 
+@NonCPS
 def extract_pull_id(MSG){
     def resp = []
     def m1 = MSG =~ /(\#\b\d+)/
@@ -13,7 +13,7 @@ def extract_pull_id(MSG){
         }
     }
     m1 = null
-    
+
     return resp
 }
 
@@ -137,7 +137,7 @@ node("github-status-updater") {
                     }
                 }
                 // The following jobs on master branch are triggered by prow, so we don't need to trigger them again.
-                if (TIDB_BRANCH != "master") { 
+                if (TIDB_BRANCH != "master") {
                     builds["tidb_ghpr_common_test"] = {
                         def result = build(job: "tidb_ghpr_common_test", parameters: default_params, wait: true, propagate: false)
                         triggered_job_result << ["name": "tidb_ghpr_common_test", "type": "tidb-merge-ci-checker" , "result": result]
@@ -205,7 +205,7 @@ node("github-status-updater") {
         println "catch_exception Exception"
         println e
     } finally {
-        container("golang") { 
+        container("golang") {
             stage("summary") {
                 sh """
                 wget ${FILE_SERVER_URL}/download/rd-index-agent/repo_tidb_integration_test_ci/tiinsight-agent-integration-test-ci.py
@@ -233,13 +233,13 @@ node("github-status-updater") {
                         name: result_map["name"],
                         type: result_map["type"],
                         result: result_map["result"].getResult(),
-                        fullDisplayName: result_map.result.getFullDisplayName(), 
+                        fullDisplayName: result_map.result.getFullDisplayName(),
                         buildNumber: result_map.result.getNumber().toString(),
                         summary: triggered_job_summary,
                         durationStr: result_map.result.getDurationString(),
                         duration: result_map.result.getDuration(),
                         startTime: result_map.result.getStartTimeInMillis(),
-                        url: "${CI_JENKINS_BASE_URL}/blue/organizations/jenkins/${result_map.result.getFullProjectName()}/detail/${result_map.result.getFullProjectName()}/${result_map.result.getNumber().toString()}/pipeline"    
+                        url: "${CI_JENKINS_BASE_URL}/blue/organizations/jenkins/${result_map.result.getFullProjectName()}/detail/${result_map.result.getFullProjectName()}/${result_map.result.getNumber().toString()}/pipeline"
                     ]
                 }
 
@@ -254,7 +254,7 @@ node("github-status-updater") {
                     repo: "tidb",
                     org: "pingcap",
                     url: RUN_DISPLAY_URL,
-                    startTime: taskStartTimeInMillis, 
+                    startTime: taskStartTimeInMillis,
                     duration: System.currentTimeMillis() - taskStartTimeInMillis,
                     trigger: "tidb-merge-ci",
                 ]
@@ -277,8 +277,8 @@ node("github-status-updater") {
                                  string(credentialsId: 'break-mergeci-github-token', variable: 'BREAK_MERGE_CI_GITHUB_API_TOKEN'),
                                  string(credentialsId: 'feishu-ci-report-integration-test', variable: "FEISHU_ALERT_URL"),
                                  string(credentialsId: 'feishu-ci-report-break-tidb-integration-test', variable: "FEISHU_BREAK_IT_ALERT_URL",)
-                ]) { 
-                    if (TIDB_BRANCH == "master") { 
+                ]) {
+                    if (TIDB_BRANCH == "master") {
                         sh """
                         export LC_CTYPE="en_US.UTF-8"
                         export GITHUB_API_TOKEN=${GITHUB_API_TOKEN}

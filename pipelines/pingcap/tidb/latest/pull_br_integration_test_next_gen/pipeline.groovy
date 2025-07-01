@@ -107,7 +107,7 @@ pipeline {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                                }                       
+                                }
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     chmod +x br/tests/*.sh && ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
                                 """

@@ -109,7 +109,7 @@ try{
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
     echo "${e}"
-} finally { 
+} finally {
     stage("upload-pipeline-data") {
         taskFinishTime = System.currentTimeMillis()
         build job: 'upload-pipelinerun-data',

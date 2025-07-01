@@ -44,15 +44,15 @@ catchError {
                                 sh """
                             docker version
                             docker login -u ${harborUser} -p ${harborPassword} hub.pingcap.net
-                            
+
                             wget https://github.com/docker/buildx/releases/download/v0.8.0/buildx-v0.8.0.linux-amd64 -O /usr/bin/buildx
                             chmod +x /usr/bin/buildx
                             docker run --rm --privileged multiarch/qemu-user-static:6.1.0-8 --reset
                             buildx create --name mybuilder --platform=linux/arm64,linux/amd64 --use || true
-                            
+
                             # buildx build --platform=linux/arm64,linux/amd64 --push -t pingcap/tidb-monitor-initializer:${RELEASE_TAG} monitor-snapshot/${version}/operator
                             # buildx build --platform=linux/arm64,linux/amd64 --push -t pingcap/tidb-monitor-reloader:v1.0.1 -f reload/Dockerfile_buildx .
-                            
+
                             buildx build --platform=linux/arm64,linux/amd64 --push -t hub.pingcap.net/qa/tidb-monitor-initializer:${RELEASE_TAG} monitor-snapshot/${version}/operator
                             # buildx build --platform=linux/arm64,linux/amd64 --push -t hub.pingcap.net/qa/tidb-monitor-reloader:v1.0.1 -f reload/Dockerfile_buildx .
                             """

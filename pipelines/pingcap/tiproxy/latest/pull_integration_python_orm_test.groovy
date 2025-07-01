@@ -97,7 +97,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'python'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
@@ -120,7 +120,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

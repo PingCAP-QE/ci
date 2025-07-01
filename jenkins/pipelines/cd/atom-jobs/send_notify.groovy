@@ -41,7 +41,7 @@ if(SEND_TYPE == 'ALL' || (SEND_TYPE == 'FAILURE' && RESULT_BUILD_RESULT == 'FAIL
             withCredentials([
                 string(credentialsId: 'tibuild-failure-notify-webhook', variable: 'FAILURE_NOTIFY_WEBHOOK'),
                 string(credentialsId: 'askee-failure-notify-webhook', variable: 'ASKEE_FAILURE_NOTIFY_WEBHOOK'),
-                ]) { 
+                ]) {
                 if (result["result"]  != "success") {
                     sh """
                     export LC_CTYPE="en_US.UTF-8"
@@ -53,7 +53,7 @@ if(SEND_TYPE == 'ALL' || (SEND_TYPE == 'FAILURE' && RESULT_BUILD_RESULT == 'FAIL
                         export LC_CTYPE="en_US.UTF-8"
                         wget ${FILE_SERVER_URL}/download/rd-atom-agent/agent-jenkinsci-v2.py
                         python3 agent-jenkinsci-v2.py result.json ${ASKEE_FAILURE_NOTIFY_WEBHOOK}  || true
-                        """  
+                        """
                     }
                 }
             }

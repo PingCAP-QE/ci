@@ -11,7 +11,7 @@ podTemplate(label: label,
                 image: "hub.pingcap.net/jenkins/centos7_golang-1.12_java:cached", ttyEnabled: true,
                 resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                 command: '/bin/sh -c', args: 'cat',
-                envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
             )
     ],
     volumes: [
@@ -21,7 +21,7 @@ podTemplate(label: label,
 ) {
     node(label) {
         println "debug command:\nkubectl -n jenkins-tibigdata exec -ti ${NODE_NAME} bash"
-        container("java") { 
+        container("java") {
             def ws = pwd()
             deleteDir()
             dir("/home/jenkins/agent/git/tispark/") {
@@ -59,4 +59,3 @@ podTemplate(label: label,
         }
     }
 }
-

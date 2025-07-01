@@ -39,9 +39,9 @@ pipeline {
                 }
             }
         }
-        stage('Checkout') {         
+        stage('Checkout') {
             steps {
-                dir('tidb') {                            
+                dir('tidb') {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         script {
                             git.setSshKey(GIT_CREDENTIALS_ID)
@@ -54,9 +54,9 @@ pipeline {
             }
         }
 
-        stage("Build tidb-server community edition"){   
+        stage("Build tidb-server community edition"){
             steps {
-                dir("tidb") {                                     
+                dir("tidb") {
                     sh "make bazel_build"
                 }
             }
@@ -81,7 +81,7 @@ pipeline {
                             filepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
                             donepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/done"
                             curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
-                            curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload                                    
+                            curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
                             """
                     }
                 }

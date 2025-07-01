@@ -16,7 +16,7 @@ pipelineJob("${folder}/${jobName}") {
         buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/tikv/copr-test")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -32,7 +32,7 @@ pipelineJob("${folder}/${jobName}") {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

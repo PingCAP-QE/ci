@@ -13,7 +13,7 @@ pipelineJob('pingcap/docs-tidb-operator/merged_update') {
     properties {
         githubProjectUrl("https://github.com/pingcap/docs-tidb-operator")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -29,7 +29,7 @@ pipelineJob('pingcap/docs-tidb-operator/merged_update') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

@@ -62,7 +62,7 @@ pipeline {
                 }
             }
         }
-        stage('Unit Tests') {             
+        stage('Unit Tests') {
             options { timeout(time: 25, unit: 'MINUTES') }
             environment { TIKV_MIGRATION_CODECOV_TOKEN = credentials('codecov-token-tikv-migration') }
             steps {

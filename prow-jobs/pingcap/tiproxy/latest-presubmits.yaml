@@ -81,7 +81,7 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_ruby_orm_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false  
+      always_run: false
       context: pull-integration-ruby-orm-test # need change this.
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-ruby-orm-test(?: .*?)?$"
@@ -91,7 +91,7 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false  
+      always_run: false
       context: pull-integration-nodejs-test
       skip_report: false
       optional: true
@@ -102,7 +102,7 @@ presubmits:
     - name: pingcap/tiproxy/pull_integration_python_orm_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false  
+      always_run: false
       context: pull-integration-python-orm-test
       skip_report: false
       optional: true
@@ -113,7 +113,7 @@ presubmits:
     - name: pingcap/tiproxy/pull_sqllogic_test
       agent: jenkins
       decorate: false # need add this.
-      always_run: false  
+      always_run: false
       context: pull-sqllogic-test
       skip_report: false
       optional: true

@@ -13,7 +13,7 @@ pipelineJob('pingcap/ticdc/pull_cdc_kafka_integration_heavy') {
     properties {
         githubProjectUrl("https://github.com/pingcap/ticdc")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -29,7 +29,7 @@ pipelineJob('pingcap/ticdc/pull_cdc_kafka_integration_heavy') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

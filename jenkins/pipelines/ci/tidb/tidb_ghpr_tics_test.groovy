@@ -44,8 +44,8 @@ metadata:
 '''
 
 def run(label, Closure body) {
-    podTemplate(name: label, label: label, 
-        cloud: "kubernetes-ksyun", 
+    podTemplate(name: label, label: label,
+        cloud: "kubernetes-ksyun",
         nodeSelector: "kubernetes.io/arch=amd64",
         yaml: podYAML,
         yamlMergeStrategy: merge(),
@@ -167,10 +167,10 @@ try {
                                             timeout(5) {
                                                 sh """
                                                 tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
-                                                tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"										
+                                                tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
                                                 while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
                                                 curl \${tikv_url} | tar xz
-                                                """ 										        
+                                                """
                                             }
                                             sh """
                                             printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
@@ -180,20 +180,20 @@ try {
                                             ENTRYPOINT ["/tikv-server"] \n' > Dockerfile
                                             """
                                             tikvTag = TIKV_BRANCH.replace("/","-")
-                                            sh "docker build -t hub.pingcap.net/qa/tikv:${tikvTag} -f Dockerfile ."            					    
-                                        }									    
+                                            sh "docker build -t hub.pingcap.net/qa/tikv:${tikvTag} -f Dockerfile ."
+                                        }
                                     }
                                     if (PD_BRANCH.contains("pr")){
                                         dir("pdtmp"){
                                             deleteDir()
-                                            timeout(5) {										    
+                                            timeout(5) {
                                                 sh """
                                                 pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
                                                 pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
-                    
+
                                                 while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
                                                 curl \${pd_url} | tar xz
-                                                """                    
+                                                """
                                             }
                                             sh """
                                             printf 'FROM registry-mirror.pingcap.net/pingcap/alpine-glibc \n
@@ -204,11 +204,11 @@ try {
                                             ENTRYPOINT ["/pd-server"] \n' > Dockerfile
                                             """
                                             pdTag = PD_BRANCH.replace("/","-")
-                                            sh "docker build -t hub.pingcap.net/qa/pd:${pdTag} -f Dockerfile ."				                                    									    
-                                        }									    
+                                            sh "docker build -t hub.pingcap.net/qa/pd:${pdTag} -f Dockerfile ."
+                                        }
                                     }
-                                    if (TICS_BRANCH.contains("pr")){									
-                                        ticsTag=TICS_BRANCH.replace("/","-")									    									   
+                                    if (TICS_BRANCH.contains("pr")){
+                                        ticsTag=TICS_BRANCH.replace("/","-")
                                     }
 
                                     dir("tests/docker") {

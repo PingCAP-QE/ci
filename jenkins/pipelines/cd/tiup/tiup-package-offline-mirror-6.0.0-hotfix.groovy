@@ -16,7 +16,7 @@ def clone_toolkit_package = { arch, dst ->
     --tiup v1.9.2 --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
     --dm-master $VERSION --dmctl $VERSION --dm v1.9.2 --br $VERSION --spark v2.4.3 \
     --tispark v2.4.1 --package v0.0.9  --bench v1.9.2 --errdoc v4.0.7 --dba v1.0.4 \
-    --PCC 1.0.1 --pump $VERSION --drainer $VERSION 
+    --PCC 1.0.1 --pump $VERSION --drainer $VERSION
     """
 }
 
@@ -123,11 +123,11 @@ def package_tools = { plat, arch ->
         tar xf tidb-tools-linux-${arch}.tar.gz
         tar xf br-linux-${arch}.tar.gz
         if [ ${arch} == 'amd64' ]; then
-            tar xf mydumper-linux-${arch}.tar.gz 
+            tar xf mydumper-linux-${arch}.tar.gz
         fi;
         tar xf etcd-v3.4.30-linux-${arch}.tar.gz
 
-        
+
         cp bin/binlogctl ${toolkit_dir}/
         cp bin/sync_diff_inspector ${toolkit_dir}/
         cp bin/reparo ${toolkit_dir}/
@@ -137,7 +137,7 @@ def package_tools = { plat, arch ->
             cp mydumper-linux-${arch}/bin/mydumper ${toolkit_dir}/
         fi;
         cp etcd-v3.4.30-linux-${arch}/etcdctl ${toolkit_dir}/
-        
+
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
         curl --fail -F release/${toolkit_dir}.tar.gz=@${toolkit_dir}.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
     """

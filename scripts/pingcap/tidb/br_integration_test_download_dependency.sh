@@ -63,7 +63,7 @@ function download() {
     wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O "${file_path}" "${url}"
 }
 
-function main() { 
+function main() {
     rm -rf third_bin
     rm -rf tmp
     mkdir third_bin

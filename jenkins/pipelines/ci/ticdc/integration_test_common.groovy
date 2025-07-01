@@ -99,7 +99,7 @@ def prepare_binaries() {
                 }
                 dir("go/src/github.com/pingcap/tiflow/tests/integration_tests") {
                     sh """
-                    pwd 
+                    pwd
                     ls -alh .
                     """
                     def cases_name = sh(
@@ -109,7 +109,7 @@ def prepare_binaries() {
                     sh "echo ${cases_name} > CASES"
                 }
                 stash includes: "go/src/github.com/pingcap/tiflow/tests/integration_tests/CASES", name: "cases_name", useDefaultExcludes: false
-            
+
             }
         }
 
@@ -168,7 +168,7 @@ def tests(sink_type, node_label) {
                             unstash "third_bins"
                             sh """ls -alh bin/"""
                             try {
-                                timeout(time: 60, unit: 'MINUTES') { 
+                                timeout(time: 60, unit: 'MINUTES') {
                                     sh """
                                         go version
                                         s3cmd --version
@@ -192,8 +192,8 @@ def tests(sink_type, node_label) {
                                 sh """
                                 echo "archive logs"
                                 ls /tmp/tidb_cdc_test/
-                                tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
-                                ls -alh  log-${log_tar_name}.tar.gz   
+                                tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
+                                ls -alh  log-${log_tar_name}.tar.gz
                                 """
 
                                 archiveArtifacts artifacts: "log-${log_tar_name}.tar.gz", caseSensitive: false
@@ -229,7 +229,7 @@ def tests(sink_type, node_label) {
                     } catch (err) {
                         all_task_result << ["name": case_names.join(" "), "status": "failed", "error": ""]
                         throw err
-                    }  
+                    }
                 }
             }
 
@@ -254,7 +254,7 @@ def tests(sink_type, node_label) {
                 sh """
                 curl -F cicd/ci-pipeline-artifacts/result-${ci_pipeline_name}_${BUILD_NUMBER}.json=@ciResult.json ${FILE_SERVER_URL}/upload
                 """
-            } 
+            }
         }
     }
 }
@@ -267,13 +267,13 @@ def download_binaries() {
         final defaultDependencyBranch = "master"
         final defaultTiDbDependencyBranch = "master"
         def releaseBranchReg = /^release\-(\d+)\.(\d+)/      // example: release-6.1
-        def hotfixBranchReg = /^release\-(\d+)\.(\d+)-(\d+)/ // example: release-6.1-20220719 
+        def hotfixBranchReg = /^release\-(\d+)\.(\d+)-(\d+)/ // example: release-6.1-20220719
 
         def dependencyBranch
         def tidbDependencyBranch
 
         switch( ghprbTargetBranch ) {
-            case ~releaseBranchReg: 
+            case ~releaseBranchReg:
                 println "target branch is release branch, dependency use ${ghprbTargetBranch} branch to download binaries"
                 dependencyBranch = ghprbTargetBranch
                 tidbDependencyBranch = ghprbTargetBranch
@@ -286,7 +286,7 @@ def download_binaries() {
                 tidbDependencyBranch = relBr
 
                 break
-            default: 
+            default:
                 dependencyBranch = defaultDependencyBranch
                 tidbDependencyBranch = defaultTiDbDependencyBranch
                 println "target branch is not release branch, dependency tidb use ${tidbDependencyBranch} branch to download binaries"
@@ -418,13 +418,13 @@ def download_binaries() {
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=120 --timeout=150 -t 3 -O third_bin/go-ycsb ${FILE_SERVER_URL}/download/builds/pingcap/go-ycsb/test-br/go-ycsb
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O third_bin/jq ${FILE_SERVER_URL}/download/builds/pingcap/test/jq-1.6/jq-linux64
 
-                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O etcd.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz 
+                wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O etcd.tar.gz ${FILE_SERVER_URL}/download/builds/pingcap/cdc/etcd-v3.4.7-linux-amd64.tar.gz
                 tar -xz -C third_bin  etcd-v3.4.7-linux-amd64/etcdctl  -f etcd.tar.gz
                 mv third_bin/etcd-v3.4.7-linux-amd64/etcdctl third_bin/ && rm -rf third_bin/etcd-v3.4.7-linux-amd64
 
                 wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O sync_diff_inspector.tar.gz ${sync_diff_download_url}
                 tar -xz -C third_bin -f sync_diff_inspector.tar.gz
-                
+
                 chmod a+x third_bin/*
                 rm -rf tmp
 
@@ -467,7 +467,7 @@ def coverage() {
             curl -F ${tiflowCoverageFile}=@tiflow_coverage.tar.gz http://fileserver.pingcap.net/upload
             """
 
-            def params_downstream_coverage_pipeline = [       
+            def params_downstream_coverage_pipeline = [
                 string(name: "COVERAGE_FILE", value: "${FILE_SERVER_URL}/download/${tiflowCoverageFile}"),
                 string(name: "CI_BUILD_NUMBER", value: "${BUILD_NUMBER}"),
                 string(name: "CI_BUILD_URL", value: "${RUN_DISPLAY_URL}"),

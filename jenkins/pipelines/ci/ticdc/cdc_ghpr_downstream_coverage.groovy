@@ -53,7 +53,7 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+
                     )
             ],
     ) {
@@ -72,7 +72,7 @@ run_with_pod {
         tar -xvf tiflow_coverage.tar.gz
         ls -alh
         """
-        dir("go/src/github.com/pingcap/tiflow") { 
+        dir("go/src/github.com/pingcap/tiflow") {
             withCredentials([string(credentialsId: 'coveralls-token-tiflow', variable: 'COVERALLS_TOKEN')]) {
                 timeout(30) {
                     sh """

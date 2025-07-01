@@ -65,7 +65,7 @@ pipelineJob('dm_ghpr_integration_test') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

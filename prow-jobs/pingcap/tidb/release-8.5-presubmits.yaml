@@ -233,4 +233,3 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-tidb-tools-test(?: .*?)?$"
       rerun_command: "/test pull-integration-tidb-tools-test"
-

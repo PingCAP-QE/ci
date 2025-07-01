@@ -108,7 +108,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ]
     ) {
@@ -146,12 +146,12 @@ try {
         }
 
         prepares["Part #2"] = {
-            run_with_pod { 
+            run_with_pod {
                 def ws = pwd()
                 deleteDir()
                 container("golang") {
                     dir("go/src/github.com/pingcap/tidb") {
-                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                         println "work space path:\n${ws}"
                         def tidb_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1"
                         def tidb_sha1 = sh(returnStdout: true, script: "curl ${tidb_refs}").trim()
@@ -195,14 +195,14 @@ try {
         }
 
         prepares["Part #3"] = {
-            run_with_pod { 
+            run_with_pod {
                 def ws = pwd()
                 deleteDir()
 
 
 
                 container("golang") {
-                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                    println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     println "work space path:\n${ws}"
                     dir("go/src/github.com/pingcap/tidb") {
                         def tidb_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1"
@@ -257,7 +257,7 @@ try {
         def tests = [:]
 
         def run = { test_dir, mytest, test_cmd ->
-            run_with_pod { 
+            run_with_pod {
                 def ws = pwd()
                 deleteDir()
 
@@ -271,7 +271,7 @@ try {
                 dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                     container("golang") {
 
-                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                        println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                         println "work space path:\n${ws}"
                         def tidb_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1"
                         def tidb_sha1 = sh(returnStdout: true, script: "curl ${tidb_refs}").trim()
@@ -308,7 +308,7 @@ try {
                                 rm -rf /tmp/tidb
                                 rm -rf ./tikv ./pd
                                 set -e
-                                
+
                                 bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                 sleep 10
                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
@@ -388,19 +388,19 @@ try {
         if (ghprbTargetBranch == "master" && push_down_func_test_exist) {
             tests["Integration cop Test"] = {
                 def tidb_master_sha1, pd_master_sha1
-                
+
                 node('delivery') {
                     container('delivery') {
                         dir ('centos7') {
                             sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
-                            
+
                             tidb_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb -version=master -s=${FILE_SERVER_URL}").trim()
                             pd_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=pd -version=master -s=${FILE_SERVER_URL}").trim()
                         }
                     }
                 }
 
-                run_with_pod { 
+                run_with_pod {
                     def ws = pwd()
                     deleteDir()
 
@@ -412,9 +412,9 @@ try {
 
                     dir("go/src/github.com/PingCAP-QE/tidb-test/push_down_func_test") {
                         container("golang") {
-                            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                             println "work space path:\n${ws}"
-                            
+
                             def tidb_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tidb/${TIDB_BRANCH}/sha1"
                             def tidb_sha1 = sh(returnStdout: true, script: "curl ${tidb_refs}").trim()
                             def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
@@ -448,7 +448,7 @@ try {
                                     rm -rf /tmp/tidb
                                     rm -rf ./tikv ./pd
                                     set -e
-                                    
+
                                     bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                     sleep 10
                                     echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
@@ -517,7 +517,7 @@ try {
 }
 catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
     currentBuild.result = "ABORTED"
-} 
+}
 catch(Exception e) {
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'

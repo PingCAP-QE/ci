@@ -55,7 +55,7 @@ def main() {
 }
 
 def run(label, image, Closure main) {
-    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, 
+    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label,
     instanceCap: 5, idleMinutes: 60, nodeSelector: "kubernetes.io/arch=amd64",
     containers: [
         containerTemplate(name: 'python', image: image, alwaysPullImage: false, ttyEnabled: true, command: 'cat'),

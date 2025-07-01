@@ -34,7 +34,7 @@ CI Jobs
 # nodev   cgroup
 grep cgroup /proc/filesystems
 
-############# disable cgroup2 in grub2 boot menu ################## 
+############# disable cgroup2 in grub2 boot menu ##################
 sed -i '/^GRUB_CMDLINE_LINUX/ s/"$/ systemd.unified_cgroup_hierarchy=0"/' /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 # after that, please reboot the host.
@@ -53,7 +53,7 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
         apt-get clean
 
     # install bazel tool
-    ENV ARCH amd64    
+    ENV ARCH amd64
     RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-${ARCH}" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
 
     ######### run test for tidb steps ########
@@ -72,12 +72,12 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
     ENV GOPATH /go
     ENV GOROOT /usr/local/go
     ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
-    RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz && tar -C /usr/local -xzf golang.tar.gz && rm golang.tar.gz    
+    RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz && tar -C /usr/local -xzf golang.tar.gz && rm golang.tar.gz
 
     RUN yum update -y && \
         yum groupinstall 'Development Tools' -y && \
         yum install unzip -y && \
-        yum clean all        
+        yum clean all
 
     # bazel tool
     RUN curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v1.16.0/bazelisk-linux-${ARCH}" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
@@ -85,9 +85,8 @@ grub2-mkconfig -o /boot/grub2/grub.cfg
     ######### run test for tidb steps ########
     # git clone https://github.com/pingap/tidb.git --branch release-6.5
     # cd tidb && make bazel_coverage_test
-    ``` 
+    ```
 
 ## Run after merged
 
 None
-

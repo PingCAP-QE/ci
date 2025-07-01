@@ -90,7 +90,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ]
     ) {
@@ -106,7 +106,7 @@ try {
         def tests = [:]
 
         def run = { test_dir, mytest, ddltest ->
-            run_with_pod { 
+            run_with_pod {
                 def ws = pwd()
                 deleteDir()
 
@@ -188,11 +188,11 @@ try {
                                 export PATH=`pwd`/bin:\$PATH
                                 export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                 export log_level=debug
-                                
+
                                 if [ -f ${ws}/go/src/github.com/pingcap/tidb/bin/ddltest ]; then
                                     export DDLTEST_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/ddltest
                                 fi
-                                
+
                                 TIDB_SERVER_PATH=`pwd`/bin/ddltest_tidb-server \
                                 GO111MODULE=off GOPATH=${ws}/go/src/github.com/PingCAP-QE/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go ./test.sh -test.run='${ddltest}' 2>&1
                                 """

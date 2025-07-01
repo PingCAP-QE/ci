@@ -41,4 +41,3 @@ node("arm_image") {
        }
    }
 }
-

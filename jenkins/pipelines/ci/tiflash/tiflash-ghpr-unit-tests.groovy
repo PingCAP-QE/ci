@@ -315,7 +315,7 @@ run_with_pod {
                     }
                     sh """
                     llvm-profdata merge -sparse /tiflash/profile/*.profraw -o /tiflash/profile/merged.profdata
-                    
+
                     export LD_LIBRARY_PATH=.
                     llvm-cov export \\
                         /tiflash/gtests_dbms /tiflash/gtests_libcommon /tiflash/gtests_libdaemon \\
@@ -475,4 +475,3 @@ run_with_pod {
         ]
     }
 }
-

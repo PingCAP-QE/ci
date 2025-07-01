@@ -14,7 +14,7 @@ pipelineJob('pingcap/tiproxy/ghpr_build') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tiproxy")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -30,7 +30,7 @@ pipelineJob('pingcap/tiproxy/ghpr_build') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

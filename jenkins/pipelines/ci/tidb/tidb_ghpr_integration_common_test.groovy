@@ -93,7 +93,7 @@ def run_with_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: [
@@ -124,7 +124,7 @@ def run_with_memory_volume_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: [
@@ -243,11 +243,11 @@ try {
                                     def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                                     def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                                     sh """
-                                    echo ${tidb_test_url} 
+                                    echo ${tidb_test_url}
                                     while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                                     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
                                     tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
-                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                     export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                     cd mysql_test && ./build.sh && cd ..
                                     cd analyze_test && ./build.sh && cd ..
@@ -295,17 +295,17 @@ try {
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 1; done
                                     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
                                     tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 1; done
                                     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 \${pd_url}
-                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
-        
+                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
+
                                     # mkdir -p ./tidb-src
                                     # while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 1; done
-                                    # wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url} 
+                                    # wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url}
                                     # tar -xz -C ./tidb-src -f tidb-server.tar.gz
                                     # ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-        
+
                                     mv ${WORKSPACE}/go/src/github.com/pingcap/tidb/bin/tidb-server ./bin/tidb-server
                                     """
                                 }
@@ -323,14 +323,14 @@ try {
                                     rm -rf /tmp/tidb
                                     rm -rf ./tikv ./pd
                                     set -e
-                                    
+
                                     bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                     sleep 10
                                     echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                     bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                     sleep 10
                                     if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
-                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                     export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                                     export log_level=debug
                                     TIDB_SERVER_PATH=`pwd`/bin/tidb-server \
@@ -381,21 +381,21 @@ try {
                                     sh """
                                     tikv_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"`
                                     tikv_url="${FILE_SERVER_URL}/download/builds/pingcap/tikv/\${tikv_sha1}/centos7/tikv-server.tar.gz"
-        
+
                                     pd_sha1=`curl "${FILE_SERVER_URL}/download/refs/pingcap/pd/${PD_BRANCH}/sha1"`
                                     pd_url="${FILE_SERVER_URL}/download/builds/pingcap/pd/\${pd_sha1}/centos7/pd-server.tar.gz"
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${tikv_url}; do sleep 15; done
                                     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${tikv_url}
                                     tar -xvz bin/ -f tikv-server.tar.gz && rm -rf tikv-server.tar.gz
-        
+
                                     while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 15; done
                                     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
-                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
-        
+                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
+
                                     # mkdir -p ./tidb-src
                                     # while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 15; done
-                                    # wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url} 
+                                    # wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${tidb_url}
                                     # tar -xz -C ./tidb-src -f tidb-server.tar.gz
                                     # ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
                                     # mv tidb-src/bin/tidb-server ./bin/tidb-server
@@ -415,14 +415,14 @@ try {
                                     rm -rf /tmp/tidb
                                     rm -rf ./tikv ./pd
                                     set -e
-                                    
+
                                     bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                     sleep 10
                                     echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                    
+
                                     bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                     sleep 10
-                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                     if [ -f test.sh ]; then awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh; fi
                                     if [ \"${ghprbTargetBranch}\" != \"release-2.0\" ]; then
                                         mv t t_bak
@@ -472,7 +472,7 @@ try {
                 } catch (err) {
                     all_task_result << ["name": "Randgen Test 1", "status": "failed", "error": err.message]
                     throw err
-                }  
+                }
             }
 
             tests["Integration Randgen Test 2"] = {
@@ -482,7 +482,7 @@ try {
                 } catch (err) {
                     all_task_result << ["name": "Randgen Test 2", "status": "failed", "error": err.message]
                     throw err
-                }  
+                }
             }
 
             tests["Integration Randgen Test 3"] = {
@@ -492,7 +492,7 @@ try {
                 } catch (err) {
                     all_task_result << ["name": "Randgen Test 3", "status": "failed", "error": err.message]
                     throw err
-                } 
+                }
             }
 
             tests["Integration Analyze Test"] = {
@@ -522,7 +522,7 @@ try {
                 } catch (err) {
                     all_task_result << ["name": "TiDB Test 2", "status": "failed", "error": err.message]
                     throw err
-                } 
+                }
             }
 
             tests["Integration Go SQL Test"] = {

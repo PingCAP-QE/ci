@@ -47,7 +47,7 @@ pipeline {
                                 prow.checkoutRefs(REFS)
                             }
                         }
-                    }                   
+                    }
                 }
             }
         }
@@ -63,7 +63,7 @@ pipeline {
     post {
         // TODO(wuhuizuo): put into container lifecyle preStop hook.
         always {
-            container('report') {                
+            container('report') {
                 sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
             }
             archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)

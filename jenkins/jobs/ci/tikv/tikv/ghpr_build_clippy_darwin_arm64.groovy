@@ -95,7 +95,7 @@ pipelineJob('tikv-ghpr-clippy-darwin-arm64') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

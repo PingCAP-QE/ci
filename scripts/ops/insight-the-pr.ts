@@ -25,7 +25,7 @@ async function prMergedList(
   mergedDateRage: string,
 ) {
   const querySQL = `
-  SELECT repo_name,    
+  SELECT repo_name,
       base_ref,
       number,
       merged
@@ -50,7 +50,7 @@ async function prMergedList(
 async function prTimeline(repo: string, prNum: number) {
   const querySQL = `
 SELECT * FROM github_events
-WHERE repo_name = '${repo}' 
+WHERE repo_name = '${repo}'
     AND number = '${prNum}'
     order by created_at
 `;

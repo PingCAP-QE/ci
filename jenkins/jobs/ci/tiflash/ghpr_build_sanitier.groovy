@@ -56,7 +56,7 @@ pipelineJob('tiflash-ghpr-sanitizer') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

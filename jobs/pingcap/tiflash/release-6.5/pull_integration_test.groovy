@@ -14,7 +14,7 @@ pipelineJob('pingcap/tiflash/release-6.5/pull_integration_test') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tiflash")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -37,4 +37,3 @@ pipelineJob('pingcap/tiflash/release-6.5/pull_integration_test') {
         }
     }
 }
-

@@ -59,7 +59,7 @@ pipeline {
                             container("util") {
                                 withCredentials(
                                     [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) { 
+                                ) {
                                     sh "rm -rf ./*"
                                     sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                     sh """
@@ -94,7 +94,7 @@ pipeline {
             parallel {
                 stage("Ccache") {
                     steps {
-                    script { 
+                    script {
                         dir("tiflash") {
                             // TODO: need to find default backup cache for branch which just created
                             sh label: "copy ccache if exist", script: """
@@ -142,7 +142,7 @@ pipeline {
                                 echo "proxy cache not found"
                             fi
                             """
-                        }   
+                        }
                     }
                 }
                 stage("Cargo-Cache") {
@@ -214,8 +214,8 @@ pipeline {
         }
         stage("Format Check") {
             steps {
-                script { 
-                    def target_branch = REFS.base_ref 
+                script {
+                    def target_branch = REFS.base_ref
                     def diff_flag = "--dump_diff_files_to '/tmp/tiflash-diff-files.json'"
                     def fileExists = sh(script: "test -f ${WORKSPACE}/tiflash/format-diff.py && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                     if (!fileExists) {
@@ -239,7 +239,7 @@ pipeline {
         }
         stage("Build TiFlash") {
             steps {
-                dir("${WORKSPACE}/tiflash") {  
+                dir("${WORKSPACE}/tiflash") {
                     sh """
                     cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
                     """
@@ -316,7 +316,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") {
-                        dir('tests/.build') { 
+                        dir('tests/.build') {
                             sh """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
@@ -352,12 +352,12 @@ pipeline {
                         retries 5
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         steps {
-                            dir("${WORKSPACE}/tiflash") { 
-                                cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") { 
+                            dir("${WORKSPACE}/tiflash") {
+                                cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") {
                                     sh """
                                     printenv
                                     pwd && ls -alh

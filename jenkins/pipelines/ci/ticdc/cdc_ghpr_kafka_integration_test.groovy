@@ -77,7 +77,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         println "tag ${branchNameOrTag} use default version go 1.21"
         return "go1.21"
-    } else { 
+    } else {
         println "this is a branch"
         if (branchNameOrTag in feature_branch_use_go13) {
             println "feature branch ${branchNameOrTag} use go 1.13"
@@ -177,7 +177,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -198,9 +198,9 @@ def run_with_pod(Closure body) {
  */
 def list_pr_diff_files() {
     def list_pr_files_api_url = "https://api.github.com/repos/pingcap/tiflow/pulls/${ghprbPullId}/files"
-    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) { 
-        response = httpRequest consoleLogResponseBody: false, 
-            contentType: 'APPLICATION_JSON', httpMode: 'GET', 
+    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) {
+        response = httpRequest consoleLogResponseBody: false,
+            contentType: 'APPLICATION_JSON', httpMode: 'GET',
             customHeaders:[[name:'Authorization', value:"token ${github_token}", maskValue: true]],
             url: list_pr_files_api_url, validResponseCodes: '200'
 
@@ -208,7 +208,7 @@ def list_pr_diff_files() {
 
         echo "Status: ${response.status}"
         def files = []
-        for (element in json) { 
+        for (element in json) {
             files.add(element.filename)
         }
 
@@ -305,7 +305,7 @@ catchError {
                     }
 
                     stash includes: "go/src/github.com/pingcap/tiflow/**", name: "ticdc", useDefaultExcludes: false
-                }    
+                }
             }
         }
         def script_path = "go/src/github.com/pingcap/ci/jenkins/pipelines/ci/ticdc/integration_test_common.groovy"
@@ -314,7 +314,7 @@ catchError {
         // https://git.io/JJZXX -> https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks
         // https://git.io/JJZXM -> https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks
         // resolve git.io in ci node  is likely to fail.
-        //  file kafka.server.keystore.jks  https://git.io/JJZXX 
+        //  file kafka.server.keystore.jks  https://git.io/JJZXX
         //  file kafka.server.truststore.jks https://git.io/JJZXM
         def download_jks = 'curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks -o /tmp/kafka.server.keystore.jks && curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks -o /tmp/kafka.server.truststore.jks'
 
@@ -435,7 +435,7 @@ catchError {
 
             currentBuild.result = "SUCCESS"
         }
-        
+
         stage('Summary') {
             def duration = ((System.currentTimeMillis() - currentBuild.startTimeInMillis) / 1000 / 60).setScale(2, BigDecimal.ROUND_HALF_UP)
             def slackmsg = "[#${ghprbPullId}: ${ghprbPullTitle}]" + "\n" +

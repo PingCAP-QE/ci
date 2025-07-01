@@ -14,7 +14,7 @@ pipelineJob('tikv/pd/release-7.1/pull_integration_copr_test') {
         buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/tikv/pd")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -30,7 +30,7 @@ pipelineJob('tikv/pd/release-7.1/pull_integration_copr_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

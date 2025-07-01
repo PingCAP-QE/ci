@@ -69,8 +69,8 @@ pipeline {
                         container("golang") {
                             sh label: 'integration test prepare', script: """#!/usr/bin/env bash
                             cd cdc/
-                            make prepare_test_binaries 
-                            make check_third_party_binary 
+                            make prepare_test_binaries
+                            make check_third_party_binary
                             make integration_test_build
                             """
                         }
@@ -98,8 +98,8 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") { 
-                                    sh "printenv" 
+                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
+                                    sh "printenv"
                                     sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
                                         cd cdc/
                                         ./tests/integration_tests/run_group.sh tikv ${TEST_GROUP}

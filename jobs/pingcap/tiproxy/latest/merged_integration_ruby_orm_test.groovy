@@ -14,7 +14,7 @@ pipelineJob('pingcap/tiproxy/merged_integration_ruby_orm_test') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tiproxy")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

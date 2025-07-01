@@ -37,7 +37,7 @@ def run_with_pod(Closure body) {
                         image: "${go_image}", ttyEnabled: true,
                         resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -53,7 +53,7 @@ def run_with_pod(Closure body) {
 }
 
 run_with_pod {
-    try {    
+    try {
         // After BR merged into TiDB, every PR should trigger this test.
         stage('Trigger BRIE Test') {
             container("golang") {
@@ -106,6 +106,6 @@ run_with_pod {
         println "error: ${e}"
         currentBuild.result = "FAILURE"
     } finally {
-        println "currentBuild.result: ${currentBuild.result}"        
-    } 
+        println "currentBuild.result: ${currentBuild.result}"
+    }
 }

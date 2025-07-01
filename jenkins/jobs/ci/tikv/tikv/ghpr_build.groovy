@@ -91,7 +91,7 @@ pipelineJob('tikv_ghpr_build') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

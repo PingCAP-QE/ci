@@ -44,7 +44,7 @@ pipelineJob('tikv_ghpr_build_release') {
                     useGitHubHooks(true)
                     displayBuildErrorsOnDownstreamBuilds(false)
                     autoCloseFailedPullRequests(false)
-            
+
                     // useless, but can not delete.
                     commitStatusContext("--none--")
                     msgSuccess("--none--")

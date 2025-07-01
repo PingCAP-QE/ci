@@ -177,7 +177,7 @@ try {
                         sh """
                         package_base=`grep module go.mod | head -n 1 | awk '{print \$2}'`
                         sed -i  's,go list ./...| grep -vE "cmd",go list ./...| grep -vE "cmd" | grep -vE "store/tikv\$\$",' ./Makefile
-                        
+
                         if [ \"${ghprbTargetBranch}\" == \"master\" ]  ;then EXTRA_TEST_ARGS='-timeout 9m'  make test_part_parser && make gogenerate ; fi > test.log || \\
                         (cat test.log; cat test.log |grep -Ev "^\\[[[:digit:]]{4}(/[[:digit:]]{2}){2}" | grep -A 30 "\\-------" | grep -A 29 "FAIL"; false)
                         # if grep -q gogenerate "Makefile";then  make gogenerate ; fi
@@ -224,7 +224,7 @@ try {
                                     sleep 10
                                     make bazel_${test_suite}
                                     """
-                                    } catch (Exception e){ 
+                                    } catch (Exception e){
                                     sh "cat ${ws}/pd1.log || true"
                                     sh "cat ${ws}/tikv1.log || true"
                                     sh "cat ${ws}/pd2.log || true"
@@ -271,7 +271,7 @@ try {
                                     make failpoint-enable
                                     go test ./tests/realtikvtest/${test_suite} -v -with-real-tikv -timeout 30m
                                     """
-                                    } catch (Exception e){ 
+                                    } catch (Exception e){
                                     sh "cat ${ws}/pd1.log || true"
                                     sh "cat ${ws}/tikv1.log || true"
                                     sh "cat ${ws}/pd2.log || true"
@@ -288,12 +288,12 @@ try {
                                     """
                                     }
                                 }
-                            }   
+                            }
                         }
                     }
                 }
             }
-        } 
+        }
 
         if (ghprbTargetBranch == "master"){
             tests["New Collation Enabled"] = {
@@ -301,8 +301,8 @@ try {
                     deleteDir()
                     unstash 'tidb'
                     container("golang") {
-                        dir("go/src/github.com/pingcap/tidb") { 
-                             timeout(30) { 
+                        dir("go/src/github.com/pingcap/tidb") {
+                             timeout(30) {
                                  try {
                                     ws = pwd()
                                     def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
@@ -321,10 +321,10 @@ try {
 
                                     bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
                                     bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f  tikv1.log &
-                        
+
                                     bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://127.0.0.1:2389 --peer-urls=http://127.0.0.1:2388 -force-new-cluster &>  pd2.log &
                                     bin/tikv-server --pd=127.0.0.1:2389 -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f  tikv2.log &
-                    
+
                                     bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                                     bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
 
@@ -338,7 +338,7 @@ try {
                                     cd tests/integrationtest && ls -alh
                                     ./run-tests.sh -d y
                                     """
-                                 } catch (Exception e){ 
+                                 } catch (Exception e){
                                     sh "cat ${ws}/pd1.log || true"
                                     sh "cat ${ws}/tikv1.log || true"
                                     sh "cat ${ws}/pd2.log || true"
@@ -366,8 +366,8 @@ try {
                     deleteDir()
                     unstash 'tidb'
                     container("golang") {
-                        dir("go/src/github.com/pingcap/tidb") { 
-                             timeout(30) { 
+                        dir("go/src/github.com/pingcap/tidb") {
+                             timeout(30) {
                                  try {
                                     ws = pwd()
                                     def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
@@ -386,10 +386,10 @@ try {
 
                                     bin/pd-server -name=pd1 --data-dir=pd1 --client-urls=http://127.0.0.1:2379 --peer-urls=http://127.0.0.1:2378 -force-new-cluster &> pd1.log &
                                     bin/tikv-server --pd=127.0.0.1:2379 -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f  tikv1.log &
-                        
+
                                     bin/pd-server -name=pd2 --data-dir=pd2 --client-urls=http://127.0.0.1:2389 --peer-urls=http://127.0.0.1:2388 -force-new-cluster &>  pd2.log &
                                     bin/tikv-server --pd=127.0.0.1:2389 -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f  tikv2.log &
-                    
+
                                     bin/pd-server -name=pd3 --data-dir=pd3 --client-urls=http://127.0.0.1:2399 --peer-urls=http://127.0.0.1:2398 -force-new-cluster &> pd3.log &
                                     bin/tikv-server --pd=127.0.0.1:2399 -s tikv3 --addr=0.0.0.0:20190 --advertise-addr=127.0.0.1:20190 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f  tikv3.log &
 
@@ -403,7 +403,7 @@ try {
                                     cd tests/integrationtest && ls -alh
                                     ./run-tests.sh -d n
                                     """
-                                 } catch (Exception e){ 
+                                 } catch (Exception e){
                                     sh "cat ${ws}/pd1.log || true"
                                     sh "cat ${ws}/tikv1.log || true"
                                     sh "cat ${ws}/pd2.log || true"
@@ -450,7 +450,7 @@ try {
         parallel tests
 
         currentBuild.result = "SUCCESS"
-    
+
         container("golang"){
             sh """
                 echo "done" > done
@@ -539,4 +539,3 @@ if (params.containsKey("triggered_by_upstream_ci")) {
         }
     }
 }
-

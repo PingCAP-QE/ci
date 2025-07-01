@@ -63,7 +63,7 @@ pipeline {
                             container("util") {
                                 withCredentials(
                                     [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) { 
+                                ) {
                                     sh "rm -rf ./*"
                                     sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                     sh """
@@ -96,7 +96,7 @@ pipeline {
             parallel {
                 stage("Ccache") {
                     steps {
-                        script { 
+                        script {
                             dir("tiflash") {
                                 sh label: "copy ccache if exist", script: """
                                 ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
@@ -143,7 +143,7 @@ pipeline {
                                 echo "proxy cache not found"
                             fi
                             """
-                        }   
+                        }
                     }
                 }
                 stage("Cargo-Cache") {
@@ -215,7 +215,7 @@ pipeline {
         }
         stage("Build TiFlash") {
             steps {
-                dir("${WORKSPACE}/tiflash") {  
+                dir("${WORKSPACE}/tiflash") {
                     sh """
                     cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
                     """

@@ -64,7 +64,7 @@ def run_with_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '16Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: VOLUMES,
@@ -73,7 +73,7 @@ def run_with_pod(Closure body) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
             println "go image: ${POD_GO_IMAGE}"
             timeout(time: 60, unit: 'MINUTES') {
-               body() 
+               body()
             }
         }
     }
@@ -294,4 +294,3 @@ if (params.containsKey("triggered_by_upstream_ci")) {
         }
     }
 }
-

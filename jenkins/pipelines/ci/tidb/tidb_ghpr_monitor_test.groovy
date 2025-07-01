@@ -81,7 +81,7 @@ try {
                     killall -9 -r -q grafana-server
                     rm -rf ./tikv ./pd
                     set -e
-                    
+
                     bin/pd-server --name=pd --data-dir=pd &>pd.log &
                     sleep 5
                     bin/tikv-server --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv.log &

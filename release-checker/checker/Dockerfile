@@ -12,6 +12,6 @@ RUN chmod -R 777 /release-checker
 
 RUN pip3 install -r /release-checker/requirements.txt
 
-COPY sgerrand.rsa.pub /etc/apk/keys/sgerrand.rsa.pub 
+COPY sgerrand.rsa.pub /etc/apk/keys/sgerrand.rsa.pub
 COPY glibc-2.32-r0.apk /
 RUN  apk add /glibc-2.32-r0.apk

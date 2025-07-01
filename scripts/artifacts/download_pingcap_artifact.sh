@@ -21,7 +21,7 @@ for i in "$@"; do
     -tidb-tools=*|--tidb-tools=*)
       TIDB_TOOLS="${i#*=}"
       shift # past argument=value
-      ;;      
+      ;;
     --default)
       DEFAULT=YES
       shift # past argument with no value
@@ -67,7 +67,7 @@ function download() {
     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O "${file_path}" "${url}"
 }
 
-function main() { 
+function main() {
     rm -rf third_bin
     rm -rf tmp
     mkdir third_bin
@@ -119,7 +119,7 @@ function main() {
         echo "TIDB-TOOLS: ${tidb_tools_download_url}"
         download "$tidb_tools_download_url" "tidb-tools.tar.gz" "tmp/tidb-tools.tar.gz"
         tar -xz -C third_bin bin/sync_diff_inspector -f tmp/tidb-tools.tar.gz && mv third_bin/bin/sync_diff_inspector third_bin/
-    fi    
+    fi
 
     chmod +x third_bin/*
     ls -alh third_bin/

@@ -67,8 +67,8 @@ try {
                                                             url: "${BUILD_URL}"]]
                                 ]
                     } else {
-                        checkout scm: [$class: 'GitSCM', 
-                            branches: [[name: branch]],  
+                        checkout scm: [$class: 'GitSCM',
+                            branches: [[name: branch]],
                             extensions: [[$class: 'LocalBranch']],
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: "${BUILD_URL}"]]]
                     }
@@ -157,7 +157,7 @@ try {
                     writeFile file: 'dm-ansible-sha1', text: "${githash}"
                     sh """
                     # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key ${refspath} --file dm-ansible-sha1
-                    curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload 
+                    curl -F ${refspath}=@dm-ansible-sha1 ${FILE_SERVER_URL}/upload
 
                     # ./filemgr-linux64 --action mput --bucket pingcap-dev --nobar --key builds/pingcap/dm/${githash}/centos7/dm-ansible.tar.gz --file dm-ansible.tar.gz
                     curl -F ${filepath}=@dm-ansible.tar.gz ${FILE_SERVER_URL}/upload
@@ -186,7 +186,7 @@ try {
             }
         }
     }
-    
+
     node("arm") {
         stage("ARM - Prepare") {
             ws = pwd()
@@ -213,8 +213,8 @@ try {
                                                             url: "${BUILD_URL}"]]
                                 ]
                     } else {
-                        checkout scm: [$class: 'GitSCM', 
-                            branches: [[name: branch]],  
+                        checkout scm: [$class: 'GitSCM',
+                            branches: [[name: branch]],
                             extensions: [[$class: 'LocalBranch']],
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: "${BUILD_URL}"]]]
                     }

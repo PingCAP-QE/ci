@@ -47,7 +47,7 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+
                     )
             ],
             volumes: [
@@ -134,7 +134,7 @@ try {
                     killall -9 -r -q grafana-server
                     rm -rf ./tikv ./pd
                     set -e
-                    
+
                     bin/pd-server --name=pd --data-dir=pd &>pd.log &
                     sleep 5
                     bin/tikv-server --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv.log &

@@ -74,10 +74,10 @@ try {
         build_para_arm["ARCH"] = "arm64"
         build_para_arm["FILE_SERVER_URL"] = FILE_SERVER_URL
         build_para_arm["GIT_PR"] = TIKV_PRID
-        
+
         builds_arm = libs.create_enterprise_builds(build_para_arm)
 
-    
+
         build_para_amd = [:]
         build_para_amd["tidb"] = TIDB_HASH
         build_para_amd["tikv"] = TIKV_HASH

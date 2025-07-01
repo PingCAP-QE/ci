@@ -1,4 +1,4 @@
-// choose which go version to use. 
+// choose which go version to use.
 def String selectGoVersion(String branchORTag) {
     def goVersion="go1.18"
     if (branchORTag.startsWith("v") && branchORTag <= "v5.1") {
@@ -105,4 +105,3 @@ try {
     slackcolor = 'danger'
     echo "${e}"
 }
-

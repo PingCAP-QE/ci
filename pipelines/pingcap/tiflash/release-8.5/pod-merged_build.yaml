@@ -101,4 +101,3 @@ spec:
                 operator: In
                 values:
                   - "true"
-

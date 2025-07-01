@@ -512,7 +512,7 @@ def release_master_monitoring() {
     }
     def binary = "builds/pingcap/monitoring/test/master/${sha1}/linux-amd64/monitoring.tar.gz"
     def arch = "amd64"
-    // The monitoring cmd tool fetches all the monitoring json from each repo, so we don't use 
+    // The monitoring cmd tool fetches all the monitoring json from each repo, so we don't use
     // cache and force a rebuild each time
     // releate to: https://github.com/pingcap/monitoring/tree/master/cmd
     def paramsBuild = [

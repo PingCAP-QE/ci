@@ -27,7 +27,7 @@ try {
                         make clippy
                     """
 
-                }  
+                }
             }
         }
     }

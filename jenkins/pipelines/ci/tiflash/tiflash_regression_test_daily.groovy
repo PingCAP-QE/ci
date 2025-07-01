@@ -86,7 +86,7 @@ podTemplate(name: label, label: label, instanceCap: 5, cloud: "kubernetes-ksyun"
                 ]
 
                 sleep time: 5, unit: 'SECONDS'
-                
+
                 sh """
                 git rev-parse HEAD
                 """

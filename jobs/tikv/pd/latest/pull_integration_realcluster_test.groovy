@@ -14,7 +14,7 @@ pipelineJob('tikv/pd/pull_integration_realcluster_test') {
         buildFailureAnalyzer(false)
         githubProjectUrl("https://github.com/tikv/pd")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -30,7 +30,7 @@ pipelineJob('tikv/pd/pull_integration_realcluster_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

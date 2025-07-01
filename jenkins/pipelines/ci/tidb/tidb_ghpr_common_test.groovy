@@ -70,7 +70,7 @@ def run_test_with_pod(Closure body) {
                             image: POD_GO_IMAGE, ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: [
@@ -101,7 +101,7 @@ def run_with_lightweight_pod(Closure body) {
                             image: POD_GO_IMAGE, ttyEnabled: true,
                             resourceRequestCpu: '100m', resourceRequestMemory: '1Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ]
     ) {
@@ -181,7 +181,7 @@ try {
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_test_url}
                             tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
 
-                            export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb                        
+                            export TIDB_SRC_PATH=${ws}/go/src/github.com/pingcap/tidb
                             cd tidb_test && ./build.sh && cd ..
                             cd mysql_test && ./build.sh && cd ..
                             cd randgen-test && ./build.sh && cd ..
@@ -246,7 +246,7 @@ try {
                                     killall -9 -r pd-server
                                     rm -rf /tmp/tidb
                                     set -e
-                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                     awk 'NR==2 {print "set -x"} 1' test.sh > tmp && mv tmp test.sh && chmod +x test.sh
                                     TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                     ./test.sh
@@ -329,10 +329,10 @@ try {
                                         cp \$(cat ../packages_${chunk}) ../t
                                         cd ..
                                     fi
-                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                     TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                     ./test.sh
-                                    
+
                                     set +e
                                     killall -9 -r tidb-server
                                     killall -9 -r tikv-server
@@ -387,7 +387,7 @@ try {
                         dir("go/src/github.com/PingCAP-QE/tidb-test/${test_dir}") {
                             try {
                                 timeout(50) {
-                                    sh """ 
+                                    sh """
                                     #!/bin/bash
                                     set +e
                                     killall -9 -r tidb-server
@@ -395,9 +395,9 @@ try {
                                     killall -9 -r pd-server
                                     rm -rf /tmp/tidb
                                     set -e
-                                    
-                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
-                                    if [[ "${test_dir}" = "mysql_test" ]] && [[ "${ghprbTargetBranch}" =~ ^(master)|^release-[7-9].*|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?\$ ]]; then 
+
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY}
+                                    if [[ "${test_dir}" = "mysql_test" ]] && [[ "${ghprbTargetBranch}" =~ ^(master)|^release-[7-9].*|(release-)?6\\.[2-9]\\d*(\\.\\d+)?(\\-.*)?\$ ]]; then
                                         echo "current branch: ${ghprbTargetBranch}"
                                         echo "run mysql-test on master branch and branch >= release-6.2 in blacklist-mode"
                                         TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
@@ -406,7 +406,7 @@ try {
                                         TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                         CACHE_ENABLED=1 ./test.sh
                                     fi;
-                                    
+
                                     set +e
                                     killall -9 -r tidb-server
                                     killall -9 -r tikv-server
@@ -487,11 +487,11 @@ try {
                                     killall -9 -r pd-server
                                     rm -rf /tmp/tidb
                                     set -e
-                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                    unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                     TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                     GOPATH=${ws}/go/src/github.com/pingcap/tidb-test/_vendor:${ws}/go/src/github.com/pingcap/tidb_gopath:${ws}/go \
                                     ./test.sh
-                                    
+
                                     set +e
                                     killall -9 -r tidb-server
                                     killall -9 -r tikv-server
@@ -566,11 +566,11 @@ try {
   </mirrors>
 </settings>
 EOF
-                                
+
                                 cat ~/.m2/settings.xml || true
                                 TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                                 GOPATH=disable GOROOT=disable ${testsh}
-                                
+
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
@@ -605,7 +605,7 @@ EOF
                     println "TiDB Test failed"
                     all_task_result << ["name": "TiDB Test", "status": "failed", "error": err.message]
                     throw err
-                } 
+                }
             }
 
 
@@ -617,7 +617,7 @@ EOF
                     println "Randgen Test 1 failed"
                     all_task_result << ["name": "Randgen Test 1", "status": "failed", "error": err.message]
                     throw err
-                } 
+                }
             }
 
             tests["Randgen Test 2"] = {
@@ -628,7 +628,7 @@ EOF
                     println "Randgen Test 2 failed"
                     all_task_result << ["name": "Randgen Test 2", "status": "failed", "error": err.message]
                     throw err
-                } 
+                }
             }
 
             tests["Randgen Test 3"] = {
@@ -639,7 +639,7 @@ EOF
                     println "Randgen Test 3 failed"
                     all_task_result << ["name": "Randgen Test 3", "status": "failed", "error": err.message]
                     throw err
-                } 
+                }
             }
 
             tests["Analyze Test"] = {

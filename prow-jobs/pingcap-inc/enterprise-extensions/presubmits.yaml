@@ -21,4 +21,3 @@ presubmits:
       rerun_command: "/test pr-verify"
       branches:
         - ^release-7\.[1-4](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-

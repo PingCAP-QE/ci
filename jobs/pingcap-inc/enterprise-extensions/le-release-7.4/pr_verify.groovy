@@ -17,7 +17,7 @@ pipelineJob("${fullRepoName}/le-release-7.4/${jobName}") {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/${fullRepoName}")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -33,7 +33,7 @@ pipelineJob("${fullRepoName}/le-release-7.4/${jobName}") {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

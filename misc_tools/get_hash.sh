@@ -1,4 +1,4 @@
-#run like:  
+#run like:
 # TOKEN=xxx sh get_hash.sh release-5.0 2>/dev/null
 
 branch=$1

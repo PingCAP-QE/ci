@@ -18,7 +18,7 @@ folder('pingcap-qe') {
                                             noTags(true)
                                             reference('/var/lib/scm-git/ci')
                                             timeout(5)
-                                        } 
+                                        }
                                     }
                                 }
                             }

@@ -1,5 +1,5 @@
 
-// choose which go version to use. 
+// choose which go version to use.
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
@@ -42,7 +42,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         println "tag ${branchNameOrTag} use default version go 1.23"
         return "go1.23"
-    } else { 
+    } else {
         println "this is a branch"
         if (branchNameOrTag == "master") {
             println("branchNameOrTag: master  use go1.23")
@@ -113,7 +113,7 @@ switch(goVersion) {
         GO_BUILD_SLAVE = "build_go1130"
         break
     default:
-        GO_BUILD_SLAVE = "build_go1210"        
+        GO_BUILD_SLAVE = "build_go1210"
         break
 }
 println "This build use ${goVersion}"
@@ -166,7 +166,7 @@ try {
                 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
 
                 git credentialsId: 'github-sre-bot-ssh', url: "${BUILD_URL}", branch: "${branch}"
-                
+
                 githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             }
         }

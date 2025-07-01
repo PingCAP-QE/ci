@@ -28,7 +28,7 @@ node("${GO_BUILD_SLAVE}") {
     dir("${ws}/go/src/github.com/pingcap-inc/tiem") {
         stage("Prepare"){
             container("golang") {
-                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
                 if (sh(returnStatus: true, script: '[ -d .git ] && [ -f Makefile ] && git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                     deleteDir()

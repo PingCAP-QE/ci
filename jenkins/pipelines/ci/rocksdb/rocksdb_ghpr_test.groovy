@@ -16,7 +16,7 @@ def run_with_x86_pod(Closure body) {
                         name: 'rust', alwaysPullImage: true,
                         image: rust_image, ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
-                        command: '/bin/sh -c', args: 'cat'    
+                        command: '/bin/sh -c', args: 'cat'
                     )
             ],
             volumes: [

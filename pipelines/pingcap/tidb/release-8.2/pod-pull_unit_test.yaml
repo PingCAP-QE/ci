@@ -46,7 +46,7 @@ spec:
       resources:
         limits:
           memory: 128Mi
-          cpu: 100m              
+          cpu: 100m
   volumes:
     - name: gopathcache
       persistentVolumeClaim:
@@ -99,4 +99,3 @@ spec:
                 operator: In
                 values:
                   - "true"
-

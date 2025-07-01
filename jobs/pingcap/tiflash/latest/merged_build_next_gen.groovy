@@ -14,7 +14,7 @@ pipelineJob('pingcap/tiflash/merged_build_next_gen') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tiflash")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

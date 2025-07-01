@@ -7,7 +7,7 @@ stage("Build") {
 
         def checkAndBuild = { ghBranch, content, tag, args, allowStaleCache ->
             container("delivery"){
-                
+
                     // 2 means no image, 1 means stale, 0 means uptodate.
                     def cacheState = 2
                     if (!params.skip_sha_check) {
@@ -36,9 +36,9 @@ EOF
                         docker build -t hub.pingcap.net/jenkins/tikv-cached-${ghBranch}:${tag} ${args}  .
                         """
                     }
-                
+
                 docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
-                    sh """ 
+                    sh """
                     docker push hub.pingcap.net/jenkins/tikv-cached-${ghBranch}:${tag}
                     """
                 }
@@ -89,7 +89,7 @@ RUN cd tikv-src \
     && source /opt/rh/devtoolset-8/enable \
     && env EXTRA_CARGO_ARGS="--no-run" RUSTFLAGS=-Dwarnings FAIL_POINT=1 ROCKSDB_SYS_SSE=1 RUST_BACKTRACE=1 make dev
 """, "base", args, !params.force_base && now.getDate() != 1)
-            
+
             checkAndBuild(ghBranch, """
 FROM hub.pingcap.net/jenkins/tikv-cached-${ghBranch}:base
 
@@ -105,7 +105,7 @@ RUN cd tikv-src \
     && env EXTRA_CARGO_ARGS="--no-run" RUSTFLAGS=-Dwarnings FAIL_POINT=1 ROCKSDB_SYS_SSE=1 RUST_BACKTRACE=1 make dev
 """, "latest", args, false)
         }
-        
+
         build_branch("release-8.1")
         build_branch("release-7.5")
         build_branch("release-7.1")

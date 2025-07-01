@@ -77,7 +77,7 @@ pipelineJob('tikv_ghpr_integration_ddl_test') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

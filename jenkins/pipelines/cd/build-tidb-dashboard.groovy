@@ -183,7 +183,7 @@ pipeline {
                             sha256sum tidb-dashboard-linux-arm64.tar.gz | cut -d ' ' -f 1 >tidb-dashboard-linux-arm64.tar.gz.sha256
                             curl -F ${BinaryPrefix}/tidb-dashboard-linux-arm64.tar.gz=@tidb-dashboard-linux-arm64.tar.gz http://fileserver.pingcap.net/upload
                             curl -F ${BinaryPrefix}/tidb-dashboard-linux-arm64.tar.gz.sha256=@tidb-dashboard-linux-arm64.tar.gz.sha256 http://fileserver.pingcap.net/upload
-                            """                        
+                            """
                         }
                     }
                 }

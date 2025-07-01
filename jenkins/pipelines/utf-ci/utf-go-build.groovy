@@ -31,7 +31,7 @@ def main() {
             #if [ -f suite.jsonnet ] && ! `grep -q 'std\\.extVar' suite.jsonnet`; then
             #    UTF_SUITE_SCHEMA="file://$projectDir/manifests/suite.schema.json" ./${targetName} info
             #fi
-            
+
             if [ ${targetName} = "mysqltest" ]; then
                 cat <<EOF > Dockerfile
             FROM hub.pingcap.net/qa/utf-go-base:20210413
@@ -80,7 +80,7 @@ def main() {
 }
 
 def run(label, image, Closure main) {
-    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, instanceCap: 5, 
+    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, instanceCap: 5,
     idleMinutes: 60, nodeSelector: "kubernetes.io/arch=amd64",
     containers: [
         containerTemplate(name: 'golang', image: image, alwaysPullImage: false, ttyEnabled: true, command: 'cat'),

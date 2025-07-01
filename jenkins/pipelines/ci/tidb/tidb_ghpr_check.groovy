@@ -68,7 +68,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: VOLUMES,
@@ -97,7 +97,7 @@ def run_with_heavy_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '12Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: VOLUMES,
@@ -193,12 +193,12 @@ try {
         }
 
         def tests = [:]
-        tests["fmt & lint"] = { 
+        tests["fmt & lint"] = {
             run_with_heavy_pod {
                 deleteDir()
                 unstash 'tidb'
                 container("golang") {
-                    dir("go/src/github.com/pingcap/tidb") {  
+                    dir("go/src/github.com/pingcap/tidb") {
                         sh """
                         go version
                         make check
@@ -212,7 +212,7 @@ try {
                 deleteDir()
                 unstash 'tidb'
                 container("golang") {
-                    dir("go/src/github.com/pingcap/tidb") {  
+                    dir("go/src/github.com/pingcap/tidb") {
                         sh """
                         go version
                         make checklist
@@ -227,7 +227,7 @@ try {
                 deleteDir()
                 unstash 'tidb'
                 container("golang") {
-                    dir("go/src/github.com/pingcap/tidb") {  
+                    dir("go/src/github.com/pingcap/tidb") {
                         sh """
                         go version
                         if grep -q "test_part_parser" Makefile; then
@@ -245,7 +245,7 @@ try {
         parallel tests
 
         currentBuild.result = "SUCCESS"
-        container("golang"){ 
+        container("golang"){
             sh """
             echo "done" > done
             curl -F ci_check/${JOB_NAME}/${ghprbActualCommit}=@done ${FILE_SERVER_URL}/upload

@@ -13,7 +13,7 @@ pipelineJob('pingcap/tidb/canary_ghpr_unit_test') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tidb")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -22,7 +22,7 @@ pipelineJob('pingcap/tidb/canary_ghpr_unit_test') {
                 git{
                     remote {
                         url('https://github.com/PingCAP-QE/ci.git')
-                        refspec('+refs/heads/main:refs/remotes/origin/main') 
+                        refspec('+refs/heads/main:refs/remotes/origin/main')
                     }
                     branch('refs/heads/main')
                     extensions {
@@ -31,7 +31,7 @@ pipelineJob('pingcap/tidb/canary_ghpr_unit_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

@@ -1,4 +1,4 @@
-# docker build -t hub.pingcap.net/tiflash/tiflash-ci-base:with-mysql-cli . 
+# docker build -t hub.pingcap.net/tiflash/tiflash-ci-base:with-mysql-cli .
 ARG BASE_IMG=ghcr.io/pingcap-qe/bases/tiflash-base:v1.9.1
 FROM $BASE_IMG
 

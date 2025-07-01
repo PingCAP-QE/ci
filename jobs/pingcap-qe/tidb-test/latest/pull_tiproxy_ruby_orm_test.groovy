@@ -14,7 +14,7 @@ pipelineJob('pingcap-qe/tidb-test/pull_tiproxy_ruby_orm_test') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/PingCAP-QE/tidb-test")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

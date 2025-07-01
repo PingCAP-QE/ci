@@ -257,7 +257,7 @@ def release_docker(releaseRepos, builds, arch) {
 stage("docker images") {
     node("${GO_BUILD_SLAVE}") {
         container("golang") {
-            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm", "ng-monitoring"]            
+            releaseRepos = ["dumpling", "br", "ticdc", "tidb-binlog", "tiflash", "tidb", "tikv", "pd", "monitoring", "dm", "ng-monitoring"]
             builds = [:]
             release_docker(releaseRepos, builds, "amd64")
             release_docker(releaseRepos, builds, "arm64")

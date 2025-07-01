@@ -13,7 +13,7 @@ pipelineJob('pingcap/tiflow/periodics_cdc_integration_mysql_test') {
     properties {
         githubProjectUrl("https://github.com/pingcap/tiflow")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -29,7 +29,7 @@ pipelineJob('pingcap/tiflow/periodics_cdc_integration_mysql_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

@@ -108,9 +108,9 @@ pipeline {
                                 find log -name '*.log' | xargs tail -n 50
                                 ls -alh log/
                                 tar -cvzf log.tar.gz \$(find log/ -type f -name "*.log")
-                                ls -alh  log.tar.gz 
+                                ls -alh  log.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true 
+                                archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true
                             }
                         }
                     }

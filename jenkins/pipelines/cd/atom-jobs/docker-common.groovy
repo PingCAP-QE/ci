@@ -49,7 +49,7 @@ properties([
                         name: 'BASE_IMG',
                         trim: true
                 ),
-                
+
                 string(
                         defaultValue: '',
                         name: 'RELEASE_DOCKER_IMAGES',
@@ -80,7 +80,7 @@ def download() {
 
 // 构建出的镜像名称
 imagePlaceHolder = UUID.randomUUID().toString()
-// 使用非默认脚本构建镜像，构建出的镜像名称需要在下面定义 
+// 使用非默认脚本构建镜像，构建出的镜像名称需要在下面定义
 if (PRODUCT == "tics" || PRODUCT == "tiflash" ) {
     if (RELEASE_TAG.length() > 1) {
         imagePlaceHolder = "hub.pingcap.net/tiflash/tiflash-server-centos7"
@@ -180,7 +180,7 @@ def release_images() {
 
            docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
                sh """
-               # Push to Internal Harbor First, then sync to DockerHub 
+               # Push to Internal Harbor First, then sync to DockerHub
                # pingcap/tidb:v5.2.3 will be pushed to hub.pingcap.net/image-sync/pingcap/tidb:v5.2.3
                docker tag ${imagePlaceHolder} ${harbor_tmp_image_name}
                docker push ${harbor_tmp_image_name}

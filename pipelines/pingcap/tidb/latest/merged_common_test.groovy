@@ -96,14 +96,14 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'java'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/merged_integration_test/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'  
+                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                                 }
                             }
                             dir('tidb-test') {
@@ -131,7 +131,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

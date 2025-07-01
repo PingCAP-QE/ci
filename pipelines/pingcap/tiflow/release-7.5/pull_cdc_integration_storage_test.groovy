@@ -86,40 +86,40 @@ pipeline {
                     retry(2) {
                         script {
                             def branchInfo = component.extractHotfixInfo(REFS.base_ref)
-                            
+
                             sh label: "download third_party", script: """
                                 mkdir -p bin
                                 cd ../tiflow
-                                
+
                                 if [[ "${branchInfo.isHotfix}" == "true" ]]; then
                                     echo "Hotfix version tag: ${branchInfo.versionTag}"
                                     echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
-                                    
+
                                     # First download binary using the release branch script
                                     ./scripts/download-integration-test-binaries.sh release-7.5
                                     # remove binarys of tidb-server, pd-server, tikv-server, tiflash
                                     rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/lib*
-                                    
+
                                     # Then download and replace other components with exact versions
                                     cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ./
                                     chmod +x download_test_binaries_by_tag.sh
 
                                     # Save sync_diff_inspector and some other binaries
                                     mv bin tmp_bin
-                                    
+
                                     # Download exact versions of tidb-server, pd-server, tikv-server, tiflash
                                     ./download_test_binaries_by_tag.sh ${branchInfo.versionTag}
-                                    
+
                                     # Restore some binaries
                                     mv tmp_bin/* bin/ && rm -rf tmp_bin
                                 else
                                     echo "Release branch, downloading binaries from ${REFS.base_ref}"
                                     ./scripts/download-integration-test-binaries.sh release-7.5
                                 fi
-                                
+
                                 make check_third_party_binary
                                 cd - && mv ../tiflow/bin/* ./bin/
-                                
+
                                 # Verify all required binaries
                                 echo "Verifying downloaded binaries..."
                                 ls -alh ./bin
@@ -133,7 +133,7 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) { 
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
@@ -146,7 +146,7 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -172,13 +172,13 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment { 
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
+                        environment {
+                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
+                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
                         }
                         steps {
                             dir('tiflow') {
@@ -195,15 +195,15 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tidb_cdc_test/
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

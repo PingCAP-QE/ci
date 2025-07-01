@@ -32,7 +32,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy"
       branches: *branches
-  
+
     - name: pingcap/ticdc/release-9.0-beta/pull_cdc_kafka_integration_light
       agent: jenkins
       decorate: false # need add this.
@@ -119,7 +119,7 @@ presubmits:
               limits:
                 memory: 32Gi
                 cpu: "16"
-         
+
     - name: pull-build
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
@@ -129,7 +129,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
-        containers:                
+        containers:
           - name: build
             image: *image
             command: *command
@@ -143,7 +143,7 @@ presubmits:
                 cpu: "8"
               limits:
                 memory: 16Gi
-                cpu: "8" 
+                cpu: "8"
 
     - name: pull-check
       cluster: gcp-prow-ksyun
@@ -154,7 +154,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
-        containers:                
+        containers:
           - name: check
             image: *image
             command: *command

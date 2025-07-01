@@ -98,7 +98,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'nodejs'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
@@ -121,7 +121,7 @@ pipeline {
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

@@ -13,7 +13,7 @@ pipelineJob('pingcap/docs/pull_verify') {
     properties {
         githubProjectUrl("https://github.com/pingcap/docs")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -29,7 +29,7 @@ pipelineJob('pingcap/docs/pull_verify') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

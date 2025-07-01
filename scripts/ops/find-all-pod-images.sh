@@ -20,7 +20,7 @@ temp_file=$(mktemp)
 find "$directory" -type f \( -name "*.yaml" -o -name "*.yml" \) | while read -r file; do
     echo "Processing file: $file"
     # 使用 sed 来提取 image 字段，并处理带引号的情况
-    sed -n 's/^[[:space:]]*image:[[:space:]]*//p' "$file" | 
+    sed -n 's/^[[:space:]]*image:[[:space:]]*//p' "$file" |
     sed -E 's/^"(.*)"|'\''(.*)'\''|(.*)$/\1\2\3/' |
     sed -E 's/^[[:space:]]+|[[:space:]]+$//g' >> "$temp_file"
 done

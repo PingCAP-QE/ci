@@ -88,4 +88,3 @@ stage('Summary') {
         slackSend channel: '#binary_publish', color: 'good', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
     }
 }
-

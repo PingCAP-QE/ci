@@ -83,7 +83,7 @@ pipeline {
                                     git fetch origin ${TARGET_BRANCH}:local_${TARGET_BRANCH}
                                     git checkout local_${TARGET_BRANCH}
                                     git checkout -f ${tidb_commit_sha}
-                                    git status -s 
+                                    git status -s
                                 """
                             }
                         }
@@ -94,7 +94,7 @@ pipeline {
         stage("Prepare") {
             steps {
                   dir('tidb') {
-                        cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") { 
+                        cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                             sh """
                             make
                             cp bin/tidb-server bin/integration_test_tidb-server
@@ -106,7 +106,7 @@ pipeline {
                             ./bin/tidb-server -V
                             ./bin/pd-server -V
                             ./bin/tikv-server -V
-                            """     
+                            """
                         }
                   }
             }
@@ -149,8 +149,8 @@ pipeline {
                             dir('tidb') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     // will fail when not found in cache or no cached
-                                    sh """   
-                                    ls -l rev-${tidb_commit_sha} 
+                                    sh """
+                                    ls -l rev-${tidb_commit_sha}
                                     ./bin/integration_test_tidb-server -V
                                     ./bin/pd-server -V
                                     ./bin/tikv-server -V

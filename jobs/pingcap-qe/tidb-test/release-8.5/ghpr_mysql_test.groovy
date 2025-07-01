@@ -14,7 +14,7 @@ pipelineJob('pingcap-qe/tidb-test/release-8.5/ghpr_mysql_test') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/PingCAP-QE/tidb-test")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

@@ -37,13 +37,13 @@ def run_with_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')], 
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     ),
                     containerTemplate(
                             name: 'ruby', alwaysPullImage: true,
                             image: "hub.pingcap.net/jenkins/centos7_ruby-2.6.3:latest", ttyEnabled: true,
                             resourceRequestCpu: '100m', resourceRequestMemory: '256Mi',
-                            command: '/bin/sh -c', args: 'cat', 
+                            command: '/bin/sh -c', args: 'cat',
                     )
             ],
             volumes: [
@@ -54,7 +54,7 @@ def run_with_pod(Closure body) {
         node(label) {
             println "debug command:\nkubectl -n ${namespace} exec -ti ${NODE_NAME} bash"
             timeout(time: 60, unit: 'MINUTES') {
-               body() 
+               body()
             }
         }
     }
@@ -123,7 +123,7 @@ run_with_pod {
                     bin/tidb-server -P 4001 -host 127.0.0.1 -store tikv -path 127.0.0.1:2379 -status 10081 &> tidb1.log &
                     bin/tidb-server -P 4002 -host 127.0.0.1 -store tikv -path 127.0.0.1:2379 -status 10082 &> tidb2.log &
                     sleep 20
-                    
+
                     cd tests/readonlytest
                     go mod tidy
                     go test

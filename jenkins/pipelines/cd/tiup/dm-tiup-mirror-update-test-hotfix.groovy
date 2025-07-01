@@ -70,7 +70,7 @@ def pack = { name, version, os, arch ->
     """
 
     sh """
-    echo "package dm-master"    
+    echo "package dm-master"
     mkdir ${name}-master
     mkdir ${name}-master/conf
     mkdir ${name}-master/scripts

@@ -61,7 +61,7 @@ pipeline {
                             git rev-parse --show-toplevel
                             git status -s .
                             git log --format="%h %B" --oneline -n 3
-                            """                                             
+                            """
                         }
                     }
                 }
@@ -109,5 +109,5 @@ pipeline {
                 }
             }
         }
-    }   
+    }
 }

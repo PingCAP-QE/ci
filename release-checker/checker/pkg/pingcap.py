@@ -99,7 +99,7 @@ def validate_tarball_size(arch: str, edition: str, version: str) -> int:
     size_table = TARBALL_BASE_SIZE
     if version.startswith("v") and version[1] >= "5":
         size_table=TARBALL_BASE_SIZE_NEWER_THAN_V5
-    
+
     if edition == "community":
         tidb_name = f"tidb-community-server-{version}-{arch}.tar.gz"
         err_count += validate_size(tidb_name, size_table[f"community-tidb-{arch}"])

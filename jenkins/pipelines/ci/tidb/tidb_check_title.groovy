@@ -7,11 +7,11 @@ boolean isMoreRecentOrEqual( String a, String b ) {
     [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
        Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
        return (result == 1)
-    } 
+    }
 }
 
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
     }
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
@@ -63,7 +63,7 @@ def run_with_pod(Closure body) {
                         image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
                         resourceRequestCpu: '2000m', resourceRequestMemory: '2Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -102,7 +102,7 @@ EOT"""
             //echo "GO: $goVersion BUILD: $buildSlave TEST: $testSlave"
             }
         }
-        
+
     }
     currentBuild.result = "SUCCESS"
 }
