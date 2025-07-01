@@ -82,6 +82,7 @@ configMapGenerator:
       - pingcap_tiflash_release-8.5-postsubmits.yaml=pingcap/tiflash/release-8.5-postsubmits.yaml
       - pingcap_tiflash_release-8.5-presubmits.yaml=pingcap/tiflash/release-8.5-presubmits.yaml
       - pingcap_tiflash_release-9.0-beta-presubmits.yaml=pingcap/tiflash/release-9.0-beta-presubmits.yaml
+      - pingcap_tiflow_common-postsubmits.yaml=pingcap/tiflow/common-postsubmits.yaml
       - pingcap_tiflow_latest-periodics.yaml=pingcap/tiflow/latest-periodics.yaml
       - pingcap_tiflow_latest-postsubmits.yaml=pingcap/tiflow/latest-postsubmits.yaml
       - pingcap_tiflow_latest-presubmits-wip.yaml=pingcap/tiflow/latest-presubmits-wip.yaml
