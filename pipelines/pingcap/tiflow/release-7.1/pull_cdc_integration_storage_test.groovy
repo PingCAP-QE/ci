@@ -96,7 +96,7 @@ pipeline {
                                     echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
                                     
                                     # First download binary using the release branch script
-                                    ./scripts/download-integration-test-binaries.sh ${REFS.base_ref}
+                                    ./scripts/download-integration-test-binaries.sh release-7.1
                                     # remove binarys of tidb-server, pd-server, tikv-server, tiflash
                                     rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/lib*
                                     
