@@ -53,7 +53,7 @@ flowchart TD
      place your modified version in `/staging/jobs/pingcap/tidb/latest/pull_integration_test.groovy`
 
 3. **Test your changes**:
-   - After your PR is merged, the seed job(automatic triggered by Prow) will deploy it to the staging CI server
+   - After your PR is merged, the seed job (automatically triggered by Prow) will deploy it to the staging CI server
    - Test the pipeline in the staging environment at https://do.pingcap.net/jenkins-beta/
    - Navigate to the corresponding job in the staging environment
    - Trigger a test run manually to verify your changes work as expected
