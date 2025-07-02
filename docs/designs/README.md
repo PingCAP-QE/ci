@@ -1,6 +1,6 @@
 # Design for CI services and flows
 
-## Foler Structure
+## Folder Structure
 
 - `/docs` - Documentation about CI/CD jobs, tools, and usage guides
 - `/prow-jobs` - Top-level Prow job trigger configurations
