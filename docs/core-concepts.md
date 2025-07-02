@@ -2,7 +2,7 @@
 
 ## CI Servers
 
-- `prow.tidb.net` is the our Prow CI site, you can view the builds for you pull request, merging history of a repository.
+- `prow.tidb.net` is our Prow CI site, where you can view builds for your pull request and the merging history of a repository.
 - `https://do.pingcap.net/jenkins` is the backend CI worker (Jenkins) to run the heavy builds/tests for Prow jobs.
 
 ## CI Job Components
