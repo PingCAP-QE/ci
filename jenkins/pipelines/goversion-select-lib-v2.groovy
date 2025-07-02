@@ -58,7 +58,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         println "tag ${branchNameOrTag} use default version go 1.21"
         return "go1.21"
-    } else { 
+    } else {
         println "this is a branch"
         if (branchNameOrTag in feature_branch_use_go13) {
             println "feature branch ${branchNameOrTag} use go 1.13"

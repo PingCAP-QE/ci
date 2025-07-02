@@ -69,8 +69,8 @@ pipeline {
                         container("golang") {
                             sh label: 'integration test prepare', script: """#!/usr/bin/env bash
                             cd cdc/
-                            make prepare_test_binaries 
-                            make check_third_party_binary 
+                            make prepare_test_binaries
+                            make check_third_party_binary
                             make integration_test_build
                             """
                         }

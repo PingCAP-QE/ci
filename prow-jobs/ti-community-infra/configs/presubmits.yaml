@@ -74,7 +74,7 @@ presubmits:
         - org: PingCAP-QE
           repo: ee-ops
           base_ref: main
-          repo_link: https://github.com/PingCAP-QE/ee-ops         
+          repo_link: https://github.com/PingCAP-QE/ee-ops
       run_if_changed: "prow/config/"
       branches:
         - ^main$
@@ -87,7 +87,7 @@ presubmits:
             command: [flux, -n, flux-system]
             args:
               - build
-              - kustomization 
+              - kustomization
               - prow-configs
               - --path=prow
               - --kustomization-file=../../PingCAP-QE/ee-ops/apps/gcp/prow/pre/prow-configs.yaml
@@ -102,7 +102,7 @@ presubmits:
         - org: PingCAP-QE
           repo: ee-ops
           base_ref: main
-          repo_link: https://github.com/PingCAP-QE/ee-ops         
+          repo_link: https://github.com/PingCAP-QE/ee-ops
       run_if_changed: "prow/cronjobs/"
       branches:
         - ^main$
@@ -115,7 +115,7 @@ presubmits:
             command: [flux, -n, flux-system]
             args:
               - build
-              - kustomization 
+              - kustomization
               - prow-post-cronjobs-community
               - --path=prow/cronjobs
               - --kustomization-file=../../PingCAP-QE/ee-ops/apps/gcp/prow/post/cronjobs-community.yaml

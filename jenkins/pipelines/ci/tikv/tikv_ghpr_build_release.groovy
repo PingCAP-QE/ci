@@ -28,7 +28,7 @@ try {
 
         stage("Checkout") {
             // update cache
-            container("rust") { 
+            container("rust") {
                 dir("/home/jenkins/agent/git/tikv") {
                     if (sh(returnStatus: true, script: '[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1') != 0) {
                         deleteDir()
@@ -37,7 +37,7 @@ try {
                     sh """
                     git checkout -f ${ghprbActualCommit}
                     """
-                }   
+                }
             }
         }
 
@@ -63,7 +63,7 @@ try {
                         else
 	                        mkdir -p bin && cp /home/jenkins/agent/.target/release/tikv-server bin/
                         fi
-                  
+
                         if [[ "${release}" =~ "make titan_release" ]];then
 	                        cp bin/tikv-server bin/tikv-server-titan
                         fi
@@ -110,4 +110,3 @@ try {
     currentBuild.result = "FAILURE"
     echo "${e}"
 }
-

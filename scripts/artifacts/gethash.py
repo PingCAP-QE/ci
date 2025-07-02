@@ -131,9 +131,9 @@ Examples:
   %(prog)s -repo tidb -version commit/abc123def456       # Use specific commit hash(40 characters)
   %(prog)s -repo pingcap/tidb -version v8.0.0            # Specify org/repo explicitly
         """)
-    parser.add_argument("-repo", type=str, 
+    parser.add_argument("-repo", type=str,
                         help="GitHub repository name (e.g., 'tidb', 'tikv', 'pingcap/tidb')")
-    parser.add_argument("-version", type=str, 
+    parser.add_argument("-version", type=str,
                         help="Version specification: tag (v8.0.0), branch (master), PR (pull/123), or commit hash")
     args = parser.parse_args()
     main(args)

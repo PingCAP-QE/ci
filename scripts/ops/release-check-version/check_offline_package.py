@@ -11,10 +11,10 @@ from config import COMPONENT_META
 def get_base_url(is_internal=None):
     """
     Determine whether to use internal or public URL based on environment variable.
-    
+
     Args:
         is_internal: Override environment variable if provided
-        
+
     Returns:
         tuple: (public_base_url, internal_base_url, use_internal)
     """

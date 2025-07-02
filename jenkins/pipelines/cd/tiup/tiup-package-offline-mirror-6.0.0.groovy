@@ -80,7 +80,7 @@ def clone_toolkit_package = { arch, dst ->
         --tiup latest --tidb-lightning $VERSION --dumpling $VERSION --cdc $VERSION --dm-worker $VERSION \
         --dm-master $VERSION --dmctl $VERSION --dm latest --br $VERSION \
         --bench latest --errdoc latest --dba latest --PCC latest \
-        $amd64_pkg --pump $VERSION --drainer $VERSION 
+        $amd64_pkg --pump $VERSION --drainer $VERSION
         """
     }
 }
@@ -234,14 +234,14 @@ def package_tools = { plat, arch ->
         tar xf br-linux-${arch}.tar.gz
         tar xf etcd-v3.4.30-linux-${arch}.tar.gz
 
-        
+
         cp bin/binlogctl ${toolkit_dir}/
         cp bin/sync_diff_inspector ${toolkit_dir}/
         cp bin/reparo ${toolkit_dir}/
         cp bin/arbiter ${toolkit_dir}/
         cp bin/tidb-lightning-ctl ${toolkit_dir}/
         cp etcd-v3.4.30-linux-${arch}/etcdctl ${toolkit_dir}/
-        
+
         ${mydumper_cmd}
 
         tar czvf ${toolkit_dir}.tar.gz ${toolkit_dir}
@@ -257,7 +257,7 @@ def package_tools = { plat, arch ->
         upload.py ${toolkit_dir}.tar.gz.sha256 ${toolkit_dir}.tar.gz.sha256
         """
     }
-    if (is_lts_version(release_tag) && plat == "enterprise" ) { 
+    if (is_lts_version(release_tag) && plat == "enterprise" ) {
         sh """
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${toolkit_dir}.tar.gz ${toolkit_dir}.tar.gz

@@ -5,8 +5,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: pull-verify 
-      skip_report: false
+      context: pull-verify
       trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
       rerun_command: "/test pull-verify"
       branches:
@@ -18,7 +17,6 @@ presubmits:
       run_before_merge: true
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-cdc-integration-kafka-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-kafka-test"
       branches:
@@ -30,7 +28,6 @@ presubmits:
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-mysql-test"
       branches:
@@ -42,7 +39,6 @@ presubmits:
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-compatibility-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-compatibility-test"
       branches:
@@ -54,7 +50,6 @@ presubmits:
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-dm-integration-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-integration-test"
       branches:

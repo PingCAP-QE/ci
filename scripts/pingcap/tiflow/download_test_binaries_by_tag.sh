@@ -2,7 +2,7 @@
 
 # download_test_binaries_by_tag.sh will
 # * download all the binaries you need for integration testing
-# Usage: 
+# Usage:
 #   ./download_test_binaries_by_tag.sh <version> [components...] [--os=<os>] [--arch=<arch>]
 # Example:
 #   ./download_test_binaries_by_tag.sh v8.1.0 tidb pd                        # download tidb and pd for linux/amd64
@@ -74,12 +74,12 @@ download_file() {
 
 download_binaries() {
 	log_green "Downloading binaries..."
-	
+
 	# If no components specified, download all
 	if [ ${#COMPONENTS[@]} -eq 0 ]; then
 		COMPONENTS=(tidb pd tikv tiflash ctl)
 	fi
-	
+
 	# Validate components
 	for component in "${COMPONENTS[@]}"; do
 		if [[ ! ${COMPONENT_URLS[$component]+_} ]]; then
@@ -88,17 +88,17 @@ download_binaries() {
 			exit 1
 		fi
 	done
-	
+
 	# Download specified components
 	for component in "${COMPONENTS[@]}"; do
 		local url=${COMPONENT_URLS[$component]}
 		local file_name=$(basename "$url")
 		local extract_path=${COMPONENT_EXTRACT_PATHS[$component]}
-		
+
 		echo "Downloading component: $component"
 		download_and_extract "$url" "$file_name" "$extract_path"
 	done
-	
+
 	chmod a+x ${THIRD_BIN_DIR}/*
 }
 
@@ -136,7 +136,7 @@ setup() {
 setup_component_configs() {
 	local pingcap_base_url="${FILE_SERVER_URL}/download/builds/pingcap"
 	local tikv_base_url="${FILE_SERVER_URL}/download/builds/tikv"
-	
+
 	COMPONENT_URLS=(
 		["tidb"]="${pingcap_base_url}/tidb/tag/${VERSION}/${OS}_${ARCH}/tidb.tar.gz"
 		["pd"]="${tikv_base_url}/pd/tag/${VERSION}/${OS}_${ARCH}/pd.tar.gz"
@@ -144,7 +144,7 @@ setup_component_configs() {
 		["tiflash"]="${pingcap_base_url}/tiflash/tag/${VERSION}/${OS}_${ARCH}/tiflash.tar.gz"
 		["ctl"]="${pingcap_base_url}/ctl/tag/${VERSION}/${OS}_${ARCH}/ctl.tar.gz"
 	)
-	
+
 	COMPONENT_EXTRACT_PATHS=(
 		["tidb"]="tidb-server"
 		["pd"]="pd-server"

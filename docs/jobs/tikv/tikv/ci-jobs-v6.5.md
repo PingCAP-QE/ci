@@ -38,7 +38,7 @@ More will be added.
     rm -f protoc-${PROTOC_VER}-linux-x86_64.zip
 
   # Install Rustup
-  RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile complete --default-toolchain none -y  
+  RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile complete --default-toolchain none -y
 
   ######## run test #########
   ### run those commands under tikv repo dir to run unit tests in new terminal to reload your PATH environment variable:
@@ -67,7 +67,7 @@ More will be added.
 
     ######### run test for TiKV ########
 
-    # git clone https://github.com/tikv/tikv.git --branch release-6.5  
+    # git clone https://github.com/tikv/tikv.git --branch release-6.5
 
     # Run unit tests(you can split the job by adjust the params):
     # cd tikv
@@ -87,10 +87,10 @@ More will be added.
 
   # install rust toolchain with nightly and complete profile
   RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-  
+
   ######### run test for TiKV ########
   # git clone https://github.com/tikv/tikv.git --branch release-6.5
-  
+
   ### Run unit tests(you can split the job by adjust the params):
   # cd tikv
   # rustup toolchain install `cat rust-toolchain`

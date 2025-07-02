@@ -32,7 +32,7 @@ pipeline {
             }
         }
         }
-       
+
         stage('Prepare regctl Image') {
             steps {
                 sh """

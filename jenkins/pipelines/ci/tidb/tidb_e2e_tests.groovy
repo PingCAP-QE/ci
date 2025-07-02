@@ -60,7 +60,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -124,7 +124,7 @@ try {
                                     sh "cat /tmp/tidb_gracefulshutdown/tidb5501.log"
                                     throw err
                                 }
-                                
+
                                 try {
                                     sh """
 
@@ -142,7 +142,7 @@ try {
 
                                     while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 10; done
                                     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
-                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
+                                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
                                     ls -lhrt ./bin
                                     make
                                     ls -lhrt ./bin

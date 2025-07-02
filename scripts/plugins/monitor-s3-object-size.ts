@@ -79,17 +79,17 @@ async function monitorObjectSizes(
   cleanupConfig?: CleanupConfig,
 ) {
   const objects: ObjectSizeInfo[] = [];
-  
+
   console.log("\n=== Scan Configuration ===");
   console.log(`Scanning objects in path: "${prefix}"`);
   console.log(`Size threshold: ${formatSize(thresholdBytes)}`);
-  
+
   try {
     // Test bucket access
     console.log("\n=== Testing Bucket Access ===");
     const testList = await bucket.listObjects({ prefix, maxKeys: 1 });
     console.log(`Test list result: ${JSON.stringify(testList, null, 2)}`);
-    
+
     // Collect all object information
     console.log("\n=== Starting Object Scan ===");
     for await (const obj of bucket.listAllObjects({ prefix, batchSize: 1000 })) {
@@ -148,7 +148,7 @@ async function monitorObjectSizes(
   }
 
   let cleanupResults: Array<{ key: string; success: boolean; error?: string }> = [];
-  
+
   // If cleanup is enabled, process oversized objects
   if (cleanupConfig?.enabled && oversizedObjects.length > 0) {
     cleanupResults = await cleanupOversizedObjects(bucket, oversizedObjects, cleanupConfig);
@@ -157,11 +157,11 @@ async function monitorObjectSizes(
   // If a Feishu webhook is configured, send a comprehensive report
   if (feishuConfig && oversizedObjects.length > 0) {
     await sendFeishuReport(
-      oversizedObjects, 
-      thresholdBytes, 
-      prefix, 
-      cleanupConfig, 
-      cleanupResults, 
+      oversizedObjects,
+      thresholdBytes,
+      prefix,
+      cleanupConfig,
+      cleanupResults,
       feishuConfig
     );
   }
@@ -235,8 +235,8 @@ async function sendFeishuReport(
                   text: `📄 ${obj.key}\n` +
                     `Size: ${formatSize(obj.size)}\n` +
                     `Last Modified: ${obj.lastModified.toISOString()}\n` +
-                    (cleanupResult ? 
-                      `Cleanup status: ${cleanupResult.success ? '✅ Cleaned' : `❌ Cleanup failed (${cleanupResult.error})`}\n` 
+                    (cleanupResult ?
+                      `Cleanup status: ${cleanupResult.success ? '✅ Cleaned' : `❌ Cleanup failed (${cleanupResult.error})`}\n`
                       : '') +
                     `\n`,
                 },
@@ -325,7 +325,7 @@ async function cleanupOversizedObjects(
   console.log(`Total processed: ${objects.length}`);
   console.log(`Deleted: ${deletedCount}`);
   console.log(`Skipped: ${skippedCount}`);
-  
+
   return deletionResults;
 }
 

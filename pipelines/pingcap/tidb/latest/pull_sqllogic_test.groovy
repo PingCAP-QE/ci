@@ -93,7 +93,7 @@ pipeline {
                         values 'index/between/1 index/between/10 index/between/100', 'index/between/100 index/between/1000 index/commute/10',
                             'index/commute/100 index/commute/1000_n1 index/commute/1000_n2',
                             'index/delete/1 index/delete/10 index/delete/100 index/delete/1000 index/delete/10000',
-                            'random/aggregates_n1 random/aggregates_n2 random/expr' , 'random/expr random/select_n1 random/select_n2', 
+                            'random/aggregates_n1 random/aggregates_n2 random/expr' , 'random/expr random/select_n1 random/select_n2',
                             'select random/groupby'
                     }
                 }
@@ -103,7 +103,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
@@ -148,8 +148,8 @@ pipeline {
                     }
                     axis {
                         name 'TEST_PATH_STRING'
-                        values 'index/in/10 index/in/1000_n1 index/in/1000_n2', 'index/orderby/10 index/orderby/100', 
-                            'index/orderby/1000_n1 index/orderby/1000_n2', 'index/orderby_nosort/10 index/orderby_nosort/100', 
+                        values 'index/in/10 index/in/1000_n1 index/in/1000_n2', 'index/orderby/10 index/orderby/100',
+                            'index/orderby/1000_n1 index/orderby/1000_n2', 'index/orderby_nosort/10 index/orderby_nosort/100',
                             'index/orderby_nosort/1000_n1 index/orderby_nosort/1000_n2', 'index/random/10 index/random/100 index/random/1000'
                     }
                 }
@@ -159,7 +159,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }

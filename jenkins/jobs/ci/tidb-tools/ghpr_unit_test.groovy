@@ -66,7 +66,7 @@ pipelineJob('tidb_tools_ghpr_unit_test') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

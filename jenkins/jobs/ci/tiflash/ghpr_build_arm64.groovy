@@ -92,7 +92,7 @@ pipelineJob('tiflash-ghpr-build-arm64') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

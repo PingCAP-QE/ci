@@ -30,11 +30,11 @@ presubmits:
                     name: codecov-token
                     key: pingcap-tiflow # format <ORG>-<REPO>
               # FIXME(wuhuizuo): should delete it when refactored the Makefile.
-              - name: TICDC_CODECOV_TOKEN 
+              - name: TICDC_CODECOV_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: codecov-token
-                    key: pingcap-tiflow # format <ORG>-<REPO>              
+                    key: pingcap-tiflow # format <ORG>-<REPO>
             volumeMounts: &volumeMounts
               - name: go-cache
                 mountPath: /share/.cache/go-build
@@ -53,7 +53,7 @@ presubmits:
               claimName: go-cache
           - name: gomod-cache
             persistentVolumeClaim:
-              claimName: gomod-cache                
+              claimName: gomod-cache
     - name: wip-pull-build
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
@@ -63,7 +63,7 @@ presubmits:
         - ^master$
         - ^feature[_/].+
       spec:
-        containers:                
+        containers:
           - name: build
             image: *image
             command: *command

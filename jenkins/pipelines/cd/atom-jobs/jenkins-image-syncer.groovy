@@ -16,7 +16,7 @@ pipeline{
             defaultContainer 'regctl'
         }
     }
-    options { 
+    options {
       skipDefaultCheckout true
       retry(3)
     }

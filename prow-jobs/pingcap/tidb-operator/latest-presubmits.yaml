@@ -56,31 +56,31 @@ presubmits:
                   make \
                   cmake \
                   tar
-                
+
                 # Add Docker's official GPG key
                 install -m 0755 -d /etc/apt/keyrings
                 curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
                 chmod a+r /etc/apt/keyrings/docker.asc
-                
+
                 # Add the repository to Apt sources
                 echo \
                   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
                   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
                   tee /etc/apt/sources.list.d/docker.list > /dev/null
                 apt-get update
-                
+
                 # Install Docker CLI
                 apt-get install -y --no-install-recommends docker-ce-cli
-                
+
                 # Install Go 1.23
                 curl -fsSL https://go.dev/dl/go1.23.10.linux-amd64.tar.gz | tar -C /usr/local -xz
                 export PATH=/usr/local/go/bin:$PATH
                 export GOPATH=/go
                 export GOCACHE=/tmp/go-cache
-                
+
                 echo "Go version: $(go version)"
                 echo "Docker version: $(docker version --format '{{.Client.Version}}')"
-                
+
                 echo "Waiting for Docker daemon to be responsive..."
                 timeout_seconds=120
                 # Loop until docker info succeeds or timeout is reached

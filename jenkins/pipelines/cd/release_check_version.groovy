@@ -42,13 +42,13 @@ pipeline {
         )
         string(
             defaultValue: 'https://raw.githubusercontent.com/purelind/test-ci/main/components-v8.0.0.json' ,
-            name: 'COMPONENT_JSON_URL', 
+            name: 'COMPONENT_JSON_URL',
             description: 'The URL of the component json file',
             trim: true
         )
         string(
             defaultValue: 'v8.0.0' ,
-            name: 'VERSION', 
+            name: 'VERSION',
             description: 'The release version to check',
             trim: true
         )
@@ -156,7 +156,7 @@ pipeline {
                         }
                     }
                     steps {
-                        dir("release-check-tiup") {  
+                        dir("release-check-tiup") {
                             deleteDir()
                             sh """
                                 hostname
@@ -171,7 +171,7 @@ pipeline {
                                 python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
                             """
                         }
-                        
+
                     }
                 }
                 stage('darwin/amd64 tiup') {
@@ -181,7 +181,7 @@ pipeline {
                         }
                     }
                     steps {
-                        dir("release-check-tiup") { 
+                        dir("release-check-tiup") {
                             deleteDir()
                             sh """
                                 hostname
@@ -193,7 +193,7 @@ pipeline {
                                 pip install -r requirements.txt
                                 export PATH=\$PATH:\$HOME/.tiup/bin
                                 which tiup
-                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}" 
+                                python3 main.py tiup --components_url="${params.COMPONENT_JSON_URL}"
                             """
                         }
                     }

@@ -61,7 +61,7 @@ def run_with_pod(Closure body) {
                         image: "${java_image}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -110,7 +110,7 @@ join-concurrency = 1
 __EOF__
 
                             bin/tidb-server -config config.toml > ${ws}/tidb_mybatis3_test.log 2>&1 &
-                            
+
                             """
                         }
                         if (!ghprbTargetBranch.startsWith("release-2")) {
@@ -135,7 +135,7 @@ __EOF__
                                     sh """
                                     mvn -B clean test
                                     """
-                                } 
+                                }
                             }
                         }
                     } catch (err) {

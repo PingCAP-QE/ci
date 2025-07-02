@@ -55,7 +55,7 @@ def upload_result_to_db() {
 
 }
 
-// choose which go version to use. 
+// choose which go version to use.
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
@@ -98,7 +98,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         println "tag ${branchNameOrTag} use default version go 1.23"
         return "go1.23"
-    } else { 
+    } else {
         println "this is a branch"
         if (branchNameOrTag == "master") {
             println("branchNameOrTag: master  use go1.23")
@@ -169,7 +169,7 @@ switch(goVersion) {
         GO_BUILD_SLAVE = "build_go1130"
         break
     default:
-        GO_BUILD_SLAVE = "build_go1210"        
+        GO_BUILD_SLAVE = "build_go1210"
         break
 }
 println "This build use ${goVersion}"
@@ -214,7 +214,7 @@ try {
                 // 值得注意的是，即使传入的是 TAG，环境变量里的 BRANCH_NAME 和 TAG_NAME 同时会是 TAG 名，如 v3.0.0
                 def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
                 println branch
-                
+
                 if(branch.startsWith("refs/tags")) {
                     checkout changelog: false,
                             poll: true,
@@ -230,14 +230,14 @@ try {
                                                         url: "${BUILD_URL}"]]
                             ]
                 } else {
-                    checkout scm: [$class: 'GitSCM', 
-                        branches: [[name: branch]],  
+                    checkout scm: [$class: 'GitSCM',
+                        branches: [[name: branch]],
                         extensions: [[$class: 'LocalBranch']],
                         userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: "${BUILD_URL}"]]]
                 }
-                
+
                 githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-                
+
                 sh"""
                 git branch
                 """
@@ -279,7 +279,7 @@ try {
             }
         }
     }
-   
+
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
@@ -289,5 +289,5 @@ try {
     if(env.BRANCH_NAME == 'master'){
          upload_result_to_db()
     }
-   
+
 }

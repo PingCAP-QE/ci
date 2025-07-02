@@ -12,7 +12,7 @@ pipelineJob('pingcap/tiflow/release-9.0-beta/pull_verify') {
     properties {
         githubProjectUrl("https://github.com/pingcap/tiflow")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -28,7 +28,7 @@ pipelineJob('pingcap/tiflow/release-9.0-beta/pull_verify') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

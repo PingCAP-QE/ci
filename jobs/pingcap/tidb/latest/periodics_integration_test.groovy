@@ -15,7 +15,7 @@ pipelineJob('pingcap/tidb/periodics_integration_test') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -31,7 +31,7 @@ pipelineJob('pingcap/tidb/periodics_integration_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

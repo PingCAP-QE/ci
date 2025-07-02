@@ -529,5 +529,3 @@ def upload_pipeline_run_data() {
             ]
     }
 }
-
-

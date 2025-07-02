@@ -63,7 +63,7 @@ pipeline {
                         }
                     }
                 }
-            }    
+            }
         }
         stage('Checkout') {
             when { expression { !skipRemainingStages} }
@@ -127,7 +127,7 @@ pipeline {
                             which ./bin/dm-test-tools/check_worker_online
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -145,7 +145,7 @@ pipeline {
                     axis {
                         name 'TEST_GROUP'
                         values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08',
-                            'G09', 'G10', 'G11', 'TLS_GROUP'                      
+                            'G09', 'G10', 'G11', 'TLS_GROUP'
                     }
                 }
                 agent{
@@ -155,13 +155,13 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 50, unit: 'MINUTES') }
-                        environment { 
-                            DM_CODECOV_TOKEN = credentials('codecov-token-tiflow') 
-                            DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')    
+                        environment {
+                            DM_CODECOV_TOKEN = credentials('codecov-token-tiflow')
+                            DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
                         }
                         steps {
                             container("mysql1") {
@@ -173,7 +173,7 @@ pipeline {
                             }
 
                             dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
                                     timeout(time: 10, unit: 'MINUTES') {
                                         sh label: "wait mysql ready", script: """
                                             pwd && ls -alh
@@ -199,22 +199,22 @@ pipeline {
                                         mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
                                         make dm_integration_test_in_group GROUP="${TEST_GROUP}"
                                     """
-                                } 
+                                }
                             }
                         }
                         post {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/dm_test
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", allowEmptyArchive: true
                             }
                         }
                     }
                 }
-            }        
+            }
         }
     }
 }

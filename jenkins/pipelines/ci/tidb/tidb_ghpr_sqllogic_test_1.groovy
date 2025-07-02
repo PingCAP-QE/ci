@@ -65,7 +65,7 @@ def run_with_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: [
@@ -114,7 +114,7 @@ try {
                         def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()
                         def tidb_test_url = "${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/${tidb_test_sha1}/centos7/tidb-test.tar.gz"
                         sh """
-                        unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                        unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                         while ! curl --output /dev/null --silent --head --fail ${tidb_test_url}; do sleep 15; done
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O tidb-test.tar.gz ${tidb_test_url}
                         tar -xz -f tidb-test.tar.gz && rm -rf tidb-test.tar.gz
@@ -131,7 +131,7 @@ try {
 
     stage('SQL Logic Test') {
         def run = { sqllogictest, parallelism, enable_cache ->
-            run_with_pod {            
+            run_with_pod {
                 deleteDir()
                 unstash 'tidb-test'
 
@@ -147,7 +147,7 @@ try {
                                 rm -rf /tmp/tidb
                                 set -ex
                                 sleep 30
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                 SQLLOGIC_TEST_PATH=${sqllogictest} \
                                 TIDB_PARALLELISM=${parallelism} \
                                 TIDB_SERVER_PATH=`pwd`/tidb-server \
@@ -187,24 +187,24 @@ try {
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -ex
-                                
+
                                 sleep 30
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                 SQLLOGIC_TEST_PATH=${sqllogictest_1} \
                                 TIDB_PARALLELISM=${parallelism_1} \
                                 TIDB_SERVER_PATH=`pwd`/tidb-server \
                                 CACHE_ENABLED=${enable_cache} \
                                 ./test.sh
-                                
+
                                 set +e
                                 killall -9 -r tidb-server
                                 killall -9 -r tikv-server
                                 killall -9 -r pd-server
                                 rm -rf /tmp/tidb
                                 set -ex
-                                
+
                                 sleep 30
-    
+
                                 SQLLOGIC_TEST_PATH=${sqllogictest_2} \
                                 TIDB_PARALLELISM=${parallelism_2} \
                                 TIDB_SERVER_PATH=`pwd`/tidb-server \

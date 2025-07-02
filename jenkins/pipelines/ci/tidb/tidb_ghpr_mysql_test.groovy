@@ -125,7 +125,7 @@ def run_test_with_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: [
@@ -265,7 +265,7 @@ try {
                             pwd && ls -alh
                             TIDB_SERVER_PATH=${ws}/go/src/github.com/pingcap/tidb/bin/tidb-server \
                             ${test_cmd}
-                            """ 
+                            """
                             }
                         } catch (err) {
                             sh "cat ${log_path}"

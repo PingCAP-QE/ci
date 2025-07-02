@@ -68,7 +68,7 @@ pipeline {
                             prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
                         }
                     }
-                }                
+                }
                 always {
                     dir(REFS.repo) {
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)

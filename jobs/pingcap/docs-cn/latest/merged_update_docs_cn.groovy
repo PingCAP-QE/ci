@@ -29,7 +29,7 @@ pipelineJob('pingcap/docs-cn/merged_update_docs_cn') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

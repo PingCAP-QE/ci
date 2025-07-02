@@ -87,7 +87,7 @@ pipelineJob('tikv_ghpr_build_arm64') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

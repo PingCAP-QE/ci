@@ -60,7 +60,7 @@ pipeline {
                             // Note tiflash need extract all files in tiflash dir (extract tar.gz to tiflash dir)
                             component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tiflash', REFS.base_ref, REFS.pulls[0].title, 'centos7/tiflash.tar.gz', '', trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=true)
                             sh label: 'move tiflash', script: 'mv tiflash/* bin/ && rm -rf tiflash'
-                        } 
+                        }
                     }
                 }
                 dir('test-assets') {
@@ -158,7 +158,7 @@ pipeline {
                                     export PATH="\$HOME/.tiup/bin:\$PATH"
                                     export PATH="\$HOME/.local/bin:\$PATH"
                                     curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.7.3/uv-installer.sh | sh
-                                    
+
                                     export ASSETS_DIR=\$(pwd)/../test-assets
                                     cd tests/clusterintegrationtest/
 

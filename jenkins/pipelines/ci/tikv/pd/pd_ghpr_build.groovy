@@ -62,7 +62,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -83,7 +83,7 @@ try {
         deleteDir()
 
         stage("debug info"){
-            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+            println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             println "work space path:\n${ws}"
         }
 
@@ -131,7 +131,7 @@ try {
                         curl -F ${filepath}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload
                         echo "pr/${ghprbActualCommit}" > sha1
                         curl -F ${refspath}=@sha1 ${FILE_SERVER_URL}/upload
-                        """                        
+                        """
                     }
                 }
             }

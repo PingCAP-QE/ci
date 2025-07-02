@@ -1,6 +1,6 @@
 catchError {
     def label = "image-build"
-    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, instanceCap: 5, 
+    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, instanceCap: 5,
     idleMinutes: 480, nodeSelector: "kubernetes.io/arch=amd64",
     containers: [
         containerTemplate(name: 'dockerd', image: 'registry-mirror.pingcap.net/library/docker:18.09.6-dind', privileged: true),

@@ -66,7 +66,7 @@ pipeline {
                         retry(2) {
                             script {
                                 component.checkoutSupportBatch('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', TARGET_BRANCH_TIKV, "", [], GIT_CREDENTIALS_ID)
-                            }   
+                            }
                         }
                     }
                 }
@@ -134,7 +134,7 @@ EOF
                         set -e
                         make build
                     """
-                }   
+                }
             }
         }
         stage('Tests') {
@@ -147,7 +147,7 @@ EOF
                         cp ../tidb/bin/tidb-server ./bin/
                         cp ../pd/bin/pd-server ./bin/
                         cp ../tikv/target/release/tikv-server ./bin/
-                        
+
                         ./bin/tidb-server -V
                         ./bin/pd-server -V
                         ./bin/tikv-server -V

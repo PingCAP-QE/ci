@@ -14,7 +14,7 @@ node("build_go1130") {
             stage("Install tiup") {
                 util.install_tiup "/usr/local/bin", PINGCAP_PRIV_KEY
             }
-            
+
             stage("Get component hash") {
                 sh "curl -s ${FILE_SERVER_URL}/download/builds/pingcap/ee/gethash.py > gethash.py"
 

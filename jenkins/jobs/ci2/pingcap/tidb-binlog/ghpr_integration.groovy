@@ -60,7 +60,7 @@ pipelineJob('binlog_ghpr_integration') {
             }
         }
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

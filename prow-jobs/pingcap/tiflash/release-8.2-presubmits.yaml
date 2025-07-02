@@ -23,4 +23,3 @@ presubmits:
       rerun_command: "/test pull-integration-test"
       branches:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-

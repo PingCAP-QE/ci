@@ -63,9 +63,9 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
 
 /*
 * Checkout refs from private repository.
-* 
+*
 * depended on plugins:
-*  - ssh-agent 
+*  - ssh-agent
 */
 def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
     final remoteUrl = "git@${gitSshHost}:${refs.org}/${refs.repo}.git"
@@ -79,7 +79,7 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
 
     final pullsSHAs = refs.pulls.collect { it.sha }.join(' ')
 
-    sshagent(credentials: [credentialsId]) { 
+    sshagent(credentials: [credentialsId]) {
         sh label: 'Know hosts', script: """
             [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
             ssh-keyscan -t rsa,dsa ${gitSshHost} >> ~/.ssh/known_hosts
@@ -165,7 +165,7 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
     }
 
     final codecovGitOptions = (refs.pulls ?
-         "--branch origin/pr/${refs.pulls[0].number} --sha ${refs.pulls[0].sha} --pr ${refs.pulls[0].number}" : 
+         "--branch origin/pr/${refs.pulls[0].number} --sha ${refs.pulls[0].sha} --pr ${refs.pulls[0].number}" :
          "--branch origin/${refs.base_ref} --sha ${refs.base_sha}"
     )
 

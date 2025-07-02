@@ -72,7 +72,7 @@ pipeline {
                                 ./bin/tikv-server -V
                                 ./bin/tiflash --version
                             """
-                        } 
+                        }
                     }
                 }
                 dir("tiflow") {
@@ -85,7 +85,7 @@ pipeline {
                         ls -alh ./bin
                         ./bin/cdc version
                     """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -110,7 +110,7 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         steps {
@@ -122,7 +122,7 @@ pipeline {
                                             chmod +x ./tests/integration_tests/run_group.sh
                                             ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
                                         """
-                                    } 
+                                    }
                                 }
                             }
                         }
@@ -130,11 +130,11 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tidb_cdc_test/
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")    
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
 
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                         }
                     }
@@ -152,7 +152,7 @@ pipeline {
                     "Branch: ${TARGET_BRANCH}\\n" +
                     "Build URL: ${BUILD_URL}\\n" +
                     "Job Page: https://prow.tidb.net/?repo=pingcap%2Ftiflow&type=periodic\\n"
-                
+
                 withCredentials([string(credentialsId: 'cdc-feishu-webhook-url', variable: 'WEBHOOK_URL')]) {
                     sh """
                         curl -X POST ${WEBHOOK_URL} -H 'Content-Type: application/json' \

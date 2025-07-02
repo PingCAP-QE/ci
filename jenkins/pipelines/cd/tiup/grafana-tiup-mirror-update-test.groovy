@@ -42,7 +42,7 @@ def pack = { version, os, arch ->
     rm -rf ${tag}.zip
     cp tikv-*/metrics/grafana/*.json .
     rm -rf tikv-*
-    
+
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${tag}/metrics/grafana/binlog.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflow/${tag}/metrics/grafana/ticdc.json || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflow/${tag}/metrics/grafana/TiCDC-Monitor-Summary.json || true; \
@@ -98,7 +98,7 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+
                     )
             ],
             volumes: [
@@ -123,7 +123,7 @@ run_with_pod {
             wget -qnc https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/cd/tiup/tiup_utils.groovy
             """
         }
-        
+
         def util = load "tiup_utils.groovy"
 
         stage("Install tiup") {

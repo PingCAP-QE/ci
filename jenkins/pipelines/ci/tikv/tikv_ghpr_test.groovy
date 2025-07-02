@@ -144,7 +144,7 @@ try {
 stage("PreCheck") {
     if (!params.force) {
         def label="${JOB_NAME}_pre_check_${BUILD_NUMBER}"
-        podTemplate(name: label, label: label, 
+        podTemplate(name: label, label: label,
             cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
             nodeSelector: "kubernetes.io/arch=amd64",
             yaml: podYAML, yamlMergeStrategy: merge(),
@@ -176,7 +176,7 @@ stage("PreCheck") {
 stage("Prepare") {
     def clippy = {
         def label="tikv_cached_${ghprbTargetBranch}_clippy_${BUILD_NUMBER}"
-        podTemplate(name: label, label: label, 
+        podTemplate(name: label, label: label,
             cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
             nodeSelector: "kubernetes.io/arch=amd64",
             yaml: podYAML, yamlMergeStrategy: merge(),
@@ -235,7 +235,7 @@ stage("Prepare") {
                             make clippy || (echo Please fix the clippy error; exit 1)
                         """
                         container("util") {
-                            dir("$WORKSPACE") { 
+                            dir("$WORKSPACE") {
                                 sh label: 'Gen lint flag', script: """
                                     echo 1 > cached_lint_passed
                                 """
@@ -290,7 +290,7 @@ stage("Prepare") {
                             fi
                             git checkout -f ${ghprbActualCommit}
                         """
-                        
+
                         def should_skip = sh (script: "cd \$HOME/tikv-src; git log -1 | grep '\\[ci skip\\]'", returnStatus: true)
                         if (should_skip == 0) {
                             throw new RuntimeException("ci skip")
@@ -329,7 +329,7 @@ def move_file(full_source_path, src_base_dir="/home/jenkins/tikv-src", target_di
     relative_path = os.path.relpath(full_source_path, src_base_dir)
     # Construct the full target path
     full_target_path = os.path.join(target_dir, relative_path)
-    
+
     # Create the target directory if it doesn't exist
     target_path_dir = os.path.dirname(full_target_path)
     if not os.path.exists(target_path_dir):
@@ -452,7 +452,7 @@ def move_file(full_source_path, src_base_dir="/home/jenkins/tikv-src", target_di
     relative_path = os.path.relpath(full_source_path, src_base_dir)
     # Construct the full target path
     full_target_path = os.path.join(target_dir, relative_path)
-    
+
     # Create the target directory if it doesn't exist
     target_path_dir = os.path.dirname(full_target_path)
     if not os.path.exists(target_path_dir):
@@ -623,7 +623,7 @@ stage('Test') {
                         println "debug command:\nkubectl -n jenkins-tikv exec -ti ${NODE_NAME} bash"
                         deleteDir()
                         timeout(15) {
-                            container("util") { 
+                            container("util") {
                                 sh label: 'os info', script:"""
                                 # set -o pipefail
                                 uname -a
@@ -706,7 +706,7 @@ stage('Test') {
 currentBuild.result = "SUCCESS"
 stage('Post-test') {
     def label="${JOB_NAME}_post_test_${BUILD_NUMBER}"
-    podTemplate(name: label, label: label, 
+    podTemplate(name: label, label: label,
         cloud: "kubernetes-ksyun",  idleMinutes: 0, namespace: "jenkins-tikv",
         nodeSelector: "kubernetes.io/arch=amd64",
         yaml: podYAML, yamlMergeStrategy: merge(),

@@ -1,5 +1,5 @@
 
-// choose which go version to use. 
+// choose which go version to use.
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
@@ -42,7 +42,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         println "tag ${branchNameOrTag} use default version go 1.23"
         return "go1.23"
-    } else { 
+    } else {
         println "this is a branch"
         if (branchNameOrTag == "master") {
             println("branchNameOrTag: master  use go1.23")
@@ -113,7 +113,7 @@ switch(goVersion) {
         GO_BUILD_SLAVE = "build_go1130"
         break
     default:
-        GO_BUILD_SLAVE = "build_go1210"        
+        GO_BUILD_SLAVE = "build_go1210"
         break
 }
 println "This build use ${goVersion}"
@@ -152,14 +152,14 @@ def release_one(repo,hash) {
 
 try {
     node("${GO_BUILD_SLAVE}") {
-        
+
 
         stage("Debug Info"){
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             ws = pwd()
             deleteDir()
         }
-        
+
         stage("Checkout") {
             dir(build_path) {
                 // 如果不是 TAG，直接传 branch 给下面的 checkout 语句； 否则就应该 checkout 到 refs/tags 下 .
@@ -181,13 +181,13 @@ try {
                                                             url: "${BUILD_URL}"]]
                                 ]
                     } else {
-                        checkout scm: [$class: 'GitSCM', 
-                            branches: [[name: branch]],  
+                        checkout scm: [$class: 'GitSCM',
+                            branches: [[name: branch]],
                             extensions: [[$class: 'LocalBranch']],
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: "${BUILD_URL}"]]]
                     }
                 }
-                
+
 
                 githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             }
@@ -233,4 +233,3 @@ try {
     slackcolor = 'danger'
     echo "${e}"
 }
-

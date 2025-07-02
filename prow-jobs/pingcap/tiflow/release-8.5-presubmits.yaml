@@ -2,8 +2,7 @@
 global_definitions:
   branches: &branches
     - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
-  skip_if_only_changed: &skip_if_only_changed
-    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 presubmits:
   pingcap/tiflow:
@@ -14,7 +13,6 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-kafka-test"
       branches: *branches
@@ -26,7 +24,6 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-mysql-test"
       branches: *branches
@@ -38,7 +35,6 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-integration-pulsar-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-pulsar-test"
       branches: *branches
@@ -50,7 +46,6 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-integration-storage-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-storage-test"
       branches: *branches
@@ -62,7 +57,6 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-dm-compatibility-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-compatibility-test"
       branches: *branches
@@ -74,18 +68,15 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-dm-integration-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-integration-test"
       branches: *branches
-
 
     - name: pingcap/tiflow/release-8.5/ghpr_verify
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      context: pull-verify 
-      skip_report: false
+      context: pull-verify
       trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
       rerun_command: "/test pull-verify"
       branches: *branches

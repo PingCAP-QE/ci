@@ -88,7 +88,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ]
     ) {
@@ -101,7 +101,7 @@ def run_with_pod(Closure body) {
 
 try {
     stage('Prepare') {
-        run_with_pod { 
+        run_with_pod {
             def ws = pwd()
             deleteDir()
 
@@ -142,7 +142,7 @@ try {
     }
 
     stage('Integration Compatibility Test') {
-        run_with_pod { 
+        run_with_pod {
             def ws = pwd()
             println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
             deleteDir()
@@ -194,7 +194,7 @@ try {
                     timeout(10) {
                         try {
                             sh """
-                            set +e 
+                            set +e
                             killall -9 -r tidb-server
                             killall -9 -r tikv-server
                             killall -9 -r pd-server
@@ -216,7 +216,7 @@ try {
                             throw err
                         } finally {
                             sh """
-                            set +e 
+                            set +e
                             killall -9 -r tidb-server
                             killall -9 -r tikv-server
                             killall -9 -r pd-server

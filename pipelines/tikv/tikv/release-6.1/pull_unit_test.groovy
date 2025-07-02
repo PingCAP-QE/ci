@@ -66,7 +66,7 @@ pipeline {
                     }
                 }
                 sh """
-                    pwd & ls -alh 
+                    pwd & ls -alh
                     mv ./tikv \$HOME/tikv-src
                     cd \$HOME/tikv-src
                     ln -s \$HOME/tikv-target \$HOME/tikv-src/target
@@ -174,11 +174,11 @@ pipeline {
                         defaultContainer 'runner'
                         retries 5
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         steps {
-                            dir('/home/jenkins/agent/tikv-presubmit/unit-test') { 
+                            dir('/home/jenkins/agent/tikv-presubmit/unit-test') {
                                 sh label: 'os info', script:"""
                                     rm -rf /home/jenkins/tikv-*
                                     ls -alh /home/jenkins/
@@ -188,7 +188,7 @@ pipeline {
                                     df -h
                                     free -hm
                                 """
-                                container("util") { 
+                                container("util") {
                                     script {
                                         component.ks3_download_fileserver("tikv_test/${REFS.pulls[0].sha}/test-artifacts.tar.gz", "test-artifacts.tar.gz")
                                         component.ks3_download_fileserver("tikv_test/${REFS.pulls[0].sha}/archive-test-binaries.tar", "archive-test-binaries.tar")
@@ -202,7 +202,7 @@ pipeline {
                                     chown -R 1000:1000 target/
                                     """
                                 }
-                                retry(3) { 
+                                retry(3) {
                                     sh label: 'run test', script: """
                                         ls -alh \$HOME/tikv-src
                                         ls -alh /home/jenkins/tikv-src/
@@ -239,7 +239,7 @@ pipeline {
                                         fi
                                     """
                                 }
-                                
+
                             }
                         }
                         post {
@@ -257,7 +257,7 @@ pipeline {
                                     else
                                         echo "No log files found in \$log_dir"
                                     fi
-                                    ls -alh "\$output_archive"  
+                                    ls -alh "\$output_archive"
                                 """
                                 archiveArtifacts artifacts: "log-ut.tar.gz", allowEmptyArchive: true
                             }

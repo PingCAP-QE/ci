@@ -56,7 +56,7 @@ pipeline {
                 script {
                     // test build cache, if cache is exist, then skip the following build steps
                     try {
-                        dir("test-build-cache") { 
+                        dir("test-build-cache") {
                             cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'ut-build')){
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
@@ -87,7 +87,7 @@ pipeline {
                         container("util") {
                             withCredentials(
                                 [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) { 
+                            ) {
                                 sh "rm -rf ./*"
                                 sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                 sh """
@@ -191,7 +191,7 @@ pipeline {
                                 ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                                 ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                             """
-                        }   
+                        }
                     }
                 }
             }
@@ -201,7 +201,7 @@ pipeline {
                 expression { !build_cache_ready }
             }
             parallel {
-                stage("Cluster Manage") { 
+                stage("Cluster Manage") {
                     steps {
                     // NOTE: cluster_manager is deprecated since release-6.0 (include)
                     echo "cluster_manager is deprecated"
@@ -367,9 +367,9 @@ pipeline {
                                 rm -rf contrib
                                 du -sh ./
                                 ls -alh
-                                """ 
+                                """
                             }
-                        }     
+                        }
                     }
                 }
                 sh label: "link tiflash and tests", script: """

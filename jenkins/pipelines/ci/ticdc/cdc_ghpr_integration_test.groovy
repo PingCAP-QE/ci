@@ -103,7 +103,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         println "tag ${branchNameOrTag} use default version go 1.21"
         return "go1.21"
-    } else { 
+    } else {
         println "this is a branch"
         if (branchNameOrTag in feature_branch_use_go13) {
             println "feature branch ${branchNameOrTag} use go 1.13"
@@ -204,7 +204,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -225,9 +225,9 @@ def run_with_pod(Closure body) {
  */
 def list_pr_diff_files() {
     def list_pr_files_api_url = "https://api.github.com/repos/pingcap/tiflow/pulls/${ghprbPullId}/files"
-    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) { 
-        response = httpRequest consoleLogResponseBody: false, 
-            contentType: 'APPLICATION_JSON', httpMode: 'GET', 
+    withCredentials([string(credentialsId: 'github-api-token-test-ci', variable: 'github_token')]) {
+        response = httpRequest consoleLogResponseBody: false,
+            contentType: 'APPLICATION_JSON', httpMode: 'GET',
             customHeaders:[[name:'Authorization', value:"token ${github_token}", maskValue: true]],
             url: list_pr_files_api_url, validResponseCodes: '200'
 
@@ -235,7 +235,7 @@ def list_pr_diff_files() {
 
         echo "Status: ${response.status}"
         def files = []
-        for (element in json) { 
+        for (element in json) {
             files.add(element.filename)
         }
 
@@ -428,7 +428,7 @@ catchError {
                 slackSend channel: '#jenkins-ci', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"
             }
         }
-    }   
+    }
 }
 
 if (params.containsKey("triggered_by_upstream_ci")  && params.get("triggered_by_upstream_ci") == "tiflow_merge_ci") {

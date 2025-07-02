@@ -7,7 +7,7 @@
 # usage: ./ticdc_integration_test_download_dependency.sh [--tikv=tikv_branch] [--pd=pd_branch] [--tiflash=tiflash_branch]
 # example: ./ticdc_integration_test_download_dependency.sh --pd=master --tikv=master --tiflash=master
 # binary from tibuild multiple branches pipeline
-# * tikv / pd / tiflash 
+# * tikv / pd / tiflash
 # third party tools download from fileserver
 # * sync_diff_inspector / minio / go-ycsb / etcdctl / jq
 
@@ -79,7 +79,7 @@ function download() {
     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O "${file_path}" "${url}"
 }
 
-function main() { 
+function main() {
     rm -rf third_bin
     rm -rf tmp
     mkdir third_bin

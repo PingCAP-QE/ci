@@ -85,7 +85,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ]
     ) {
@@ -133,7 +133,7 @@ try {
 
     run_with_pod {
         def ws = pwd()
-        
+
         println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
 
         stage('Prepare') {
@@ -176,7 +176,7 @@ try {
                     }
                 }
             }
-            
+
             dir("tikv") { deleteDir() }
 
             unstash "tikv"
@@ -199,9 +199,9 @@ try {
                         sh "cat ${build_dir}/tidb_with_push_down.log || true"
                         sh "cat ${build_dir}/pd_with_push_down.log || true"
                         sh "cat ${build_dir}/tikv_with_push_down.log || true"
-        
+
                         sh "echo Test failed. Check out logs above."
-                        
+
                         throw e;
                     }
                 }
@@ -210,7 +210,7 @@ try {
 
     }
     currentBuild.result = "SUCCESS"
-} 
+}
 
 catch (Exception e) {
     currentBuild.result = "FAILURE"

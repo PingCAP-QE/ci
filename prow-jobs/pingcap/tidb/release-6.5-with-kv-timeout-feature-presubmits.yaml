@@ -47,4 +47,3 @@ presubmits:
       rerun_command: "/test unit-test"
       branches:
         - ^tidb-6.5-with-kv-timeout-feature$
-

@@ -46,7 +46,7 @@ spec:
           cpu: 100m
         limits:
           cpu: "1"
-          memory: 4Gi          
+          memory: 4Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

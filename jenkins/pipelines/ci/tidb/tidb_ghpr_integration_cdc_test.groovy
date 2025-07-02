@@ -40,7 +40,7 @@ def run_with_pod(Closure body) {
                         image: "${go_image}", ttyEnabled: true,
                         resourceRequestCpu: '1000m', resourceRequestMemory: '1Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -56,7 +56,7 @@ def run_with_pod(Closure body) {
 }
 
 run_with_pod {
-    try {    
+    try {
         stage('Trigger TiCDC Integration Test') {
             if (ghprbTargetBranch == "master" || ghprbTargetBranch.startsWith("release-")) {
                 container("golang") {
@@ -120,7 +120,7 @@ run_with_pod {
                 println "triggered job result file not exist"
             }
         }
-        
+
     }
 }
 

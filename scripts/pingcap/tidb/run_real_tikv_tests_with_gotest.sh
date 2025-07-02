@@ -1,9 +1,9 @@
 #! /usr/bin/env bash
 
-function main() {    
+function main() {
     local test_suite="$1"
     local timeout="$2"
-   
+
     # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
     cat <<EOF > tikv.toml
 [pessimistic-txn]
@@ -44,4 +44,4 @@ cleanup
 
 if [[ "$exit_code" != '0' ]]; then
    exit ${exit_code}
-fi 
+fi

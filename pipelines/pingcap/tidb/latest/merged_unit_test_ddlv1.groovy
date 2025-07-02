@@ -55,7 +55,7 @@ pipeline {
         stage('Tests') {
             steps {
                 dir('tidb') {
-                    sh 'make bazel_coverage_test_ddlargsv1' 
+                    sh 'make bazel_coverage_test_ddlargsv1'
                 }
             }
             post {
@@ -65,7 +65,7 @@ pipeline {
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                     }
                 }
-            }      
+            }
         }
     }
 }

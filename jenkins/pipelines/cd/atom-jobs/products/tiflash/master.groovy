@@ -79,11 +79,11 @@ def doBuild = {
                 tar -xzf src-tiflash.tar.gz --strip-components=1
                 rm -f src-tiflash.tar.gz
                 rm -rf ./*
-            else 
-                exit 1; 
+            else
+                exit 1;
             fi
             """
-            retry(3) { 
+            retry(3) {
                 checkout changelog: false, poll: true,
                 scm: [$class: 'GitSCM', branches: [[name: "${GitHash}"]], doGenerateSubmoduleConfigurations: false,
                     extensions: [[$class: 'CheckoutOption', timeout: 30],
@@ -186,7 +186,7 @@ def buildDocker={
         rm -f tiflash.tar.gz
         docker build -t ${DockerImage}-$ARCH .
         docker push ${DockerImage}-$ARCH
-    """ 
+    """
 }
 
 
@@ -341,7 +341,7 @@ spec:
                 when {
                     beforeAgent true
                     allOf {
-                        equals expected: "community", actual: params.Edition 
+                        equals expected: "community", actual: params.Edition
                         expression {params.PathForDarwinAmd64}
                     }
                 }
@@ -362,7 +362,7 @@ spec:
                 when {
                     beforeAgent true
                     allOf {
-                        equals expected: "community", actual: params.Edition 
+                        equals expected: "community", actual: params.Edition
                         expression {params.PathForDarwinArm64}
                     }
                 }
@@ -396,7 +396,7 @@ spec:
                     environment {
                         ARCH = "amd64"
                         OS = "linux"
-                        HUB = credentials('harbor-pingcap') 
+                        HUB = credentials('harbor-pingcap')
                         DOCKER_HOST = "tcp://localhost:2375"
                         BinPath = "${params.PathForLinuxAmd64}"
                     }
@@ -413,7 +413,7 @@ spec:
                     environment {
                         ARCH = "arm64"
                         OS = "linux"
-                        HUB = credentials('harbor-pingcap') 
+                        HUB = credentials('harbor-pingcap')
                         BinPath = "${params.PathForLinuxArm64}"
                     }
                     steps {script {
@@ -429,7 +429,7 @@ spec:
             }
             agent { node { label 'arm_docker' } }
             environment {
-                HUB = credentials('harbor-pingcap') 
+                HUB = credentials('harbor-pingcap')
             }
             steps {
                 script {

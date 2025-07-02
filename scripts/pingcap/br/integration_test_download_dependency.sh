@@ -92,7 +92,7 @@ function download() {
     wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 -O "${file_path}" "${url}"
 }
 
-function main() { 
+function main() {
     rm -rf third_bin
     rm -rf tmp
     mkdir third_bin

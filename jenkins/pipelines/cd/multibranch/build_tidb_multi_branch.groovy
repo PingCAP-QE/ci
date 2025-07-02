@@ -21,11 +21,11 @@ boolean isMoreRecentOrEqual( String a, String b ) {
     [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
        Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
        return (result == 1)
-    } 
+    }
 }
 
 string trimPrefix = {
-    it.startsWith('release-') ? it.minus('release-') : it 
+    it.startsWith('release-') ? it.minus('release-') : it
 }
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
@@ -38,7 +38,7 @@ def boolean isBranchMatched(List<String> branches, String targetBranch) {
     return false
 }
 
-// choose which go version to use. 
+// choose which go version to use.
 def selectGoVersion(branchNameOrTag) {
     if (branchNameOrTag.startsWith("v")) {
         println "This is a tag"
@@ -81,7 +81,7 @@ def selectGoVersion(branchNameOrTag) {
         }
         println "tag ${branchNameOrTag} use default version go 1.23"
         return "go1.23"
-    } else { 
+    } else {
         println "this is a branch"
         if (branchNameOrTag == "master") {
             println("branchNameOrTag: master  use go1.23")
@@ -152,7 +152,7 @@ switch(goVersion) {
         GO_BUILD_SLAVE = "build_go1130"
         break
     default:
-        GO_BUILD_SLAVE = "build_go1210"        
+        GO_BUILD_SLAVE = "build_go1210"
         break
 }
 println "This build use ${goVersion}"
@@ -282,7 +282,7 @@ try {
         stage("Debug Info"){
             println "debug command:\nkubectl -n jenkins-cd exec -ti ${NODE_NAME} bash"
         }
-        
+
         stage("Checkout") {
             dir(build_path) {
                 deleteDir()
@@ -305,8 +305,8 @@ try {
                                                             url: 'git@github.com:pingcap/tidb.git']]
                                 ]
                     } else {
-                        checkout scm: [$class: 'GitSCM', 
-                            branches: [[name: branch]],  
+                        checkout scm: [$class: 'GitSCM',
+                            branches: [[name: branch]],
                             extensions: [[$class: 'LocalBranch']],
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/tidb.git']]]
                     }
@@ -338,7 +338,7 @@ try {
                             if [ \$(grep -E "^ddltest:" Makefile) ]; then
                                 GOPATH=${ws}/go make ddltest
                             fi
-                            
+
                             if [ \$(grep -E "^importer:" Makefile) ]; then
                                 GOPATH=${ws}/go make importer
                             fi
@@ -385,12 +385,12 @@ try {
                         echo "${githash}" > sha1
                         curl --fail -F  ${refspath}=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
                         """
-                        } 
-                    }           
+                        }
+                    }
                 }
             }
         }
-        
+
         stage ("Build plugins") {
             dir("go/src/github.com/pingcap/tidb-build-plugin") {
                 deleteDir()

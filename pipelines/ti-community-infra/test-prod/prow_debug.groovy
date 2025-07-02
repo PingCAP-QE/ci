@@ -15,9 +15,9 @@ pipeline {
         stage('Debug info') {
             steps {
                 sh label: 'Debug info', script: '''
-                    printenv                   
-                    echo "-------------------------"                    
-                    ls -la                    
+                    printenv
+                    echo "-------------------------"
+                    ls -la
                 '''
             }
         }

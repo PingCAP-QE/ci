@@ -58,10 +58,10 @@ pipeline {
             }
         }
         stage ("Upload") {
-            environment { 
+            environment {
                 MINIO_URL = credentials('qa-minio-url')
-                MINIO_ACCESS_KEY = credentials('qa-minio-access-key') 
-                MINIO_SECRET_KEY = credentials('qa-minio-secret-key') 
+                MINIO_ACCESS_KEY = credentials('qa-minio-access-key')
+                MINIO_SECRET_KEY = credentials('qa-minio-secret-key')
             }
             steps{
                 container("uploader") {
@@ -92,10 +92,10 @@ pipeline {
             }
         }
         stage ("Upload failpoint") {
-            environment { 
+            environment {
                 MINIO_URL = credentials('qa-minio-url')
-                MINIO_ACCESS_KEY = credentials('qa-minio-access-key') 
-                MINIO_SECRET_KEY = credentials('qa-minio-secret-key') 
+                MINIO_ACCESS_KEY = credentials('qa-minio-access-key')
+                MINIO_SECRET_KEY = credentials('qa-minio-secret-key')
             }
             steps{
                 container("uploader") {

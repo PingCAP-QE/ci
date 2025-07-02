@@ -20,7 +20,7 @@ pipeline {
         )
         string(
             defaultValue: 'https://raw.githubusercontent.com/purelind/test-ci/main/components-v8.0.0.json' ,
-            name: 'COMPONENT_JSON_URL', 
+            name: 'COMPONENT_JSON_URL',
             description: 'The URL of the component json file',
             trim: true
         )
@@ -43,7 +43,7 @@ pipeline {
                     if (params.COMPONENT_JSON_URL == "") {
                         error("The COMPONENT_JSON_URL is empty")
                     }
-                    dir("release-check-offline") { 
+                    dir("release-check-offline") {
                         script {
                             sh """
 

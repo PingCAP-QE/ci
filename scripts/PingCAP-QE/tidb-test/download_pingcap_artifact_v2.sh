@@ -62,7 +62,7 @@ function download() {
     ls -alh "${file_path}"
 }
 
-function main() { 
+function main() {
     rm -rf third_bin
     rm -rf tmp
     mkdir -p third_bin

@@ -60,7 +60,7 @@ def run_with_pod(Closure body) {
                         image: "hub.pingcap.net/jenkins/centos7_golang-1.18:latest", ttyEnabled: true,
                         resourceRequestCpu: '200m', resourceRequestMemory: '1Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -143,7 +143,7 @@ try{
     currentBuild.result = "FAILURE"
     slackcolor = 'danger'
     echo "${e}"
-} finally { 
+} finally {
     stage("upload-pipeline-data") {
         taskFinishTime = System.currentTimeMillis()
         build job: 'upload-pipelinerun-data',

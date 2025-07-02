@@ -57,7 +57,7 @@ pipeline {
                 }
             }
         }
-        stage('Build') {             
+        stage('Build') {
             steps {
                 dir('pd') {
                     sh '''

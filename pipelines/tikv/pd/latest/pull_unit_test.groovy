@@ -72,12 +72,12 @@ pipeline {
                         defaultContainer 'golang'
                         retries 5
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         steps {
-                            dir("pd") { 
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
+                            dir("pd") {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh label: "Test Index ${JOB_INDEX}", script: """
                                         make ci-test-job JOB_INDEX=${JOB_INDEX}
                                         mv covprofile covprofile_${JOB_INDEX}
@@ -106,7 +106,7 @@ pipeline {
             }
         }
 
-        // stage("Report Coverage") { 
+        // stage("Report Coverage") {
         //     steps {
         //         dir("pd") {
         //             cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {

@@ -10,7 +10,7 @@ RUN apt-get update \
   && apt-get install -y curl bash git openssh-client openssl \
   && curl --create-dirs -sSLo /usr/share/jenkins/slave.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
   && chmod 755 /usr/share/jenkins \
-  && chmod 644 /usr/share/jenkins/slave.jar 
+  && chmod 644 /usr/share/jenkins/slave.jar
 
 ARG user=jenkins
 ARG group=jenkins

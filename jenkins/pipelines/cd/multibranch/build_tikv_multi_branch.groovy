@@ -108,11 +108,11 @@ try {
                     def branch = (env.TAG_NAME==null) ? "${env.BRANCH_NAME}" : "refs/tags/${env.TAG_NAME}"
                     println branch
 
-                    // checkout scm: [$class: 'GitSCM', 
-                    // branches: [[name: branch]],  
+                    // checkout scm: [$class: 'GitSCM',
+                    // branches: [[name: branch]],
                     // extensions: [[$class: 'LocalBranch']],
                     // userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:tikv/tikv.git']]]
-                    
+
                     if(branch.startsWith("refs/tags")) {
                         checkout changelog: false,
                                 poll: true,
@@ -128,8 +128,8 @@ try {
                                                             url: 'git@github.com:tikv/tikv.git']]
                                 ]
                     } else {
-                        checkout scm: [$class: 'GitSCM', 
-                            branches: [[name: branch]],  
+                        checkout scm: [$class: 'GitSCM',
+                            branches: [[name: branch]],
                             extensions: [[$class: 'LocalBranch']],
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:tikv/tikv.git']]]
                     }
@@ -164,7 +164,7 @@ try {
                             rm -rf /home/jenkins/.target/*
                             echo using gcc 8
                             source /opt/rh/devtoolset-8/enable
-                            CARGO_TARGET_DIR=/home/jenkins/.target ROCKSDB_SYS_STATIC=1 make dist_release                            
+                            CARGO_TARGET_DIR=/home/jenkins/.target ROCKSDB_SYS_STATIC=1 make dist_release
                             ./bin/tikv-server --version
                             """
                         }
@@ -191,7 +191,7 @@ try {
                             source /opt/rh/devtoolset-8/enable
                             CARGO_TARGET_DIR=/home/jenkins/.target ROCKSDB_SYS_STATIC=1 make fail_release
                             mv bin/tikv-server bin/tikv-server-failpoint
-                            """                            
+                            """
                         }
                     }
                 }
@@ -233,7 +233,7 @@ try {
         }
     }
 
-    
+
     currentBuild.result = "SUCCESS"
 } catch (Exception e) {
     currentBuild.result = "FAILURE"
@@ -243,6 +243,5 @@ try {
     if(env.BRANCH_NAME == 'master'){
          upload_result_to_db()
     }
-   
-}
 
+}

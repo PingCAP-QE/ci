@@ -67,12 +67,12 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment { 
-                            CODECOV_TOKEN = credentials('codecov-token-tiflow')   
+                        environment {
+                            CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
                             dir('tiflow') {
@@ -110,9 +110,9 @@ pipeline {
                                         ./codecovcli do-upload --report-type test_results --file \${JUNIT_REPORT} --branch origin/${REFS.base_ref} --sha ${REFS.base_sha}
                                         """
                                     }
-                                    
+
                                 }
-                                junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)  
+                                junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)
                             }
                         }
                     }

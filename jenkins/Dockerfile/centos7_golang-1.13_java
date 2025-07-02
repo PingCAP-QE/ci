@@ -22,4 +22,3 @@ COPY settings.xml ${MAVEN_HOME}/conf/settings.xml
 
 USER jenkins
 WORKDIR /home/jenkins
-

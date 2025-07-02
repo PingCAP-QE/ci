@@ -14,7 +14,7 @@ pipelineJob('pingcap/tiflash/release-8.3/pull_unit_test') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tiflash")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

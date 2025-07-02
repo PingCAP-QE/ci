@@ -15,7 +15,7 @@ pipelineJob('ti-community-infra/test-prod/prow_debug') {
         buildFailureAnalyzer(false) // disable failure analyze
         githubProjectUrl("https://github.com/ti-community-infra/test-prod")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -31,7 +31,7 @@ pipelineJob('ti-community-infra/test-prod/prow_debug') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

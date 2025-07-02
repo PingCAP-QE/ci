@@ -154,7 +154,7 @@ def pack = { name, version, os, arch ->
         }
         // TODO: dm-ansible has been remove from the repo since v6.0.0.
         sh """
-        echo "package dm-master"    
+        echo "package dm-master"
         mkdir ${name}-master
         mkdir ${name}-master/conf
         mkdir ${name}-master/scripts
@@ -363,7 +363,7 @@ node("build_go1130") {
                 if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v5.3.0") {
                     dm_sha1 = get_hash(DM_HASH, "tiflow")
                 }
-                
+
 
                 println "tidb_sha1: ${tidb_sha1}"
                 println "br_sha1: ${br_sha1}"
@@ -524,7 +524,7 @@ node("build_go1130") {
                             deleteDir()
                             sh """
                             sleep \$((RANDOM % 10))
-                            """ 
+                            """
                             update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "amd64"
                             update "tikv", RELEASE_TAG, tikv_sha1, "linux", "amd64"
                             update "pd", RELEASE_TAG, pd_sha1, "linux", "amd64"
@@ -545,7 +545,7 @@ node("build_go1130") {
                             deleteDir()
                             sh """
                             sleep \$((RANDOM % 10))
-                            """ 
+                            """
                             update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "linux", "arm64"
                             update "tikv", RELEASE_TAG, tikv_sha1, "linux", "arm64"
                             update "pd", RELEASE_TAG, pd_sha1, "linux", "arm64"
@@ -566,7 +566,7 @@ node("build_go1130") {
                             deleteDir()
                             sh """
                             sleep \$((RANDOM % 10))
-                            """ 
+                            """
                             update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "amd64"
                             update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "amd64"
                             update "pd", RELEASE_TAG, pd_sha1, "darwin", "amd64"
@@ -584,11 +584,11 @@ node("build_go1130") {
                 if (RELEASE_TAG >= "v5.1.0" || RELEASE_TAG == "nightly") {
                     run_with_pod {
                         dir("darwin-arm64") {
-                            retry(3) { 
+                            retry(3) {
                                 deleteDir()
                                 sh """
                                 sleep \$((RANDOM % 10))
-                                """ 
+                                """
                                 update "tidb-ctl", RELEASE_TAG, tidb_ctl_sha1, "darwin", "arm64"
                                 update "tikv", RELEASE_TAG, tikv_sha1, "darwin", "arm64"
                                 update "pd", RELEASE_TAG, pd_sha1, "darwin", "arm64"
@@ -638,4 +638,3 @@ def upload_pipeline_run_data() {
 }
 
 env.PRODUCED_VERSION = tidb_version
-

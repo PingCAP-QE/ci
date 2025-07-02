@@ -29,7 +29,7 @@ pipelineJob('pingcap/tidb-tools/pull_verify') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

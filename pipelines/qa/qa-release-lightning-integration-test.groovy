@@ -77,7 +77,7 @@ pipeline {
                         ls -alh ./bin
                         ./bin/tidb-server -V
                     """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") { 
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
                         sh label: "prepare", script: """
                             cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
@@ -105,11 +105,11 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") { 
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x lightning/tests/*.sh
                                         ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
-                                    """  
+                                    """
                                 }
                             }
                         }
@@ -118,9 +118,9 @@ pipeline {
                                 sh label: "collect logs", script: """
                                     ls /tmp/lightning_test
                                     tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/lightning_test/ -type f -name "*.log")
-                                    ls -alh  log-${TEST_GROUP}.tar.gz  
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true 
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                         }
                     }

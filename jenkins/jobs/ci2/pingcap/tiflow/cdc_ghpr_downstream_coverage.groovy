@@ -34,7 +34,7 @@ pipelineJob('cdc_ghpr_downstream_coverage') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tiflow/")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)

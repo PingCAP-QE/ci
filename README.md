@@ -10,7 +10,7 @@ A complete CI pipeline consists of three main components:
 graph LR
     A[Prow Job Trigger] -->|Initiates| B[Jenkins Job DSL]
     B -->|Executes| C[Jenkins Pipeline Script]
-    
+
     style A fill:#f9d77e,stroke:#333,stroke-width:2px
     style B fill:#a8d1ff,stroke:#333,stroke-width:2px
     style C fill:#b5e8b5,stroke:#333,stroke-width:2px
@@ -77,7 +77,7 @@ flowchart TD
     H -->|No| C
     I --> J[Include test results/links in PR]
     J --> K[PR merged to production]
-    
+
     style A fill:#f5f5f5,stroke:#333,stroke-width:1px
     style H fill:#ffdddd,stroke:#333,stroke-width:2px
     style K fill:#d5ffd5,stroke:#333,stroke-width:2px
@@ -93,7 +93,7 @@ flowchart TD
 2. **Make your changes**:
    - Always place your modifications in the corresponding `/staging` directory first
    - Maintain the same directory structure in staging as in production
-   - For example, if modifying `/jobs/pingcap/tidb/latest/pull_integration_test.groovy`, 
+   - For example, if modifying `/jobs/pingcap/tidb/latest/pull_integration_test.groovy`,
      place your modified version in `/staging/jobs/pingcap/tidb/latest/pull_integration_test.groovy`
 
 3. **Test your changes**:
@@ -163,7 +163,7 @@ graph TD
     A["/prow-jobs/pingcap/tidb/latest-presubmits.yaml"] -->|Defines trigger| B["/jobs/pingcap/tidb/latest/pull_integration_test.groovy"]
     B -->|Executes| C["/pipelines/pingcap/tidb/latest/pull_integration_test.groovy"]
     C -->|May use| D["/pipelines/pingcap/tidb/latest/pod-integration_test.yaml"]
-    
+
     style A fill:#f9d77e,stroke:#333,stroke-width:2px
     style B fill:#a8d1ff,stroke:#333,stroke-width:2px
     style C fill:#b5e8b5,stroke:#333,stroke-width:2px

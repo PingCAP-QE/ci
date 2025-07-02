@@ -1,12 +1,15 @@
-# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  branches: &branches
+    - ^master$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
 postsubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/merged_unit_test
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       context: ci/unit-test
       max_concurrency: 1
-      skip_report: true # change this after test passed
-      branches:
-        - ^master$
+      branches: *branches

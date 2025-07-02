@@ -58,7 +58,7 @@ pipeline {
                             container("util") {
                                 withCredentials(
                                     [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) { 
+                                ) {
                                     sh "rm -rf ./*"
                                     sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
                                     sh """
@@ -126,7 +126,7 @@ pipeline {
                         script {
                             proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                             println "proxy_cache_ready: ${proxy_cache_ready}"
-                            
+
                             sh label: "copy proxy if exist", script: """
                             proxy_suffix="amd64-linux-llvm"
                             proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
@@ -159,14 +159,14 @@ pipeline {
                                 ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
                                 ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                             """
-                        }   
+                        }
                     }
                 }
             }
         }
         stage("Build Dependency and Utils") {
             parallel {
-                stage("Cluster Manage") { 
+                stage("Cluster Manage") {
                     steps {
                     // NOTE: cluster_manager is deprecated since release-6.0 (include)
                     echo "cluster_manager is deprecated"

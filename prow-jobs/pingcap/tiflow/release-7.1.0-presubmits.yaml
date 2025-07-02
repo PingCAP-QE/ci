@@ -7,8 +7,7 @@ presubmits:
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
       context: pull-cdc-integration-storage-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-storage-test"
       branches:
-        - ^release-7\.1-\d{8}-v7\.1\.0(-\d+)?$  # only v7.1.0 hotfix branch
+        - ^release-7\.1-\d{8}-v7\.1\.0(-\d+)?$ # only v7.1.0 hotfix branch

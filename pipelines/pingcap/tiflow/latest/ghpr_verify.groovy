@@ -70,12 +70,12 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
                     }
-                } 
+                }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment { 
-                            CODECOV_TOKEN = credentials('codecov-token-tiflow')   
+                        environment {
+                            CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
                             dir('tiflow') {

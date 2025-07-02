@@ -91,7 +91,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -113,7 +113,7 @@ try {
             node("master"){
                 notRun = sh(returnStatus: true, script: """
                 if curl --output /dev/null --silent --head --fail ${FILE_SERVER_URL}/download/ci_check/${JOB_NAME}/${ghprbActualCommit}; then exit 0; else exit 1; fi
-                """)     
+                """)
             }
         }
         if (notRun == 0){
@@ -181,7 +181,7 @@ try {
                         sh """
                         while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${pd_url}
-	                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
+	                    tar -xvz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
                         """
                     }
                 }

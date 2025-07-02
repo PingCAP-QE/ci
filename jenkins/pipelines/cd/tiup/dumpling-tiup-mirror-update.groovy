@@ -17,7 +17,7 @@ def download = { name, version, os, arch ->
 
 
     tarball_name = "${name}-${os}-${arch}.tar.gz"
- 
+
     sh """
     wget ${FILE_SERVER_URL}/download/builds/pingcap/${name}/optimization/${tag}/${dumpling_sha1}/${platform}/${tarball_name}
     """
@@ -93,7 +93,7 @@ run_with_pod {
     stage("Prepare") {
         deleteDir()
     }
-        
+
     if (RELEASE_TAG == "nightly" || RELEASE_TAG >= "v4.0.0") {
         stage("Get hash") {
             tag = RELEASE_TAG

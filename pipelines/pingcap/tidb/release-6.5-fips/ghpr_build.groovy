@@ -44,7 +44,7 @@ pipeline {
             }
         }
         stage('Checkout') {
-            parallel {   
+            parallel {
                 stage('tidb') {
                     steps {
                         dir(REFS.repo) {
@@ -84,17 +84,17 @@ pipeline {
                                     sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                                     git diff .
                                     git status
-                                    """                             
+                                    """
                                     sh "make bazel_build"
                                 }
                             }
-                            post {       
+                            post {
                                 // TODO: statics and report logic should not put in pipelines.
                                 // Instead should only send a cloud event to a external service.
                                 always {
                                     dir(REFS.repo) {
                                         archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
-                                    }            
+                                    }
                                 }
                             }
                         }

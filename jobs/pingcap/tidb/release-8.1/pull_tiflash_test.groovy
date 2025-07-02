@@ -12,7 +12,7 @@ pipelineJob('pingcap/tidb/release-8.1/pull_tiflash_test') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tidb")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -28,7 +28,7 @@ pipelineJob('pingcap/tidb/release-8.1/pull_tiflash_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

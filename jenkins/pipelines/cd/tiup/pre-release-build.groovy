@@ -71,7 +71,7 @@ properties([
 tidb_sha1=""
 tikv_sha1=""
 pd_sha1=""
-tiflash_sha1="" 
+tiflash_sha1=""
 br_sha1=""
 binlog_sha1=""
 lightning_sha1=""
@@ -123,7 +123,7 @@ def get_sha() {
     }
     binlog_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-binlog -version=${RELEASE_BRANCH} ").trim()
     lightning_sha1 = br_sha1
-    
+
     if (RELEASE_TAG >= "v5.3.0") {
         tools_sha1 = sh(returnStdout: true, script: "python gethash.py -repo=tidb-tools -version=master ").trim()
     } else {
@@ -156,7 +156,7 @@ def get_sha() {
     println "binlog_sha1: ${binlog_sha1}"
     println "ng_monitoring_sha1: ${ng_monitoring_sha1}"
     println "enterprise_plugin_sha1: ${enterprise_plugin_sha1}"
-    withCredentials([string(credentialsId: 'token-update-prm-issue', variable: 'GITHUB_TOKEN')]) { 
+    withCredentials([string(credentialsId: 'token-update-prm-issue', variable: 'GITHUB_TOKEN')]) {
         if ( TIDB_PRM_ISSUE != "") {
             sh """
             echo 'tidb = "${tidb_sha1}"' >> githash.toml
@@ -202,7 +202,7 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '8000m', resourceRequestMemory: '12Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+
                     )
             ],
             volumes: [
@@ -307,7 +307,7 @@ run_with_pod {
                                     [$class: 'BooleanParameterValue', name: 'FORCE_REBUILD', value: FORCE_REBUILD],
                                     [$class: 'StringParameterValue', name: 'OS', value: OS_LINUX],
                                     [$class: 'StringParameterValue', name: 'ARCH', value: AMD64],
-                                    [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],    
+                                    [$class: 'StringParameterValue', name: 'PLATFORM', value: PLATFORM_CENTOS],
                             ]
                 }
             }
@@ -359,6 +359,3 @@ run_with_pod {
         }
     }
 }
-
-
-

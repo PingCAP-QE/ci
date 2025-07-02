@@ -12,7 +12,7 @@ pipelineJob('pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_dm_integration_test
     properties {
         githubProjectUrl("https://github.com/pingcap/tiflow")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -28,7 +28,7 @@ pipelineJob('pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_dm_integration_test
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

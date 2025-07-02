@@ -54,11 +54,11 @@ boolean isMoreRecentOrEqual( String a, String b ) {
     [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
        Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
        return (result == 1)
-    } 
+    }
 }
 
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
     }
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
@@ -103,7 +103,7 @@ try {
                 deleteDir()
 
                 container("golang") {
-                	println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash" 
+                	println "debug command:\nkubectl -n jenkins-ci exec -ti ${NODE_NAME} bash"
                     dir("go/src/github.com/PingCAP-QE/tidb-test") {
                         def tidb_test_refs = "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"
                         def tidb_test_sha1 = sh(returnStdout: true, script: "curl ${tidb_test_refs}").trim()

@@ -13,7 +13,7 @@ pipelineJob('tikv/pd/release-6.5/ghpr_build') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/tikv/pd")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -29,7 +29,7 @@ pipelineJob('tikv/pd/release-6.5/ghpr_build') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

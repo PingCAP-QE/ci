@@ -12,7 +12,7 @@ pipelineJob('pingcap/tiflow/release-7.4/pull_cdc_integration_kafka_test') {
     properties {
         githubProjectUrl("https://github.com/pingcap/tiflow")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -28,7 +28,7 @@ pipelineJob('pingcap/tiflow/release-7.4/pull_cdc_integration_kafka_test') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }

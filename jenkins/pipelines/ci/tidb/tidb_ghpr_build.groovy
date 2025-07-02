@@ -93,7 +93,7 @@ def run_with_pod(Closure body) {
                         image: "${POD_GO_IMAGE}", ttyEnabled: true,
                         resourceRequestCpu: RESOURCE_REQUEST_CPU, resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: VOLUMES,
@@ -237,13 +237,13 @@ try {
                         filepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/tidb-server.tar.gz"
                         donepath = "builds/pingcap/tidb-check/pr/${ghprbActualCommit}/centos7/done"
                         resultDownloadPath = "${FILE_SERVER_URL}/download/${filepath}"
-                        
+
                         container("golang") {
                             dir("go/src/github.com/pingcap/tidb") {
                                 timeout(10) {
                                     sh """
                                     curl -F ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload
-                                    curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload                                    
+                                    curl -F ${donepath}=@done ${FILE_SERVER_URL}/upload
                                     """
                                 }
                             }

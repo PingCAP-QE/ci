@@ -117,7 +117,7 @@ pipeline {
                                 ./bin/mydumper -V
                             """
                         }
-                    }   
+                    }
                 }
             }
         }
@@ -147,8 +147,8 @@ pipeline {
                 failure {
                     sh label: "collect logs", script: """
                         ls /tmp/dm_test
-                        tar -cvzf log.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")    
-                        ls -alh  log.tar.gz  
+                        tar -cvzf log.tar.gz \$(find /tmp/dm_test/ -type f -name "*.log")
+                        ls -alh  log.tar.gz
                     """
                     archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true
                 }

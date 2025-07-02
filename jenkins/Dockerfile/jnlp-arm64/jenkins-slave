@@ -61,7 +61,7 @@ else
 
     if [ -n "$JENKINS_NAME" ]; then
         JENKINS_AGENT_NAME="$JENKINS_NAME"
-    fi  
+    fi
 
     if [ -z "$JNLP_PROTOCOL_OPTS" ]; then
         echo "Warning: JnlpProtocol3 is disabled by default, use JNLP_PROTOCOL_OPTS to alter the behavior"
@@ -77,7 +77,7 @@ else
             OPT_JENKINS_SECRET="${JENKINS_SECRET}" ;;
         esac
     fi
-    
+
     OPT_JENKINS_AGENT_NAME=""
     if [ -n "$JENKINS_AGENT_NAME" ]; then
         case "$@" in

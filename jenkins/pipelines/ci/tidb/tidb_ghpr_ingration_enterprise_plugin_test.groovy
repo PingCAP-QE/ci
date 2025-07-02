@@ -26,7 +26,7 @@ def run_with_pod(Closure body) {
                 containerTemplate(
                     name: 'golang', alwaysPullImage: false,image: "${POD_GO_IMAGE}", ttyEnabled: true,
                     resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',command: '/bin/sh -c', args: 'cat',
-                    envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                    envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                 )
             ],
     ) {
@@ -54,10 +54,10 @@ try {
                 }
                 dir("go/src/github.com/pingcap-inc/enterprise-plugin") {
                     timeout(15) {
-                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: ENTERPRISE_PLUGIN_BRANCH]], 
-                            doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'], 
-                                [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]], 
-                            submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: ENTERPRISE_PLUGIN_REF_SPEC, 
+                        checkout changelog: false, poll: true, scm: [$class: 'GitSCM', branches: [[name: ENTERPRISE_PLUGIN_BRANCH]],
+                            doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'PruneStaleBranch'],
+                                [$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', timeout: 2]],
+                            submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', refspec: ENTERPRISE_PLUGIN_REF_SPEC,
                             url: 'git@github.com:pingcap-inc/enterprise-plugin.git']]
                         ]
                         // ENTERPRISE_PLUGIN_REF_SPEC = "+refs/pull/80/head:refs/remotes/origin/PR-80"
@@ -96,5 +96,3 @@ catch (Exception e) {
 finally {
 
 }
-
-

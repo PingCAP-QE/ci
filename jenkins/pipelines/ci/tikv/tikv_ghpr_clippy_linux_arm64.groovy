@@ -31,7 +31,7 @@ try {
                 }
             }
         }
-        
+
         stage("make clippy with optional features") {
             dir("tikv") {
                 timeout(120) {

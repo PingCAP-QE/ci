@@ -59,7 +59,7 @@ def run_build_with_pod(Closure body) {
                         image: rust_image, ttyEnabled: true,
                         resourceRequestCpu: '4000m', resourceRequestMemory: '8Gi',
                         command: '/bin/sh -c', args: 'cat',
-                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]     
+                        envVars: [containerEnvVar(key: 'GOPATH', value: '/go')]
                     )
             ],
             volumes: [
@@ -214,5 +214,3 @@ try {
         ]
     }
 }
-
-

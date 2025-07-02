@@ -20,7 +20,7 @@ spec:
     image: hub.pingcap.net/jenkins/tiup
     args: ["sleep", "infinity"]
   nodeSelector:
-    kubernetes.io/arch: amd64 
+    kubernetes.io/arch: amd64
 '''
                     defaultContainer 'golang'
         }
@@ -70,7 +70,7 @@ spec:
             container("tiup"){
                 sh 'set +x;curl https://tiup-mirrors.pingcap.com/root.json -o /root/.tiup/bin/root.json; mkdir -p /root/.tiup/keys; cp $TIUPKEY_JSON /root/.tiup/keys/private.json'
             }
-            } 
+            }
         }
         stage("multi-arch"){
             when {expression {!fallback}}
@@ -91,7 +91,7 @@ spec:
                 stages{
                     stage("tiup"){
                         options { retry(3) }
-                        environment { 
+                        environment {
                             TARGET_OS="$OS"
                             TARGET_ARCH="$ARCH"
                         }

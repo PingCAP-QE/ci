@@ -42,7 +42,7 @@ EOT"""
 
             //echo "GO: $goVersion BUILD: $buildSlave TEST: $testSlave"
         }
-        
+
     }
     currentBuild.result = "SUCCESS"
 }

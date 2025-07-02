@@ -106,7 +106,7 @@ retry(2) {
 
                 echo ${tidb_ctl_githash} > sha1
                 curl --fail -F refs/pingcap/tidb-ctl/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
-                
+
                 echo ${cdc_sha1} > sha1
                 curl --fail -F refs/pingcap/dm/${RELEASE_TAG}/sha1=@sha1 ${FILE_SERVER_URL}/upload | egrep 'success'
 
@@ -266,7 +266,7 @@ retry(2) {
                             booleanParam(name: 'NEED_FAILPOINT', value: false)
                         ]
                     def syncs = [:]
-                    for (_product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog", 
+                    for (_product in ["br", "dm", "dumpling", "ng-monitoring", "pd", "ticdc", "tidb", "tidb-binlog",
                             "tidb-lightning", "tidb-monitor-initializer", "tiflash", "tikv"]){
                         def product = _product //fix bug in closure
                         syncs["sync image ${product}"] = {

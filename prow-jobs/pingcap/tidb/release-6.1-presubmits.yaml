@@ -159,7 +159,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-tidb-tools-test(?: .*?)?$"
       rerun_command: "/test pull-integration-tidb-tools-test"
       branches: *branches
-      
+
     - name: pingcap/tidb/release-6.1/pull_integration_binlog_test
       agent: jenkins
       decorate: false # need add this.

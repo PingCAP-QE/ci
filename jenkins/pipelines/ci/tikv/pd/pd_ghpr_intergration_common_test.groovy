@@ -54,11 +54,11 @@ boolean isMoreRecentOrEqual( String a, String b ) {
     [a,b]*.tokenize('.')*.collect { it as int }.with { u, v ->
        Integer result = [u,v].transpose().findResult{ x,y -> x <=> y ?: null } ?: u.size() <=> v.size()
        return (result == 1)
-    } 
+    }
 }
 
 string trimPrefix = {
-        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it 
+        it.startsWith('release-') ? it.minus('release-').split("-")[0] : it
     }
 
 def boolean isBranchMatched(List<String> branches, String targetBranch) {
@@ -114,7 +114,7 @@ try {
                                 sh """
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 15; done
                                 curl ${tidb_url} | tar xz
-                                """                                
+                                """
                             }
                         }
                     }
@@ -164,7 +164,7 @@ try {
                                 sh """
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 15; done
                                 curl ${tidb_url} | tar xz
-                                """                                
+                                """
                             }
                         }
                     }
@@ -217,7 +217,7 @@ try {
                     container("golang") {
                         def tidb_sha1 = sh(returnStdout: true, script: "curl ${tidb_refs}").trim()
                         def tidb_url = "${FILE_SERVER_URL}/download/builds/pingcap/tidb/${tidb_sha1}/centos7/tidb-server.tar.gz"
- 
+
                         def tikv_refs = "${FILE_SERVER_URL}/download/refs/pingcap/tikv/${TIKV_BRANCH}/sha1"
                         def tikv_sha1 = sh(returnStdout: true, script: "curl ${tikv_refs}").trim()
                         tikv_url = "${FILE_SERVER_URL}/download/builds/pingcap/tikv/${tikv_sha1}/centos7/tikv-server.tar.gz"
@@ -227,17 +227,17 @@ try {
                                 sh """
                                 while ! curl --output /dev/null --silent --head --fail ${tikv_url}; do sleep 15; done
                                 curl ${tikv_url} | tar xz
-    
+
                                 while ! curl --output /dev/null --silent --head --fail ${pd_url}; do sleep 15; done
                                 curl ${pd_url} | tar xz ./bin
-    
+
                                 mkdir -p ./tidb-src
                                 while ! curl --output /dev/null --silent --head --fail ${tidb_url}; do sleep 15; done
                                 curl ${tidb_url} | tar xz -C ./tidb-src
                                 ln -s \$(pwd)/tidb-src "${ws}/go/src/github.com/pingcap/tidb"
-    
+
                                 mv tidb-src/bin/tidb-server ./bin/tidb-server
-                                """                                
+                                """
                             }
                         }
 
@@ -251,11 +251,11 @@ try {
                                 rm -rf /tmp/tidb
                                 rm -rf ./tikv ./pd
                                 set -e
-                                
+
                                 bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                 sleep 20
                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                
+
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 20
 

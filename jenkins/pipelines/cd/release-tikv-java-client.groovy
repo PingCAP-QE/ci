@@ -25,7 +25,7 @@ pipeline {
         // Git配置
         GIT_CREDENTIAL_ID = "github-sre-bot-ssh"
     }
-    
+
     // CD Pipeline
     stages {
         stage("Clone Code") {
@@ -56,7 +56,7 @@ pipeline {
                     pom = readMavenPom file: "pom.xml";
                     filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
                     echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
-                    
+
                     // 获取产物仓库
                     NEXUS_REPOSITORY = "snapshots";
                     if (!pom.version.contains("-SNAPSHOT")) {

@@ -4,7 +4,7 @@
     build_tidb_multi_branch.groovy will build dumpling binary
 */
 
-// choose which go version to use. 
+// choose which go version to use.
 def String selectGoVersion(String branchORTag) {
     def goVersion="go1.18"
     if (branchORTag.startsWith("v") && branchORTag <= "v5.1") {
@@ -96,13 +96,13 @@ try {
                                                                 url: 'git@github.com:pingcap/dumpling.git']]
                                     ]
                         } else {
-                            checkout scm: [$class: 'GitSCM', 
-                                branches: [[name: branch]],  
+                            checkout scm: [$class: 'GitSCM',
+                                branches: [[name: branch]],
                                 extensions: [[$class: 'LocalBranch']],
                                 userRemoteConfigs: [[credentialsId: 'github-sre-bot-ssh', url: 'git@github.com:pingcap/dumpling.git']]]
                         }
                     }
-                    
+
 
                     githash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                 }

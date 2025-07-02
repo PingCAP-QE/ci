@@ -54,7 +54,7 @@ pipeline {
             environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir('tidb') {
-                    sh './build/jenkins_unit_test.sh' 
+                    sh './build/jenkins_unit_test.sh'
                 }
             }
             post {

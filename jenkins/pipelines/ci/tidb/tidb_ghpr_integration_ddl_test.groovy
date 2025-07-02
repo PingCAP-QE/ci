@@ -91,7 +91,7 @@ def run_with_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: [
@@ -122,7 +122,7 @@ def run_with_memory_volume_pod(Closure body) {
                             image: "${POD_GO_IMAGE}", ttyEnabled: true,
                             resourceRequestCpu: '2000m', resourceRequestMemory: '4Gi',
                             command: '/bin/sh -c', args: 'cat',
-                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],  
+                            envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
                     )
             ],
             volumes: [
@@ -152,7 +152,7 @@ try {
                         while ! curl --output /dev/null --silent --head --fail ${tidb_done_url}; do sleep 2; done
                         wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  ${tidb_url}
                         tar -xz -f tidb-server.tar.gz && rm -rf tidb-server.tar.gz
-                        unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                        unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                         if [ \$(grep -E "^ddltest:" Makefile) ]; then
                            ls bin/ddltest || make ddltest
                         fi
@@ -183,7 +183,7 @@ try {
                             """
                             def dir = pwd()
                             sh """
-                            unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                            unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                             tidb_test_sha1=`curl "${FILE_SERVER_URL}/download/refs/PingCAP-QE/tidb-test/${TIDB_TEST_BRANCH}/sha1"`
                             tidb_test_url="${FILE_SERVER_URL}/download/builds/PingCAP-QE/tidb-test/\${tidb_test_sha1}/centos7/tidb-test.tar.gz"
 
@@ -207,7 +207,7 @@ try {
 
                             while ! curl --output /dev/null --silent --head --fail \${pd_url}; do sleep 10; done
                             wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0  \${pd_url}
-                            tar -xz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz 
+                            tar -xz bin/ -f pd-server.tar.gz && rm -rf pd-server.tar.gz
 
                             ls -alh ${WORKSPACE}/go/src/github.com/pingcap/tidb/bin/
                             cp ${WORKSPACE}/go/src/github.com/pingcap/tidb/bin/tidb-server ./bin/ddltest_tidb-server
@@ -229,13 +229,13 @@ try {
                                 rm -rf /tmp/tidb
                                 rm -rf ./tikv ./pd
                                 set -e
-                                unset GOPROXY && go env -w GOPROXY=${GOPROXY} 
+                                unset GOPROXY && go env -w GOPROXY=${GOPROXY}
                                 bin/pd-server --name=pd --data-dir=pd &>pd_${mytest}.log &
                                 sleep 10
                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                 bin/tikv-server -C tikv_config.toml --pd=127.0.0.1:2379 -s tikv --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 &>tikv_${mytest}.log &
                                 sleep 10
-                                
+
                                 ls -alh ${WORKSPACE}/go/src/github.com/PingCAP-QE/tidb-test/${test_dir}/
                                 ls -alh ${WORKSPACE}/go/src/github.com/PingCAP-QE/tidb-test/${test_dir}/bin/
                                 export PATH=${WORKSPACE}/go/src/github.com/PingCAP-QE/tidb-test/${test_dir}/bin:\$PATH

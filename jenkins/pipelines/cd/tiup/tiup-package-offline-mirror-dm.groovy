@@ -9,7 +9,7 @@ def install_tiup = { bin_dir ->
     rm -rf ~/.tiup
     mkdir -p ~/.tiup/bin
     curl https://tiup-mirrors.pingcap.com/root.json -o ~/.tiup/bin/root.json
-    """   
+    """
 }
 
 def delivery = { arch ->
@@ -22,10 +22,10 @@ def delivery = { arch ->
             --tiup latest --dm latest
         tar -czf ${dst}.tar.gz $dst
         curl -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload
-        
+
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${dst}.tar.gz ${dst}.tar.gz
-        
+
         echo "upload $dst successed!"
         """
     }else {
@@ -36,7 +36,7 @@ def delivery = { arch ->
             --tiup=${TIUP_VERSION} --dm=${TIUP_VERSION}
         tar -czf ${dst}.tar.gz $dst
         curl -F release/${dst}.tar.gz=@${dst}.tar.gz ${FILE_SERVER_URL}/upload
-        
+
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${dst}.tar.gz ${dst}.tar.gz
 
@@ -55,15 +55,15 @@ node("delivery") {
             println "${ws}"
             println "${user}"
         }
-        
+
         stage("install tiup") {
             install_tiup "/usr/local/bin"
         }
-        
+
         stage("build tarball linux/amd64") {
             delivery("amd64")
         }
-        
+
         stage("build tarball linux/arm64") {
             delivery("arm64")
         }

@@ -85,7 +85,7 @@ def pack = { version, os, arch ->
     wget -qnc https://raw.githubusercontent.com/pingcap/tidb-binlog/${tag}/metrics/alertmanager/binlog.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflow/${tag}/metrics/alertmanager/ticdc.rules.yml || true; \
     wget -qnc https://raw.githubusercontent.com/pingcap/tiflash/${tag}/metrics/alertmanager/tiflash.rules.yml || true; \
-    
+
     if [ ${RELEASE_TAG} \\> "v5.2.0" ] || [ ${RELEASE_TAG} == "v5.2.0" ]; then \
         wget -qnc https://raw.githubusercontent.com/pingcap/tidb/${tag}/br/metrics/alertmanager/lightning.rules.yml || true; \
     else
@@ -172,7 +172,7 @@ run_with_pod {
         if (RELEASE_BRANCH != "") {
             tag = RELEASE_BRANCH
         }
-        
+
         ng_monitoring_sha1 = ""
         container("gethash"){
             withCredentials([string(credentialsId: 'github-token-gethash', variable: 'GHTOKEN')]) {

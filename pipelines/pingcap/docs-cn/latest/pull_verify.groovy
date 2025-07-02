@@ -61,7 +61,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('check-scripts') {
-                    cache(path: "./", includes: '**/*', key: "ws/check-scripts/${BUILD_TAG}") { 
+                    cache(path: "./", includes: '**/*', key: "ws/check-scripts/${BUILD_TAG}") {
                         sh label: 'Prepare', script: """
                             wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-file-encoding.py
                             wget https://raw.githubusercontent.com/pingcap/docs/master/scripts/check-conflicts.py
@@ -93,7 +93,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 20, unit: 'MINUTES') }
                         steps {
-                            dir('check-scripts') { 
+                            dir('check-scripts') {
                                 cache(path: "./", includes: '**/*', key: "ws/check-scripts/${BUILD_TAG}") {
                                     sh """
                                     ls -alh
@@ -101,7 +101,7 @@ pipeline {
                                 }
                             }
                             dir('git-docs-cn') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) { 
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh  label: "set git config", script: """
                                     git config --global --add safe.directory '*'
                                     git rev-parse --show-toplevel
@@ -115,7 +115,7 @@ pipeline {
                                     sh label: "check ${CHECK_CMD}", script: """#!/usr/bin/env bash
                                     cp -r ../check-scripts/* ./
                                     diff_docs_files=\$(git diff-tree --name-only --no-commit-id -r origin/${REFS.base_ref}..HEAD -- '*.md' ':(exclude).github/*')
-                                    
+
                                     if [[ "${CHECK_CMD}" == "markdownlint" ]]; then
                                         npm install -g markdownlint-cli@0.17.0
                                     fi

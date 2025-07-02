@@ -11,7 +11,7 @@
 * install the necessary python packages
     ```shell
     pip install -r requirements.txt
-    ``` 
+    ```
 
 # What information will be checked
 * docker images exist or not
@@ -31,11 +31,11 @@
 ### check one image
 example to check the rc build of tidb-binlog community edition
 ```shell
-python3 check_docker_images.py  binlog v7.5.0 community --commit_hash "4a2ed99c466e02d0f441b742d7e62a1c67150f52"  --registry "hub.pingcap.net" --project qa 
+python3 check_docker_images.py  binlog v7.5.0 community --commit_hash "4a2ed99c466e02d0f441b742d7e62a1c67150f52"  --registry "hub.pingcap.net" --project qa
 ```
 example to check the rc build of tidb-binlog Enterprise edition
 ```shell
-python3 check_docker_images.py binlog v7.5.0 enterprise --commit_hash "4a2ed99c466e02d0f441b742d7e62a1c67150f52"  --registry "hub.pingcap.net" --project qa 
+python3 check_docker_images.py binlog v7.5.0 enterprise --commit_hash "4a2ed99c466e02d0f441b742d7e62a1c67150f52"  --registry "hub.pingcap.net" --project qa
 ```
 ### check batch images
 example to check the rc build of all images
@@ -60,7 +60,7 @@ first, you need to prepare the components.json file, which contains the image li
 ```
 ```shell
 export IS_RC_BUILD=true
-python3 main.py image --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json' 
+python3 main.py image --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json'
 ```
 
 
@@ -70,7 +70,7 @@ python3 main.py image --components_url='https://raw.githubusercontent.com/pureli
 ### check one package
 example to check the rc build of pd
 ```shell
- python3 check_tiup.py pd v7.5.0 --commit_hash="4a2ed99c466e02d0f441b742d7e62a1c67150f52" --is_tiup_staging 
+ python3 check_tiup.py pd v7.5.0 --commit_hash="4a2ed99c466e02d0f441b742d7e62a1c67150f52" --is_tiup_staging
 ```
 ### check all package
 ```shell
@@ -82,7 +82,7 @@ python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelin
 # build the image
 ```shell
 # build the single arch image
-docker build -t hub.pingcap.net/jenkins/release-check-version:{tag} . 
+docker build -t hub.pingcap.net/jenkins/release-check-version:{tag} .
 # build the multi-arch image
 docker buildx build --platform linux/amd64,linux/arm64 -t hub.pingcap.net/jenkins/release-check-version:{tag}. --push
 ```

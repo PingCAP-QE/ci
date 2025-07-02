@@ -92,7 +92,7 @@ stage("Cover") {
                         """
                     }
                 }
-                
+
                 sh label: 'Mark coverage success', script: """
                 cd \$HOME/tikv-src
                 echo "done" > done

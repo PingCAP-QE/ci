@@ -65,7 +65,7 @@ pipeline {
                     }
                 }
                 sh """
-                    pwd & ls -alh 
+                    pwd & ls -alh
                     mv ./tikv \$HOME/tikv-src
                     cd \$HOME/tikv-src
                     ln -s \$HOME/tikv-target \$HOME/tikv-src/target
@@ -188,10 +188,10 @@ pipeline {
                 failure {
                     sh label: "collect logs", script: """
                         ls /home/jenkins/tikv-src/target/
-                        tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv-src/target/ -type f -name "*.log")    
-                        ls -alh  log-ut.tar.gz  
+                        tar -cvzf log-ut.tar.gz \$(find /home/jenkins/tikv-src/target/ -type f -name "*.log")
+                        ls -alh  log-ut.tar.gz
                     """
-                    archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true 
+                    archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true
                 }
             }
         }

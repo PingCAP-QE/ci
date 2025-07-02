@@ -14,7 +14,7 @@ pipelineJob('pingcap-qe/tidb-test/ghpr_build') {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/PingCAP-QE/tidb-test")
     }
- 
+
     definition {
         cpsScm {
             lightweight(true)
@@ -30,7 +30,7 @@ pipelineJob('pingcap-qe/tidb-test/ghpr_build') {
                             depth(1)
                             shallow(true)
                             timeout(5)
-                        } 
+                        }
                     }
                 }
             }
