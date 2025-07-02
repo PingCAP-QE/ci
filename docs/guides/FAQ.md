@@ -66,14 +66,14 @@ lgtm label is counted through voting; if two people give an LGTM, the PR will ha
 
 ### General Questions
 
-#### Q1: How to solve the DCO "Expected — Waiting for status to be reported" problem?
+#### Q1: How do I solve the DCO "Expected — Waiting for status to be reported" problem?
 1. In order to trigger a recheck on an existing pull request you may need to push a new commit.
 2. If you have already pushed a new commit, you can try close and reopen the pull request.
 
-#### Q2: How to resolve `licence/cla — Waiting for status to be reported` problem?
+#### Q2: How do I resolve the `license/cla — Waiting for status to be reported` problem?
 1. Check the url or the CLA status. It uses a public CLA service when the url is not "cla.pingcap.net"
 2. Open https://cla.pingcap.net/, "recheck" the PR of your repository by pushing the "Recheck PRs" button.
-3. If you can't find the repo which needs to `Recheck PRS`, Please try to reopen the PR to resolve it.
+3. If you can't find the repo which needs to `Recheck PRs`, Please try to reopen the PR to resolve it.
 
 ---
 
