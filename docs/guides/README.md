@@ -67,5 +67,5 @@ flowchart TD
 ## More Information
 
 - [FAQ](./FAQ.md)
-- [Dock Build](./docker-build.md)
+- [Docker Build](./docker-build.md)
   > Learn how to find the Dockerfile to build from source to image.
