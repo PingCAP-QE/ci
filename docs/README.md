@@ -1,6 +1,6 @@
 # PingCAP CI/CD Public Configurations
 
-Welcome to the CI documentation! Here you'll find comprehensive guides and references for using this project tomanage CI pipeline for your project.
+Welcome to the CI documentation! Here you'll find comprehensive guides and references for using this project to manage CI pipeline for your project.
 This repository maintains CI/CD configurations for repositories under PingCAP, TiKV and other related organizations.
 It contains both trigger configurations and detailed pipeline implementations.
 
