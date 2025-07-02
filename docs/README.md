@@ -14,7 +14,7 @@ It contains both trigger configurations and detailed pipeline implementations.
   - Design Principles
 
 - [Designs](./designs/README.md)
-  - Foler Structure
+  - Folder Structure
   - File Structure and Naming Conventions
 
 - [Guides](./guides/README.md)
