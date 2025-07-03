@@ -18,7 +18,7 @@ pipelineJob('pingcap-qe/tidb-test/pull_tiproxy_ruby_orm_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/PingCAP-QE/tidb-test/latest/pull_tiproxy_ruby_orm_test.groovy")
+            scriptPath("pipelines/pingcap-qe/tidb-test/latest/pull_tiproxy_ruby_orm_test.groovy")
             scm {
                 git{
                     remote {

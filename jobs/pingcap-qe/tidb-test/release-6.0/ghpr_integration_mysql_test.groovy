@@ -17,7 +17,7 @@ pipelineJob('pingcap-qe/tidb-test/release-6.0/ghpr_integration_mysql_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/PingCAP-QE/tidb-test/release-6.0/ghpr_integration_mysql_test.groovy")
+            scriptPath("pipelines/pingcap-qe/tidb-test/release-6.0/ghpr_integration_mysql_test.groovy")
             scm {
                 git{
                     remote {
