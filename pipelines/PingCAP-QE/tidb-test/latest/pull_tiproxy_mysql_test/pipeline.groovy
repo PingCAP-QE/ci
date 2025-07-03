@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-pull_tiproxy_jdbc_test.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -70,7 +71,7 @@ pipeline {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
                         retry(2) {
                             sh "touch ws-${BUILD_TAG}"
                             sh label: 'prepare thirdparty binary', script: """
@@ -88,14 +89,12 @@ pipeline {
                 }
             }
         }
-        stage('JDBC Tests') {
+        stage('MySQL Tests') {
             matrix {
                 axes {
                     axis {
-                        name 'TEST_CMDS'
-                        values 'make deploy-jdbc8test ARGS="-x -m fast"', 'make deploy-jdbc8test ARGS="-x -m slow"',
-                            'make deploy-mybatistest ARGS="-x"', 'make deploy-jooqtest ARGS="-x"',
-                            'make deploy-tidbjdbctest ARGS="-x -m tls"', 'make deploy-tidbjdbctest ARGS="-x -m unique"'
+                        name 'PART'
+                        values '1', '2', '3', '4'
                     }
                 }
                 agent{
@@ -109,21 +108,17 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    container("java") {
-                                        sh label: "test_cmds=${TEST_CMDS} ", script: """
-                                            #!/usr/bin/env bash
-                                            ${TEST_CMDS}
-                                        """
-                                    }
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
+                                    sh label: "PART ${PART}", script: """
+                                        #!/usr/bin/env bash
+                                        make deploy-mysqltest ARGS="-b -x y -s tikv -p ${PART}"
+                                    """
                                 }
                             }
                         }
                         post{
-                            failure {
-                                script {
-                                    println "Test failed, archive the log"
-                                }
+                            always {
+                                junit(testResults: "**/result.xml")
                             }
                         }
                     }

@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-ghpr_build.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -20,11 +21,10 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
     }
     stages {
         stage('Debug info') {
-            // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
             steps {
                 sh label: 'Debug info', script: """
                     printenv
@@ -45,17 +45,17 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                dir("tiproxy") {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
+                                component.checkout('https://github.com/pingcap/tiproxy.git', 'tiproxy', "main", "", "")
                             }
                         }
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
@@ -65,12 +65,33 @@ pipeline {
                 }
             }
         }
-        stage("Build"){
+        stage('Prepare') {
             steps {
-                dir("tidb-test") {
-                    sh """
-                    TIDB_SRC_PATH=${WORKSPACE}/tidb make check
-                    """
+                dir('tiproxy') {
+                    sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
+                }
+                dir('tidb-test') {
+                        sh "touch ws-${BUILD_TAG}"
+                        sh label: 'prepare thirdparty binary', script: """
+                        chmod +x download_binary.sh
+                        ./download_binary.sh --tidb=master
+                        cp ../tiproxy/bin/* ./bin/
+                        ls -alh bin/
+                        ./bin/tidb-server -V
+                        ./bin/tiproxy --version
+                        """
+                }
+            }
+        }
+        stage('MySQL Connector Tests') {
+            steps {
+                container('mysql-client-test') {
+                    dir('tidb-test') {
+                        sh label: "run test", script: """
+                            #!/usr/bin/env bash
+                            make mysql_client_test WITH_TIPROXY=1
+                        """
+                    }
                 }
             }
         }

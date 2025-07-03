@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-pull_tiproxy_mysql_test.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -24,6 +25,7 @@ pipeline {
     }
     stages {
         stage('Debug info') {
+            // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
             steps {
                 sh label: 'Debug info', script: """
                     printenv
@@ -44,11 +46,11 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tiproxy") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
+                dir("tidb") {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('https://github.com/pingcap/tiproxy.git', 'tiproxy', "main", "", "")
+                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
                             }
                         }
                     }
@@ -66,24 +68,14 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tiproxy') {
-                    sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
+                dir('tidb') {
+                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
+                        sh label: 'tidb-server', script: 'make'
+                    }
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
-                        retry(2) {
-                            sh "touch ws-${BUILD_TAG}"
-                            sh label: 'prepare thirdparty binary', script: """
-                            chmod +x download_binary.sh
-                            ./download_binary.sh --tidb=master --pd=master --tikv=master
-                            cp ../tiproxy/bin/tiproxy ./bin/
-                            ls -alh bin/
-                            ./bin/tidb-server -V
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiproxy --version
-                            """
-                        }
+                    cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
+                        sh "touch ws-${BUILD_TAG}"
                     }
                 }
             }
@@ -106,11 +98,17 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
-                                    sh label: "PART ${PART}", script: """
-                                        #!/usr/bin/env bash
-                                        make deploy-mysqltest ARGS="-b -x y -s tikv -p ${PART}"
+                            dir('tidb') {
+                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
+                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
+                                }
+                            }
+                            dir('tidb-test/mysql_test') {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
+                                    sh label: "part ${PART}", script: """
+                                    export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
+                                    export TIDB_TEST_STORE_NAME="unistore"
+                                    ./test.sh 1 ${PART}
                                     """
                                 }
                             }
@@ -118,6 +116,9 @@ pipeline {
                         post{
                             always {
                                 junit(testResults: "**/result.xml")
+                            }
+                            unsuccessful {
+                                archiveArtifacts artifacts: "tidb-test/mysql_test/mysql-test.out", fingerprint: true, allowEmptyArchive: true
                             }
                         }
                     }

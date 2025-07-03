@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-pull_tiproxy_mysql_connector_test.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -70,26 +71,60 @@ pipeline {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                        sh "touch ws-${BUILD_TAG}"
-                        sh label: 'prepare thirdparty binary', script: """
-                        chmod +x download_binary.sh
-                        ./download_binary.sh --tidb=master
-                        cp ../tiproxy/bin/* ./bin/
-                        ls -alh bin/
-                        ./bin/tidb-server -V
-                        ./bin/tiproxy --version
-                        """
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
+                        retry(2) {
+                            sh "touch ws-${BUILD_TAG}"
+                            sh label: 'prepare thirdparty binary', script: """
+                            chmod +x download_binary.sh
+                            ./download_binary.sh --tidb=master --pd=master --tikv=master
+                            cp ../tiproxy/bin/tiproxy ./bin/
+                            ls -alh bin/
+                            ./bin/tidb-server -V
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tiproxy --version
+                            """
+                        }
+                    }
                 }
             }
         }
-        stage('MySQL Connector Tests') {
-            steps {
-                container('mysql-client-test') {
-                    dir('tidb-test') {
-                        sh label: "run test", script: """
-                            #!/usr/bin/env bash
-                            make mysql_client_test WITH_TIPROXY=1
-                        """
+        stage('ORM Tests') {
+            matrix {
+                axes {
+                    axis {
+                        name 'TEST_CMDS'
+                        values 'make deploy-activerecordtest ARGS="-x"'
+                    }
+                }
+                agent{
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        defaultContainer 'ruby'
+                        yamlFile POD_TEMPLATE_FILE
+                    }
+                }
+                stages {
+                    stage("Test") {
+                        steps {
+                            dir('tidb-test') {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
+                                    container("ruby") {
+                                        sh label: "test_cmds=${TEST_CMDS} ", script: """
+                                            #!/usr/bin/env bash
+                                            ${TEST_CMDS}
+                                        """
+                                    }
+                                }
+                            }
+                        }
+                        post{
+                            failure {
+                                script {
+                                    println "Test failed, archive the log"
+                                }
+                            }
+                        }
                     }
                 }
             }

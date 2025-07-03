@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-ghpr_mysql_test.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -24,7 +25,6 @@ pipeline {
     }
     stages {
         stage('Debug info') {
-            // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
             steps {
                 sh label: 'Debug info', script: """
                     printenv
@@ -68,8 +68,22 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
+                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'make'
+                        retry(2) {
+                            sh label: 'download binary', script: """
+                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                mv third_bin/* bin/
+                                ls -alh bin/
+                            """
+                            sh label: "check binary", script: """
+                                pwd && ls -alh
+                                ls bin/tidb-server && ./bin/tidb-server -V
+                                ls bin/pd-server && ./bin/pd-server -V
+                                ls bin/tikv-server && ./bin/tikv-server -V
+                            """
+                        }
                     }
                 }
                 dir('tidb-test') {
@@ -98,16 +112,31 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
+                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
+                                    sh label: "print version", script: """
+                                        pwd && ls -alh
+                                        ls bin/tidb-server && ./bin/tidb-server -V
+                                        ls bin/pd-server && ./bin/pd-server -V
+                                        ls bin/tikv-server && ./bin/tikv-server -V
+                                    """
                                 }
                             }
                             dir('tidb-test/mysql_test') {
+                                sh """
+                                    mkdir -p bin
+                                    mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                                    ls -alh bin/
+                                """
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                                    sh label: "part ${PART}", script: """
-                                    export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
-                                    export TIDB_TEST_STORE_NAME="unistore"
-                                    ./test.sh 1 ${PART}
+                                    sh label: "PART ${PART}", script: """
+                                        #!/usr/bin/env bash
+                                        ls -alh
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
+                                        export TIKV_PATH="127.0.0.1:2379"
+                                        export TIDB_TEST_STORE_NAME="tikv"
+                                        ./test.sh 1 ${PART}
                                     """
                                 }
                             }
@@ -115,9 +144,6 @@ pipeline {
                         post{
                             always {
                                 junit(testResults: "**/result.xml")
-                            }
-                            unsuccessful {
-                                archiveArtifacts artifacts: "tidb-test/mysql_test/mysql-test.out", fingerprint: true, allowEmptyArchive: true
                             }
                         }
                     }

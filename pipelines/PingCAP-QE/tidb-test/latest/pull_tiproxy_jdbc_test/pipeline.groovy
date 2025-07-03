@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-pull_tiproxy_ruby_orm_test.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -88,18 +89,20 @@ pipeline {
                 }
             }
         }
-        stage('ORM Tests') {
+        stage('JDBC Tests') {
             matrix {
                 axes {
                     axis {
                         name 'TEST_CMDS'
-                        values 'make deploy-activerecordtest ARGS="-x"'
+                        values 'make deploy-jdbc8test ARGS="-x -m fast"', 'make deploy-jdbc8test ARGS="-x -m slow"',
+                            'make deploy-mybatistest ARGS="-x"', 'make deploy-jooqtest ARGS="-x"',
+                            'make deploy-tidbjdbctest ARGS="-x -m tls"', 'make deploy-tidbjdbctest ARGS="-x -m unique"'
                     }
                 }
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        defaultContainer 'ruby'
+                        defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
                     }
                 }
@@ -108,7 +111,7 @@ pipeline {
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    container("ruby") {
+                                    container("java") {
                                         sh label: "test_cmds=${TEST_CMDS} ", script: """
                                             #!/usr/bin/env bash
                                             ${TEST_CMDS}

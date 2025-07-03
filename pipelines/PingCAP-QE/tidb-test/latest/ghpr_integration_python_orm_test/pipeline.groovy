@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-ghpr_common_test.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -84,27 +85,28 @@ pipeline {
                                 ls bin/tikv-server && ./bin/tikv-server -V
                             """
                         }
+
                     }
                 }
             }
         }
-        stage('JDBC Tests') {
+        stage('Tests') {
             matrix {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'jdbc_test ./test_fast.sh', 'jdbc_test ./test_slow.sh'
+                        values 'django_test/django-orm-test ./test.sh', 'sqlalchemy_test/sqlalchemy-test ./test.sh'
                     }
                     axis {
                         name 'TEST_STORE'
-                        values "unistore"
+                        values "tikv"
                     }
                 }
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
-                        defaultContainer 'java'
+                        defaultContainer 'python'
                     }
                 }
                 stages {
@@ -122,19 +124,19 @@ pipeline {
                             }
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                        ls -alh bin/
-                                    """
-                                    container("java") {
+                                        sh label: "copy binaries", script: """
+                                            mkdir -p bin
+                                            cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                                            ls -alh bin/
+                                        """
                                         sh label: "test_params=${TEST_PARAMS} ", script: """
-                                            #!/usr/bin/env bash
-                                            params_array=(\${TEST_PARAMS})
-                                            TEST_DIR=\${params_array[0]}
-                                            TEST_SCRIPT=\${params_array[1]}
+                                            #!/bin/bash
+                                            set -- \${TEST_PARAMS}
+                                            TEST_DIR=\$1
+                                            TEST_SCRIPT=\$2
                                             echo "TEST_DIR=\${TEST_DIR}"
                                             echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                                 bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
@@ -149,7 +151,6 @@ pipeline {
                                             fi
                                         """
                                     }
-                                }
                             }
                         }
                         post{

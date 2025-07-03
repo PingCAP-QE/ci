@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-ghpr_integration_nodejs_test.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -13,6 +14,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
         }
     }
     environment {
@@ -26,6 +28,14 @@ pipeline {
         stage('Debug info') {
             // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
             steps {
+                sh label: 'Debug info', script: """
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    ls -l /dev/null
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
                     script {
@@ -46,7 +56,7 @@ pipeline {
                         }
                     }
                 }
-                dir(REFS.repo) {
+                dir("tidb-test") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -60,44 +70,47 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    container('nodejs') {
-                        cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                            sh label: 'tidb-server', script: 'make'
-                            retry(2) {
-                                sh label: 'download binary', script: """
-                                    chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                    mv third_bin/* bin/
-                                    ls -alh bin/
-                                """
-                                sh label: "check binary", script: """
-                                    ls bin/tidb-server && ./bin/tidb-server -V
-                                    ls bin/pd-server && ./bin/pd-server -V
-                                    ls bin/tikv-server ./bin/tikv-server -V
-                                """
-                            }
+                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
+                        sh label: 'tidb-server', script: 'make'
+                        retry(2) {
+                            sh label: 'download binary', script: """
+                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                mv third_bin/* bin/
+                                ls -alh bin/
+                            """
+                            sh label: "check binary", script: """
+                                pwd && ls -alh
+                                ls bin/tidb-server && ./bin/tidb-server -V
+                                ls bin/pd-server && ./bin/pd-server -V
+                                ls bin/tikv-server && ./bin/tikv-server -V
+                            """
                         }
                     }
                 }
             }
         }
-        stage('Node.js Tests') {
+        stage('JDBC Tests') {
             matrix {
                 axes {
                     axis {
-                        name 'TEST_DIR'
-                        values 'prisma_test', 'typeorm_test', 'sequelize_test'
+                        name 'TEST_PARAMS'
+                        values 'jdbc8_test ./test_fast.sh', 'jdbc8_test ./test_slow.sh', 'mybatis_test ./test.sh',
+                            'jooq_test ./test.sh', 'tidb_jdbc_test/tidb_jdbc_unique_test ./test.sh',
+                            'tidb_jdbc_test/tidb_jdbc8_test ./test_fast.sh', 'tidb_jdbc_test/tidb_jdbc8_test ./test_slow.sh',
+                            'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_slow.sh', 'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_tls.sh'
+                            // 'hibernate_test/hibernate-orm-test ./test.sh'
                     }
                     axis {
                         name 'TEST_STORE'
                         values "tikv"
                     }
                 }
-                agent {
+                agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
-                        defaultContainer 'nodejs'
+                        defaultContainer 'java'
                     }
                 }
                 stages {
@@ -120,17 +133,28 @@ pipeline {
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    sh label: "${TEST_DIR} ", script: """#!/usr/bin/env bash
-                                        export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
-                                        export TIDB_TEST_STORE_NAME="${TEST_STORE}"
-                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                            export TIKV_PATH="127.0.0.1:2379"
-                                        fi
-
-                                        cd \${TEST_DIR} && chmod +x *.sh && ./test.sh
-                                    """
+                                    container("java") {
+                                        sh label: "test_params=${TEST_PARAMS} ", script: """
+                                            #!/usr/bin/env bash
+                                            params_array=(\${TEST_PARAMS})
+                                            TEST_DIR=\${params_array[0]}
+                                            TEST_SCRIPT=\${params_array[1]}
+                                            echo "TEST_DIR=\${TEST_DIR}"
+                                            echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                            if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                                export TIKV_PATH="127.0.0.1:2379"
+                                                export TIDB_TEST_STORE_NAME="tikv"
+                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                            else
+                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                                export TIDB_TEST_STORE_NAME="unistore"
+                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                            fi
+                                        """
+                                    }
                                 }
                             }
                         }

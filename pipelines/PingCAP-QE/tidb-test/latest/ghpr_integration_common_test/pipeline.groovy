@@ -2,10 +2,11 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
+final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/latest/pod-ghpr_integration_jdbc_test.yaml'
+final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -89,27 +90,23 @@ pipeline {
                 }
             }
         }
-        stage('JDBC Tests') {
+        stage('Tests') {
             matrix {
                 axes {
                     axis {
                         name 'TEST_PARAMS'
-                        values 'jdbc8_test ./test_fast.sh', 'jdbc8_test ./test_slow.sh', 'mybatis_test ./test.sh',
-                            'jooq_test ./test.sh', 'tidb_jdbc_test/tidb_jdbc_unique_test ./test.sh',
-                            'tidb_jdbc_test/tidb_jdbc8_test ./test_fast.sh', 'tidb_jdbc_test/tidb_jdbc8_test ./test_slow.sh',
-                            'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_slow.sh', 'tidb_jdbc_test/tidb_jdbc8_tls_test ./test_tls.sh'
-                            // 'hibernate_test/hibernate-orm-test ./test.sh'
+                        values "randgen-test ./test.sh"
                     }
                     axis {
                         name 'TEST_STORE'
-                        values "tikv"
+                        values "tikv", "unistore"
                     }
                 }
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
-                        defaultContainer 'java'
+                        defaultContainer 'golang'
                     }
                 }
                 stages {
@@ -127,33 +124,35 @@ pipeline {
                             }
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh """
+                                    sh label: "print git version", script: """
+                                        pwd && ls -alh
+                                        git status && git rev-parse HEAD
+                                    """
+                                    sh label: "copy binaries", script: """
                                         mkdir -p bin
                                         cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                         ls -alh bin/
                                     """
-                                    container("java") {
-                                        sh label: "test_params=${TEST_PARAMS} ", script: """
-                                            #!/usr/bin/env bash
-                                            params_array=(\${TEST_PARAMS})
-                                            TEST_DIR=\${params_array[0]}
-                                            TEST_SCRIPT=\${params_array[1]}
-                                            echo "TEST_DIR=\${TEST_DIR}"
-                                            echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-                                            if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIKV_PATH="127.0.0.1:2379"
-                                                export TIDB_TEST_STORE_NAME="tikv"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            else
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIDB_TEST_STORE_NAME="unistore"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            fi
-                                        """
-                                    }
+                                    sh label: "test_params=${TEST_PARAMS} ", script: """
+                                        #!/usr/bin/env bash
+                                        params_array=(\${TEST_PARAMS})
+                                        TEST_DIR=\${params_array[0]}
+                                        TEST_SCRIPT=\${params_array[1]}
+                                        echo "TEST_DIR=\${TEST_DIR}"
+                                        echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIKV_PATH="127.0.0.1:2379"
+                                            export TIDB_TEST_STORE_NAME="tikv"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                        else
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIDB_TEST_STORE_NAME="unistore"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                        fi
+                                    """
                                 }
                             }
                         }
