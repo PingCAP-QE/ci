@@ -1,6 +1,9 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap-qe/tidb-test/pull_tiproxy_jdbc_test') {
+final fullRepo = 'pingcap-qe/tidb-test'
+final branchAlias = 'latest' // For trunk and latest release branches.
+final jobName = 'pull_tiproxy_jdbc_test'
+
+pipelineJob("${fullRepo}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
@@ -12,13 +15,13 @@ pipelineJob('pingcap-qe/tidb-test/pull_tiproxy_jdbc_test') {
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/PingCAP-QE/tidb-test")
+        githubProjectUrl("https://github.com/${fullRepo}")
     }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/PingCAP-QE/tidb-test/latest/pull_tiproxy_jdbc_test.groovy")
+            scriptPath("pipelines/${fullRepo}/${branchAlias}/${jobName}/pipeline.groovy")
             scm {
                 git{
                     remote {

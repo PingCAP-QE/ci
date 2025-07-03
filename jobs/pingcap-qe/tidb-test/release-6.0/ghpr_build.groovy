@@ -11,13 +11,13 @@ pipelineJob('pingcap-qe/tidb-test/release-6.0/ghpr_build') {
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/PingCAP-QE/tidb-test")
+        githubProjectUrl("https://github.com/pingcap-qe/tidb-test")
     }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/PingCAP-QE/tidb-test/release-6.0/ghpr_build.groovy")
+            scriptPath("pipelines/pingcap-qe/tidb-test/release-6.0/ghpr_build.groovy")
             scm {
                 git{
                     remote {
