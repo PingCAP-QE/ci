@@ -14,13 +14,6 @@ spec:
         limits:
           memory: 24Gi
           cpu: "8"
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.5.11-2-gfd3e259
       tty: true
