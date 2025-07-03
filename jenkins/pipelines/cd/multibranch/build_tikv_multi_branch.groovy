@@ -243,5 +243,4 @@ try {
     if(env.BRANCH_NAME == 'master'){
          upload_result_to_db()
     }
-
 }

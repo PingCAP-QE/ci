@@ -377,7 +377,7 @@ try {
                     retry(3) {
                         timeout(10) {
                         sh """
-                        tar --exclude=tidb-server.tar.gz -czvf tidb-server.tar.gz *
+                        tar -czvf tidb-server.tar.gz bin/
                         bin/tidb-server -V
                         curl --fail -F  ${filepath}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
                         curl --fail -F  ${filepath2}=@tidb-server.tar.gz ${FILE_SERVER_URL}/upload | egrep 'success'
