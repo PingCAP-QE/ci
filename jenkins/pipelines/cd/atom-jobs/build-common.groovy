@@ -817,11 +817,6 @@ def packageBinary() {
         sh """
         tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
         """
-    //  pd,tidb,tidb-test 非release版本，和代码一起打包
-    } else if ((PRODUCT == "pd" || PRODUCT == "tidb" || PRODUCT == "tidb-test" ) && RELEASE_TAG.length() < 1) {
-        sh """
-        tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
-        """
     } else if (PRODUCT == "tiem") {
         sh """
         tar --exclude=${TARGET}.tar.gz -czvf ${TARGET}.tar.gz *
