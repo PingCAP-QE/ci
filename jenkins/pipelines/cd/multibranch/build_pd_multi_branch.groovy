@@ -267,7 +267,7 @@ try {
                     release_one("pd","${githash}")
                     timeout(10) {
                         sh """
-                        tar --exclude=pd-server.tar.gz -czvf pd-server.tar.gz *
+                        tar -czvf pd-server.tar.gz bin/
                         curl -F ${filepath}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload
                         curl -F ${filepath2}=@pd-server.tar.gz ${FILE_SERVER_URL}/upload
 
