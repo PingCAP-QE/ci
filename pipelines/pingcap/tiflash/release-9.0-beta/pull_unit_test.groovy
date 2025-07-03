@@ -103,6 +103,7 @@ pipeline {
                         git version
                         git status
                         """
+                        git.setSshKey(GIT_CREDENTIALS_ID)
                         retry(2) {
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             dir("contrib/tiflash-proxy") {
