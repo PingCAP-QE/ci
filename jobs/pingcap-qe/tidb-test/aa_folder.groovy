@@ -1,3 +1,3 @@
 folder('pingcap-qe/tidb-test') {
-    description("Folder for pipelines of PingCAP-QE/tidb-test repo")
+    description("Folder for pipelines of pingcap-qe/tidb-test repo")
 }

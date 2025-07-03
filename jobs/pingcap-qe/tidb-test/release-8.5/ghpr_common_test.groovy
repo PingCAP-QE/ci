@@ -12,7 +12,7 @@ pipelineJob('pingcap-qe/tidb-test/release-8.5/ghpr_common_test') {
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/PingCAP-QE/tidb-test")
+        githubProjectUrl("https://github.com/pingcap-qe/tidb-test")
     }
 
     definition {
