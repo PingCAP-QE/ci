@@ -11,6 +11,8 @@ configMapGenerator:
       - pingcap-inc_enterprise-extensions_presubmits.yaml=pingcap-inc/enterprise-extensions/presubmits.yaml
       - pingcap-inc_tici_presubmits.yaml=pingcap-inc/tici/presubmits.yaml
       - pingcap-qe_ci_periodics.yaml=pingcap-qe/ci/periodics.yaml
+      - pingcap-qe_ci_presubmits.yaml=pingcap-qe/ci/presubmits.yaml
+      - pingcap-qe_ee-apps_presubmits.yaml=pingcap-qe/ee-apps/presubmits.yaml
       - pingcap-qe_tidb-test_latest-presubmits-next-gen.yaml=pingcap-qe/tidb-test/latest-presubmits-next-gen.yaml
       - pingcap-qe_tidb-test_latest-presubmits.yaml=pingcap-qe/tidb-test/latest-presubmits.yaml
       - pingcap-qe_tidb-test_release-6.0-presubmits.yaml=pingcap-qe/tidb-test/release-6.0-presubmits.yaml
@@ -31,6 +33,8 @@ configMapGenerator:
       - pingcap_ticdc_release-9.0-beta-presubmits.yaml=pingcap/ticdc/release-9.0-beta-presubmits.yaml
       - pingcap_tidb-binlog_latest-presubmits.yaml=pingcap/tidb-binlog/latest-presubmits.yaml
       - pingcap_tidb-engine-ext_latest-presubmits.yaml=pingcap/tidb-engine-ext/latest-presubmits.yaml
+      - pingcap_tidb-engine-ext_release-6.1-latest-presubmits.yaml=pingcap/tidb-engine-ext/release-6.1-latest-presubmits.yaml
+      - pingcap_tidb-operator_latest-presubmits.yaml=pingcap/tidb-operator/latest-presubmits.yaml
       - pingcap_tidb-tools_presubmits.yaml=pingcap/tidb-tools/presubmits.yaml
       - pingcap_tidb_common-postsubmits.yaml=pingcap/tidb/common-postsubmits.yaml
       - pingcap_tidb_latest-periodics.yaml=pingcap/tidb/latest-periodics.yaml
