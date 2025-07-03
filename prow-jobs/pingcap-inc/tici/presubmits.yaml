@@ -32,8 +32,8 @@ presubmits:
                 echo "Cargo version: $(cargo --version)"
 
                 # Build and verify
-                make meta_server && ./target/debug/meta_server --version
-                make worker_server && ./target/debug/worker_server --version
+                make meta_server && ./target/debug/meta_service_server --version
+                make worker_server && ./target/debug/worker_node_server --version
 
                 # check format & clippy
                 make check
