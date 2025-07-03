@@ -104,7 +104,7 @@ pipeline {
 
                     # test them.
                     make server -C ${REFS.repo}
-                    ./${REFS.repo}/bin/tidb-server -keyspace-name=test-ks -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 | tee ./loading-plugin.log &
+                    ./${REFS.repo}/bin/tidb-server -keyspace-name=SYSTEM -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 | tee ./loading-plugin.log &
 
                     sleep 30
                     ps aux | grep tidb-server
