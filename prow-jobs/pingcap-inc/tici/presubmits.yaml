@@ -31,11 +31,9 @@ presubmits:
                 echo "Rust version: $(rustc --version)"
                 echo "Cargo version: $(cargo --version)"
 
-                # enable devtoolset
-                source /opt/rh/devtoolset-10/enable
-
                 # Build and verify
-                make rust && ./target/debug/tici --version
+                make meta_server && ./target/debug/meta_server --version
+                make worker_server && ./target/debug/worker_server --version
 
                 # check format & clippy
                 make check
