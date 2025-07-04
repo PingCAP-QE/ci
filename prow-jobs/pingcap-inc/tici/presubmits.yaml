@@ -38,6 +38,9 @@ presubmits:
                 # check format & clippy
                 make check
             resources:
+              requests:
+                cpu: "6"
+                memory: 12Gi
               limits:
                 cpu: "6"
                 memory: 12Gi
@@ -65,6 +68,9 @@ presubmits:
                 make ci-prepare-test
                 make ci-run-test
             resources:
+              requests:
+                cpu: "6"
+                memory: 12Gi
               limits:
                 cpu: "6"
                 memory: 12Gi
