@@ -12,7 +12,7 @@ Before you start, ensure you have:
 
 ## Using the Helper Script
 
-The repository includes a helper script [`scripts/ops/cherry_pick_pull.sh`](/scripts/ops/cherry_pick_pull.sh) that automates most of the cherry-picking process. It provides a streamlined way to cherry-pick changes from one branch to another while handling the associated GitHub operations. It's particularly useful for maintaining release branches when you need to backport specific fixes.
+The repository includes a helper script [`scripts/ops/cherry_pick_pull.sh`](../../scripts/ops/cherry_pick_pull.sh) that automates most of the cherry-picking process. It provides a streamlined way to cherry-pick changes from one branch to another while handling the associated GitHub operations. It's particularly useful for maintaining release branches when you need to backport specific fixes.
 
 ### Basic Usage
 
