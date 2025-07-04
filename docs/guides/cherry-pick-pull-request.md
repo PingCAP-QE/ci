@@ -78,7 +78,7 @@ If the cherry-pick encounters conflicts:
 5. When prompted by the script, enter 'y' to proceed
 
 
-## Manual Address Conflicts For Existed PRs
+## Resolving Merge Conflicts in a Pull Request
 
 Please refer to the official GitHub documentation for resolving merge conflicts using GitHub web or the command line:
 [Addressing merge conflicts](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts)
