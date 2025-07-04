@@ -60,7 +60,7 @@ GITHUB_USER=myusername DRY_RUN=1 ci-repo-cloned-path/scripts/ops/cherry_pick_pul
 Here's what happens behind the scenes when you use the script:
 
 1. The script checks that you have a clean working tree
-2. It creates a new branch with a name format: `automated-cherry-pick-of-#PRID-target-branch-timestamp`
+2. It creates a new branch with a name format: `automated-cherry-pick-of-#PR-ID-target-branch-timestamp`
 3. It downloads the patch files for the specified PRs
 4. It attempts to apply each patch using `git am -3`
 5. If there are conflicts, it prompts you to resolve them
