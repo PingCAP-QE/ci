@@ -39,8 +39,8 @@ presubmits:
                 make check
             resources:
               limits:
-                cpu: "2"
-                memory: 8Gi
+                cpu: "6"
+                memory: 12Gi
 
     - <<: *brancher
       name: pull-e2e
@@ -66,5 +66,5 @@ presubmits:
                 make ci-run-test
             resources:
               limits:
-                cpu: "2"
-                memory: 8Gi
+                cpu: "6"
+                memory: 12Gi
