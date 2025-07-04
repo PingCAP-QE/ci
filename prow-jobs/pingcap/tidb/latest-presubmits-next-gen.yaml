@@ -12,9 +12,9 @@ presubmits:
       name: pingcap/tidb/pull_build_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: pull-build-next-gen
+      context: non-block-pull-build-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-build-next-gen(?: .*?)?$"
       rerun_command: "/test pull-build-next-gen"
 
@@ -22,9 +22,9 @@ presubmits:
       name: pingcap/tidb/pull_check_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: pull-check-next-gen
+      context: non-block-pull-check-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-check-next-gen(?: .*?)?$"
       rerun_command: "/test pull-check-next-gen"
 
@@ -52,9 +52,9 @@ presubmits:
       name: pingcap/tidb/pull_unit_test_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: pull-unit-test-next-gen
+      context: non-block-pull-unit-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-unit-test-next-gen"
 
@@ -62,9 +62,9 @@ presubmits:
       name: pingcap/tidb/pull_unit_test_ddlv1_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # run_if_changed: "pkg/(ddl|meta)/.*"
+      run_if_changed: "pkg/(ddl|meta)/.*"
       optional: true
-      context: pull-unit-test-ddlv1-next-gen
+      context: non-block-pull-unit-test-ddlv1-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-ddlv1-next-gen(?: .*?)?$"
       rerun_command: "/test pull-unit-test-ddlv1-next-gen"
 
@@ -84,7 +84,7 @@ presubmits:
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: pull-mysql-client-test-next-gen
+      context: non-block-pull-mysql-client-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-mysql-client-test-next-gen"
 
