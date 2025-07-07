@@ -23,7 +23,7 @@ presubmits:
       spec:
         containers:
           - name: build-debug
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.6.29-2-g2b88550
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.6.29-4-g580a226_linux_amd64
             command: [/bin/bash, -ce]
             args:
               - |
@@ -53,7 +53,7 @@ presubmits:
       spec:
         containers:
           - name: e2e
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.6.29-2-g2b88550 # Use a patched CDC version to output handle.
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.6.29-4-g580a226_linux_amd64 # Use a patched CDC version to output handle.
             command: [/bin/bash, -ce]
             env:
               - name: ASSET_DIR
