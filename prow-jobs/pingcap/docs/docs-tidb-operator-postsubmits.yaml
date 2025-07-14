@@ -10,3 +10,4 @@ postsubmits:
       branches:
         - ^master$
         - ^release-1\.[3-6]$
+        - ^release-2\.[0-9]+$
