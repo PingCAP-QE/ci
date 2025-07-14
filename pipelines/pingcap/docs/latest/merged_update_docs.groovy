@@ -77,7 +77,7 @@ pipeline {
                             python3 scripts/merge_by_toc.py
                             scripts/generate_pdf.sh
                             # Generate PDF for TiDB Cloud
-                            if [ "${REFS.base_ref}" = "release-8.1" ]; then
+                            if [ "${REFS.base_ref}" = "release-8.5" ]; then
                                 python3 scripts/merge_by_toc.py TOC-tidb-cloud.md doc_cloud.md tidb-cloud
                                 scripts/generate_cloud_pdf.sh
                             fi
