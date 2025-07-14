@@ -1,0 +1,15 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  PingCAP-QE/tidb-test:
+    - name: pingcap-qe/tidb-test/latest/pull_integration_jdbc_test_next_gen
+      agent: jenkins
+      decorate: false
+      optional: true
+      branches:
+        - ^master$
+    - name: pingcap-qe/tidb-test/latest/pull_mysql_test_next_gen
+      agent: jenkins
+      decorate: false
+      optional: true
+      branches:
+        - ^master$
