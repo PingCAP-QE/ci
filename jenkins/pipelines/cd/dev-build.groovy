@@ -290,11 +290,11 @@ spec:
                             sh label: 'package-tiup', script: """
                                 MAX_RETRIES=3
                                 RETRY_COUNT=0
-                                
+
                                 while [ \$RETRY_COUNT -lt \$MAX_RETRIES ]; do
                                     RETRY_COUNT=\$((RETRY_COUNT + 1))
                                     echo "Attempting package_tiup.py (attempt \$RETRY_COUNT/\$MAX_RETRIES)..."
-                                    
+
                                     if package_tiup.py ${Product} ${BinPathDict[arch]} ${BinBuildPathDict[arch]}; then
                                         echo "package_tiup.py executed successfully"
                                         exit 0
