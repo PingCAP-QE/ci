@@ -117,7 +117,6 @@ pipeline {
                             """
                         }
                     }
-                    sh "make bazel_build"
                 }
             }
         }
