@@ -20,7 +20,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 90, unit: 'MINUTES')
+        timeout(time: 15, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -56,14 +56,15 @@ pipeline {
                 }
             }
         }
-
         stage("Check DDL package") {
             steps {
                 dir(REFS.repo) {
-                    sh "make check-ddl"
-                    sh 'echo """This test checks whether there is any usage of GetSessionVars in the ddl package within the PR.
+                    sh """
+                    make check-ddl
+                    echo \"\"\"This test checks whether there is any usage of GetSessionVars in the ddl package within the PR.
                     Since calling GetSessionVars may occasionally introduce errors, this test serves as a reminder for reviewers to carefully examine the code.
-                    """'
+                    \"\"\"
+                    """
                 }
             }
         }
