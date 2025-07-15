@@ -200,7 +200,7 @@ presubmits:
       rerun_command: "/test pull-tiflash-integration-test"
 
     - <<: *brancher
-      name: pingcap/tidb/ghpr_ddl_check
+      name: pingcap/tidb/ghpr_check_ddl
       agent: jenkins
       decorate: false # need add this.
       run_if_changed: "pkg/ddl/.*"
