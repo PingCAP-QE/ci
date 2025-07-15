@@ -126,7 +126,7 @@ pipeline {
                             }
                         }
                         post{
-                            failure {
+                            always {
                                 sh label: "collect logs", script: """
                                     ls /tmp/backup_restore_test
                                     tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")
