@@ -65,7 +65,7 @@ pipeline {
                     Since calling GetSessionVars may occasionally introduce errors, this test serves as a reminder for reviewers to carefully examine the code.
                     """'
                 }
-            } 
+            }
         }
     }
     post {
