@@ -23,7 +23,7 @@ presubmits:
       spec:
         containers:
           - name: build-debug
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.7.13-2-gdf06f11
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.7.13-4-g801199f
             command: [/bin/bash, -ce]
             args:
               - |
@@ -53,7 +53,7 @@ presubmits:
       spec:
         containers:
           - name: e2e
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.7.13-2-gdf06f11
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.7.13-4-g801199f
             command: [/bin/bash, -ce]
             env:
               - name: ASSET_DIR
