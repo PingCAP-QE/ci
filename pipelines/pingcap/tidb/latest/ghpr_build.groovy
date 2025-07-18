@@ -102,6 +102,24 @@ pipeline {
                 }
             }
         }
+        stage("check ddl package") {
+            steps {
+                dir(REFS.repo) {
+                    try {
+                        sh "make check-ddl"
+                    } catch (err) {
+                        withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
+                            sh """
+                                rm -f comment-pr
+                                curl -O http://fileserver.pingcap.net/download/comment-pr
+                                chmod +x comment-pr
+                                ./comment-pr --token=$TOKEN --owner=pingcap --repo=tidb --number=${ghprbPullId} --comment="check ddl package failed, please check the log."
+                            """
+                        }
+                    }
+                }
+            }
+        }
         stage("Test plugin") {
             when { not { expression { REFS.base_ref ==~ /^feature[\/_].*/ } } } // skip for feature branches.
             steps {
