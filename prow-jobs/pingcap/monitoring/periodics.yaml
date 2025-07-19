@@ -106,7 +106,7 @@ periodics:
           command: [bash, -ce]
           env:
             - name: TARGET
-              value: release-9.0-beta.1 # update it to new branch name when it's finished.
+              value: release-9.0-beta.2 # update it to new branch name when it's finished.
           resources:
             limits:
               memory: 4Gi
