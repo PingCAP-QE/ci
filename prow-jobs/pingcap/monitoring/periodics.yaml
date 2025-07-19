@@ -14,7 +14,7 @@ periodics:
       activeDeadlineSeconds: 3600
       containers:
         - name: check
-          image: golang:1.23.2
+          image: golang:1.23.11
           env:
             - name: TARGET
               value: master
@@ -102,7 +102,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: golang:1.23
+          image: golang:1.23.11
           command: [bash, -ce]
           env:
             - name: TARGET
@@ -133,7 +133,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: golang:1.23.2
+          image: golang:1.23.11
           command: [bash, -ce]
           env:
             - name: TARGET
