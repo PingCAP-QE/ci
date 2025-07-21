@@ -27,6 +27,7 @@ presubmits:
             command: [/bin/bash, -ce]
             args:
               - |
+                set -ex
                 # Verify Rust environment
                 echo "Rust version: $(rustc --version)"
                 echo "Cargo version: $(cargo --version)"
