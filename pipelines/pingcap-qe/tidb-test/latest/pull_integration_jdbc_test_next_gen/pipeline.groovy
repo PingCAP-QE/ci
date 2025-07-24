@@ -134,7 +134,7 @@ pipeline {
                         steps {
                             dir(REFS.repo) {
                                 // restore the cache saved by previous stage.
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     // if cache missed, it will fail(should not miss).
                                     sh 'chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
                                 }
