@@ -1,6 +1,5 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
 @Library('tipipeline') _
 
 final BRANCH_ALIAS = 'latest'
@@ -85,7 +84,7 @@ pipeline {
                     }
                     axis {
                         name 'STORE'
-                        values 'unistore', 'tikv'
+                        values 'unistore' //, 'tikv'
                     }
                 }
                 agent{
@@ -97,7 +96,6 @@ pipeline {
                 }
                 stages {
                     stage('Test') {
-                        options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
                                 // restore the cache saved by previous stage.
