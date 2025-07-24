@@ -64,26 +64,21 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    retry(3) {
+                    dir('bin') {
                         sh label: 'download binary', script: """
-                        chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                        ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                        mv third_bin/tikv-server bin/
-                        mv third_bin/pd-server bin/
-                        rm -rf bin/bin
-                        chown -R 1000:1000 bin/
+                            script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                            chmod +x $script
+                            $script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            # chown -R 1000:1000 bin/
                         """
                     }
                 }
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """#!/usr/bin/env bash
+                        sh label: 'cache tidb-test', script: """
                         touch ws-${BUILD_TAG}
                         mkdir -p bin
-                        cp -r ../tidb/bin/* bin/ && chmod +x bin/*
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tidb-server -V
+                        cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
                         """
                     }
                 }

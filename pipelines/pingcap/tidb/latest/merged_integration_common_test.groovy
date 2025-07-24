@@ -65,28 +65,23 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    retry(3) {
-                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    dir('bin') {
                         sh label: 'download binary', script: """
-                        chmod +x \${WORKSPACE}/scripts/artifacts/*.sh
-                        \${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                        mv third_bin/tikv-server bin/
-                        mv third_bin/pd-server bin/
-                        ls -alh bin/
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tidb-server -V
+                            script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                            chmod +x $script
+                            $script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                         """
                     }
                 }
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                        sh 'cd tidb_test && ./build.sh'
+                        sh 'cd randgen-test && ./build.sh'
                         sh label: 'cache tidb-test', script: """
-                        touch ws-${BUILD_TAG}
-                        mkdir -p bin
-                        cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
-                        cd tidb_test && ./build.sh && cd ..
-                        cd randgen-test && ./build.sh && cd ..
+                            touch ws-${BUILD_TAG}
+                            mkdir -p bin
+                            cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
                         """
                     }
                 }

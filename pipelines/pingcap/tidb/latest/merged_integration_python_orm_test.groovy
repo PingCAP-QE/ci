@@ -62,16 +62,16 @@ pipeline {
             steps {
                 dir('tidb') {
                     container("golang") {
-                        retry(3) {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/tikv-server bin/
-                            mv third_bin/pd-server bin/
-                            rm -rf bin/bin
-                            ls -alh bin/
-                            """
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                        dir('bin') {
+                            retry(3) {
+                                sh label: 'download binary', script: """
+                                    script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                    chmod +x $script
+                                    $script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                    ls -alh .
+                                """
+                            }
                         }
                     }
                 }
