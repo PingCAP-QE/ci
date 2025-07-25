@@ -69,7 +69,7 @@ pipeline {
                             script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                             chmod +x \$script
                             \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            # chown -R 1000:1000 bin/
+                            chown -R 1000:1000 bin/
                         """
                     }
                 }
