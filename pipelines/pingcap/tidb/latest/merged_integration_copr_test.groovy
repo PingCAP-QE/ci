@@ -73,8 +73,8 @@ pipeline {
                             retry(3) {
                                 sh label: 'download binary', script: """
                                     script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                                    chmod +x $script
-                                    $script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                    chmod +x \$script
+                                    \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                                 """
                             }
                         }
