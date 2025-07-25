@@ -53,35 +53,27 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            rm -rf third_bin/
-                            rm -rf bin/
-                            chmod +x ../tidb/br/tests/*.sh
-                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh ${REFS.base_ref}
-                            mkdir -p bin && mv third_bin/* bin/
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                        """
-                    }
-                }
                 dir('tidb') {
+                    cache(path: "./bin", includes: '**/*', key: "binary-failpoint/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
+                        sh label: 'tidb-server', script: '[ -f ./bin/tidb-server ] || (make failpoint-enable && make && make failpoint-disable)'
+                    }
+                    dir('bin') {
+                        container('utils') {
+                            sh label: 'download binary', script: """
+                                script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                chmod +x \$script
+                                \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref} --tiflash=${REFS.base_ref}
+                            """
+                        }
+                    }
                     sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                         chmod +x br/tests/*.sh
-                        ./br/tests/run_group_br_tests.sh others
+                        ./lightning/tests/run_group_br_tests.sh others
                     """
-                    sh label: "prepare build", script: """
-                        [ -f ./bin/tidb-server ] || (make failpoint-enable && make && make failpoint-disable)
-                        [ -f ./bin/br.test ] || make build_for_br_integration_test
-                        ls -alh ./bin
-                        ./bin/tidb-server -V
-                    """
+                    sh '[ -f ./bin/br.test ] || make build_for_br_integration_test'
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
-                        sh label: "prepare cache binary", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
+                        sh label: 'cache tidb-test', script: """
+                            touch ws-${BUILD_TAG}
                             ls -alh ./bin
                         """
                     }

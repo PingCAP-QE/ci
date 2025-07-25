@@ -65,15 +65,25 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/merged_integration_test/rev-${BUILD_TAG}") {
-                        container("golang") {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        }
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
+                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
                 }
                 dir('tidb-test') {
+                    dir('bin') {
+                        container('utils') {
+                            sh label: 'download binary', script: """
+                                script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                chmod +x \$script
+                                \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            """
+                        }
+                    }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
+                        sh label: 'cache tidb-test', script: """
+                            cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
+                            touch ws-${BUILD_TAG}
+                        """
                     }
                 }
             }
@@ -101,19 +111,10 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/merged_integration_test/rev-${BUILD_TAG}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                                }
-                            }
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                        ls -alh bin/
-                                    """
                                     container("java") {
+                                        sh 'chmod +x bin/* && ls -alh bin/'
                                         sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """#!/usr/bin/env bash
                                             export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                             cd ${TEST_DIR} && ${TEST_CMD}

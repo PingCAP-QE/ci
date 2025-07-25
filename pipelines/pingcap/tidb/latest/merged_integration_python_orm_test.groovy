@@ -61,29 +61,24 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    container("golang") {
-                        retry(3) {
-                            sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                            sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/tikv-server bin/
-                            mv third_bin/pd-server bin/
-                            rm -rf bin/bin
-                            ls -alh bin/
-                            """
-                        }
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
+                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
                 }
                 dir('tidb-test') {
+                    dir('bin') {
+                        container('utils') {
+                            sh label: 'download binary', script: """
+                                script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                chmod +x \$script
+                                \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            """
+                        }
+                    }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """#!/usr/bin/env bash
-                        touch ws-${BUILD_TAG}
-                        mkdir -p bin
-                        cp -r ../tidb/bin/* bin/ && chmod +x bin/*
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tidb-server -V
+                        sh label: 'cache tidb-test', script: """
+                            cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
+                            touch ws-${BUILD_TAG}
                         """
                     }
                 }
