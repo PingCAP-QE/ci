@@ -4,6 +4,6 @@ idna==3.10
 multi-key-dict==2.0.3
 pbr==6.1.0
 python-jenkins==1.8.2
-requests==2.32.3
+requests==2.32.4
 six==1.16.0
 urllib3==2.2.3
