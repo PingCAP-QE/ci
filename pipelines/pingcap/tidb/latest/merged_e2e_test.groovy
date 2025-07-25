@@ -72,16 +72,14 @@ pipeline {
         stage('Tests') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    sh label: 'test graceshutdown', script: """
-                    cd tests/graceshutdown && make
-                    ./run-tests.sh
-                    """
-                    sh label: 'test globalkilltest', script: """
-                    cd tests/globalkilltest && make
-                    cp ${WORKSPACE}/tidb/bin/tikv-server ${WORKSPACE}/tidb/bin/pd-server ./bin/
-                    PD=./bin/pd-server  TIKV=./bin/tikv-server ./run-tests.sh
-                    """
+                dir('tidb/tests/graceshutdown') {
+                    sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'
+                }
+                dir('tidb/tests/globalkilltest') {
+                    sh sh label: 'test globalkilltest', script: '''
+                        make
+                        PD=${WORKSPACE}/tidb/bin/pd-server TIKV=${WORKSPACE}/tidb/bin/tikv-server ./run-tests.sh
+                    '''
                 }
             }
             post{

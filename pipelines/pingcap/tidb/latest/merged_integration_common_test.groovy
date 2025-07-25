@@ -68,6 +68,8 @@ pipeline {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
+                }
+                dir('tidb-test') {
                     dir('bin') {
                         container('utils') {
                             sh label: 'download binary', script: """
@@ -77,15 +79,10 @@ pipeline {
                             """
                         }
                     }
-                }
-                dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'cd tidb_test && ./build.sh'
-                        sh 'cd randgen-test && ./build.sh'
                         sh label: 'cache tidb-test', script: """
+                            cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
                             touch ws-${BUILD_TAG}
-                            mkdir -p bin
-                            cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
                         """
                     }
                 }

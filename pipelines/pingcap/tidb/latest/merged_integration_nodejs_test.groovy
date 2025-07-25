@@ -66,21 +66,21 @@ pipeline {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
-                    dir('bin') {
-                        sh label: 'download binary', script: """
-                            script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                            chmod +x \$script
-                            \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            chown -R 1000:1000 bin/
-                        """
-                    }
                 }
                 dir('tidb-test') {
+                    dir('bin') {
+                        container('utils') {
+                            sh label: 'download binary', script: """
+                                script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                chmod +x \$script
+                                \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            """
+                        }
+                    }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh label: 'cache tidb-test', script: """
-                        touch ws-${BUILD_TAG}
-                        mkdir -p bin
-                        cp -r ../tidb/bin/{pd,tidb,tikv}-server bin/ && chmod +x bin/*
+                            cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
+                            touch ws-${BUILD_TAG}
                         """
                     }
                 }
@@ -107,6 +107,7 @@ pipeline {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
+                                        chown -R 1000:1000 bin/
                                         ls -alh bin/
                                         ./bin/pd-server -V
                                         ./bin/tikv-server -V
