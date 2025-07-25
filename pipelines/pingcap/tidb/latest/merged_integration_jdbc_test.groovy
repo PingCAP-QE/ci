@@ -75,7 +75,6 @@ pipeline {
                         }
                     }
                 }
-                }
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh label: 'cache tidb-test', script: """
