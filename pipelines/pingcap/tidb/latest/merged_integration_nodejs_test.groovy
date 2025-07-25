@@ -63,7 +63,9 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
+                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    }
                     dir('bin') {
                         sh label: 'download binary', script: """
                             script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
