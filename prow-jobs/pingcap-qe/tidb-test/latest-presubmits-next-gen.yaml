@@ -19,6 +19,6 @@ presubmits:
       run_if_changed: "mysql_test/.*"
       context: non-block/pull-integration-mysql-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test-next-gen(?: .*?)?$"
-      rerun_command: "/test pull-integration-mysql-test-next-gen"        
+      rerun_command: "/test pull-integration-mysql-test-next-gen"
       branches:
         - ^master$
