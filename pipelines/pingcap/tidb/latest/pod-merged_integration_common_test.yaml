@@ -21,13 +21,7 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.5.11-2-gfd3e259
       tty: true
