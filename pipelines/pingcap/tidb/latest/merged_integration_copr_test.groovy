@@ -68,8 +68,9 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    container("golang") {
-                        dir('bin') {
+                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    dir('bin') {
+                        container("utils") {
                             retry(3) {
                                 sh label: 'download binary', script: """
                                     script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"

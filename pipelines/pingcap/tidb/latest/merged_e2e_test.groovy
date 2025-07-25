@@ -54,12 +54,14 @@ pipeline {
                 dir('tidb') {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     dir('bin') {
-                        retry(3) {
-                            sh label: 'download binary', script: """
-                                script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                                chmod +x \$script
-                                \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            """
+                        container('utils') {
+                            retry(3) {
+                                sh label: 'download binary', script: """
+                                    script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                    chmod +x \$script
+                                    \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                """
+                            }
                         }
                     }
                 }
