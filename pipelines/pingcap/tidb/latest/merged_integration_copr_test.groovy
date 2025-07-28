@@ -88,20 +88,13 @@ pipeline {
         stage('Tests') {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    sh label: 'print version', script: """
-                    chmod +x bin/*
-                    ./bin/tikv-server -V
-                    ./bin/pd-server -V
-                    """
-                }
                 dir('tikv-copr-test') {
-                    sh label: "Push Down Test", script: """#!/usr/bin/env bash
+                    sh label: "Push Down Test", script: '''#!/usr/bin/env bash
                         pd_bin=${WORKSPACE}/tidb/bin/pd-server \
                         tikv_bin=${WORKSPACE}/tidb/bin/tikv-server \
                         tidb_src_dir=${WORKSPACE}/tidb \
                         make push-down-test
-                    """
+                    '''
                 }
             }
         }

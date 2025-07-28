@@ -80,7 +80,7 @@ pipeline {
                     }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
+                            cp -r ../tidb/bin/tidb-server bin/
                             touch ws-${BUILD_TAG}
                         """
                     }

@@ -70,6 +70,8 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
+                    dir('tidb_test') { sh './build.sh' }
+                    dir('randgen-test') { sh './build.sh' }
                     dir('bin') {
                         container('utils') {
                             sh label: 'download binary', script: """
@@ -81,7 +83,7 @@ pipeline {
                     }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
+                            cp -r ../tidb/bin/tidb-server bin/
                             touch ws-${BUILD_TAG}
                         """
                     }
