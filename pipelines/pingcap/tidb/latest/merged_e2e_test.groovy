@@ -22,20 +22,6 @@ pipeline {
         timeout(time: 40, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir('tidb') {
@@ -49,12 +35,13 @@ pipeline {
                 }
             }
         }
-        stage('Prepare') {
+        stage('Tests') {
+            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
-                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    }
+                dir('tidb/tests/graceshutdown') {
+                    sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'
+                }
+                dir('tidb/tests/globalkilltest') {
                     dir('bin') {
                         container('utils') {
                             retry(3) {
@@ -66,19 +53,8 @@ pipeline {
                             }
                         }
                     }
-                }
-            }
-        }
-        stage('Tests') {
-            options { timeout(time: 30, unit: 'MINUTES') }
-            steps {
-                dir('tidb/tests/graceshutdown') {
-                    sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'
-                }
-                dir('tidb/tests/globalkilltest') {
                     sh label: 'test globalkilltest', script: '''
-                        make
-                        PD=${WORKSPACE}/tidb/bin/pd-server TIKV=${WORKSPACE}/tidb/bin/tikv-server ./run-tests.sh
+                        make && ./run-tests.sh
                     '''
                 }
             }
