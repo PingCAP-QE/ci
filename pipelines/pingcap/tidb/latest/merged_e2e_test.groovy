@@ -76,7 +76,7 @@ pipeline {
                     sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'
                 }
                 dir('tidb/tests/globalkilltest') {
-                    sh sh label: 'test globalkilltest', script: '''
+                    sh label: 'test globalkilltest', script: '''
                         make
                         PD=${WORKSPACE}/tidb/bin/pd-server TIKV=${WORKSPACE}/tidb/bin/tikv-server ./run-tests.sh
                     '''
