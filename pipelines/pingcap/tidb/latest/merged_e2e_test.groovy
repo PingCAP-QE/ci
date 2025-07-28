@@ -52,18 +52,19 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    retry(3) {
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                        sh label: 'download binary', script: """
-                            chmod +x \${WORKSPACE}/scripts/artifacts/*.sh
-                            \${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/tikv-server bin/
-                            mv third_bin/pd-server bin/
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tidb-server -V
-                        """
+                    }
+                    dir('bin') {
+                        container('utils') {
+                            retry(3) {
+                                sh label: 'download binary', script: """
+                                    script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                    chmod +x \$script
+                                    \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                """
+                            }
+                        }
                     }
                 }
             }
@@ -71,16 +72,14 @@ pipeline {
         stage('Tests') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    sh label: 'test graceshutdown', script: """
-                    cd tests/graceshutdown && make
-                    ./run-tests.sh
-                    """
-                    sh label: 'test globalkilltest', script: """
-                    cd tests/globalkilltest && make
-                    cp ${WORKSPACE}/tidb/bin/tikv-server ${WORKSPACE}/tidb/bin/pd-server ./bin/
-                    PD=./bin/pd-server  TIKV=./bin/tikv-server ./run-tests.sh
-                    """
+                dir('tidb/tests/graceshutdown') {
+                    sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'
+                }
+                dir('tidb/tests/globalkilltest') {
+                    sh label: 'test globalkilltest', script: '''
+                        make
+                        PD=${WORKSPACE}/tidb/bin/pd-server TIKV=${WORKSPACE}/tidb/bin/tikv-server ./run-tests.sh
+                    '''
                 }
             }
             post{

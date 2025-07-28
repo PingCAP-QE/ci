@@ -13,6 +13,7 @@ function fetch_file_from_oci_artifact() {
     # download file
     file="$(yq .annotations[\"org.opencontainers.image.title\"] blob.yaml)"
     blob="$repo@$(yq .digest blob.yaml)"
+    echo "🔗 blob fetching url: ${blob}" >&2
     oras blob fetch --output $file $blob
     rm blob.yaml
     echo "$file"
@@ -27,10 +28,9 @@ function download() {
         return
     fi
     echo "🚀 Downloading file with name matched regex: '${to_match_file}' from ${url}"
-
     echo "📦 == artifact information ======="
     oras manifest fetch-config "$url"
-    echo "===== artifact information =====🔚"
+    echo "================================🔚"
     local tarball_file=$(fetch_file_from_oci_artifact $url "${to_match_file}")
     mv -v "$tarball_file" "$file_path"
     echo "✅ Downloaded, saved in ${file_path}"
