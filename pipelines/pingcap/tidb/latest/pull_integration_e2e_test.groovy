@@ -81,8 +81,7 @@ pipeline {
             post{
                 failure {
                     script {
-                        println "Test failed, archive the log"
-                        archiveArtifacts artifacts: 'tidb/tests/integrationtest2/logs', fingerprint: true
+                        archiveArtifacts(artifacts: 'tidb/tests/integrationtest2/logs/*.log', allowEmptyArchive: true)
                     }
                 }
             }
