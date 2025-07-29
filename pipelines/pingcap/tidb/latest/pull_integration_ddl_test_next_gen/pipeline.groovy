@@ -26,7 +26,7 @@ pipeline {
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
+        // parallelsAlwaysFailFast() // disable for debug.
     }
     stages {
         stage('Checkout') {
