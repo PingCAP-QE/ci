@@ -29,23 +29,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
@@ -71,21 +54,30 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                container("golang") {
-                    dir(REFS.repo) {
+                dir('tidb') {
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                        sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
                     }
+                    sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
                 }
-                container("utils") {
-                    dir("${REFS.repo}/bin") {
-                        sh """#!/usr/bin/env bash -euo pipefail
-                            script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                            chmod +x \$script
-                            \${script} \
-                            --pd=${TARGET_BRANCH_PD}-next-gen \
-                            --tikv=${TARGET_BRANCH_TIKV}-next-gen
-
+                dir('tidb-test') {
+                    dir('bin') {
+                        container('utils') {
+                            sh label: 'download binary', script: """
+                                script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                chmod +x \$script
+                                \$script \
+                                    --pd=${TARGET_BRANCH_PD}-next-gen \
+                                    --tikv=${TARGET_BRANCH_TIKV}-next-gen \
+                                    --tikv-worker${TARGET_BRANCH_TIKV}-next-gen
+                            """
+                        }
+                    }
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                        sh label: 'cache tidb-test', script: """
+                            cp -r ../tidb/bin/tidb-server bin/
+                            cp -r ../tidb/bin/ddltest bin/
+                            touch ws-${BUILD_TAG}
                         """
                     }
                 }
