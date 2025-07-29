@@ -23,6 +23,20 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
+        stage('Debug info') {
+            steps {
+                sh label: 'Debug info', script: """
+                    printenv
+                    echo "-------------------------"
+                    go env
+                    echo "-------------------------"
+                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
+                """
+                container(name: 'net-tool') {
+                    sh 'dig github.com'
+                }
+            }
+        }
         stage('Checkout') {
             options { timeout(time:10, unit: 'MINUTES') }
             steps {
@@ -39,29 +53,35 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
-                        sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    }
-                    dir('bin') {
-                        container('utils') {
-                            sh label: 'download binary', script: """
-                                script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                                chmod +x \$script
-                                \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref} --tiflash=${REFS.base_ref}
-                            """
-                        }
-                    }
-                    sh label: "check all tests added to group", script: """#!/usr/bin/env bash
-                            chmod +x lightning/tests/*.sh
-                            mv bin/tiflash bin/tiflash_dir
-                            ln -s `pwd`/bin/tiflash_dir/tiflash bin/tiflash
-                            ./lightning/tests/run_group_lightning_tests.sh others
+                dir("third_party_download") {
+                    retry(2) {
+                        sh label: "download third_party", script: """#!/usr/bin/env bash
+                            rm -rf third_bin/
+                            rm -rf bin/
+                            chmod +x ../tidb/lightning/tests/*.sh
+                            ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh ${REFS.base_ref}
+                            mkdir -p bin && mv third_bin/* bin/
+                            ls -alh bin/
+                            ./bin/pd-server -V
+                            ./bin/tikv-server -V
+                            ./bin/tiflash --version
                         """
-                    sh '[ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test'
+                    }
+                }
+                dir('tidb') {
+                    sh label: "check all tests added to group", script: """#!/usr/bin/env bash
+                        chmod +x lightning/tests/*.sh
+                        ./lightning/tests/run_group_lightning_tests.sh others
+                    """
+                    sh label: "prepare build", script: """#!/usr/bin/env bash
+                        [ -f ./bin/tidb-server ] || make
+                        [ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test
+                        ls -alh ./bin
+                        ./bin/tidb-server -V
+                    """
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") {
-                        sh label: 'cache tidb-test', script: """
-                            touch ws-${BUILD_TAG}
+                        sh label: "prepare cache binary", script: """
+                            cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
                         """
                     }
