@@ -54,7 +54,7 @@ pipeline {
                     }
                     sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                         chmod +x br/tests/*.sh
-                        ./lightning/tests/run_group_br_tests.sh others
+                        ./br/tests/run_group_br_tests.sh others
                     """
                     sh '[ -f ./bin/br.test ] || make build_for_br_integration_test'
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
