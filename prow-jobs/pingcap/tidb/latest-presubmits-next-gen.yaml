@@ -42,7 +42,7 @@ presubmits:
       name: pingcap/tidb/pull_mysql_test_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-mysql-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-test-next-gen(?: .*?)?$"
@@ -72,7 +72,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_e2e_test_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-integration-e2e-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-e2e-test-next-gen(?: .*?)?$"
@@ -82,7 +82,7 @@ presubmits:
       name: pingcap/tidb/pull_mysql_client_test_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-mysql-client-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
