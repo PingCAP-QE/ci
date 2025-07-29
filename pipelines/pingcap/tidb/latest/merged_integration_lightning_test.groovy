@@ -48,7 +48,7 @@ pipeline {
                             sh label: 'download binary', script: """
                                 script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
-                                \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref} --tiflash=${REFS.base_ref}
                             """
                         }
                     }
