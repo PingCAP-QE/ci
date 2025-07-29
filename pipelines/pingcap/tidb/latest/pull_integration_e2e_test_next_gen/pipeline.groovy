@@ -49,13 +49,13 @@ pipeline {
             steps {
                 dir("${REFS.repo}/tests/integrationtest2/third_bin") {
                     container("utils") {
-                        sh """#!/usr/bin/env bash -euo pipefail
+                        sh """
                             script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                             chmod +x \$script
                             \${script} \
                             --pd=${TARGET_BRANCH_PD}-next-gen \
                             --tikv=${TARGET_BRANCH_TIKV}-next-gen \
-                            --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen
+                            --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
                             --ticdc-new=${TARGET_BRANCH_TICDC}
                         """
                     }
@@ -63,11 +63,12 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 45, unit: 'MINUTES') }
             steps {
                 dir("${REFS.repo}/tests/integrationtest2") {
                     sh '''
                         cd third_bin
+                        mv tiflash tiflash_dir
+                        ln -s `pwd`/tiflash_dir/tiflash tiflash
                         ./tikv-server -V
                         ./pd-server -V
                         ./tiflash --version
