@@ -21,6 +21,16 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.5.11-2-gfd3e259
+      tty: true
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 50m
+        limits:
+          cpu: "1"
+          memory: 4Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
