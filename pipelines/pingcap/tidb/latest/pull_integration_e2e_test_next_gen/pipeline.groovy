@@ -56,6 +56,7 @@ pipeline {
                             --pd=${TARGET_BRANCH_PD}-next-gen \
                             --tikv=${TARGET_BRANCH_TIKV}-next-gen \
                             --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
+                            --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
                             --ticdc-new=${TARGET_BRANCH_TICDC}
                         """
                     }
