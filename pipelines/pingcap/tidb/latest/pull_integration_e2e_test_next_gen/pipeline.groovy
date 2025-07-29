@@ -31,23 +31,6 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
@@ -66,21 +49,15 @@ pipeline {
             steps {
                 dir("${REFS.repo}/tests/integrationtest2/third_bin") {
                     container("utils") {
-                            sh """#!/usr/bin/env bash -euo pipefail
-                                script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                                chmod +x \$script
-                                \${script} \
-                                --pd=${TARGET_BRANCH_PD}-next-gen \
-                                --tikv=${TARGET_BRANCH_TIKV}-next-gen \
-                                --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
-                                --ticdc-new=${TARGET_BRANCH_TICDC}
-                                mv tiflash tiflash_dir && mv tiflash_dir/* ./
-
-                                ./tikv-server -V
-                                ./pd-server -V
-                                ./tiflash --version
-                                ./cdc version
-                            """
+                        sh """#!/usr/bin/env bash -euo pipefail
+                            script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                            chmod +x \$script
+                            \${script} \
+                            --pd=${TARGET_BRANCH_PD}-next-gen \
+                            --tikv=${TARGET_BRANCH_TIKV}-next-gen \
+                            --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen
+                            --ticdc-new=${TARGET_BRANCH_TICDC}
+                        """
                     }
                 }
             }
@@ -89,6 +66,13 @@ pipeline {
             options { timeout(time: 45, unit: 'MINUTES') }
             steps {
                 dir("${REFS.repo}/tests/integrationtest2") {
+                    sh '''
+                        cd third_bin
+                        ./tikv-server -V
+                        ./pd-server -V
+                        ./tiflash --version
+                        ./cdc version
+                    '''
                     sh label: 'test', script: './run-tests.sh'
                 }
             }
