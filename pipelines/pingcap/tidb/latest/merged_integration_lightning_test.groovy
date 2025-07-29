@@ -54,6 +54,8 @@ pipeline {
                     }
                     sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                             chmod +x lightning/tests/*.sh
+                            mv bin/tiflash bin/tiflash_dir
+                            ln -s `pwd`/bin/tiflash_dir/tiflash bin/tiflash
                             ./lightning/tests/run_group_lightning_tests.sh others
                         """
                     sh '[ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test'

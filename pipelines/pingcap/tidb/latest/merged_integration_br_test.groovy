@@ -90,6 +90,8 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
+                                        mv bin/tiflash bin/tiflash_dir
+                                        ln -s `pwd`/bin/tiflash_dir/tiflash bin/tiflash
                                         ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
                                     """
                                 }
