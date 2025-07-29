@@ -60,21 +60,21 @@ pipeline {
                             --ticdc-new=${TARGET_BRANCH_TICDC}
                         """
                     }
+                    sh '''
+                        mv tiflash tiflash_dir
+                        ln -s `pwd`/tiflash_dir/tiflash tiflash
+
+                        ./tikv-server -V
+                        ./pd-server -V
+                        ./tiflash --version
+                        ./cdc version
+                    '''
                 }
             }
         }
         stage('Tests') {
             steps {
                 dir("${REFS.repo}/tests/integrationtest2") {
-                    sh '''
-                        cd third_bin
-                        mv tiflash tiflash_dir
-                        ln -s `pwd`/tiflash_dir/tiflash tiflash
-                        ./tikv-server -V
-                        ./pd-server -V
-                        ./tiflash --version
-                        ./cdc version
-                    '''
                     sh label: 'test', script: './run-tests.sh'
                 }
             }
