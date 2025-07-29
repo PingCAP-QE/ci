@@ -25,20 +25,6 @@ pipeline {
         // parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
@@ -81,7 +67,7 @@ pipeline {
                     }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
+                            cp -r ../tidb/bin/tidb-server bin/
                             touch ws-${BUILD_TAG}
                         """
                     }
