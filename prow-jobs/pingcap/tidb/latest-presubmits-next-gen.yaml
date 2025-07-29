@@ -14,7 +14,7 @@ presubmits:
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: non-block-pull-build-next-gen
+      context: non-block/pull-build-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-build-next-gen(?: .*?)?$"
       rerun_command: "/test pull-build-next-gen"
 
@@ -24,7 +24,7 @@ presubmits:
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: non-block-pull-check-next-gen
+      context: non-block/pull-check-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-check-next-gen(?: .*?)?$"
       rerun_command: "/test pull-check-next-gen"
 
@@ -34,7 +34,7 @@ presubmits:
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: pull-integration-realcluster-test-next-gen
+      context: non-block/pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-realcluster-test-next-gen"
 
@@ -42,9 +42,9 @@ presubmits:
       name: pingcap/tidb/pull_mysql_test_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: pull-mysql-test-next-gen
+      context: non-block/pull-mysql-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-mysql-test-next-gen"
 
@@ -54,7 +54,7 @@ presubmits:
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: non-block-pull-unit-test-next-gen
+      context: non-block/pull-unit-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-unit-test-next-gen"
 
@@ -62,9 +62,9 @@ presubmits:
       name: pingcap/tidb/pull_integration_e2e_test_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: pull-integration-e2e-test-next-gen
+      context: non-block/pull-integration-e2e-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-e2e-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-e2e-test-next-gen"
 
@@ -72,9 +72,9 @@ presubmits:
       name: pingcap/tidb/pull_mysql_client_test_next_gen
       agent: jenkins
       decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: non-block-pull-mysql-client-test-next-gen
+      context: non-block/pull-mysql-client-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-mysql-client-test-next-gen"
 
@@ -84,7 +84,7 @@ presubmits:
       decorate: false # need add this.
       # run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       optional: true
-      context: pull-br-integration-test-next-gen
+      context: non-block/pull-br-integration-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test-next-gen"
 
@@ -94,6 +94,6 @@ presubmits:
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
-      context: pull-integration-ddl-test-next-gen
+      context: non-block/pull-integration-ddl-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test-next-gen"
