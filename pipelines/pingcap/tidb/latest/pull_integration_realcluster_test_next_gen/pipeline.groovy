@@ -88,6 +88,13 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
+                            // 'integrationtest_with_tikv.sh y',
+                            // 'integrationtest_with_tikv.sh n',
+                            'run-tests.sh bazel_brietest',
+                            'run-tests.sh bazel_pessimistictest',
+                            'run-tests.sh bazel_sessiontest',
+                            'run-tests.sh bazel_statisticstest',
+                            'run-tests.sh bazel_txntest',
                             'run-tests.sh bazel_addindextest',
                             'run-tests.sh bazel_addindextest1',
                             'run-tests.sh bazel_addindextest2',
@@ -97,6 +104,9 @@ pipeline {
                             'run-tests.sh bazel_importintotest2',
                             'run-tests.sh bazel_importintotest3',
                             'run-tests.sh bazel_importintotest4',
+                            'run-tests.sh bazel_pipelineddmltest',
+                            'run-tests.sh bazel_flashbacktest',
+                            'run-tests.sh bazel_ddltest',
                         )
                     }
                 }
