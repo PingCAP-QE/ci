@@ -6,7 +6,8 @@ final BRANCH_ALIAS = 'latest'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final K8S_NAMESPACE = "jenkins-tidb"
-final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
+final SELF_DIR = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}"
+final POD_TEMPLATE_FILE = "${SELF_DIR}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final TARGET_BRANCH_PD = "master"
@@ -73,13 +74,12 @@ pipeline {
                                 chmod +x \$script
                                 \${script} --pd=${TARGET_BRANCH_PD}-next-gen --tikv=${TARGET_BRANCH_TIKV}-next-gen --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen
                             """
+                            sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh"
                         }
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
-                            touch rev-${REFS.pulls[0].sha}
-                        """
+                        sh "touch rev-${REFS.pulls[0].sha}"
                     }
                 }
             }
@@ -108,9 +108,7 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
-                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                    chmod +x br/tests/*.sh && ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
-                                """
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: "chmod +x br/tests/*.sh && ./br/tests/run_group_br_tests.sh ${TEST_GROUP}"
                             }
                         }
                         post{
