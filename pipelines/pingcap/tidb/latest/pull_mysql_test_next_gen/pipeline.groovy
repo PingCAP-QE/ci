@@ -129,6 +129,8 @@ pipeline {
                                 // run the test.
                                 // TODO: use a script for next-gen, consider merging the script.
                                 sh label: "store=${STORE} part=${PART}", script: """#!/usr/bin/env bash
+                                    set -euo pipefail
+
                                     if [ "$STORE" == "tikv" ]; then
                                         echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                         bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
