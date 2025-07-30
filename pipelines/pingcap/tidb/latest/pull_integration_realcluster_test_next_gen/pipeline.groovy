@@ -29,23 +29,6 @@ pipeline {
         OCI_ARTIFACT_HOST = 'hub-mig.pingcap.net'
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
@@ -71,13 +54,23 @@ pipeline {
                                 \${script} --pd=${TARGET_BRANCH_PD}-next-gen --tikv=${TARGET_BRANCH_TIKV}-next-gen --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen
                             """
                         }
+                        sh '''
+                            MINIO_BIN_PATH="bin/minio"
+                            # Determine OS and ARCH for MinIO download URL
+                            OS=$(uname | tr '[:upper:]' '[:lower:]')
+                            ARCH=$(uname -m)
+                            case "$ARCH" in
+                                x86_64) ARCH="amd64" ;;
+                                aarch64 | arm64) ARCH="arm64" ;;
+                                *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+                            esac
+                            curl -sSL -o "$MINIO_BIN_PATH" "https://dl.min.io/server/minio/release/${OS}-${ARCH}/minio"
+                            chmod +x "$MINIO_BIN_PATH"
+                        '''
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
-                            mv bin/tidb-server bin/integration_test_tidb-server
-                            touch rev-${REFS.pulls[0].sha}
-                        """
+                        sh "touch rev-${REFS.pulls[0].sha}"
                     }
                 }
             }
@@ -90,23 +83,25 @@ pipeline {
                         values(
                             // 'integrationtest_with_tikv.sh y',
                             // 'integrationtest_with_tikv.sh n',
-                            'run-tests.sh bazel_brietest',
-                            'run-tests.sh bazel_pessimistictest',
-                            'run-tests.sh bazel_sessiontest',
-                            'run-tests.sh bazel_statisticstest',
-                            'run-tests.sh bazel_txntest',
-                            'run-tests.sh bazel_addindextest',
-                            'run-tests.sh bazel_addindextest1',
-                            'run-tests.sh bazel_addindextest2',
-                            'run-tests.sh bazel_addindextest3',
-                            'run-tests.sh bazel_addindextest4',
-                            'run-tests.sh bazel_importintotest',
-                            'run-tests.sh bazel_importintotest2',
-                            'run-tests.sh bazel_importintotest3',
-                            'run-tests.sh bazel_importintotest4',
-                            'run-tests.sh bazel_pipelineddmltest',
-                            'run-tests.sh bazel_flashbacktest',
-                            'run-tests.sh bazel_ddltest',
+                            // 'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d y',
+                            // 'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d n',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_brietest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pessimistictest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_sessiontest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_statisticstest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_txntest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest1',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest2',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest3',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest4',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_importintotest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_importintotest2',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_importintotest3',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_importintotest4',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pipelineddmltest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_flashbacktest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_ddltest',
                         )
                     }
                 }
@@ -120,6 +115,9 @@ pipeline {
                 stages {
                     stage('Test')  {
                         options { timeout(time: 50, unit: 'MINUTES') }
+                        environment {
+                            MINIO_BIN_PATH = "bin/minio"
+                        }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -131,7 +129,7 @@ pipeline {
                                 git diff .
                                 git status
                                 """
-                                sh "tests/realtikvtest/scripts/next-gen/${SCRIPT_AND_ARGS}"
+                                sh SCRIPT_AND_ARGS
                             }
                         }
                         post {
