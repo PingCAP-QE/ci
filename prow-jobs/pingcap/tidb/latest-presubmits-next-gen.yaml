@@ -2,6 +2,7 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
+      - ^release-nextgen-\d+$
       - ^feature/next[-]gen.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
@@ -13,8 +14,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      optional: true
-      context: non-block/pull-build-next-gen
+      context: pull-build-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-build-next-gen(?: .*?)?$"
       rerun_command: "/test pull-build-next-gen"
 
@@ -23,8 +23,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      optional: true
-      context: non-block/pull-check-next-gen
+      context: pull-check-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-check-next-gen(?: .*?)?$"
       rerun_command: "/test pull-check-next-gen"
 
