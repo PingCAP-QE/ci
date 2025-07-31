@@ -22,7 +22,7 @@ spec:
           memory: 128Mi
           cpu: 100m
     - name: mysql
-      image: hub.pingcap.net/jenkins/mysql:5.7
+      image: hub.pingcap.net/jenkins/mysql:8.0.21
       tty: true
       args: ["--server-id=1", "--log-bin", "--binlog-format=ROW"]
       env:
