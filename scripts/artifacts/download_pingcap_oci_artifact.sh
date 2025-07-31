@@ -121,6 +121,13 @@ function main() {
         chmod +x cdc
         echo "🎉 download TiCDC(new) success"
     fi
+    if [[ -n "$MINIO" ]]; then
+        echo "🚀 start download MinIO server and client"
+        fetch_file_from_oci_artifact "$minio_oci_url" minio
+        fetch_file_from_oci_artifact "$minio_oci_url" mc
+        chmod +x minio mc
+        echo "🎉 download MinIO server and client success"
+    fi
 }
 
 function parse_cli_args() {
@@ -154,6 +161,10 @@ function parse_cli_args() {
         TICDC_NEW="${i#*=}"
         shift # past argument=value
         ;;
+        -minio=*|--minio=*)
+        MINIO="${i#*=}"
+        shift # past argument=value
+        ;;
         --default)
         DEFAULT=YES
         shift # past argument with no value
@@ -174,6 +185,7 @@ function parse_cli_args() {
     [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
     [[ -n "${TICDC}" ]]         && echo "TICDC       = ${TICDC}"
     [[ -n "${TICDC_NEW}" ]]     && echo "TICDC_NEW   = ${TICDC_NEW}"
+    [[ -n "${MINIO}" ]]         && echo "MINIO       = ${MINIO}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
@@ -190,6 +202,7 @@ function parse_cli_args() {
     pd_oci_url="${registry_host}/tikv/pd/package:${PD}_${tag_suffix}"
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
     ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
+    minio_oci_url="${registry_host}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
 }
 
 function check_tools() {
