@@ -51,22 +51,13 @@ pipeline {
                             sh """
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
-                                \${script} --pd=${TARGET_BRANCH_PD}-next-gen --tikv=${TARGET_BRANCH_TIKV}-next-gen --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen
+                                \${script} \
+                                    --pd=${TARGET_BRANCH_PD}-next-gen \
+                                    --tikv=${TARGET_BRANCH_TIKV}-next-gen \
+                                    --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
+                                    --minio=RELEASE.2025-07-23T15-54-02Z
                             """
                         }
-                        sh '''
-                            MINIO_BIN_PATH="bin/minio"
-                            # Determine OS and ARCH for MinIO download URL
-                            OS=$(uname | tr '[:upper:]' '[:lower:]')
-                            ARCH=$(uname -m)
-                            case "$ARCH" in
-                                x86_64) ARCH="amd64" ;;
-                                aarch64 | arm64) ARCH="arm64" ;;
-                                *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
-                            esac
-                            curl -sSL -o "$MINIO_BIN_PATH" "https://dl.min.io/server/minio/release/${OS}-${ARCH}/minio"
-                            chmod +x "$MINIO_BIN_PATH"
-                        '''
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
