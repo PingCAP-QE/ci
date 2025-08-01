@@ -70,7 +70,7 @@ presubmits:
                 apt-get update
 
                 # Install Docker CLI
-                apt-get install -y --no-install-recommends docker-ce-cli
+                apt-get install -y --no-install-recommends docker-ce-cli docker-buildx-plugin
 
                 # Install Go 1.23
                 curl -fsSL https://go.dev/dl/go1.23.10.linux-amd64.tar.gz | tar -C /usr/local -xz
