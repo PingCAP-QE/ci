@@ -55,6 +55,7 @@ presubmits:
                   git \
                   make \
                   cmake \
+                  gcc \
                   tar
 
                 # Add Docker's official GPG key
@@ -76,7 +77,8 @@ presubmits:
                 curl -fsSL https://go.dev/dl/go1.23.10.linux-amd64.tar.gz | tar -C /usr/local -xz
                 export PATH=/usr/local/go/bin:$PATH
                 export GOPATH=/go
-                export GOCACHE=/tmp/go-cache
+                # for go -race
+                export CGO_ENABLED=1
 
                 echo "Go version: $(go version)"
                 echo "Docker version: $(docker version --format '{{.Client.Version}}')"
