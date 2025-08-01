@@ -35,11 +35,11 @@ presubmits:
                 mountPath: /var/run
             resources:
               requests:
-                memory: "4Gi"
-                cpu: "1"
+                memory: "32Gi"
+                cpu: "6"
               limits:
-                memory: "4Gi"
-                cpu: "1"
+                memory: "32Gi"
+                cpu: "6"
 
           - name: e2e-runner
             image: ubuntu:22.04
@@ -105,8 +105,8 @@ presubmits:
                 mountPath: /var/run # Mount the shared socket directory
             resources:
               requests:
-                memory: 32Gi
-                cpu: "6"
+                memory: 4Gi
+                cpu: "1"
               limits:
-                memory: 32Gi
-                cpu: "6"
+                memory: 4Gi
+                cpu: "1"
