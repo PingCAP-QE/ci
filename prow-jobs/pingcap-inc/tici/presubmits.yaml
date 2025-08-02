@@ -38,6 +38,9 @@ presubmits:
 
                 # check format & clippy
                 make check
+
+                # Run unit tests
+                make ci-ut
             resources:
               requests:
                 cpu: "6"
