@@ -99,14 +99,14 @@ presubmits:
                 done
                 echo "Docker daemon is responsive."
 
-                GINKGO_OPTS="--procs=6" make e2e
+                GINKGO_OPTS="--procs=3" make e2e
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run # Mount the shared socket directory
             resources:
               requests:
-                memory: 4Gi
+                memory: 8Gi
                 cpu: "1"
               limits:
-                memory: 4Gi
+                memory: 8Gi
                 cpu: "1"
