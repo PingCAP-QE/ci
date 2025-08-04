@@ -38,7 +38,6 @@ presubmits:
                 memory: "32Gi"
                 cpu: "6"
               limits:
-                memory: "32Gi"
                 cpu: "6"
 
           - name: e2e-runner
@@ -108,5 +107,4 @@ presubmits:
                 memory: 8Gi
                 cpu: "1"
               limits:
-                memory: 8Gi
                 cpu: "1"
