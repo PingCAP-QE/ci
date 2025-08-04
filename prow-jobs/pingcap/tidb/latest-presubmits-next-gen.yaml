@@ -22,8 +22,9 @@ presubmits:
       name: pingcap/tidb/pull_check_next_gen
       agent: jenkins
       decorate: false # need add this.
+      optional: true
       skip_if_only_changed: *skip_if_only_changed
-      context: pull-check-next-gen
+      context: non-block/pull-check-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-check-next-gen(?: .*?)?$"
       rerun_command: "/test pull-check-next-gen"
 
