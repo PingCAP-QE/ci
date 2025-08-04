@@ -19,16 +19,6 @@ presubmits:
       rerun_command: "/test pull-build-next-gen"
 
     - <<: *brancher
-      name: pingcap/tidb/pull_check_next_gen
-      agent: jenkins
-      decorate: false # need add this.
-      optional: true
-      # skip_if_only_changed: *skip_if_only_changed
-      context: non-block/pull-check-next-gen
-      trigger: "(?m)^/test (?:.*? )?pull-check-next-gen(?: .*?)?$"
-      rerun_command: "/test pull-check-next-gen"
-
-    - <<: *brancher
       name: pingcap/tidb/pull_integration_realcluster_test_next_gen
       agent: jenkins
       decorate: false # need add this.
