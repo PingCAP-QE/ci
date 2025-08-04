@@ -4,7 +4,7 @@ global_definitions:
   skip_if_only_changed: &skip_if_only_changed
     "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   decoration_config: &decoration_config
-    timeout: 45m
+    timeout: 2h
 
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
@@ -99,7 +99,7 @@ presubmits:
                 done
                 echo "Docker daemon is responsive."
 
-                make e2e
+                GINKGO_OPTS="--procs=6" make e2e
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run # Mount the shared socket directory
