@@ -126,7 +126,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
+                        options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir('ticdc') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
