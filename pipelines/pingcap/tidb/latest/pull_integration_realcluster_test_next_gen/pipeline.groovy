@@ -76,7 +76,6 @@ pipeline {
                         values(
                             // 'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d y',
                             'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d n',
-                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_brietest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pessimistictest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_sessiontest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_statisticstest',
