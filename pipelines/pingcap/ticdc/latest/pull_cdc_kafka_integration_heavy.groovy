@@ -22,7 +22,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 65, unit: 'MINUTES')
+        timeout(time: 80, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
