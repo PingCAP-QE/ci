@@ -12,6 +12,16 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	// Bot usernames to check for approval notifications
+	TiChiBotUser     = "ti-chi-bot"
+	TiChiBotUserBold = "ti-chi-bot[bot]"
+
+	// Approval notification pattern
+	ApprovalNotificationPrefix = "[APPROVALNOTIFIER] This PR is **APPROVED**"
+	ApprovalDetailsPrefix      = "This pull-request has been approved by:"
+)
+
 type GitHubClient struct {
 	client *github.Client
 	ctx    context.Context
@@ -192,12 +202,12 @@ func (gc *GitHubClient) extractApproversFromBotComments(comments []Comment) []st
 
 	for _, comment := range comments {
 		// Only check comments from ti-chi-bot (with or without [bot] suffix)
-		if comment.User != "ti-chi-bot" && comment.User != "ti-chi-bot[bot]" {
+		if comment.User != TiChiBotUser && comment.User != TiChiBotUserBold {
 			continue
 		}
 
 		// Look for approval notification pattern
-		if strings.HasPrefix(comment.Body, "[APPROVALNOTIFIER] This PR is **APPROVED**") {
+		if strings.HasPrefix(comment.Body, ApprovalNotificationPrefix) {
 			// Extract approvers from the comment body
 			extractedApprovers := gc.parseApproversFromBotComment(comment.Body)
 			approvers = append(approvers, extractedApprovers...)
@@ -212,7 +222,7 @@ func (gc *GitHubClient) parseApproversFromBotComment(commentBody string) []strin
 	var approvers []string
 
 	// Check if this is an approval notification comment
-	if strings.Contains(commentBody, "This pull-request has been approved by:") {
+	if strings.Contains(commentBody, ApprovalDetailsPrefix) {
 		// Pattern to match all approval links: <a href="..." title="Approved">username</a>
 		// This will match all approvers in the comment
 		linkRe := regexp.MustCompile(`<a[^>]*title="Approved"[^>]*>([^<]+)</a>`)
