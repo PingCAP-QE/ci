@@ -42,7 +42,7 @@ presubmits:
       name: pingcap/tidb/pull_unit_test_next_gen
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-unit-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-next-gen(?: .*?)?$"
