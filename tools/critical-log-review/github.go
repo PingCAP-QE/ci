@@ -214,6 +214,19 @@ func (gc *GitHubClient) parseApproversFromBotComment(commentBody string) []strin
 	var approvers []string
 
 	// Check if this is an approval notification comment
+	if strings.Contains(commentBody, ApprovalDetailsPrefix) {
+		// Use pre-compiled regex to match all approval links: <a href="..." title="Approved">username</a>
+		linkMatches := approvalLinkRegex.FindAllStringSubmatch(commentBody, -1)
+
+		for _, match := range linkMatches {
+			if len(match) > 1 {
+				username := strings.TrimSpace(match[1])
+				if username != "" {
+					approvers = append(approvers, username)
+				}
+			}
+		}
+	}
 
 	return approvers
 }
