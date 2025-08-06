@@ -198,3 +198,28 @@ presubmits:
       context: pull-tiflash-integration-test
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-integration-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-integration-test"
+
+    - name: pull-critical-log-review
+      branches:
+        - ^master$
+      decorate: true
+      decoration_config:
+        timeout: 20m
+      always_run: false
+      optional: true
+      # skip_if_only_changed: *skip_if_only_changed # TODO: add this after test is checked and stable.
+      spec:
+        containers:
+          - name: check
+            image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            command: [/bin/bash, -ce]
+            args:
+              - |
+                echo "TODO: add critical log review"
+            resources:
+              requests:
+                cpu: "2"
+                memory: 8Gi
+              limits:
+                cpu: "2"
+                memory: 8Gi
