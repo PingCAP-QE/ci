@@ -132,10 +132,11 @@ pipeline {
                                 dir(REFS.repo) {
                                     sh label: "archive log", script: """
                                     str="$SCRIPT_AND_ARGS"
-                                    logs_dir="logs_\$(echo \"\$str\" | tr ' /' '_')"                                    mkdir -p \${logs_dir}
-                                    mv pd*.log \${logs_dir} || true
-                                    mv tikv*.log \${logs_dir} || true
-                                    tar -czvf \${logs_dir}.tar.gz \${logs_dir} || true
+                                    logs_dir="logs_\$(echo \"\$str\" | tr ' /' '_')"
+                                    mkdir -p "\${logs_dir}"
+                                    mv pd*.log "\${logs_dir}" || true
+                                    mv tikv*.log "\${logs_dir}" || true
+                                    tar -czvf "\${logs_dir}.tar.gz" "\${logs_dir}" || true
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
