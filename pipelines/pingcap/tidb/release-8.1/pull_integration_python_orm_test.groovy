@@ -6,6 +6,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.1/pod-pull_integration_python_orm_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 
 pipeline {
     agent {
@@ -32,9 +33,6 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
                 }
             }
         }
