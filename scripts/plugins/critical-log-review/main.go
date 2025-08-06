@@ -12,16 +12,16 @@ func main() {
 	var (
 		configPath = flag.String("config", "config.yaml", "Path to configuration file")
 		prURL      = flag.String("pr", "", "PR URL or owner/repo#number format")
-		token      = flag.String("token", "", "GitHub token (or set GITHUB_TOKEN env var)")
+		token      = flag.String("token", "", "GitHub token (or set GITHUB_API_TOKEN env var)")
 		dryRun     = flag.Bool("dry-run", false, "Don't actually post comments or fail, just print results")
 	)
 	flag.Parse()
 
 	// Get GitHub token from environment if not provided
 	if *token == "" {
-		*token = os.Getenv("GITHUB_TOKEN")
+		*token = os.Getenv("GITHUB_API_TOKEN")
 		if *token == "" {
-			log.Fatal("GitHub token must be provided via -token flag or GITHUB_TOKEN environment variable")
+			log.Fatal("GitHub token must be provided via -token flag or GITHUB_API_TOKEN environment variable")
 		}
 	}
 

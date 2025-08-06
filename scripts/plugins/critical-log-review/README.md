@@ -28,7 +28,7 @@ A lightweight Go program to automatically check PR diffs for critical logging ch
 
 The program can also read configuration from environment variables:
 
-- `GITHUB_TOKEN` - GitHub personal access token
+- `GITHUB_API_TOKEN` - GitHub personal access token
 - `GITHUB_REPOSITORY_OWNER` - Repository owner (e.g., "pingcap")
 - `GITHUB_REPOSITORY` - Repository name (e.g., "tidb")
 - `GITHUB_PR_NUMBER` - PR number (e.g., "12345")
@@ -39,8 +39,8 @@ Example GitHub Actions workflow:
 
 ```yaml
 - name: Check Critical Log Changes
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          env:
+          GITHUB_API_TOKEN: ${{ secrets.GITHUB_API_TOKEN }}
   run: |
     cd scripts/plugins/critical-log-review
     go run . -pr "${{ github.repository }}#${{ github.event.number }}"
