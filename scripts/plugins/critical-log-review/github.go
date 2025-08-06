@@ -227,7 +227,7 @@ func (gc *GitHubClient) parseApproversFromBotComment(commentBody string) []strin
 			}
 		}
 	}
-	
+
 	return approvers
 }
 
