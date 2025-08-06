@@ -78,10 +78,10 @@ repositories:
 settings:
   # Minimum number of approvals required
   min_approvals: 1
-  
+
   # Whether to require approval from the repository-specific approvers only
   require_repo_specific_approvers: true
-  
+
   # Check behavior settings
   check_behavior:
     # How to handle critical log detection
