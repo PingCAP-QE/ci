@@ -11,13 +11,15 @@ A lightweight Go program to automatically check PR diffs for critical logging ch
 
 ## Usage
 
+> **Note**: The default configuration file is located at `configs/critical-log-review/config.yaml` in the repository root directory. See `config.yaml.example` in this directory for a configuration template.
+
 ### Command Line
 
 ```bash
-# Basic usage
+# Basic usage (uses default config from configs/critical-log-review/config.yaml)
 ./critical-log-review -pr "pingcap/tidb#12345" -token "your_github_token"
 
-# With custom config
+# With custom local config file
 ./critical-log-review -config "custom-config.yaml" -pr "https://github.com/pingcap/tidb/pull/12345"
 
 # Dry run mode
@@ -55,7 +57,33 @@ go build -o critical-log-review
 
 ## Configuration
 
-See `config.yaml` for repository-specific patterns and approver lists.
+The tool uses a YAML configuration file to define:
+
+- Repository-specific log patterns to detect
+- Required approvers for each repository  
+- Global behavior settings
+
+See `config.yaml.example` for a detailed configuration template with comments.
+
+### Configuration Structure
+
+```yaml
+repositories:
+  - name: "owner/repo"
+    patterns:
+      - name: "pattern_name"
+        description: "Pattern description"
+        regex: "regular_expression"
+    approvers:
+      - "github_username1"
+      - "github_username2"
+
+settings:
+  min_approvals: 1
+  require_repo_specific_approvers: true
+  check_behavior:
+    mode: "check_and_fail"  # or "check_and_warn"
+```
 
 ## Exit Codes
 
