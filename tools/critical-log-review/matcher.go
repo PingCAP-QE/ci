@@ -95,48 +95,6 @@ func (clc *CriticalLogChecker) CheckApprovalOptimized(repoName string, ghClient 
 	return hasEnoughApprovals, validApprovers, nil
 }
 
-// CheckApproval is deprecated but kept for backward compatibility
-// New code should use CheckApprovalOptimized instead
-func (clc *CriticalLogChecker) CheckApproval(repoName string, comments []Comment) (bool, []string, error) {
-	repo := clc.config.GetRepository(repoName)
-	if repo == nil {
-		return false, nil, fmt.Errorf("repository %s not found in config", repoName)
-	}
-
-	// Extract approvers from ti-chi-bot comments in the provided comments
-	var validApprovers []string
-
-	for _, comment := range comments {
-		// Only check comments from ti-chi-bot
-		if comment.User != "ti-chi-bot" {
-			continue
-		}
-
-		// Look for approval notification pattern
-		if strings.HasPrefix(comment.Body, "[APPROVALNOTIFIER] This PR is **APPROVED**") {
-			// This is a simplified version - for full functionality use CheckApprovalOptimized
-			// Extract usernames from the comment (basic implementation)
-			for _, requiredApprover := range repo.Approvers {
-				if strings.Contains(comment.Body, requiredApprover) {
-					validApprovers = append(validApprovers, requiredApprover)
-				}
-			}
-		}
-	}
-
-	// Remove duplicates
-	seen := make(map[string]bool)
-	uniqueApprovers := []string{}
-	for _, approver := range validApprovers {
-		if !seen[approver] {
-			seen[approver] = true
-			uniqueApprovers = append(uniqueApprovers, approver)
-		}
-	}
-
-	hasEnoughApprovals := len(uniqueApprovers) >= clc.config.Settings.MinApprovals
-	return hasEnoughApprovals, uniqueApprovers, nil
-}
 
 func (clc *CriticalLogChecker) ShouldFailCI() bool {
 	return clc.config.Settings.CheckBehavior.Mode == "check_and_fail"
