@@ -22,6 +22,11 @@ const (
 	ApprovalDetailsPrefix      = "This pull-request has been approved by:"
 )
 
+var (
+	// Pre-compiled regex patterns for better performance
+	approvalLinkRegex = regexp.MustCompile(`<a[^>]*title="Approved"[^>]*>([^<]+)</a>`)
+)
+
 type GitHubClient struct {
 	client *github.Client
 	ctx    context.Context
@@ -209,21 +214,6 @@ func (gc *GitHubClient) parseApproversFromBotComment(commentBody string) []strin
 	var approvers []string
 
 	// Check if this is an approval notification comment
-	if strings.Contains(commentBody, ApprovalDetailsPrefix) {
-		// Pattern to match all approval links: <a href="..." title="Approved">username</a>
-		// This will match all approvers in the comment
-		linkRe := regexp.MustCompile(`<a[^>]*title="Approved"[^>]*>([^<]+)</a>`)
-		linkMatches := linkRe.FindAllStringSubmatch(commentBody, -1)
-
-		for _, match := range linkMatches {
-			if len(match) > 1 {
-				username := strings.TrimSpace(match[1])
-				if username != "" {
-					approvers = append(approvers, username)
-				}
-			}
-		}
-	}
 
 	return approvers
 }
