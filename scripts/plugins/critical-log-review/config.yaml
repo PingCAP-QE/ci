@@ -1,0 +1,90 @@
+# Critical Log Review Configuration
+# This config defines repositories, their critical log patterns, and required approvers
+
+repositories:
+  - name: "pingcap/tidb"
+    patterns:
+      - name: "string_literals"
+        description: "Pattern for string literals"
+        regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\([^"]*"([^"]+)"[^)]*\)'
+      - name: "variables_and_functions"
+        description: "Pattern for variables and function calls"
+        regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
+    approvers:
+      - "zanmato1984"
+      - "fixdb"
+      - "windtalker"
+      - "Benjamin2037"
+      - "bb7133"
+      - "terry1purcell"
+      - "cfzjywxk"
+      - "niubell"
+      - "flowbehappy"
+      - "BornChanger"
+      - "xuhuaiyu"
+      - "YuJuncen"
+
+  - name: "pingcap/pd"
+    patterns:
+      - name: "string_literals"
+        description: "Pattern for string literals"
+        regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\([^"]*"([^"]+)"[^)]*\)'
+      - name: "variables_and_functions"
+        description: "Pattern for variables and function calls"
+        regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
+    approvers:
+      - "niubell"
+
+  - name: "pingcap/tiflow"
+    patterns:
+      - name: "string_literals"
+        description: "Pattern for string literals"
+        regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\([^"]*"([^"]+)"[^)]*\)'
+      - name: "variables_and_functions"
+        description: "Pattern for variables and function calls"
+        regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
+    approvers:
+      - "flowbehappy"
+
+  - name: "tikv/tikv"
+    patterns:
+      - name: "string_literals"
+        description: "Pattern for string literals"
+        regex: '(?:^|\s)error![^"]*"([^"]+)"[^)]*'
+      - name: "error_variables"
+        description: "Pattern for error variables"
+        regex: '(?:^|\s)error!\s*(\?%?\w+(?:\s*,\s*[^)]*)?)'
+    approvers:
+      - "zhangjinpeng87"
+      - "BornChanger"
+      - "YuJuncen"
+
+  - name: "pingcap/tiflash"
+    patterns:
+      - name: "macro_parameters"
+        description: "Pattern for macro parameters (e.g., LOG_ERROR(log, MACRO_PARAMS))"
+        regex: '(?:^|\s)LOG_(ERROR|FATAL)\s*\(\s*[^,]+,\s*([A-Z_][A-Z0-9_]*)\s*\)'
+      - name: "string_literals_and_concatenations"
+        description: "Pattern for raw string literals and concatenations"
+        regex: '(?:^|\s)LOG_(ERROR|FATAL)\s*\(\s*[^,]+,\s*"([^"]+(?:\s*"\s*"[^"]+)*)"(?:\s*,\s*[^)]+)?\s*\)'
+      - name: "default_messages"
+        description: "Default pattern for other message types"
+        regex: '(?:^|\s)LOG_(ERROR|FATAL)\s*\(\s*[^,]+,\s*([^,)]+?)(?:\s*,\s*[^)]+)?\s*\)'
+    approvers:
+      - "windtalker"
+      - "kolafish"
+
+# Global settings
+settings:
+  # Minimum number of approvals required
+  min_approvals: 1
+  
+  # Whether to require approval from the repository-specific approvers only
+  require_repo_specific_approvers: true
+  
+  # Check behavior settings
+  check_behavior:
+    # How to handle critical log detection
+    # "check_and_fail" - Check for existing approval, fail if not found
+    # "check_and_warn" - Check and log warning, but don't fail check
+    mode: "check_and_fail"
