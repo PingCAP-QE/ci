@@ -42,7 +42,7 @@ Example GitHub Actions workflow:
           env:
           GITHUB_API_TOKEN: ${{ secrets.GITHUB_API_TOKEN }}
   run: |
-    cd scripts/plugins/critical-log-review
+    cd tools/critical-log-review
     go run . -pr "${{ github.repository }}#${{ github.event.number }}"
 ```
 

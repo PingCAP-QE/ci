@@ -218,7 +218,7 @@ presubmits:
             args:
               - |
                 git clone -b main --single-branch --depth 1 https://github.com/pingcap-qe/ci.git /tmp/ci
-                cd /tmp/ci/scripts/plugins/critical-log-review
+                cd /tmp/ci/tools/critical-log-review
                 go run . -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
             env:
               - name: GITHUB_API_TOKEN
