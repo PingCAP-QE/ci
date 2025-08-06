@@ -1,4 +1,4 @@
-module critical-log-review
+module github.com/PingCAP-QE/ci/tools/critical-log-review
 
 go 1.20
 
