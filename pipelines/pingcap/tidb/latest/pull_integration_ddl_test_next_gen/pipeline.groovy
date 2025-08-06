@@ -12,6 +12,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final TARGET_BRANCH_PD = "master"
 final TARGET_BRANCH_TIKV = "dedicated"
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

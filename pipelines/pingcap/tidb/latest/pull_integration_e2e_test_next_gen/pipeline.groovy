@@ -15,6 +15,7 @@ final TARGET_BRANCH_TIFLASH = "master"
 final TARGET_BRANCH_TICDC = "master"
 final TARGET_BRANCH_TIKV = "dedicated"
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
