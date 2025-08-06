@@ -173,19 +173,6 @@ func (gc *GitHubClient) GetPRCommentsWithOptions(prInfo *PRInfo, stopCondition f
 	return allComments, nil
 }
 
-func (gc *GitHubClient) AddComment(prInfo *PRInfo, message string) error {
-	comment := &github.IssueComment{
-		Body: &message,
-	}
-
-	_, _, err := gc.client.Issues.CreateComment(gc.ctx, prInfo.Owner, prInfo.Repo, prInfo.Number, comment)
-	if err != nil {
-		return fmt.Errorf("failed to add comment: %w", err)
-	}
-
-	return nil
-}
-
 // CheckTiChiBotApproval checks for ti-chi-bot approval notifications
 func (gc *GitHubClient) CheckTiChiBotApproval(prInfo *PRInfo) ([]string, error) {
 	comments, err := gc.GetPRComments(prInfo)
