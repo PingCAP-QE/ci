@@ -217,9 +217,10 @@ presubmits:
             command: [/bin/bash, -ce]
             args:
               - |
-                git clone -b main --single-branch --depth 1 https://github.com/pingcap-qe/ci.git /tmp/ci
-                cd /tmp/ci/tools/critical-log-review
-                go run . -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
+                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/critical-log-review/config.yaml
+                go run github.com/PingCAP-QE/ci/tools/critical-log-review@main \
+                  -config /tmp/config.yaml \
+                  -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
