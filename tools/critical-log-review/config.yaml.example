@@ -1,5 +1,5 @@
 # Critical Log Review Configuration Example
-# This is an example configuration file showing how to configure 
+# This is an example configuration file showing how to configure
 # critical log pattern detection and approval requirements.
 
 # Repository configurations
@@ -11,16 +11,16 @@ repositories:
       - name: "string_literals"
         description: "Pattern for string literals in Go logging"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\([^"]*"([^"]+)"[^)]*\)'
-      
-      # Pattern to match variables and function calls in log statements  
+
+      # Pattern to match variables and function calls in log statements
       - name: "variables_and_functions"
         description: "Pattern for variables and function calls in Go logging"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
-    
+
     # List of GitHub usernames who can approve critical log changes for this repository
     approvers:
       - "maintainer1"
-      - "maintainer2" 
+      - "maintainer2"
       - "security-team-lead"
 
   # Example Rust project configuration
@@ -30,12 +30,12 @@ repositories:
       - name: "string_literals"
         description: "Pattern for string literals in Rust error! macro"
         regex: '(?:^|\s)error![^"]*"([^"]+)"[^)]*'
-      
+
       # Pattern to match variables in Rust error! macro
       - name: "error_variables"
         description: "Pattern for error variables in Rust error! macro"
         regex: '(?:^|\s)error!\s*(\?%?\w+(?:\s*,\s*[^)]*)?)'
-    
+
     approvers:
       - "rust-maintainer1"
       - "rust-maintainer2"
@@ -44,12 +44,12 @@ repositories:
 settings:
   # Minimum number of approvals required from the approvers list
   min_approvals: 1
-  
+
   # Whether to require approval only from repository-specific approvers
   # If true, only users listed in the repository's approvers list can approve
   # If false, any approval comment will be accepted
   require_repo_specific_approvers: true
-  
+
   # Check behavior configuration
   check_behavior:
     # How to handle critical log detection results

@@ -60,7 +60,7 @@ go build -o critical-log-review
 The tool uses a YAML configuration file to define:
 
 - Repository-specific log patterns to detect
-- Required approvers for each repository  
+- Required approvers for each repository
 - Global behavior settings
 
 See `config.yaml.example` for a detailed configuration template with comments.
