@@ -205,6 +205,7 @@ presubmits:
       decorate: true
       decoration_config:
         timeout: 20m
+        skip_cloning: true
       always_run: false
       trigger: "(?m)^/test (?:.*? )?pull-critical-log-review(?: .*?)?$"
       rerun_command: "/test pull-critical-log-review"
@@ -230,7 +231,7 @@ presubmits:
             resources:
               requests:
                 cpu: "2"
-                memory: 8Gi
+                memory: 4Gi
               limits:
                 cpu: "2"
-                memory: 8Gi
+                memory: 4Gi
