@@ -5,7 +5,8 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_build.yaml'
+final BRANCH_ALIAS = 'latest'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 prow.setPRDescription(REFS)
@@ -54,7 +55,6 @@ pipeline {
                 }
             }
         }
-
         stage("Build tidb-server community edition"){
             steps {
                 dir(REFS.repo) {
@@ -62,30 +62,6 @@ pipeline {
                 }
             }
             post {
-                success {
-                    dir(REFS.repo) {
-                        sh label: "create tidb-server tarball", script: """
-                            rm -rf .git
-                            tar czvf tidb-server.tar.gz ./*
-                            echo "pr/${REFS.pulls[0].sha}" > sha1
-                            echo "done" > done
-                            """
-                        sh label: 'upload to tidb dir', script: """
-                            filepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
-                            donepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/done"
-                            refspath="refs/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].number}/sha1"
-                            curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
-                            curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
-                            curl -F \${refspath}=@sha1 \${FILE_SERVER_URL}/upload
-                            """
-                        sh label: 'upload to tidb-checker dir', script: """
-                            filepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
-                            donepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/done"
-                            curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
-                            curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
-                            """
-                    }
-                }
                 always {
                     dir(REFS.repo) {
                         archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
@@ -95,7 +71,7 @@ pipeline {
         }
         stage("Build tidb-server enterprise edition") {
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     sh "make enterprise-prepare enterprise-server-build && ./bin/tidb-server -V"
                 }
             }
@@ -112,6 +88,23 @@ pipeline {
                         }
                     }
                 }
+                sh label: 'Check Go version', script: """
+                    tidb_go_version=\$(grep '^go ' ${REFS.repo}/go.mod | awk '{print \$2}')
+                    plugin_audit_go_version=\$(grep '^go ' enterprise-plugin/audit/go.mod | awk '{print \$2}')
+                    plugin_whitelist_go_version=\$(grep '^go ' enterprise-plugin/whitelist/go.mod | awk '{print \$2}')
+
+                    echo "tidb go version: \$tidb_go_version"
+                    echo "enterprise-plugin audit go version: \$plugin_audit_go_version"
+                    echo "enterprise-plugin whitelist go version: \$plugin_whitelist_go_version"
+                    if [ "\$tidb_go_version" != "\$plugin_audit_go_version" ]; then
+                        echo "Go version mismatch: tidb (\$tidb_go_version) != enterprise-plugin audit (\$plugin_audit_go_version)"
+                        exit 1
+                    fi
+                    if [ "\$tidb_go_version" != "\$plugin_whitelist_go_version" ]; then
+                        echo "Go version mismatch: tidb (\$tidb_go_version) != enterprise-plugin whitelist (\$plugin_whitelist_go_version)"
+                        exit 1
+                    fi
+                """
                 sh label: 'Test plugins', script: """
                     mkdir -p plugin-so
 
@@ -132,15 +125,6 @@ pipeline {
                     killall -9 -r tidb-server
                 """
             }
-        }
-    }
-    post {
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
