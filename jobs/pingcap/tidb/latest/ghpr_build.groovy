@@ -1,6 +1,9 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap/tidb/ghpr_build') {
+final fullRepo = 'pingcap/tidb'
+final branchAlias = 'latest' // For trunk and latest release branches.
+final jobName = 'ghpr_build'
+
+pipelineJob("${fullRepo}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
@@ -12,13 +15,13 @@ pipelineJob('pingcap/tidb/ghpr_build') {
     }
     properties {
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb")
+        githubProjectUrl("https://github.com/${fullRepo}")
     }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tidb/latest/ghpr_build.groovy")
+            scriptPath("pipelines/${fullRepo}/${branchAlias}/${jobName}/pipeline.groovy")
             scm {
                 git{
                     remote {
