@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('pingcap/tidb/periodics_integration_test') {
     logRotator {
-        daysToKeep(30)
+        daysToKeep(7)
     }
     parameters {
         stringParam("TARGET_BRANCH", "master", "Target branch to verify")
