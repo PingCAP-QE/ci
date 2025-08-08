@@ -32,3 +32,40 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-integration-test)(?: .*?)?$"
+
+    - name: pull-error-log-review
+      branches:
+        - ^master$
+      decorate: true
+      decoration_config:
+        timeout: 20m
+        skip_cloning: true
+      always_run: false
+      trigger: "(?m)^/test (?:.*? )?pull-error-log-review(?: .*?)?$"
+      rerun_command: "/test pull-error-log-review"
+      optional: true
+      # skip_if_only_changed: *skip_if_only_changed # TODO: add this after test is checked and stable.
+      spec:
+        containers:
+          - name: check
+            image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            command: [/bin/bash, -ce]
+            args:
+              - |
+                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
+                go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
+                  -config /tmp/config.yaml \
+                  -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
+            env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
+            resources:
+              requests:
+                cpu: "1"
+                memory: 2Gi
+              limits:
+                cpu: "1"
+                memory: 2Gi
