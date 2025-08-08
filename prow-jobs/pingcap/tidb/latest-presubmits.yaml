@@ -207,7 +207,7 @@ presubmits:
         timeout: 20m
         skip_cloning: true
       always_run: true
-      skip_report: true
+      skip_report: true  # Temporarily enabled to verify matching rules without impacting PRs.
       trigger: "(?m)^/test (?:.*? )?pull-error-log-review(?: .*?)?$"
       rerun_command: "/test pull-error-log-review"
       optional: true
