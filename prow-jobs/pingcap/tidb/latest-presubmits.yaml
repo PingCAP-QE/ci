@@ -199,7 +199,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-tiflash-integration-test(?: .*?)?$"
       rerun_command: "/test pull-tiflash-integration-test"
 
-    - name: pull-critical-log-review
+    - name: pull-error-log-review
       branches:
         - ^master$
       decorate: true
@@ -207,8 +207,8 @@ presubmits:
         timeout: 20m
         skip_cloning: true
       always_run: false
-      trigger: "(?m)^/test (?:.*? )?pull-critical-log-review(?: .*?)?$"
-      rerun_command: "/test pull-critical-log-review"
+      trigger: "(?m)^/test (?:.*? )?pull-error-log-review(?: .*?)?$"
+      rerun_command: "/test pull-error-log-review"
       optional: true
       # skip_if_only_changed: *skip_if_only_changed # TODO: add this after test is checked and stable.
       spec:
@@ -218,8 +218,8 @@ presubmits:
             command: [/bin/bash, -ce]
             args:
               - |
-                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/critical-log-review/config.yaml
-                go run github.com/PingCAP-QE/ci/tools/critical-log-review@main \
+                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
+                go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
                   -config /tmp/config.yaml \
                   -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
             env:
