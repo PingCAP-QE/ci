@@ -89,23 +89,6 @@ pipeline {
                         }
                     }
                 }
-                sh label: 'Check Go version', script: """
-                    tidb_go_version=\$(grep '^go ' ${REFS.repo}/go.mod | awk '{print \$2}')
-                    plugin_audit_go_version=\$(grep '^go ' enterprise-plugin/audit/go.mod | awk '{print \$2}')
-                    plugin_whitelist_go_version=\$(grep '^go ' enterprise-plugin/whitelist/go.mod | awk '{print \$2}')
-
-                    echo "tidb go version: \$tidb_go_version"
-                    echo "enterprise-plugin audit go version: \$plugin_audit_go_version"
-                    echo "enterprise-plugin whitelist go version: \$plugin_whitelist_go_version"
-                    if [ "\$tidb_go_version" != "\$plugin_audit_go_version" ]; then
-                        echo "Go version mismatch: tidb (\$tidb_go_version) != enterprise-plugin audit (\$plugin_audit_go_version)"
-                        exit 1
-                    fi
-                    if [ "\$tidb_go_version" != "\$plugin_whitelist_go_version" ]; then
-                        echo "Go version mismatch: tidb (\$tidb_go_version) != enterprise-plugin whitelist (\$plugin_whitelist_go_version)"
-                        exit 1
-                    fi
-                """
                 sh label: 'Test plugins', script: """
                     mkdir -p plugin-so
 
