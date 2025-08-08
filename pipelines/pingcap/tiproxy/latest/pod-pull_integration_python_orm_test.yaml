@@ -15,7 +15,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: python
-      image: "hub.pingcap.net/temp/django-tidb-test:latest"
+      image: "hub.pingcap.net/jenkins/django-tidb-test:latest"
       tty: true
       resources:
         requests:
