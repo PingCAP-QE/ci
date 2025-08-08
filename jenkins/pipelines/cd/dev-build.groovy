@@ -60,12 +60,39 @@ def ShortImageRepoForGCR = ''
 def NeedEnterprisePlugin = false
 def PrintedVersion = ''
 
+def semverCompare = { v1, v2 ->
+    // Remove leading 'v' if present
+    def normalize = { v ->
+        v = v.toString().replaceFirst(/^v/, '')
+        // Split by '-' to separate pre-release/build metadata
+        def parts = v.split('-', 2)
+        def nums = parts[0].split('\\.')
+        def major = nums.length > 0 ? nums[0].toInteger() : 0
+        def minor = nums.length > 1 ? nums[1].toInteger() : 0
+        def patch = nums.length > 2 ? nums[2].replaceAll(/[^0-9].*$/, '').toInteger() : 0
+        def pre = parts.length > 1 ? parts[1] : ''
+        return [major, minor, patch, pre]
+    }
+    def a = normalize(v1)
+    def b = normalize(v2)
+    for (int i = 0; i < 3; i++) {
+        if (a[i] < b[i]) return -1
+        if (a[i] > b[i]) return 1
+    }
+    // Handle pre-release: empty string means stable, which is greater than any pre-release
+    if (a[3] == b[3]) return 0
+    if (a[3] == '') return 1
+    if (b[3] == '') return -1
+    // Lexical compare pre-release
+    return a[3] <=> b[3]
+}
 
 def get_dockerfile_url={arch ->
     if (params.ProductDockerfile){
         return params.ProductDockerfile
     }
-    if (Version>='v6.6.0'){
+    // Use semverCompare to check if Version >= v6.5.12
+    if (semverCompare(Version, 'v6.5.12') >= 0){
         if (Product == "tidb" && Edition == "enterprise") {
             return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.enterprise.Dockerfile"
         }
