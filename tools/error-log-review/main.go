@@ -112,12 +112,17 @@ func main() {
 	}
 
 	// No approval found - handle based on configuration
-	fmt.Println("Error log changes found but not approved")
+	fmt.Println("Error log changes found but not approved by repository log approvers")
 
 	// Always show required approvers, regardless of comment settings
 	requiredApprovers := checker.GetRequiredApprovers(repoName)
 	if len(requiredApprovers) > 0 {
-		fmt.Printf("Required approvers for %s: %s\n", repoName, strings.Join(requiredApprovers, ", "))
+		fmt.Printf("Repository log approvers for %s: %s\n", repoName, strings.Join(requiredApprovers, ", "))
+	}
+
+	// Print optional hint from config to guide contributors/maintainers
+	if hint := strings.TrimSpace(config.Settings.Hint); hint != "" {
+		fmt.Printf("Hint: %s\n", hint)
 	}
 
 	ciMode := checker.GetCIMode()
