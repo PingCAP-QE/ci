@@ -99,3 +99,5 @@ settings:
     # "check_and_fail" - Check for existing approval, fail if not found
     # "check_and_warn" - Check and log warning, but don't fail check
     mode: "check_and_fail"
+  # Optional hint printed when approval is required
+  hint: "Update error log patterns and approvers at https://github.com/PingCAP-QE/ci/blob/main/configs/error-log-review/config.yaml."

@@ -29,6 +29,8 @@ type Settings struct {
 	MinApprovals                 int           `yaml:"min_approvals"`
 	RequireRepoSpecificApprovers bool          `yaml:"require_repo_specific_approvers"`
 	CheckBehavior                CheckBehavior `yaml:"check_behavior"`
+	// Hint is an optional message shown when approval is required
+	Hint string `yaml:"hint,omitempty"`
 }
 
 type Config struct {
