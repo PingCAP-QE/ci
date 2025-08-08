@@ -8,6 +8,8 @@ final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.4/pod-ghpr_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
+
 pipeline {
     agent {
         kubernetes {
