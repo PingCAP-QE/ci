@@ -92,7 +92,7 @@ def get_dockerfile_url={arch ->
         return params.ProductDockerfile
     }
     // Use semverCompare to check if Version >= v6.6.0
-    if (semverCompare(Version, 'v6.6.0') >= 0){
+    if (semverCompare(Version, 'v6.6.0-0') >= 0){
         if (Product == "tidb" && Edition == "enterprise") {
             return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.enterprise.Dockerfile"
         }
@@ -114,7 +114,7 @@ def get_dockerfile_url={arch ->
             "pd":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/pd/Dockerfile",
             "ng-monitoring":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ng-monitoring/Dockerfile",
         ][Product]
-    } else if (semverCompare(Version, 'v6.5.12') >= 0) {
+    } else if (semverCompare(Version, 'v6.5.12-0') >= 0) {
         if (Product == "tidb" && Edition == "enterprise") {
             return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/~6.5.12/tidb.enterprise.Dockerfile"
         }
