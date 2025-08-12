@@ -45,6 +45,7 @@ export function compute(
   rawVersion: string,
   commitInBranches: string[],
 ): builtControl {
+  console.dir({ rawVersion, commitInBranches });
   const rv = semver.parse(rawVersion.trim());
 
   // Check for feature branch
