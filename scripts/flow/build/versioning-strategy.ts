@@ -45,7 +45,6 @@ export function compute(
   rawVersion: string,
   commitInBranches: string[],
 ): builtControl {
-  console.dir({ rawVersion, commitInBranches });
   const rv = semver.parse(rawVersion.trim());
 
   // Check for feature branch
@@ -194,11 +193,5 @@ function main() {
 }
 
 if (import.meta.main) {
-  // main();
-  const ret = compute("v9.0.0-beta.2.pre-243-g02ac737815\n", [
-    "* (HEAD detached at 02ac737815)",
-    "  feature/fts",
-    "",
-  ]);
-  console.dir(ret);
+  main();
 }
