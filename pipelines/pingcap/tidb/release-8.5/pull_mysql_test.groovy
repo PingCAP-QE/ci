@@ -10,6 +10,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.5/pod-pull_mysql_tes
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 // TODO(wuhuizuo): tidb-test should delivered by docker image.
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -37,9 +38,6 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
                 }
             }
         }
