@@ -50,13 +50,13 @@ export function compute(
 
   // Check for feature branch
   const featureBranch = commitInBranches.find((b) =>
-    /^\bfeature\/[\w.-]+$/.test(b)
+    /\bfeature\/[\w.-]+$/.test(b)
   );
   if (featureBranch) {
     console.info("Current commit is in a feature branch.");
     // Extract feature name, replace '/' with '.' for version/tag
     const suffix = featureBranch
-      .replace(/.*\/feature\//, "feature/")
+      .replace(/.*\bfeature\//, "feature/")
       .replaceAll("/", ".")
       .replaceAll("-", "_");
     const featureVersion = `v${rv.major}.${rv.minor}.${rv.patch}-${suffix}`;
@@ -194,5 +194,11 @@ function main() {
 }
 
 if (import.meta.main) {
-  main();
+  // main();
+  const ret = compute("v9.0.0-beta.2.pre-243-g02ac737815\n", [
+    "* (HEAD detached at 02ac737815)",
+    "  feature/fts",
+    "",
+  ]);
+  console.dir(ret);
 }
