@@ -52,6 +52,7 @@ export function compute(
     /^feature\/[\w.-]+$/.test(b)
   );
   if (featureBranch) {
+    console.info("Current commit is in a feature branch.");
     // Extract feature name, replace '/' with '.' for version/tag
     const suffix = featureBranch.replaceAll("/", ".").replaceAll("-", "_");
     const featureVersion = `v${rv.major}.${rv.minor}.${rv.patch}-${suffix}`;
