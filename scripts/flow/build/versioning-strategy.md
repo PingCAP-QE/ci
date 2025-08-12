@@ -34,4 +34,3 @@ The table below maps the input git version and branches to the expected version 
 | History style - hotfix without tag | v8.5.1-2-g1234567 | release-8.5-20250101-v8.5.1 | v8.5.1-2-g1234567 | |
 | History style - hotfix with tag | v8.5.1-20250101-fecba32 | release-8.5-20250101-v8.5.1 | v8.5.1-20250101-fecba32 | |
 | **Feature branch - prerelease** | v9.0.0-beta.1.pre-151-gb4c8f4dc8 | feature/fts | v9.0.0-feature.fts | v9.0.0-feature.fts |
-
