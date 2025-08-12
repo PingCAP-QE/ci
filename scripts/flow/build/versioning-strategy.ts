@@ -53,12 +53,8 @@ export function compute(
   );
   if (featureBranch) {
     // Extract feature name, replace '/' with '.' for version/tag
-    const featureName = featureBranch.replace(/^feature\//, "").replace(
-      /[^\w.-]/g,
-      ".",
-    );
-    const featureVersion =
-      `v${rv.major}.${rv.minor}.${rv.patch}-feature.${featureName}`;
+    const suffix = featureBranch.replaceAll("/", ".").replaceAll("-", "_");
+    const featureVersion = `v${rv.major}.${rv.minor}.${rv.patch}-${suffix}`;
     return {
       releaseVersion: featureVersion,
       newGitTag: featureVersion,
