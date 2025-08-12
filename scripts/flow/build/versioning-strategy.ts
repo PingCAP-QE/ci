@@ -47,6 +47,20 @@ export function compute(
 ): builtControl {
   const rv = semver.parse(rawVersion.trim());
 
+  // Check for feature branch
+  const featureBranch = commitInBranches.find((b) =>
+    /^feature\/[\w.-]+$/.test(b)
+  );
+  if (featureBranch) {
+    // Extract feature name, replace '/' with '.' for version/tag
+    const suffix = featureBranch.replaceAll("/", ".").replaceAll("-", "_");
+    const featureVersion = `v${rv.major}.${rv.minor}.${rv.patch}-${suffix}`;
+    return {
+      releaseVersion: featureVersion,
+      newGitTag: featureVersion,
+    };
+  }
+
   // Check if the current branch is a release branch.
   if (!commitInBranches.some(isReleaseBranch)) {
     console.info("Current commit is not contained in any release branches.");

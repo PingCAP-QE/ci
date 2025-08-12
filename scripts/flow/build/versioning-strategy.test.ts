@@ -242,6 +242,24 @@ Deno.test("compute", () => {
         version: "v8.5.1-20250101-fecba32",
       },
     },
+    {
+      description: "feature branch - beta prerelease",
+      gitVer: "v9.0.0-beta.1.pre-151-gb4c8f4dc8",
+      branches: ["feature/fts"],
+      expect: {
+        version: "v9.0.0-feature.fts",
+        newBuildTag: "v9.0.0-feature.fts",
+      },
+    },
+    {
+      description: "feature branch - alpha prerelease",
+      gitVer: "v8.5.0-alpha-2-g1234567",
+      branches: ["feature/fts"],
+      expect: {
+        version: "v8.5.0-feature.fts",
+        newBuildTag: "v8.5.0-feature.fts",
+      },
+    },
   ];
 
   for (const { description, gitVer, branches, expect } of tests) {
