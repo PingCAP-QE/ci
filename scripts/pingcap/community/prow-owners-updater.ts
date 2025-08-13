@@ -151,14 +151,21 @@ class RepoUpdater {
   }
 
   async getFileContent(path: string) {
-    const contentResponse = await this.octokit.rest.repos.getContent({
-      owner: this.owner,
-      repo: this.repo,
-      ref: this.ref,
-      path,
-    });
-    const fileContent = contentResponse.data as { content: string };
-    return atob(fileContent.content);
+    try {
+      const contentResponse = await this.octokit.rest.repos.getContent({
+        owner: this.owner,
+        repo: this.repo,
+        ref: this.ref,
+        path,
+      });
+      const fileContent = contentResponse.data as { content: string };
+      return atob(fileContent.content);
+    } catch (err) {
+      if (err instanceof RequestError && err.status === 404) {
+        return undefined;
+      }
+      throw err;
+    }
   }
 
   async toUpdateFileAndContents(ownersMap: ProwRepoOwners) {
