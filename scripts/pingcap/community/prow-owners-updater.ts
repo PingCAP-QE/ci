@@ -158,8 +158,13 @@ class RepoUpdater {
         ref: this.ref,
         path,
       });
-      const fileContent = contentResponse.data as { content: string };
-      return atob(fileContent.content);
+      if (
+        Array.isArray(contentResponse.data) ||
+        !("content" in contentResponse.data)
+      ) {
+        throw new Error(`The path "${path}" is not a file.`);
+      }
+      return atob(contentResponse.data.content);
     } catch (err) {
       if (err instanceof RequestError && err.status === 404) {
         return undefined;
