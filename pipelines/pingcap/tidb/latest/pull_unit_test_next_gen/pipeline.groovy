@@ -25,21 +25,6 @@ pipeline {
         timeout(time: 90, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
@@ -63,6 +48,17 @@ pipeline {
                         git diff .
                         git status
                     """
+
+                    // temporary hacking:
+                    sh label: 'modify to disable fail fast for UT cases', script: '''
+                        # modify .bazelrc
+                        sed -i 's/^test:ci --flaky_test_attempts=[0-9]\\+/test:ci --flaky_test_attempts=1/' .bazelrc
+                        git diff .bazelrc
+
+                        # modify Makefile: `--test_keep_going=false` => `-k`
+                        sed -i 's/ --test_keep_going=false / -k /g' Makefile
+                        git diff Makefile
+                    '''
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
