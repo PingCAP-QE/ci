@@ -58,7 +58,8 @@ pipeline {
                             --tikv=${TARGET_BRANCH_TIKV}-next-gen \
                             --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
                             --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
-                            --ticdc-new=${TARGET_BRANCH_TICDC}
+                            --ticdc-new=${TARGET_BRANCH_TICDC} \
+                            --minio=RELEASE.2025-07-23T15-54-02Z
                         """
                     }
                     sh '''
@@ -66,6 +67,7 @@ pipeline {
                         ln -s `pwd`/tiflash_dir/tiflash tiflash
 
                         ./tikv-server -V
+                        ./tikv-worker -V
                         ./pd-server -V
                         ./tiflash --version
                         ./cdc version
@@ -74,9 +76,12 @@ pipeline {
             }
         }
         stage('Tests') {
+            environment {
+                MINIO_BIN_PATH = "bin/minio"
+            }
             steps {
                 dir("${REFS.repo}/tests/integrationtest2") {
-                    sh label: 'test', script: './run-tests.sh'
+                    sh label: 'test', script: './run-tests-next-gen.sh'
                 }
             }
             post{
