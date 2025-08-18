@@ -66,6 +66,7 @@ pipeline {
                         ln -s `pwd`/tiflash_dir/tiflash tiflash
 
                         ./tikv-server -V
+                        ./tikv-worker -V
                         ./pd-server -V
                         ./tiflash --version
                         ./cdc version
@@ -74,9 +75,12 @@ pipeline {
             }
         }
         stage('Tests') {
+            environment {
+                MINIO_BIN_PATH = "bin/minio"
+            }
             steps {
                 dir("${REFS.repo}/tests/integrationtest2") {
-                    sh label: 'test', script: './run-tests.sh'
+                    sh label: 'test', script: './run-tests-next-gen.sh'
                 }
             }
             post{
