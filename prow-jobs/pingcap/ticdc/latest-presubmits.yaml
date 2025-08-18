@@ -173,11 +173,9 @@ presubmits:
       decoration_config:
         timeout: 20m
         skip_cloning: true
-      always_run: false
       trigger: "(?m)^/test (?:.*? )?pull-error-log-review(?: .*?)?$"
       rerun_command: "/test pull-error-log-review"
-      optional: true
-      # skip_if_only_changed: *skip_if_only_changed # TODO: add this after test is checked and stable.
+      skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
           - name: check
