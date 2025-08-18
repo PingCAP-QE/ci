@@ -5,7 +5,7 @@ final jobName = 'pull_unit_test_next_gen'
 
 pipelineJob("${fullRepo}/${jobName}") {
     logRotator {
-        daysToKeep(30)
+        daysToKeep(14)
     }
     parameters {
         // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
