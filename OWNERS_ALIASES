@@ -35,8 +35,8 @@ aliases:
     - wshwsh12
 
   sig-approvers-error-log-review: # approvers for error log review.
-    - XuHuaiyu
     - kennedy8312
+    - XuHuaiyu
 
   emeritus_reviewers: # emeritus reviewers will be keeped here, but will not be used.
     - lijie0123 # ee reviewer
