@@ -23,6 +23,7 @@ repositories:
       - "BornChanger"
       - "xuhuaiyu"
       - "YuJuncen"
+      - "tiancaiamao"
 
   - name: "pingcap/pd"
     patterns:
