@@ -77,7 +77,7 @@ pipeline {
         }
         stage('Tests') {
             environment {
-                MINIO_BIN_PATH = "bin/minio"
+                MINIO_BIN_PATH = "third_bin/minio"
             }
             steps {
                 dir("${REFS.repo}/tests/integrationtest2") {
