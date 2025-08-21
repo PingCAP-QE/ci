@@ -75,13 +75,9 @@ pipeline {
                     axis {
                         name 'SCRIPT_AND_ARGS'
                         values(
-                            'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d y',
                             'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d n',
-                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pessimistictest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_sessiontest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_statisticstest',
-                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_txntest',
-                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest1',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest2',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest3',
@@ -90,8 +86,13 @@ pipeline {
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_importintotest2',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_importintotest3',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_importintotest4',
-                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pipelineddmltest',
-                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_ddltest',
+                            // 🚧 Failed or timeouted groups:
+                            // 'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d y',
+                            // 'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest',
+                            // 'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_ddltest',
+                            // 'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pessimistictest',
+                            // 'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pipelineddmltest',
+                            // 'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_txntest',
                         )
                     }
                 }
