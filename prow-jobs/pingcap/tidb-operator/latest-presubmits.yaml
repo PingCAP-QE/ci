@@ -18,6 +18,8 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
+        nodeSelector:
+          node.kubernetes.io/instance-type: c4-standard-16
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
