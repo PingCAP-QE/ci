@@ -19,7 +19,7 @@ presubmits:
       branches: *branches
       spec:
         nodeSelector:
-          node.kubernetes.io/instance-type: c4-standard-16
+          node.kubernetes.io/instance-type: e2-highmem-8
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -31,7 +31,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "hyperdisk-rwo"
+                  storageClassName: "standard-rwo"
                   resources:
                     requests:
                       storage: 500Gi
