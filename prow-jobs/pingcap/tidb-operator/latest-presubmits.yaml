@@ -35,6 +35,36 @@ presubmits:
                   resources:
                     requests:
                       storage: 500Gi
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+            - /bin/sh
+            - -c
+            - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+            resources:
+              requests:
+                memory: "28Gi"
+                cpu: "1"
+              limits:
+                memory: "28Gi"
+                cpu: "1"
         containers:
           - name: e2e-runner
             image: ubuntu:22.04
@@ -95,10 +125,10 @@ presubmits:
                 echo "Docker daemon is responsive."
 
                 make kube
-                docker update tidb-operator-control-plane --memory-reservation=6G
-                docker update tidb-operator-worker -m 16G --memory-swap 16G
-                docker update tidb-operator-worker2 -m 16G --memory-swap 16G
-                docker update tidb-operator-worker3 -m 16G --memory-swap 16G
+                docker update tidb-operator-control-plane --memory-reservation=6G -c 2048
+                docker update tidb-operator-worker -m 16G --memory-swap 16G -c 4096
+                docker update tidb-operator-worker2 -m 16G --memory-swap 16G -c 4096
+                docker update tidb-operator-worker3 -m 16G --memory-swap 16G -c 4096
                 CI=true GINKGO_OPTS='--procs=4' make e2e
             volumeMounts:
               - name: docker-sock-dir
@@ -109,35 +139,7 @@ presubmits:
             resources:
               requests:
                 memory: 28Gi
-                cpu: "3"
+                cpu: "5"
               limits:
                 memory: 28Gi
-                cpu: "3"
-          - name: dind-daemon
-            image: docker:28.1-dind
-            command:
-            - /bin/sh
-            - -c
-            - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-pod$(echo ${POD_UID} | tr - _).slice"
-            env:
-            - name: DOCKER_TLS_CERTDIR
-              value: ""
-            - name: POD_UID
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.uid
-            securityContext:
-              privileged: true
-            volumeMounts:
-              - name: docker-sock-dir
-                mountPath: /var/run
-              - name: data
-                mountPath: /var/lib/docker
-                subPath: docker
-            resources:
-              requests:
-                memory: "28Gi"
-                cpu: "3"
-              limits:
-                memory: "28Gi"
-                cpu: "3"
+                cpu: "5"
