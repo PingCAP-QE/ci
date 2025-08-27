@@ -120,7 +120,11 @@ pipeline {
                                 git diff .
                                 git status
                                 """
-                                sh SCRIPT_AND_ARGS
+                                sh """#! /usr/bin/env bash
+                                    set -o pipefail
+
+                                    $SCRIPT_AND_ARGS 2>&1 | tee bazel-test.log
+                                """
                             }
                         }
                         post {
@@ -128,6 +132,23 @@ pipeline {
                                 dir(REFS.repo) {
                                     // archive test report to Jenkins.
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                                }
+                                script {
+                                    if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
+                                        sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
+                                        sh label: 'Send event to cloudevents server', script: """timeout 10 \
+                                            curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
+                                            --header "ce-id: \$(uuidgen)" \
+                                            --header "ce-source: \${JENKINS_URL}" \
+                                            --header 'ce-type: test-case-run-report' \
+                                            --header 'ce-repo: ${REFS.org}/${REFS.repo}' \
+                                            --header 'ce-branch: ${REFS.base_ref}' \
+                                            --header "ce-buildurl: \${BUILD_URL}" \
+                                            --header 'ce-specversion: 1.0' \
+                                            --header 'content-type: application/json; charset=UTF-8' \
+                                            --data @bazel-go-test-problem-cases.json || true
+                                        """
+                                    }
                                 }
                             }
                             unsuccessful {
@@ -141,6 +162,16 @@ pipeline {
                                     tar -czvf "\${logs_dir}.tar.gz" "\${logs_dir}" || true
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
+                                }
+                                script {
+                                    if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
+                                        sh """
+                                            logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
+                                            mkdir -p \$logs_dir
+                                            mv tidb/bazel-test.log bazel-*.log bazel-*.json \$logs_dir
+                                        """
+                                        archiveArtifacts(artifacts: '*/bazel-*.log, */bazel-*.json', fingerprint: false, allowEmptyArchive: true)
+                                    }
                                 }
                             }
                         }
