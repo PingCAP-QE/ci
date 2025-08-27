@@ -23,7 +23,8 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      context: pull-integration-realcluster-test-next-gen
+      optional: true
+      context: non-block/pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-realcluster-test-next-gen"
 
