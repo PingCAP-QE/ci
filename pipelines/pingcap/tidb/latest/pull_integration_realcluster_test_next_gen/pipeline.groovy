@@ -170,7 +170,7 @@ pipeline {
                                             mkdir -p \$logs_dir
                                             mv tidb/bazel-test.log bazel-*.log bazel-*.json \$logs_dir
                                         """
-                                        archiveArtifacts(artifacts: '*/bazel-*.log, */bazel-*.json', fingerprint: false, allowEmptyArchive: true)
+                                        archiveArtifacts(artifacts: '*/bazel-*.log,*/bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                                     }
                                 }
                             }
