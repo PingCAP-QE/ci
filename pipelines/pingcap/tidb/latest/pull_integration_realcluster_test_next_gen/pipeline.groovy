@@ -168,7 +168,9 @@ pipeline {
                                         sh """
                                             logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
                                             mkdir -p \$logs_dir
-                                            mv tidb/bazel-test.log bazel-*.log bazel-*.json \$logs_dir
+                                            mv tidb/bazel-test.log \$logs_dir 2>/dev/null || true
+                                            mv bazel-*.log \$logs_dir 2>/dev/null || true
+                                            mv bazel-*.json \$logs_dir 2>/dev/null || true
                                         """
                                         archiveArtifacts(artifacts: '*/bazel-*.log,*/bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                                     }
