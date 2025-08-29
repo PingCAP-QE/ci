@@ -178,14 +178,14 @@ def release_images() {
         def sync_dest_image_name = item
         // End debugging
 
-           docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
-               sh """
-               # Push to Internal Harbor First, then sync to DockerHub
-               # pingcap/tidb:v5.2.3 will be pushed to hub.pingcap.net/image-sync/pingcap/tidb:v5.2.3
-               docker tag ${imagePlaceHolder} ${harbor_tmp_image_name}
-               docker push ${harbor_tmp_image_name}
-               """
-           }
+        docker.withRegistry("https://hub.pingcap.net", "harbor-pingcap") {
+            sh """
+            # Push to Internal Harbor First, then sync to DockerHub
+            # pingcap/tidb:v5.2.3 will be pushed to hub.pingcap.net/image-sync/pingcap/tidb:v5.2.3
+            docker tag ${imagePlaceHolder} ${harbor_tmp_image_name}
+            docker push ${harbor_tmp_image_name}
+            """
+        }
 
         sync_image_params = [
                 string(name: 'triggered_by_upstream_ci', value: "docker-common-nova"),
@@ -204,6 +204,14 @@ def release_images() {
        }
        if (item.startsWith("uhub.service.ucloud.cn/")) {
            docker.withRegistry("https://uhub.service.ucloud.cn", "ucloud-registry") {
+               sh """
+               docker tag ${imagePlaceHolder} ${item}
+               docker push ${item}
+               """
+           }
+       }
+       if (item.startsWith("us-docker.pkg.dev/pingcap-testing-account/")) {
+           docker.withRegistry("https://us-docker.pkg.dev", "pingcap-testing-account") {
                sh """
                docker tag ${imagePlaceHolder} ${item}
                docker push ${item}
