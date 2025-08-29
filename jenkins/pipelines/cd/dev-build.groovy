@@ -17,6 +17,7 @@ final ProductForBuildMapping = [
 ]
 
 // image prefix with `hub.pingcap.net/devbuild/` for no hotfix build and `hub.pingcap.net/` for hotfix build.
+// TODO: image prefix with `us-docker.pkg.dev/pingcap-testing-account/dev/` for no hotfix build and `hub.pingcap.net/` for hotfix build.
 final DockerImgRepoMapping = [
     "tidb-binlog": "pingcap/tidb-binlog/image",
     "drainer":"pingcap/tidb-binlog/image",
@@ -211,6 +212,7 @@ spec:
                     def date = new Date()
                     PipelineStartAt =new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(date)
                     Image = "hub.pingcap.net/devbuild/$ProductForDocker:$Version-$BUILD_NUMBER"
+                    // TODO: Image = "us-docker.pkg.dev/pingcap-testing-account/dev/$ProductForDocker:$Version-$BUILD_NUMBER"
                     if (params.TargetImg!=""){
                         Image = params.TargetImg
                     }
