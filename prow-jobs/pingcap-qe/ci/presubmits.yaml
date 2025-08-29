@@ -53,7 +53,7 @@ presubmits:
                 --plugin-config=../../ti-community-infra/configs/prow/config/plugins.yaml \
                 --config-path=../../ti-community-infra/configs/prow/config/config.yaml \
                 --job-config-path=flatten-prow-jobs/
-            image: ticommunityinfra/checkconfig:v20230621-df5abce
+            image: ticommunityinfra/checkconfig:v20240614-fd27fb709
             name: checkconfig
             resources: {}
           - name: verify-gitops
