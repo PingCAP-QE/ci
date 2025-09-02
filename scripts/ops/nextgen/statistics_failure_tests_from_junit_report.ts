@@ -64,6 +64,7 @@ function extractRelevantErrorLines(stack: string): string[] {
   const lines = stack.split("\n");
   const result: string[] = [];
 
+  const errorLogRegex = /\[(ERROR|FATAL)\] \[[^:\]\[]+\.go:\d+\] \["[^"]+"\]/;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
 
@@ -79,14 +80,24 @@ function extractRelevantErrorLines(stack: string): string[] {
     }
 
     // Capture error messages and relevant context
-    if (/^\s*Error:\s*.+/.test(line)) {
-      // result.push(line);
-      // result.push(lines[i + 1]);
-      if (/Not\s+equal:/.test(line)) {
-        result.push(line);
-      } else {
-        result.push(line + "\n" + lines[i + 1]);
-      }
+    switch (true) {
+      case /^\s*Error:\s*.+/.test(line):
+        if (/Not\s+equal:/.test(line)) {
+          result.push(line);
+        } else {
+          result.push(line + "\n" + lines[i + 1]);
+        }
+        break;
+      case /^panic: runtime error:\s*/.test(line):
+        if (/\[recovered\]/.test(line)) {
+          // skip
+        } else {
+          result.push(line);
+        }
+        break;
+      case errorLogRegex.test(line):
+        result.push(errorLogRegex.exec(line)![0]);
+        break;
     }
   }
 
