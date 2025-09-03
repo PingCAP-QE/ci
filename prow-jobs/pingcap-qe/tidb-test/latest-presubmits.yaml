@@ -11,6 +11,7 @@ presubmits:
       rerun_command: "/test build"
       branches:
         - ^master$
+        - ^release-nextgen-.*$ # for next-gen release branches to verify the scripts.
     - name: pingcap-qe/tidb-test/ghpr_common_test
       agent: jenkins
       decorate: false # need add this.
