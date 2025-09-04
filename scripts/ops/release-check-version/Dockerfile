@@ -9,7 +9,7 @@ RUN apt-get update && \
 
 
 # 使用docker官方镜像作为镜像的基础来复制docker客户端，避免直接安装
-FROM docker:27.5 as dockercli
+FROM docker:28.4 as dockercli
 
 FROM base
 
