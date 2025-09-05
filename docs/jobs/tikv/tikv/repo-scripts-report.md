@@ -1,9 +1,11 @@
 # Repository Scripts Analysis Report
 
 **Repository:** tikv/tikv  
-**Analysis Date:** 2025-09-05 10:04:49  
+**Analysis Date:** 2025-09-05 11:14:37  
 **Total Scripts Found:** 4  
 **CI Coverage:** 75.0% (3/4 scripts)
+
+> **Note**: This is a demonstration report with sample script data. Actual script discovery would require access to the target repository. Central CI references are verified against the actual PingCAP-QE/ci repository structure.
 
 ## Summary Table
 
@@ -12,7 +14,7 @@
 | `Makefile` | makefile | 8901 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 10/10 |
 | `scripts/test.sh` | shell | 3456 | ⭐⭐⭐ | ⭐⭐⭐⭐ | 7/10 |
 | `scripts/bench.py` | python | 2345 | N/A | ⭐⭐⭐ | 6/10 |
-| `scripts/format.sh` | shell | 567 | ⭐⭐⭐ | ⭐⭐⭐ | 2/10 |
+| `scripts/format.sh` | shell | 567 | ⭐⭐ | ⭐⭐⭐ | 2/10 |
 
 
 ## Detailed Analysis
@@ -29,10 +31,9 @@
 **CI Usage:** ✅ Yes  
 **CI Coverage Rating:** ⭐⭐⭐⭐  
 **Referenced in:**
-- `.github/workflows/ci.yml`
-- `.github/workflows/release.yml`
-- `PingCAP-QE/ci:pipelines/tikv/tikv/latest/ghpr_build.groovy`
-- `PingCAP-QE/ci:pipelines/tikv/tikv/latest/ghpr_test.groovy`
+- `PingCAP-QE/ci:pipelines/tikv/tikv/latest/pull_unit_test.groovy`
+- `PingCAP-QE/ci:pipelines/tikv/tikv/latest/pull_integration_test.groovy`
+- `PingCAP-QE/ci:scripts/tikv/tikv/run_compatible_tests.sh`
 
 **Improvement Suggestions:**
 - Consider adding .PHONY targets for non-file targets
@@ -49,8 +50,8 @@
 **CI Usage:** ✅ Yes  
 **CI Coverage Rating:** ⭐⭐⭐  
 **Referenced in:**
-- `.github/workflows/ci.yml`
-- `PingCAP-QE/ci:scripts/tikv/tikv/test-runner.sh`
+- `PingCAP-QE/ci:pipelines/tikv/tikv/latest/pull_unit_test.groovy`
+- `PingCAP-QE/ci:pipelines/tikv/tikv/latest/pull_integration_test.groovy`
 
 **Improvement Suggestions:**
 - Add proper shebang line
@@ -81,10 +82,9 @@
 **Quality Rating:** ⭐⭐⭐ (3/5)
 
 **CI Usage:** ✅ Yes  
-**CI Coverage Rating:** ⭐⭐⭐  
+**CI Coverage Rating:** ⭐⭐  
 **Referenced in:**
-- `.github/workflows/ci.yml`
-- `PingCAP-QE/ci:scripts/tikv/tikv/format-check.sh`
+- `PingCAP-QE/ci:pipelines/tikv/tikv/latest/pull_unit_test.groovy`
 
 **Improvement Suggestions:**
 - Add proper shebang line

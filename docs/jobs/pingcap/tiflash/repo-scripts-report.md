@@ -1,17 +1,19 @@
 # Repository Scripts Analysis Report
 
 **Repository:** pingcap/tiflash  
-**Analysis Date:** 2025-09-05 10:04:49  
+**Analysis Date:** 2025-09-05 11:14:37  
 **Total Scripts Found:** 3  
 **CI Coverage:** 66.7% (2/3 scripts)
+
+> **Note**: This is a demonstration report with sample script data. Actual script discovery would require access to the target repository. Central CI references are verified against the actual PingCAP-QE/ci repository structure.
 
 ## Summary Table
 
 | Script | Type | Size (bytes) | CI Usage | Quality | Complexity |
 |--------|------|--------------|----------|---------|------------|
-| `build.sh` | shell | 1234 | ⭐⭐⭐ | ⭐⭐⭐ | 5/10 |
+| `build.sh` | shell | 1234 | ⭐⭐ | ⭐⭐⭐ | 5/10 |
 | `test.py` | python | 2345 | N/A | ⭐⭐⭐⭐ | 4/10 |
-| `Makefile` | makefile | 890 | ⭐⭐⭐ | ⭐⭐⭐ | 6/10 |
+| `Makefile` | makefile | 890 | ⭐⭐ | ⭐⭐⭐ | 6/10 |
 
 
 ## Detailed Analysis
@@ -26,10 +28,9 @@
 **Quality Rating:** ⭐⭐⭐ (3/5)
 
 **CI Usage:** ✅ Yes  
-**CI Coverage Rating:** ⭐⭐⭐  
+**CI Coverage Rating:** ⭐⭐  
 **Referenced in:**
-- `.github/workflows/ci.yml`
-- `PingCAP-QE/ci:scripts/common/build.sh`
+- `PingCAP-QE/ci:pipelines/pingcap/tiflash/latest/pull_unit_test.groovy`
 
 **Improvement Suggestions:**
 - Add proper shebang line
@@ -60,10 +61,9 @@
 **Quality Rating:** ⭐⭐⭐ (3/5)
 
 **CI Usage:** ✅ Yes  
-**CI Coverage Rating:** ⭐⭐⭐  
+**CI Coverage Rating:** ⭐⭐  
 **Referenced in:**
-- `.github/workflows/build.yml`
-- `PingCAP-QE/ci:pipelines/common/build.groovy`
+- `PingCAP-QE/ci:pipelines/pingcap/tiflash/latest/pull_unit_test.groovy`
 
 **Improvement Suggestions:**
 - Consider adding .PHONY targets for non-file targets

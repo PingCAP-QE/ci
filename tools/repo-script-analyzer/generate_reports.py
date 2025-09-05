@@ -115,34 +115,64 @@ def get_ci_stars(ci_usage: bool, ref_count: int) -> str:
         return "⭐"
 
 
+def get_actual_ci_references(owner: str, repo: str) -> List[str]:
+    """Get actual CI references that exist in the PingCAP-QE/ci repository."""
+    ci_refs = []
+    
+    # Check for actual pipeline files
+    pipeline_dir = Path(f"../../pipelines/{owner}/{repo}")
+    if pipeline_dir.exists():
+        # Check latest directory
+        latest_dir = pipeline_dir / "latest"
+        if latest_dir.exists():
+            # Add a few actual pipeline files if they exist
+            for pipeline_file in ["ghpr_check.groovy", "pull_unit_test.groovy", "merged_unit_test.groovy", "pull_integration_test.groovy"]:
+                if (latest_dir / pipeline_file).exists():
+                    ci_refs.append(f"PingCAP-QE/ci:pipelines/{owner}/{repo}/latest/{pipeline_file}")
+    
+    # Check for actual script files
+    scripts_dir = Path(f"../../scripts/{owner}/{repo}")
+    if scripts_dir.exists():
+        # Add actual script files if they exist
+        for script_file in scripts_dir.glob("*.sh"):
+            ci_refs.append(f"PingCAP-QE/ci:scripts/{owner}/{repo}/{script_file.name}")
+        for script_file in scripts_dir.glob("*.py"):
+            ci_refs.append(f"PingCAP-QE/ci:scripts/{owner}/{repo}/{script_file.name}")
+    
+    return ci_refs
+
+
 def generate_sample_report(owner: str, repo: str) -> str:
-    """Generate a sample report for demonstration purposes."""
+    """Generate a sample report for demonstration purposes with actual CI references."""
+    
+    # Get actual CI references from the PingCAP-QE/ci repository
+    actual_ci_refs = get_actual_ci_references(owner, repo)
     
     # Sample data based on common patterns in the specified repositories
-    # Enhanced with central CI repository references to demonstrate comprehensive CI analysis
+    # Enhanced with actual central CI repository references
     sample_scripts = {
         'pingcap/docs': [
-            {'name': 'scripts/check-links.sh', 'type': 'shell', 'size': 2048, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:pipelines/pingcap/docs/latest/build.groovy'], 'complexity': 6, 'quality': 4},
-            {'name': 'scripts/build.py', 'type': 'python', 'size': 3456, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', 'PingCAP-QE/ci:scripts/pingcap/docs/build-docs.sh'], 'complexity': 8, 'quality': 5},
+            {'name': 'scripts/check-links.sh', 'type': 'shell', 'size': 2048, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:2] if actual_ci_refs else [], 'complexity': 6, 'quality': 4},
+            {'name': 'scripts/build.py', 'type': 'python', 'size': 3456, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:1] if actual_ci_refs else [], 'complexity': 8, 'quality': 5},
             {'name': 'Makefile', 'type': 'makefile', 'size': 1200, 'ci_usage': False, 'ci_refs': [], 'complexity': 5, 'quality': 3}
         ],
         'pingcap/tidb': [
-            {'name': 'Makefile', 'type': 'makefile', 'size': 5678, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', '.github/workflows/test.yml', 'PingCAP-QE/ci:pipelines/pingcap/tidb/latest/ghpr_check.groovy', 'PingCAP-QE/ci:pipelines/pingcap/tidb/latest/merged_integration_test.groovy'], 'complexity': 9, 'quality': 4},
-            {'name': 'build/build.sh', 'type': 'shell', 'size': 4321, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', 'PingCAP-QE/ci:scripts/pingcap/tidb/build-tidb.sh'], 'complexity': 7, 'quality': 4},
-            {'name': 'scripts/ci-build.py', 'type': 'python', 'size': 2789, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:scripts/pingcap/tidb/ci-build.py'], 'complexity': 6, 'quality': 5},
-            {'name': 'tests/run-tests.sh', 'type': 'shell', 'size': 1567, 'ci_usage': True, 'ci_refs': ['.github/workflows/test.yml', 'PingCAP-QE/ci:pipelines/pingcap/tidb/latest/merged_integration_test.groovy'], 'complexity': 5, 'quality': 3},
+            {'name': 'Makefile', 'type': 'makefile', 'size': 5678, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:3] if actual_ci_refs else [], 'complexity': 9, 'quality': 4},
+            {'name': 'build/build.sh', 'type': 'shell', 'size': 4321, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:2] if actual_ci_refs else [], 'complexity': 7, 'quality': 4},
+            {'name': 'scripts/ci-build.py', 'type': 'python', 'size': 2789, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:1] if actual_ci_refs else [], 'complexity': 6, 'quality': 5},
+            {'name': 'tests/run-tests.sh', 'type': 'shell', 'size': 1567, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:2] if actual_ci_refs else [], 'complexity': 5, 'quality': 3},
             {'name': 'scripts/gen-proto.sh', 'type': 'shell', 'size': 890, 'ci_usage': False, 'ci_refs': [], 'complexity': 3, 'quality': 2}
         ],
         'tikv/tikv': [
-            {'name': 'Makefile', 'type': 'makefile', 'size': 8901, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', '.github/workflows/release.yml', 'PingCAP-QE/ci:pipelines/tikv/tikv/latest/ghpr_build.groovy', 'PingCAP-QE/ci:pipelines/tikv/tikv/latest/ghpr_test.groovy'], 'complexity': 10, 'quality': 4},
-            {'name': 'scripts/test.sh', 'type': 'shell', 'size': 3456, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:scripts/tikv/tikv/test-runner.sh'], 'complexity': 7, 'quality': 4},
+            {'name': 'Makefile', 'type': 'makefile', 'size': 8901, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:3] if actual_ci_refs else [], 'complexity': 10, 'quality': 4},
+            {'name': 'scripts/test.sh', 'type': 'shell', 'size': 3456, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:2] if actual_ci_refs else [], 'complexity': 7, 'quality': 4},
             {'name': 'scripts/bench.py', 'type': 'python', 'size': 2345, 'ci_usage': False, 'ci_refs': [], 'complexity': 6, 'quality': 3},
-            {'name': 'scripts/format.sh', 'type': 'shell', 'size': 567, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:scripts/tikv/tikv/format-check.sh'], 'complexity': 2, 'quality': 3}
+            {'name': 'scripts/format.sh', 'type': 'shell', 'size': 567, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:1] if actual_ci_refs else [], 'complexity': 2, 'quality': 3}
         ],
         'default': [
-            {'name': 'build.sh', 'type': 'shell', 'size': 1234, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:scripts/common/build.sh'], 'complexity': 5, 'quality': 3},
+            {'name': 'build.sh', 'type': 'shell', 'size': 1234, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:1] if actual_ci_refs else [], 'complexity': 5, 'quality': 3},
             {'name': 'test.py', 'type': 'python', 'size': 2345, 'ci_usage': False, 'ci_refs': [], 'complexity': 4, 'quality': 4},
-            {'name': 'Makefile', 'type': 'makefile', 'size': 890, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', 'PingCAP-QE/ci:pipelines/common/build.groovy'], 'complexity': 6, 'quality': 3}
+            {'name': 'Makefile', 'type': 'makefile', 'size': 890, 'ci_usage': bool(actual_ci_refs), 'ci_refs': actual_ci_refs[:1] if actual_ci_refs else [], 'complexity': 6, 'quality': 3}
         ]
     }
     
@@ -159,6 +189,8 @@ def generate_sample_report(owner: str, repo: str) -> str:
 **Analysis Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
 **Total Scripts Found:** {len(scripts)}  
 **CI Coverage:** {ci_coverage:.1f}% ({len(ci_scripts)}/{len(scripts)} scripts)
+
+> **Note**: This is a demonstration report with sample script data. Actual script discovery would require access to the target repository. Central CI references are verified against the actual PingCAP-QE/ci repository structure.
 
 ## Summary Table
 
@@ -190,13 +222,15 @@ def generate_sample_report(owner: str, repo: str) -> str:
 
 """
         
-        if script['ci_usage']:
+        if script['ci_usage'] and script['ci_refs']:
             report += f"""**CI Usage:** ✅ Yes  
 **CI Coverage Rating:** {get_ci_stars(script['ci_usage'], len(script['ci_refs']))}  
 **Referenced in:**
 """
             for ref in script['ci_refs']:
                 report += f"- `{ref}`\n"
+        elif script['ci_usage']:
+            report += "**CI Usage:** ✅ Yes  \n**Note:** Sample script - actual CI references would require repository analysis\n"
         else:
             report += "**CI Usage:** ❌ No\n"
         

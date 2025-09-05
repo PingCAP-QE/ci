@@ -1,0 +1,2 @@
+# Ignore local generated docs - reports should go to ../../docs/jobs/
+docs/
