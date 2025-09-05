@@ -1,11 +1,11 @@
 # Repository Scripts Report: pingcap/tidb
 
-**Analysis Date:** 2025-09-05T07:48:23.135445
-**Analysis Method:** real_github_mcp_data
+**Analysis Date:** 2025-09-05T07:50:45.778481
+**Data Source:** real_github_data
 
 ## Summary
-- **Total Scripts Found:** 6
-- **Build Scripts:** 3
+- **Total Scripts Found:** 7
+- **Build Scripts:** 4
 - **Test Scripts:** 3
 - **Other Scripts:** 0
 
@@ -22,6 +22,10 @@
 ### Makefile (Makefile)
 - **Path:** `Makefile`
 - **Size:** 35950 bytes
+
+### Makefile.common (Makefile)
+- **Path:** `Makefile.common`
+- **Size:** 6396 bytes
 
 ## Test Scripts
 
@@ -47,7 +51,8 @@
 - `build/print-enterprise-workspace-status.sh` (build)
 - `build/print-workspace-status.sh` (build)
 
-### Makefile Scripts (1)
+### Makefile Scripts (2)
 
 - `Makefile` (build)
+- `Makefile.common` (build)
 

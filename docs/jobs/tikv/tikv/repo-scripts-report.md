@@ -1,72 +1,46 @@
 # Repository Scripts Report: tikv/tikv
 
-**Analysis Date:** 2025-09-05T07:45:44.612388
-
-**Note:** This report contains mock data for demonstration purposes. In a real implementation, this would analyze the actual repository contents via GitHub API.
+**Analysis Date:** 2025-09-05T07:50:45.780119
+**Data Source:** real_github_data
 
 ## Summary
-- **Total Scripts Found:** 9
-- **Build Scripts:** 4
-- **Test Scripts:** 5
+- **Total Scripts Found:** 4
+- **Build Scripts:** 2
+- **Test Scripts:** 2
 - **Other Scripts:** 0
 
 ## Build Scripts
 
-### build.sh (Shell)
-- **Path:** `scripts/build.sh`
-- **Size:** 3200 bytes
-
-### install.sh (Shell)
-- **Path:** `scripts/install.sh`
-- **Size:** 1200 bytes
-
-### build_tools.py (Python)
-- **Path:** `tools/build_tools.py`
-- **Size:** 3400 bytes
+### run-cargo.sh (Shell)
+- **Path:** `scripts/run-cargo.sh`
+- **Size:** 2977 bytes
 
 ### Makefile (Makefile)
 - **Path:** `Makefile`
-- **Size:** 5600 bytes
+- **Size:** 15449 bytes
 
 ## Test Scripts
 
-### test.sh (Shell)
-- **Path:** `scripts/test.sh`
-- **Size:** 2100 bytes
+### check-bins.py (Python)
+- **Path:** `scripts/check-bins.py`
+- **Size:** 6209 bytes
 
-### integration_test.sh (Shell)
-- **Path:** `scripts/integration_test.sh`
-- **Size:** 4500 bytes
-
-### benchmark.sh (Shell)
-- **Path:** `scripts/benchmark.sh`
-- **Size:** 1800 bytes
-
-### run_tests.py (Python)
-- **Path:** `tests/run_tests.py`
-- **Size:** 2700 bytes
-
-### Makefile (Makefile)
-- **Path:** `tests/Makefile`
-- **Size:** 1400 bytes
+### check-build-opts.py (Python)
+- **Path:** `scripts/check-build-opts.py`
+- **Size:** 3540 bytes
 
 ## Detailed Breakdown by Script Type
 
-### Shell Scripts (5)
+### Shell Scripts (1)
 
-- `scripts/build.sh` (build)
-- `scripts/test.sh` (test)
-- `scripts/integration_test.sh` (test)
-- `scripts/benchmark.sh` (test)
-- `scripts/install.sh` (build)
+- `scripts/run-cargo.sh` (build)
 
 ### Python Scripts (2)
 
-- `tests/run_tests.py` (test)
-- `tools/build_tools.py` (build)
+- `scripts/check-bins.py` (test)
+- `scripts/check-build-opts.py` (test)
 
-### Makefile Scripts (2)
+### Makefile Scripts (1)
 
 - `Makefile` (build)
-- `tests/Makefile` (test)
 

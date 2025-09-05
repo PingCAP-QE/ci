@@ -1,72 +1,51 @@
 # Repository Scripts Report: pingcap/tidb-tools
 
-**Analysis Date:** 2025-09-05T07:45:44.611014
-
-**Note:** This report contains mock data for demonstration purposes. In a real implementation, this would analyze the actual repository contents via GitHub API.
+**Analysis Date:** 2025-09-05T07:50:45.778717
+**Data Source:** enhanced_mock_data
 
 ## Summary
-- **Total Scripts Found:** 9
-- **Build Scripts:** 4
-- **Test Scripts:** 5
+- **Total Scripts Found:** 5
+- **Build Scripts:** 2
+- **Test Scripts:** 3
 - **Other Scripts:** 0
 
 ## Build Scripts
 
 ### build.sh (Shell)
 - **Path:** `scripts/build.sh`
-- **Size:** 3200 bytes
-
-### install.sh (Shell)
-- **Path:** `scripts/install.sh`
-- **Size:** 1200 bytes
-
-### build_tools.py (Python)
-- **Path:** `tools/build_tools.py`
-- **Size:** 3400 bytes
+- **Size:** 2200 bytes
 
 ### Makefile (Makefile)
 - **Path:** `Makefile`
-- **Size:** 5600 bytes
+- **Size:** 6500 bytes
 
 ## Test Scripts
 
 ### test.sh (Shell)
 - **Path:** `scripts/test.sh`
-- **Size:** 2100 bytes
-
-### integration_test.sh (Shell)
-- **Path:** `scripts/integration_test.sh`
-- **Size:** 4500 bytes
-
-### benchmark.sh (Shell)
-- **Path:** `scripts/benchmark.sh`
 - **Size:** 1800 bytes
 
-### run_tests.py (Python)
-- **Path:** `tests/run_tests.py`
-- **Size:** 2700 bytes
+### integration.sh (Shell)
+- **Path:** `scripts/integration.sh`
+- **Size:** 2600 bytes
 
-### Makefile (Makefile)
-- **Path:** `tests/Makefile`
-- **Size:** 1400 bytes
+### test_tools.py (Python)
+- **Path:** `scripts/test_tools.py`
+- **Size:** 2100 bytes
 
 ## Detailed Breakdown by Script Type
 
-### Shell Scripts (5)
+### Shell Scripts (3)
 
 - `scripts/build.sh` (build)
 - `scripts/test.sh` (test)
-- `scripts/integration_test.sh` (test)
-- `scripts/benchmark.sh` (test)
-- `scripts/install.sh` (build)
+- `scripts/integration.sh` (test)
 
-### Python Scripts (2)
+### Python Scripts (1)
 
-- `tests/run_tests.py` (test)
-- `tools/build_tools.py` (build)
+- `scripts/test_tools.py` (test)
 
-### Makefile Scripts (2)
+### Makefile Scripts (1)
 
 - `Makefile` (build)
-- `tests/Makefile` (test)
 
