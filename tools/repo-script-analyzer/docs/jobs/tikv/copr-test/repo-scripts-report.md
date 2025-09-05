@@ -1,7 +1,7 @@
 # Repository Scripts Analysis Report
 
-**Repository:** pingcap/tiflow  
-**Analysis Date:** 2025-09-05 10:04:49  
+**Repository:** tikv/copr-test  
+**Analysis Date:** 2025-09-05 10:03:06  
 **Total Scripts Found:** 3  
 **CI Coverage:** 66.7% (2/3 scripts)
 

@@ -1,7 +1,7 @@
 # Repository Scripts Analysis Report
 
 **Repository:** pingcap/tidb  
-**Analysis Date:** 2025-09-05 10:04:49  
+**Analysis Date:** 2025-09-05 10:03:06  
 **Total Scripts Found:** 5  
 **CI Coverage:** 80.0% (4/5 scripts)
 

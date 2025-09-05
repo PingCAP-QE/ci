@@ -1,7 +1,7 @@
 # Repository Scripts Analysis Report
 
 **Repository:** tikv/copr-test  
-**Analysis Date:** 2025-09-05 07:58:18  
+**Analysis Date:** 2025-09-05 10:04:49  
 **Total Scripts Found:** 3  
 **CI Coverage:** 66.7% (2/3 scripts)
 
@@ -9,9 +9,9 @@
 
 | Script | Type | Size (bytes) | CI Usage | Quality | Complexity |
 |--------|------|--------------|----------|---------|------------|
-| `build.sh` | shell | 1234 | ⭐⭐ | ⭐⭐⭐ | 5/10 |
+| `build.sh` | shell | 1234 | ⭐⭐⭐ | ⭐⭐⭐ | 5/10 |
 | `test.py` | python | 2345 | N/A | ⭐⭐⭐⭐ | 4/10 |
-| `Makefile` | makefile | 890 | ⭐⭐ | ⭐⭐⭐ | 6/10 |
+| `Makefile` | makefile | 890 | ⭐⭐⭐ | ⭐⭐⭐ | 6/10 |
 
 
 ## Detailed Analysis
@@ -26,9 +26,10 @@
 **Quality Rating:** ⭐⭐⭐ (3/5)
 
 **CI Usage:** ✅ Yes  
-**CI Coverage Rating:** ⭐⭐  
+**CI Coverage Rating:** ⭐⭐⭐  
 **Referenced in:**
 - `.github/workflows/ci.yml`
+- `PingCAP-QE/ci:scripts/common/build.sh`
 
 **Improvement Suggestions:**
 - Add proper shebang line
@@ -59,9 +60,10 @@
 **Quality Rating:** ⭐⭐⭐ (3/5)
 
 **CI Usage:** ✅ Yes  
-**CI Coverage Rating:** ⭐⭐  
+**CI Coverage Rating:** ⭐⭐⭐  
 **Referenced in:**
 - `.github/workflows/build.yml`
+- `PingCAP-QE/ci:pipelines/common/build.groovy`
 
 **Improvement Suggestions:**
 - Consider adding .PHONY targets for non-file targets

@@ -119,29 +119,30 @@ def generate_sample_report(owner: str, repo: str) -> str:
     """Generate a sample report for demonstration purposes."""
     
     # Sample data based on common patterns in the specified repositories
+    # Enhanced with central CI repository references to demonstrate comprehensive CI analysis
     sample_scripts = {
         'pingcap/docs': [
-            {'name': 'scripts/check-links.sh', 'type': 'shell', 'size': 2048, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml'], 'complexity': 6, 'quality': 4},
-            {'name': 'scripts/build.py', 'type': 'python', 'size': 3456, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml'], 'complexity': 8, 'quality': 5},
+            {'name': 'scripts/check-links.sh', 'type': 'shell', 'size': 2048, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:pipelines/pingcap/docs/latest/build.groovy'], 'complexity': 6, 'quality': 4},
+            {'name': 'scripts/build.py', 'type': 'python', 'size': 3456, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', 'PingCAP-QE/ci:scripts/pingcap/docs/build-docs.sh'], 'complexity': 8, 'quality': 5},
             {'name': 'Makefile', 'type': 'makefile', 'size': 1200, 'ci_usage': False, 'ci_refs': [], 'complexity': 5, 'quality': 3}
         ],
         'pingcap/tidb': [
-            {'name': 'Makefile', 'type': 'makefile', 'size': 5678, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', '.github/workflows/test.yml'], 'complexity': 9, 'quality': 4},
-            {'name': 'build/build.sh', 'type': 'shell', 'size': 4321, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml'], 'complexity': 7, 'quality': 4},
-            {'name': 'scripts/ci-build.py', 'type': 'python', 'size': 2789, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml'], 'complexity': 6, 'quality': 5},
-            {'name': 'tests/run-tests.sh', 'type': 'shell', 'size': 1567, 'ci_usage': True, 'ci_refs': ['.github/workflows/test.yml'], 'complexity': 5, 'quality': 3},
+            {'name': 'Makefile', 'type': 'makefile', 'size': 5678, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', '.github/workflows/test.yml', 'PingCAP-QE/ci:pipelines/pingcap/tidb/latest/ghpr_check.groovy', 'PingCAP-QE/ci:pipelines/pingcap/tidb/latest/merged_integration_test.groovy'], 'complexity': 9, 'quality': 4},
+            {'name': 'build/build.sh', 'type': 'shell', 'size': 4321, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', 'PingCAP-QE/ci:scripts/pingcap/tidb/build-tidb.sh'], 'complexity': 7, 'quality': 4},
+            {'name': 'scripts/ci-build.py', 'type': 'python', 'size': 2789, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:scripts/pingcap/tidb/ci-build.py'], 'complexity': 6, 'quality': 5},
+            {'name': 'tests/run-tests.sh', 'type': 'shell', 'size': 1567, 'ci_usage': True, 'ci_refs': ['.github/workflows/test.yml', 'PingCAP-QE/ci:pipelines/pingcap/tidb/latest/merged_integration_test.groovy'], 'complexity': 5, 'quality': 3},
             {'name': 'scripts/gen-proto.sh', 'type': 'shell', 'size': 890, 'ci_usage': False, 'ci_refs': [], 'complexity': 3, 'quality': 2}
         ],
         'tikv/tikv': [
-            {'name': 'Makefile', 'type': 'makefile', 'size': 8901, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', '.github/workflows/release.yml'], 'complexity': 10, 'quality': 4},
-            {'name': 'scripts/test.sh', 'type': 'shell', 'size': 3456, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml'], 'complexity': 7, 'quality': 4},
+            {'name': 'Makefile', 'type': 'makefile', 'size': 8901, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', '.github/workflows/release.yml', 'PingCAP-QE/ci:pipelines/tikv/tikv/latest/ghpr_build.groovy', 'PingCAP-QE/ci:pipelines/tikv/tikv/latest/ghpr_test.groovy'], 'complexity': 10, 'quality': 4},
+            {'name': 'scripts/test.sh', 'type': 'shell', 'size': 3456, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:scripts/tikv/tikv/test-runner.sh'], 'complexity': 7, 'quality': 4},
             {'name': 'scripts/bench.py', 'type': 'python', 'size': 2345, 'ci_usage': False, 'ci_refs': [], 'complexity': 6, 'quality': 3},
-            {'name': 'scripts/format.sh', 'type': 'shell', 'size': 567, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml'], 'complexity': 2, 'quality': 3}
+            {'name': 'scripts/format.sh', 'type': 'shell', 'size': 567, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:scripts/tikv/tikv/format-check.sh'], 'complexity': 2, 'quality': 3}
         ],
         'default': [
-            {'name': 'build.sh', 'type': 'shell', 'size': 1234, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml'], 'complexity': 5, 'quality': 3},
+            {'name': 'build.sh', 'type': 'shell', 'size': 1234, 'ci_usage': True, 'ci_refs': ['.github/workflows/ci.yml', 'PingCAP-QE/ci:scripts/common/build.sh'], 'complexity': 5, 'quality': 3},
             {'name': 'test.py', 'type': 'python', 'size': 2345, 'ci_usage': False, 'ci_refs': [], 'complexity': 4, 'quality': 4},
-            {'name': 'Makefile', 'type': 'makefile', 'size': 890, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml'], 'complexity': 6, 'quality': 3}
+            {'name': 'Makefile', 'type': 'makefile', 'size': 890, 'ci_usage': True, 'ci_refs': ['.github/workflows/build.yml', 'PingCAP-QE/ci:pipelines/common/build.groovy'], 'complexity': 6, 'quality': 3}
         ]
     }
     
