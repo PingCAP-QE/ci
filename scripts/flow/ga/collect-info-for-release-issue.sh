@@ -5,7 +5,7 @@ previous_release="v8.5.1" # comment it when current release is not a patch relea
 current_release="v8.5.2"
 
 ### !!! Please update the list of repositories before running this script.
-repo=(
+repos=(
     pingcap/tidb
     pingcap/tiflow
     pingcap/tiflash
@@ -22,14 +22,14 @@ repo=(
 
 echo "### Working Tags: ${current_release}"
 
-for repo in "${repo[@]}"; do
+for repo in "${repos[@]}"; do
     echo -e "- **${repo##*/}** [${current_release}](https://github.com/${repo}/releases/tag/${current_release})";
 done
 
 if [ -n "$previous_release" ]; then
     echo ""
     echo "### Check the diff with previous version(${previous_release})"
-    for repo in "${repo[@]}"; do
+    for repo in "${repos[@]}"; do
         echo -e "- **${repo##*/}** [diff](https://github.com/${repo}/compare/${previous_release}...${current_release})";
     done
 fi
