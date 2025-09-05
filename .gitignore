@@ -23,3 +23,9 @@ lib/
 
 .cursor
 .cursorrules
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
