@@ -212,12 +212,12 @@ class RepositoryAnalyzer:
             
         return max(rating, 1), suggestions
 
-    def find_ci_usage(self, temp_dir: str, script_path: str) -> Tuple[bool, List[str]]:
+    def find_ci_usage(self, temp_dir: str, owner: str, repo: str, script_path: str) -> Tuple[bool, List[str]]:
         """Find if script is used in CI and return usage references."""
         references = []
         script_name = os.path.basename(script_path)
         
-        # Search in common CI locations
+        # Search in common CI locations in the target repository
         ci_locations = [
             '.github/workflows',
             '.jenkins',
@@ -236,11 +236,67 @@ class RepositoryAnalyzer:
                                 content = f.read()
                                 if script_name in content or script_path in content:
                                     rel_path = os.path.relpath(file_path, temp_dir)
-                                    references.append(rel_path)
+                                    references.append(f"{owner}/{repo}:{rel_path}")
                         except Exception:
                             continue
         
+        # Also search in the central CI repository (PingCAP-QE/ci)
+        central_ci_refs = self.find_central_ci_usage(owner, repo, script_path, script_name)
+        references.extend(central_ci_refs)
+        
         return len(references) > 0, references
+
+    def find_central_ci_usage(self, owner: str, repo: str, script_path: str, script_name: str) -> List[str]:
+        """Find script usage in the central CI repository (PingCAP-QE/ci)."""
+        references = []
+        
+        # Check if we're running in the CI repository
+        current_dir = os.getcwd()
+        if 'ci' in current_dir and os.path.exists(os.path.join(current_dir, 'pipelines')):
+            ci_repo_path = current_dir
+        else:
+            # Try to find or clone the CI repository
+            ci_repo_path = os.path.join(os.path.dirname(current_dir), 'ci')
+            if not os.path.exists(ci_repo_path):
+                try:
+                    subprocess.run(['git', 'clone', 'https://github.com/PingCAP-QE/ci.git', ci_repo_path], 
+                                 check=True, capture_output=True)
+                except subprocess.CalledProcessError:
+                    # Cannot clone, skip central CI analysis
+                    return references
+        
+        # Search in pipelines/<org>/<repo>
+        pipeline_path = os.path.join(ci_repo_path, 'pipelines', owner, repo)
+        if os.path.exists(pipeline_path):
+            for root, dirs, files in os.walk(pipeline_path):
+                for file in files:
+                    if file.endswith('.groovy'):
+                        file_path = os.path.join(root, file)
+                        try:
+                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                                if script_name in content or script_path in content:
+                                    rel_path = os.path.relpath(file_path, ci_repo_path)
+                                    references.append(f"PingCAP-QE/ci:{rel_path}")
+                        except Exception:
+                            continue
+        
+        # Search in scripts/<org>/<repo>
+        scripts_path = os.path.join(ci_repo_path, 'scripts', owner, repo)
+        if os.path.exists(scripts_path):
+            for root, dirs, files in os.walk(scripts_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    try:
+                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            if script_name in content or script_path in content:
+                                rel_path = os.path.relpath(file_path, ci_repo_path)
+                                references.append(f"PingCAP-QE/ci:{rel_path}")
+                    except Exception:
+                        continue
+        
+        return references
 
     def analyze_repository(self, owner: str, repo: str) -> List[ScriptInfo]:
         """Analyze all scripts in a repository."""
@@ -269,7 +325,7 @@ class RepositoryAnalyzer:
             quality_rating, suggestions = self.analyze_script_quality(content, script_data['type'])
             
             # Check CI usage
-            ci_usage, ci_refs = self.find_ci_usage(temp_dir, script_data['path'])
+            ci_usage, ci_refs = self.find_ci_usage(temp_dir, owner, repo, script_data['path'])
             
             script_info = ScriptInfo(
                 name=script_data['name'],

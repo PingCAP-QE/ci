@@ -14,6 +14,7 @@ import re
 import sys
 import json
 import argparse
+import requests
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
@@ -214,7 +215,7 @@ class RepositoryAnalyzer:
         references = []
         script_name = os.path.basename(script_path)
         
-        # Search in common CI locations
+        # Search in common CI locations in the target repository
         ci_locations = [
             '.github/workflows',
             '.jenkins',
@@ -228,9 +229,45 @@ class RepositoryAnalyzer:
                 if item['type'] == 'file':
                     content = self.get_file_content(owner, repo, item['path'])
                     if content and (script_name in content or script_path in content):
-                        references.append(f"{item['path']}")
+                        references.append(f"{owner}/{repo}:{item['path']}")
+        
+        # Also search in the central CI repository (PingCAP-QE/ci)
+        central_ci_refs = self.find_central_ci_usage(owner, repo, script_path, script_name)
+        references.extend(central_ci_refs)
         
         return len(references) > 0, references
+
+    def find_central_ci_usage(self, owner: str, repo: str, script_path: str, script_name: str) -> List[str]:
+        """Find script usage in the central CI repository (PingCAP-QE/ci)."""
+        references = []
+        
+        # Search in pipelines/<org>/<repo>
+        pipeline_path = f"pipelines/{owner}/{repo}"
+        try:
+            pipeline_contents = self.get_repo_contents("PingCAP-QE", "ci", pipeline_path)
+            for item in pipeline_contents:
+                if item['type'] == 'file' and item['name'].endswith('.groovy'):
+                    content = self.get_file_content("PingCAP-QE", "ci", item['path'])
+                    if content and (script_name in content or script_path in content):
+                        references.append(f"PingCAP-QE/ci:{item['path']}")
+        except:
+            # Pipeline directory might not exist for this repo
+            pass
+        
+        # Search in scripts/<org>/<repo>
+        scripts_path = f"scripts/{owner}/{repo}"
+        try:
+            scripts_contents = self.get_repo_contents("PingCAP-QE", "ci", scripts_path)
+            for item in scripts_contents:
+                if item['type'] == 'file':
+                    content = self.get_file_content("PingCAP-QE", "ci", item['path'])
+                    if content and (script_name in content or script_path in content):
+                        references.append(f"PingCAP-QE/ci:{item['path']}")
+        except:
+            # Scripts directory might not exist for this repo
+            pass
+        
+        return references
 
     def analyze_repository(self, owner: str, repo: str) -> List[ScriptInfo]:
         """Analyze all scripts in a repository."""

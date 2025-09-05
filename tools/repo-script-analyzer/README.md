@@ -5,7 +5,7 @@ This tool analyzes build and test scripts across GitHub repositories, evaluating
 ## Features
 
 - **Script Discovery**: Finds shell scripts (.sh), Python scripts (.py), and Makefiles in repositories
-- **CI Usage Analysis**: Determines if scripts are used in CI/CD pipelines and provides coverage ratings
+- **CI Usage Analysis**: Determines if scripts are used in CI/CD pipelines (including PingCAP-QE/ci central repository) and provides coverage ratings
 - **Quality Assessment**: Evaluates script quality with star ratings and improvement suggestions
 - **Complexity Analysis**: Measures script complexity on a 1-10 scale
 - **Automated Reporting**: Generates detailed markdown reports with summary tables
@@ -65,6 +65,10 @@ Reports are saved in `docs/jobs/<org>/<repo>/repo-scripts-report.md` with:
 - ⭐⭐⭐: Referenced in 2 CI files
 - ⭐⭐: Referenced in 1 CI file
 - N/A: Not used in CI
+
+CI files are searched in:
+- Repository's own CI directories (.github/workflows, .jenkins, .ci, ci)
+- PingCAP-QE/ci central repository (pipelines/<org>/<repo>, scripts/<org>/<repo>)
 
 ### Quality Rating
 Based on code quality factors:
