@@ -2,8 +2,7 @@ global_definitions:
   branches: &branches
     - ^master$
     - ^feature/.+
-  skip_if_only_changed: &skip_if_only_changed
-    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -95,10 +94,7 @@ presubmits:
     - name: pull-unit-test
       cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: true
-      skip_report: false
-      optional: false
-      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^master$
       spec:
@@ -121,38 +117,30 @@ presubmits:
                 cpu: "16"
 
     - name: pull-build
-      cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: true
-      skip_report: false
-      optional: false
-      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^master$
       spec:
         containers:
           - name: build
             image: *image
-            command: *command
+            command: [bash, -ce]
             args:
               - |
                 make cdc
             env: *env
             resources: &resources
               requests:
-                memory: 16Gi
-                cpu: "8"
+                memory: 12Gi
+                cpu: "6"
               limits:
-                memory: 16Gi
-                cpu: "8"
+                memory: 24Gi
+                cpu: "6"
 
     - name: pull-check
-      cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: true
-      skip_report: false
-      optional: false
-      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^master$
       spec:
