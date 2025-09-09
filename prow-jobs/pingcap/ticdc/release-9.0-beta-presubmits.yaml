@@ -3,8 +3,7 @@ global_definitions:
   branches: &branches
     - ^release-9\.0-beta\.\d+$
     - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
-  skip_if_only_changed: &skip_if_only_changed
-    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -12,11 +11,9 @@ presubmits:
     - name: pingcap/ticdc/release-9.0-beta/pull_cdc_mysql_integration_light
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       context: pull-cdc-mysql-integration-light
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light"
       branches: *branches
@@ -24,11 +21,9 @@ presubmits:
     - name: pingcap/ticdc/release-9.0-beta/pull_cdc_mysql_integration_heavy
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       context: pull-cdc-mysql-integration-heavy
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy"
       branches: *branches
@@ -36,11 +31,9 @@ presubmits:
     - name: pingcap/ticdc/release-9.0-beta/pull_cdc_kafka_integration_light
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       context: pull-cdc-kafka-integration-light
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light"
       branches: *branches
@@ -48,11 +41,9 @@ presubmits:
     - name: pingcap/ticdc/release-9.0-beta/pull_cdc_kafka_integration_heavy
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       context: pull-cdc-kafka-integration-heavy
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-heavy"
       branches: *branches
@@ -60,11 +51,9 @@ presubmits:
     - name: pingcap/ticdc/release-9.0-beta/pull_cdc_pulsar_integration_light
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       context: pull-cdc-pulsar-integration-light
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-pulsar-integration-light"
       branches: *branches
@@ -72,11 +61,9 @@ presubmits:
     - name: pingcap/ticdc/release-9.0-beta/pull_cdc_storage_integration_light
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       context: pull-cdc-storage-integration-light
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light"
       branches: *branches
@@ -84,80 +71,63 @@ presubmits:
     - name: pingcap/ticdc/release-9.0-beta/pull_cdc_storage_integration_heavy
       agent: jenkins
       decorate: false # need add this.
-      always_run: false
       skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       context: pull-cdc-storage-integration-heavy
-      optional: false
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-heavy"
       branches: *branches
 
     - name: pull-unit-test
-      cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: false
-      skip_report: false
-      optional: false
       skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
         containers:
           - name: check
             image: &image ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
-            command: &command [bash, -ce]
+            command: [bash, -ce]
             args:
               - |
                 make unit_test_in_verify_ci
-            env: &env
-              - name: GO_PROXY
-                value: http://goproxy.pingcap.net,direct
             resources:
               requests:
-                memory: 32Gi
-                cpu: "16"
+                memory: 24Gi
+                cpu: "12"
               limits:
-                memory: 32Gi
-                cpu: "16"
+                memory: 24Gi
+                cpu: "12"
 
     - name: pull-build
-      cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: false
-      skip_report: false
-      optional: false
       skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
         containers:
           - name: build
             image: *image
-            command: *command
+            command: [bash, -ce]
             args:
               - |
                 make cdc
             env: *env
             resources: &resources
               requests:
-                memory: 16Gi
-                cpu: "8"
+                memory: 12Gi
+                cpu: "6"
               limits:
-                memory: 16Gi
-                cpu: "8"
+                memory: 24Gi
+                cpu: "6"
 
     - name: pull-check
-      cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      always_run: false
-      skip_report: false
-      optional: false
       skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
         containers:
           - name: check
             image: *image
-            command: *command
+            command: [bash, -ce]
             args:
               - |
                 make check
