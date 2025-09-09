@@ -139,7 +139,7 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tidb_cdc_test/
-                                    tar --warning=no-file-changed  -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log" -o -name "*.txt" -o -name "*.sql" )
+                                    tar --warning=no-file-changed  -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log" -o -name "*.txt" -o -name "*.sql")
                                     ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
