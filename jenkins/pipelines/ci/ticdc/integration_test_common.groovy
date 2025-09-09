@@ -192,7 +192,7 @@ def tests(sink_type, node_label) {
                                 sh """
                                 echo "archive logs"
                                 ls /tmp/tidb_cdc_test/
-                                tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log" -o -name "*.txt" -o -name "*.sql")
+                                tar -cvzf log-${log_tar_name}.tar.gz \$(find /tmp/tidb_cdc_test/  -type f | grep -ie '\.\(log\|txt\|sql\)$')
                                 ls -alh  log-${log_tar_name}.tar.gz
                                 """
 
