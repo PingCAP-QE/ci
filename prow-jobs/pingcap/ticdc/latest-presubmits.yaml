@@ -111,7 +111,6 @@ presubmits:
             args:
               - |
                 make cdc
-            env: *env
             resources: &resources
               requests:
                 memory: 12Gi
@@ -133,7 +132,6 @@ presubmits:
             args:
               - |
                 make check
-            env: *env
             resources: *resources
 
     - name: pull-error-log-review
