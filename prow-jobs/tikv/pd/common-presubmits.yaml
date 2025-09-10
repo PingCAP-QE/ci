@@ -32,6 +32,7 @@ presubmits:
                 # skip it when the base branch is not in [master, release-X.Y]
                 if [[ "${PULL_BASE_REF}" != "master" && ! "${PULL_BASE_REF}" =~ ^release-[0-9]+\.[0-9]+$ ]]; then
                   echo "base branch is not in [master, release-X.Y], skip it."
+                  exit 0
                 fi
 
                 echo "💬 base branch of the PR: ${PULL_BASE_REF}"
