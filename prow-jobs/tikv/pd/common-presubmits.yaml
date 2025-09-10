@@ -59,6 +59,7 @@ presubmits:
                     echo "ℹ️ Dependency ${dep} is not using a pseudo-version, skipping check."
                     continue
                   fi
+                  echo "ℹ️ The commit of go module ${dep} is '${commit}'."
 
                   repo_url=$(echo "$dep_info" | jq -r '.Path | "https://\(.).git"')
                   to_clone_folder=$(basename "$(echo "$dep_info" | jq -r '.Path')")
@@ -69,7 +70,7 @@ presubmits:
                     )
 
                     # check whether the commit is in the expected branch
-                    if [ "$(git merge-base "$commit" "${expect_include_branch}")" != "$commit" ]; then
+                    if [ "$(git merge-base "$commit" "${expect_include_branch}" | cut -c1-12)" != "$commit" ]; then
                       echo "❌ commit ${commit} is not in branch '${expect_include_branch}' of ${repo_url}"
                       exit 1
                     fi
