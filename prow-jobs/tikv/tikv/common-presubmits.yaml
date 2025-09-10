@@ -1,0 +1,58 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^release-[0-9]+[.][0-9]+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+presubmits:
+  tikv/tikv:
+    - <<: *brancher
+      name: pull-check-deps
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: true # remove it when test passed
+      optional: true # remove it when test passed
+      spec:
+        containers:
+          - name: build
+            image: mikefarah/yq:4.44.1
+            command: [sh, -c]
+            args:
+              - |
+                if [[ "${JOB_TYPE:-}" == "batch" ]]; then
+                  echo "JOB_TYPE is batch, skip it."
+                  exit 0
+                fi
+
+                trunk_branch="master"
+                echo "💬 base branch of the PR: ${PULL_BASE_REF}"
+
+                ## for kvproto:
+                echo "🔍 checking kvproto branch..."
+                # check for git repo url:
+                if ! yq -e '.workspace.dependencies.kvproto.git == "https://github.com/pingcap/kvproto.git"' Cargo.toml; then
+                  echo "Error: .workspace.dependencies.kvproto.git is not set to 'https://github.com/pingcap/kvproto.git' in Cargo.toml"
+                  exit 1
+                fi
+                # check for git repo branch:
+                branch=$(yq -oy '.workspace.dependencies.kvproto.branch // ""' Cargo.toml)
+                if [[ -z "${branch}" && "${PULL_BASE_REF}" == "${trunk_branch}" ]]; then
+                    echo ".workspace.dependencies.kvproto.branch is empty, skip it."
+                else
+                  if [[ "${branch}" != "${PULL_BASE_REF}" ]]; then
+                    echo "Error: .workspace.dependencies.kvproto.branch is not set to '${PULL_BASE_REF}' in Cargo.toml"
+                    exit 1
+                  fi
+                fi
+                echo "🎉 kvproto branch is correct"
+
+                ## add more on demand...
+            resources:
+              request:
+                memory: 4Gi
+                cpu: "1"
+              limits:
+                memory: 8Gi
+                cpu: "2"
