@@ -52,18 +52,16 @@ presubmits:
                 for dep in "${deps[@]}"; do
                   echo "🔍 checking ${dep} branch..."
                   # get the repo and commit
-                  go list -m -json all | jq -r --arg dep "$dep" '
-                    select(.Path == $dep) |
-                    {
-                      module: .Path,
-                      version: .Version,
-                      repo: ("https://" + .Path + ".git"),
-                      commit: (if (.Version | test("-[0-9a-f]{12}$")) then (.Version | split("-") | .[2]) else null end)
-                    }
-                  ' | tee ../dep.json
-                  commit="$(jq -r .commit ../dep.json)"
-                  repo_url="$(jq -r .repo ../dep.json)"
-                  to_clone_folder="$(basename $(jq -r .module ../dep.json))"
+                  dep_info=$(go list -m -json "$dep")
+                  commit=$(echo "$dep_info" | jq -r 'if .Version | test("-[0-9a-f]{12}$") then .Version | split("-") | .[2] else "null" end')
+
+                  if [[ "$commit" == "null" ]]; then
+                    echo "ℹ️ Dependency ${dep} is not using a pseudo-version, skipping check."
+                    continue
+                  fi
+
+                  repo_url=$(echo "$dep_info" | jq -r '.Path | "https://\(.).git"')
+                  to_clone_folder=$(basename "$(echo "$dep_info" | jq -r '.Path')")
                   git clone "$repo_url" ../${to_clone_folder} && pushd ../${to_clone_folder}
                     git checkout "${expect_include_branch}" || (
                       echo "❌ branch ${expect_include_branch} in ${repo_url} not found"
@@ -79,7 +77,7 @@ presubmits:
                   echo "🎉 ${dep} branch is correct"
 
                   # clean up for next
-                  rm -rf ../${to_clone_folder} ../dep.json
+                  rm -rf ../${to_clone_folder}
                 done
 
                 echo "🎉 All dependencies are correct"
