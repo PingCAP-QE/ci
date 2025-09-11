@@ -91,7 +91,7 @@ presubmits:
 
                   # Extract repo URL from module path, handling possible subfolders
                   repo_url=$(echo "$dep_info" | jq -r '.Path' | awk -F/ '{print "https://"$1"/"$2"/"$3".git"}')
-                  to_clone_folder=$(basename "$(echo "$dep_info" | jq -r '.Path')")
+                  to_clone_folder=$(basename "$repo_url" .git)
 
                   git clone "$repo_url" ../${to_clone_folder} && pushd ../${to_clone_folder}
                     git checkout "${expect_include_branch}" || (
