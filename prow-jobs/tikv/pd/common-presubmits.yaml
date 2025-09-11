@@ -21,9 +21,10 @@ presubmits:
               requests: { memory: 128Mi, cpu: "50m" }
               limits: { memory: 256Mi, cpu: "100m" }
             image: golang:1.25
-            command: [bash, -ceo, pipefail]
+            command: [bash, -c]
             args:
               - |
+                set -eo pipefail
                 # skip it for batch jobs
                 if [[ "${JOB_TYPE:-}" == "batch" ]]; then
                   echo "JOB_TYPE is batch, skip it."
