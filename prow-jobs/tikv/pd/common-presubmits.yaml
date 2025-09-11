@@ -1,0 +1,83 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^release-[0-9]+[.][0-9]+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+presubmits:
+  tikv/pd:
+    - <<: *brancher
+      name: pull-check-deps
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: true # remove it when test passed
+      optional: true # remove it when test passed
+      spec:
+        containers:
+          - name: build
+            resources:
+              requests: { memory: 128Mi, cpu: "50m" }
+              limits: { memory: 256Mi, cpu: "100m" }
+            image: golang:1.25
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                # skip it for batch jobs
+                if [[ "${JOB_TYPE:-}" == "batch" ]]; then
+                  echo "JOB_TYPE is batch, skip it."
+                  exit 0
+                fi
+                # skip it when the base branch is not in [master, release-X.Y]
+                if [[ "${PULL_BASE_REF}" != "master" && ! "${PULL_BASE_REF}" =~ ^release-[0-9]+\.[0-9]+$ ]]; then
+                  echo "base branch is not in [master, release-X.Y], skip it."
+                  exit 0
+                fi
+
+                echo "💬 base branch of the PR: ${PULL_BASE_REF}"
+
+                # install tools: jq
+                apt-get update && apt-get install -y jq
+
+                ## Check for go module dependencies
+                deps=(
+                  "github.com/pingcap/kvproto"
+                  # add more on demand...
+                )
+                # declare the expect branch.
+                #   tip: maybe some other map for deps.
+                expect_include_branch=${PULL_BASE_REF}
+
+                for dep in "${deps[@]}"; do
+                  echo "🔍 checking ${dep} branch..."
+                  # get the repo and commit
+                  dep_info=$(go list -m -json "$dep")
+                  commit=$(echo "$dep_info" | jq -r 'if .Version | test("-[0-9a-f]{12}$") then .Version | split("-") | .[2] else "null" end')
+
+                  if [[ "$commit" == "null" ]]; then
+                    echo "ℹ️ Dependency ${dep} is not using a pseudo-version, skipping check."
+                    continue
+                  fi
+
+                  repo_url=$(echo "$dep_info" | jq -r '.Path | "https://\(.).git"')
+                  to_clone_folder=$(basename "$(echo "$dep_info" | jq -r '.Path')")
+                  git clone "$repo_url" ../${to_clone_folder} && pushd ../${to_clone_folder}
+                    git checkout "${expect_include_branch}" || (
+                      echo "❌ branch ${expect_include_branch} in ${repo_url} not found"
+                      exit 1
+                    )
+
+                    # check whether the commit is in the expected branch
+                    if [ "$(git merge-base "$commit" "${expect_include_branch}")" != "$commit" ]; then
+                      echo "❌ commit ${commit} is not in branch '${expect_include_branch}' of ${repo_url}"
+                      exit 1
+                    fi
+                  popd
+                  echo "🎉 ${dep} branch is correct"
+
+                  # clean up for next
+                  rm -rf ../${to_clone_folder}
+                done
+
+                echo "🎉 All dependencies are correct"
