@@ -54,7 +54,6 @@ presubmits:
                   # get the repo and commit
                   dep_info=$(go list -m -json "$dep")
                   commit=$(echo "$dep_info" | jq -r 'if .Version | test("-[0-9a-f]{12}$") then .Version | split("-") | .[2] else "null" end')
-
                   if [[ "$commit" == "null" ]]; then
                     echo "ℹ️ Dependency ${dep} is not using a pseudo-version, skipping check."
                     continue
