@@ -7,7 +7,7 @@ global_definitions:
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 presubmits:
-  tikv/pd:
+  pingcap/tidb:
     - <<: *brancher
       name: pull-check-deps
       decorate: true # need add this.
@@ -43,14 +43,16 @@ presubmits:
                 ## Check for go module dependencies
                 deps=(
                   "github.com/pingcap/kvproto"
-                  "github.com/pingcap/tidb-dashboard"
+                  "github.com/pingcap/tipb"
+                  "github.com/tikv/client-go"
+                  "github.com/tikv/pd/client"
                   # add more on demand...
                 )
+
                 # Define prefix replace KV pairs: key is dep prefix, value is the branch prefix to use.
                 declare -A dep_branch_prefix_map=(
-                  # Example:
                   # For github.com/tikv/client-go, map release-X.Y to tidb-X.Y.
-                  # ["github.com/tikv/client-go"]="tidb"
+                  ["github.com/tikv/client-go"]="tidb"
                 )
 
                 # Function to get expected branch for a dependency
