@@ -32,8 +32,11 @@ presubmits:
                 echo "Rust version: $(rustc --version)"
                 echo "Cargo version: $(cargo --version)"
 
-                # Build and verify
-                make build && ./target/debug/tici-server --version
+                # Build the tici-server binary
+                make build
+
+                # Run tici-server to display version
+                ./target/debug/tici-server --version || { echo "Failed to run tici-server"; exit 1; }
 
                 # check format & clippy
                 make check
