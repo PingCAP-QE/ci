@@ -37,6 +37,7 @@ configMapGenerator:
       - pingcap_tidb-operator_latest-presubmits.yaml=pingcap/tidb-operator/latest-presubmits.yaml
       - pingcap_tidb-tools_presubmits.yaml=pingcap/tidb-tools/presubmits.yaml
       - pingcap_tidb_common-postsubmits.yaml=pingcap/tidb/common-postsubmits.yaml
+      - pingcap_tidb_common-presubmits.yaml=pingcap/tidb/common-presubmits.yaml
       - pingcap_tidb_latest-periodics.yaml=pingcap/tidb/latest-periodics.yaml
       - pingcap_tidb_latest-postsubmits.yaml=pingcap/tidb/latest-postsubmits.yaml
       - pingcap_tidb_latest-presubmits-canary.yaml=pingcap/tidb/latest-presubmits-canary.yaml
