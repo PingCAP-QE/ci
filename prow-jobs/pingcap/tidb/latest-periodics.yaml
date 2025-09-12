@@ -6,11 +6,11 @@ periodics:
     cron: "0 22 * * *"
     skip_report: true
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-    - org: pingcap
-      repo: tidb
-      base_ref: master
-      skip_submodules: true
-      clone_depth: 1
+      - org: pingcap
+        repo: tidb
+        base_ref: master
+        skip_submodules: true
+        clone_depth: 1
     spec:
       containers:
         - name: check
@@ -61,6 +61,8 @@ periodics:
               echo $TZ
               echo ""
               make gotest_in_verify_ci
+
+              # upload coverage report
               wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
               chmod +x codecov
               ./codecov --flags unit --file test_coverage/tidb_cov.unit_test.out --sha ${COMMIT_SHA} --slug pingcap/tidb
@@ -80,26 +82,26 @@ periodics:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                  - key: ci-nvme-high-performance
+                    operator: In
+                    values:
+                      - "true"
   - name: periodic-daily-tidb-long-unit-test
     cluster: gcp-prow-ksyun
     decorate: true # need add this.
     cron: "0 22 * * *"
     skip_report: true
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-    - org: pingcap
-      repo: tidb
-      base_ref: master
-      skip_submodules: true
-      clone_depth: 1
+      - org: pingcap
+        repo: tidb
+        base_ref: master
+        skip_submodules: true
+        clone_depth: 1
     spec:
       containers:
         - name: check
@@ -120,20 +122,12 @@ periodics:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
-  - name: pingcap/tidb/periodics_tidb_next_gen_smoke_test
-    agent: jenkins
-    decorate: false # need add this.
-    cron: "0 */12 * * *" # every 12 hour
-    extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-    - org: pingcap
-      repo: tidb
-      base_ref: feature/next-gen-tidb
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                  - key: ci-nvme-high-performance
+                    operator: In
+                    values:
+                      - "true"
