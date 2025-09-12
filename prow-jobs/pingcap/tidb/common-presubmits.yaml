@@ -11,9 +11,10 @@ presubmits:
     - <<: *brancher
       name: pull-check-deps
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      skip_report: true # remove it when test passed
       optional: true # remove it when test passed
+      skip_report: true # remove it when test passed
+      skip_if_only_changed: *skip_if_only_changed
+      skip_submodules: true
       spec:
         containers:
           - name: build
