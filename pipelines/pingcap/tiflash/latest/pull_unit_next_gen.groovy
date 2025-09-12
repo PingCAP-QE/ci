@@ -59,7 +59,7 @@ pipeline {
                     // test build cache, if cache is exist, then skip the following build steps
                     try {
                         dir("test-build-cache") {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')){
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'ut-build')){
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
                                 println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('ng-binary', REFS, 'ut-build')}"
