@@ -33,20 +33,6 @@ pipeline {
         // parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -71,9 +57,22 @@ pipeline {
                             sh """
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
-                                \${script} --pd=${TARGET_BRANCH_PD}-next-gen --tikv=${TARGET_BRANCH_TIKV}-next-gen --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen
+                                \${script} \
+                                    --pd=${TARGET_BRANCH_PD}-next-gen \
+                                    --tikv=${TARGET_BRANCH_TIKV}-next-gen \
+                                    --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
+                                    --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen
                             """
                         }
+                        sh '''
+                            mv tiflash tiflash_dir
+                            ln -s `pwd`/tiflash_dir/tiflash tiflash
+
+                            ./tikv-server -V
+                            ./tikv-worker -V
+                            ./pd-server -V
+                            ./tiflash --version
+                        '''
                         sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh ${FILE_SERVER_URL}"
                     }
                     // cache it for other pods
