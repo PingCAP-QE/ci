@@ -54,12 +54,12 @@ pipeline {
                             script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                             chmod +x \$script
                             \${script} \
-                            --pd=${TARGET_BRANCH_PD}-next-gen \
-                            --tikv=${TARGET_BRANCH_TIKV}-next-gen \
-                            --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
-                            --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
-                            --ticdc-new=${TARGET_BRANCH_TICDC} \
-                            --minio=RELEASE.2025-07-23T15-54-02Z
+                                --pd=${TARGET_BRANCH_PD}-next-gen \
+                                --tikv=${TARGET_BRANCH_TIKV}-next-gen \
+                                --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
+                                --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
+                                --ticdc-new=${TARGET_BRANCH_TICDC} \
+                                --minio=RELEASE.2025-07-23T15-54-02Z
                         """
                     }
                     sh '''
