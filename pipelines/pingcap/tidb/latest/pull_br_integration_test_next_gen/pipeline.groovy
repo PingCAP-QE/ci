@@ -26,6 +26,7 @@ pipeline {
     environment {
         NEXT_GEN = '1'
         OCI_ARTIFACT_HOST = 'hub-mig.pingcap.net'
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -65,15 +66,15 @@ pipeline {
                 dir(REFS.repo) {
                     sh label: 'tidb-server failpoint binary', script: 'make failpoint-enable server failpoint-disable'
                     sh label: 'br test binary', script: 'make build_for_br_integration_test'
-                    container("utils") {
-                        dir('bin') {
+                    dir('bin') {
+                        container("utils") {
                             sh """
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
                                 \${script} --pd=${TARGET_BRANCH_PD}-next-gen --tikv=${TARGET_BRANCH_TIKV}-next-gen --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen
                             """
-                            sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh"
                         }
+                        sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh ${FILE_SERVER_URL}"
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
