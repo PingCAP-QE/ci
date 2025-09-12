@@ -3,6 +3,7 @@ final folder = 'pingcap/tidb/latest'
 final jobName = 'periodics_tidb_next_gen_smoke_test'
 
 pipelineJob("pingcap/tidb/${jobName}") {
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
