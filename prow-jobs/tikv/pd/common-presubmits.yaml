@@ -12,8 +12,6 @@ presubmits:
       name: pull-check-deps
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      skip_report: true # remove it when test passed
-      optional: true # remove it when test passed
       spec:
         containers:
           - name: build
