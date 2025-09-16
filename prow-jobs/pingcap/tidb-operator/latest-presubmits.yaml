@@ -13,9 +13,7 @@ presubmits:
     - name: pull-e2e
       decorate: true # need add this.
       decoration_config: *decoration_config
-      always_run: false
-      optional: true
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
         nodeSelector:
