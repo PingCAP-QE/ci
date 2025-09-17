@@ -51,10 +51,6 @@ pipeline {
 
                     // temporary hacking:
                     sh label: 'modify to disable fail fast for UT cases', script: '''
-                        # modify .bazelrc
-                        sed -i 's/^test:ci --flaky_test_attempts=[0-9]\\+/test:ci --flaky_test_attempts=1/' .bazelrc
-                        git diff .bazelrc
-
                         # modify Makefile: `--test_keep_going=false` => `-k`
                         sed -i 's/ --test_keep_going=false / -k /g' Makefile
                         git diff Makefile
