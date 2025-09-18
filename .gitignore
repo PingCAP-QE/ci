@@ -23,3 +23,6 @@ lib/
 
 .cursor
 .cursorrules
+
+tools/reporters/**/*.html
+tools/reporters/**/*.pdf
