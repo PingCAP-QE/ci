@@ -79,6 +79,13 @@ details > summary { cursor: pointer; padding: 8px 10px; background: var(--bg-th)
 details > summary::-webkit-details-marker { display: none; }
 details[open] > summary { border-bottom: 1px solid var(--border); }
 details .content { padding: 10px; }
+
+/* Rank bars */
+.rank-cell { position: relative; padding: 0; }
+.rank-cell .rank-label { position: relative; z-index: 1; display: block; padding: 6px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.rank-cell .rank-bar { position: absolute; top: 0; bottom: 0; left: 0; background: #f3f4f6; }
+.rank-cell .rank-bar--flaky { background: #fee2e2; } /* light red */
+.rank-cell .rank-bar--th { background: #dbeafe; } /* light blue */
     `.trim();
   }
 
@@ -106,8 +113,10 @@ details .content { padding: 10px; }
   }
 
   private sectionTeam(report: ReportData): string {
-    const rows = report.byTeam.map((r) =>
-      `
+    const rows = report.byTeam
+      .filter((r) => (r.flakyCases || 0) > 0 || (r.thresholdedCases || 0) > 0)
+      .map((r) =>
+        `
 <tr>
   <td class="owner">${escapeHtml(r.owner)}</td>
   <td class="mono">${escapeHtml(r.repo)}</td>
@@ -116,7 +125,8 @@ details .content { padding: 10px; }
   <td>${this.num(r.thresholdedCases)}</td>
 </tr>
 `.trim()
-    ).join("\n");
+      )
+      .join("\n");
 
     return `
 <details>
@@ -142,8 +152,10 @@ ${rows}
   }
 
   private sectionSuite(report: ReportData): string {
-    const rows = report.bySuite.map((r) =>
-      `
+    const rows = report.bySuite
+      .filter((r) => (r.flakyCases || 0) > 0 || (r.thresholdedCases || 0) > 0)
+      .map((r) =>
+        `
 <tr>
   <td class="owner">${escapeHtml(r.owner)}</td>
   <td class="mono">${escapeHtml(r.repo)}</td>
@@ -153,7 +165,8 @@ ${rows}
   <td>${this.num(r.thresholdedCases)}</td>
 </tr>
 `.trim()
-    ).join("\n");
+      )
+      .join("\n");
 
     return `
 <details>
@@ -180,16 +193,27 @@ ${rows}
   }
 
   private sectionCase(report: ReportData): string {
-    const rows = report.byCase.map((r) =>
-      `
+    const data = report.byCase.filter((x) =>
+      (x.flakyCount || 0) > 0 || (x.thresholdedCount || 0) > 0
+    );
+    const maxFlaky = Math.max(1, ...data.map((x) => x.flakyCount || 0));
+    const maxThresh = Math.max(1, ...data.map((x) => x.thresholdedCount || 0));
+    const rows = data.map((r) => {
+      const flakyPct = maxFlaky ? (r.flakyCount / maxFlaky) * 100 : 0;
+      const thPct = maxThresh ? (r.thresholdedCount / maxThresh) * 100 : 0;
+      return `
 <tr>
   <td class="owner">${escapeHtml(r.owner)}</td>
   <td class="mono">${escapeHtml(r.repo)}</td>
   <td class="mono">${escapeHtml(r.branch)}</td>
   <td class="mono">${escapeHtml(r.suite_name)}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
-  <td>${this.num(r.flakyCount)}</td>
-  <td>${this.num(r.thresholdedCount)}</td>
+  <td class="rank-cell"><span class="rank-bar rank-bar--flaky" style="width:${flakyPct}%;"></span><span class="rank-label">${
+        this.num(r.flakyCount)
+      }</span></td>
+  <td class="rank-cell"><span class="rank-bar rank-bar--th" style="width:${thPct}%;"></span><span class="rank-label">${
+        this.num(r.thresholdedCount)
+      }</span></td>
   <td>${
         r.latestBuildUrl
           ? `<a href="${
@@ -205,8 +229,8 @@ ${rows}
       }" target="_blank" rel="noopener">new</a></td>
 
 </tr>
-`.trim()
-    ).join("\n");
+`.trim();
+    }).join("\n");
 
     return `
 <h2>By Case</h2>
@@ -234,8 +258,15 @@ ${rows}
   }
 
   private sectionTop(report: ReportData): string {
-    const rows = report.topFlakyCases.map((r, i) =>
-      `
+    const data = report.topFlakyCases.filter((x) =>
+      (x.flakyCount || 0) > 0 || (x.thresholdedCount || 0) > 0
+    );
+    const maxFlaky = Math.max(1, ...data.map((x) => x.flakyCount || 0));
+    const maxThresh = Math.max(1, ...data.map((x) => x.thresholdedCount || 0));
+    const rows = data.map((r, i) => {
+      const flakyPct = maxFlaky ? (r.flakyCount / maxFlaky) * 100 : 0;
+      const thPct = maxThresh ? (r.thresholdedCount / maxThresh) * 100 : 0;
+      return `
 <tr>
   <td>${this.num(i + 1)}</td>
   <td class="owner">${escapeHtml(r.owner)}</td>
@@ -243,8 +274,12 @@ ${rows}
   <td class="mono">${escapeHtml(r.branch)}</td>
   <td class="mono">${escapeHtml(r.suite_name)}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
-  <td>${this.num(r.flakyCount)}</td>
-  <td>${this.num(r.thresholdedCount)}</td>
+  <td class="rank-cell"><span class="rank-bar rank-bar--flaky" style="width:${flakyPct}%;"></span><span class="rank-label">${
+        this.num(r.flakyCount)
+      }</span></td>
+  <td class="rank-cell"><span class="rank-bar rank-bar--th" style="width:${thPct}%;"></span><span class="rank-label">${
+        this.num(r.thresholdedCount)
+      }</span></td>
   <td>${
         r.latestBuildUrl
           ? `<a href="${
@@ -259,8 +294,8 @@ ${rows}
         escapeHtml(this.githubNewIssueUrlForCase(report, r))
       }" target="_blank" rel="noopener">new</a></td>
 </tr>
-`.trim()
-    ).join("\n");
+`.trim();
+    }).join("\n");
 
     return `
 <h2>Top 10 Flakiest Cases</h2>
@@ -274,7 +309,7 @@ ${rows}
       <th>Suite</th>
       <th>Case</th>
       <th>Flaky Count</th>
-      <th>Thresholded Count</th>
+      <th>Time Thresholded Count</th>
       <th>Latest Build</th>
       <th>Issue Search</th>
       <th>Create Issue</th>
@@ -309,7 +344,7 @@ ${rows}
       `- Case: ${r.case_name}`,
       `- Branch: ${r.branch}`,
       `- Flaky Count: ${r.flakyCount ?? 0}`,
-      `- Thresholded Count: ${r.thresholdedCount ?? 0}`,
+      `- Time Thresholded Count: ${r.thresholdedCount ?? 0}`,
       r.latestBuildUrl
         ? `- Latest Build: ${r.latestBuildUrl}`
         : `- Latest Build: N/A`,
