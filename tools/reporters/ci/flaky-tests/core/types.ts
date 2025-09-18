@@ -40,6 +40,10 @@ export interface CliConfig {
   dbPass?: string;
   dbName?: string;
 
+  // Filters
+  repo?: string;
+  branch?: string;
+
   // Ownership mapping
   ownerTable?: string;
   ownerMapPath?: string;

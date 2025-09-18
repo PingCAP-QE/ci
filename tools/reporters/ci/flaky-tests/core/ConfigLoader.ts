@@ -76,6 +76,8 @@ Options:
   --to <ISO>                Exclusive end datetime, e.g. 2025-03-08T00:00:00Z or 2025-03-08
   --range <N[d|h|m]>        Relative window if --from/--to omitted, e.g. 7d, 12h, 90m
   --threshold-ms <number>   Runtime threshold, default 600000 (10m)
+  --repo <name>             Filter by repository (e.g., pingcap/tidb)
+  --branch <name>           Filter by branch (e.g., master)
   --db-url <url>            mysql://user:pass@host:port/dbname
   --db-host <host>
   --db-port <port>
@@ -95,12 +97,13 @@ Options:
 
 Environment:
   DB_URL | DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+  REPO, BRANCH
   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE
   THRESHOLD_MS
 
 Examples:
-  deno run -A insight/reporters/ci/flaky-tests/src/main.ts --range 7d --html out/flaky.html --json out/flaky.json
-  deno run -A insight/reporters/ci/flaky-tests/src/main.ts --from 2025-03-01 --to 2025-03-08 --threshold-ms 300000
+  deno run -A insight/reporters/ci/flaky-tests/src/main.ts --range 7d --repo pingcap/tidb --branch master --html out/flaky.html --json out/flaky.json
+  deno run -A insight/reporters/ci/flaky-tests/src/main.ts --from 2025-03-01 --to 2025-03-08 --repo pingcap/tidb --branch master --threshold-ms 300000
 `.trim();
     return text;
   }
@@ -111,6 +114,8 @@ Examples:
         "from",
         "to",
         "range",
+        "repo",
+        "branch",
         "threshold-ms",
         "db-url",
         "db-host",
@@ -156,6 +161,8 @@ Examples:
       dbUser: flags["db-user"] ?? Deno.env.get("DB_USER"),
       dbPass: flags["db-pass"] ?? Deno.env.get("DB_PASSWORD"),
       dbName: flags["db-name"] ?? Deno.env.get("DB_NAME"),
+      repo: flags["repo"] ?? Deno.env.get("REPO"),
+      branch: flags["branch"] ?? Deno.env.get("BRANCH"),
       ownerTable: flags["owner-table"],
       ownerMapPath: flags["owner-map"],
       htmlPath: flags["html"],

@@ -25,10 +25,18 @@ export class Database {
   private client: MySQLClient | null = null;
   private readonly cfg: ClientConfig;
   private readonly verbose: boolean;
+  private readonly repo?: string;
+  private readonly branch?: string;
 
-  constructor(cfg: ClientConfig, options?: { verbose?: boolean }) {
+  constructor(
+    cfg: ClientConfig,
+    options?: { verbose?: boolean; repo?: string; branch?: string },
+  ) {
     this.cfg = cfg;
     this.verbose = !!options?.verbose;
+    // Optional filters: prefer constructor options, fallback to environment variables
+    this.repo = options?.repo ?? Deno.env.get("REPO") ?? undefined;
+    this.branch = options?.branch ?? Deno.env.get("BRANCH") ?? undefined;
   }
 
   /**
@@ -73,10 +81,19 @@ export class Database {
    */
   async fetchRuns(window: TimeWindow): Promise<ProblemCaseRunRow[]> {
     this.assertConnected();
-    const sql =
+    let sql =
       `SELECT repo, branch, suite_name, case_name, flaky, timecost_ms, report_time, build_url, reason
        FROM problem_case_runs
-       WHERE report_time >= ? AND report_time < ? AND repo = "pingcap/tidb" AND branch = "master" AND suite_name like "//pkg/ddl%"`;
+       WHERE report_time >= ? AND report_time < ?`;
+    const params: unknown[] = [window.from, window.to];
+    if (this.repo) {
+      sql += " AND repo = ?";
+      params.push(this.repo);
+    }
+    if (this.branch) {
+      sql += " AND branch = ?";
+      params.push(this.branch);
+    }
 
     if (this.verbose) {
       console.debug(
@@ -87,7 +104,7 @@ export class Database {
       );
     }
 
-    const res = await this.client!.execute(sql, [window.from, window.to]);
+    const res = await this.client!.execute(sql, params);
     const rows = (res?.rows ?? []) as any[];
 
     return rows.map((r) => {

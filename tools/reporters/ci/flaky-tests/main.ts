@@ -79,7 +79,18 @@ export async function main(args: string[]): Promise<number> {
     ? await loader.loadOwnerMapFromFile(cli.ownerMapPath)
     : null;
 
-  const db = new Database(dbCfg, { verbose: cli.verbose });
+  const db = new Database(dbCfg, {
+    verbose: cli.verbose,
+    repo: cli.repo,
+    branch: cli.branch,
+  });
+  if (cli.verbose) {
+    console.debug(
+      `[cfg] filters: repo=${cli.repo ?? "(any)"} branch=${
+        cli.branch ?? "(any)"
+      }`,
+    );
+  }
   try {
     await db.connect();
   } catch (e: unknown) {

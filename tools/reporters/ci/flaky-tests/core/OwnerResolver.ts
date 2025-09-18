@@ -140,14 +140,15 @@ export class OwnerResolver {
 
       // suiteAny remains as before
       const suiteAny = e.suite_name === "*";
-      if (!suiteExact && !suiteAny) continue;
+      // Allow parent suite prefix matches as valid suite-level candidates
+      if (!suiteExact && !suiteParent && !suiteAny) continue;
 
       const caseExact = e.case_name === kase;
       const caseAny = e.case_name === "*";
       if (!caseExact && !caseAny) continue;
 
       let level: Exclude<Level, "none">;
-      if (suiteExact && caseExact) {
+      if ((suiteExact || suiteParent) && caseExact) {
         level = "case";
       } else if ((suiteExact || suiteParent) && caseAny) {
         level = "suite";
