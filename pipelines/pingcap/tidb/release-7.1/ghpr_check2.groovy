@@ -17,7 +17,7 @@ pipeline {
         }
     }
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
