@@ -1,4 +1,4 @@
-import { ReportData } from "../core/types.ts";
+import { CaseAgg, ReportData } from "../core/types.ts";
 
 /**
  * HtmlRenderer - renders a single-file HTML report from aggregated data.
@@ -26,10 +26,10 @@ export class HtmlRenderer {
       "</head>",
       "<body>",
       header,
+      top,
+      byCase,
       team,
       suite,
-      byCase,
-      top,
       "</body>",
       "</html>",
     ].join("\n");
@@ -72,6 +72,13 @@ th { background: var(--bg-th); font-weight: 600; }
 .small { font-size: 12px; }
 .muted { color: var(--muted); }
 .owner { font-weight: 600; }
+
+/* Collapsibles */
+details { margin: 12px 0 24px; border: 1px solid var(--border); border-radius: 6px; }
+details > summary { cursor: pointer; padding: 8px 10px; background: var(--bg-th); font-weight: 600; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] > summary { border-bottom: 1px solid var(--border); }
+details .content { padding: 10px; }
     `.trim();
   }
 
@@ -82,16 +89,16 @@ th { background: var(--bg-th); font-weight: 600; }
   <span class="kpi">Window: <b>${escapeHtml(report.window.from)}</b> → <b>${
       escapeHtml(report.window.to)
     }</b></span>
-  <span class="kpi">Threshold: <b>${
-      this.num(report.window.thresholdMs)
-    }</b> ms</span>
   <span class="kpi">Repos: <b>${this.num(report.summary.repos)}</b></span>
   <span class="kpi">Suites: <b>${this.num(report.summary.suites)}</b></span>
   <span class="kpi">Cases: <b>${this.num(report.summary.cases)}</b></span>
   <span class="kpi">Flaky Cases: <b>${
       this.num(report.summary.flakyCases)
     }</b></span>
-  <span class="kpi">Thresholded Cases: <b>${
+  <span class="kpi">Threshold: <b>${
+      this.num(report.window.thresholdMs)
+    }</b> ms</span>
+    <span class="kpi">Time Thresholded Cases: <b>${
       this.num(report.summary.thresholdedCases)
     }</b></span>
 </div>
@@ -112,11 +119,13 @@ th { background: var(--bg-th); font-weight: 600; }
     ).join("\n");
 
     return `
-<h2>By Team</h2>
+<details>
+  <summary>By Team</summary>
+  <div class="content">
 <table>
   <thead>
     <tr>
-      <th>Owner</th>
+      <th>Team Owner</th>
       <th>Repo</th>
       <th>Branch</th>
       <th>Flaky Cases</th>
@@ -127,6 +136,8 @@ th { background: var(--bg-th); font-weight: 600; }
 ${rows}
   </tbody>
 </table>
+</div>
+</details>
     `.trim();
   }
 
@@ -145,22 +156,26 @@ ${rows}
     ).join("\n");
 
     return `
-<h2>By Package (Suite)</h2>
+<details>
+  <summary>By Package (Suite)</summary>
+  <div class="content">
 <table>
   <thead>
     <tr>
-      <th>Owner</th>
+      <th>Team Owner</th>
       <th>Repo</th>
       <th>Branch</th>
       <th>Suite</th>
       <th>Flaky Cases</th>
-      <th>Thresholded Cases</th>
+      <th>Time Thresholded Cases</th>
     </tr>
   </thead>
   <tbody>
 ${rows}
   </tbody>
 </table>
+  </div>
+</details>
     `.trim();
   }
 
@@ -182,6 +197,13 @@ ${rows}
           }" target="_blank" rel="noopener">link</a>`
           : `<span class="muted">N/A</span>`
       }</td>
+  <td><a href="${
+        escapeHtml(this.githubIssueSearchUrlForCase(r))
+      }" target="_blank" rel="noopener">search</a></td>
+  <td><a href="${
+        escapeHtml(this.githubNewIssueUrlForCase(report, r))
+      }" target="_blank" rel="noopener">new</a></td>
+
 </tr>
 `.trim()
     ).join("\n");
@@ -191,14 +213,17 @@ ${rows}
 <table>
   <thead>
     <tr>
-      <th>Owner</th>
+      <th>Team Owner</th>
       <th>Repo</th>
       <th>Branch</th>
       <th>Suite</th>
       <th>Case</th>
       <th>Flaky Count</th>
-      <th>Thresholded Count</th>
+      <th>Time Thresholded Count</th>
       <th>Latest Build</th>
+      <th>Issue Search</th>
+      <th>Create Issue</th>
+
     </tr>
   </thead>
   <tbody>
@@ -227,6 +252,12 @@ ${rows}
           }" target="_blank" rel="noopener">link</a>`
           : `<span class="muted">N/A</span>`
       }</td>
+  <td><a href="${
+        escapeHtml(this.githubIssueSearchUrlForCase(r))
+      }" target="_blank" rel="noopener">search</a></td>
+  <td><a href="${
+        escapeHtml(this.githubNewIssueUrlForCase(report, r))
+      }" target="_blank" rel="noopener">new</a></td>
 </tr>
 `.trim()
     ).join("\n");
@@ -237,7 +268,7 @@ ${rows}
   <thead>
     <tr>
       <th>#</th>
-      <th>Owner</th>
+      <th>Team Owner</th>
       <th>Repo</th>
       <th>Branch</th>
       <th>Suite</th>
@@ -245,6 +276,8 @@ ${rows}
       <th>Flaky Count</th>
       <th>Thresholded Count</th>
       <th>Latest Build</th>
+      <th>Issue Search</th>
+      <th>Create Issue</th>
     </tr>
   </thead>
   <tbody>
@@ -252,6 +285,44 @@ ${rows}
   </tbody>
 </table>
     `.trim();
+  }
+
+  private githubIssueSearchUrlForCase(r: CaseAgg): string {
+    const [owner, repo] = (r.repo || "").split("/");
+    if (!owner || !repo) return "#";
+    const terms = [`"${r.case_name}"`]
+      .filter(Boolean)
+      .join(" ");
+    return `https://github.com/${encodeURIComponent(owner)}/${
+      encodeURIComponent(repo)
+    }/issues?q=${encodeURIComponent(`${terms} in:title is:issue`)}`;
+  }
+
+  private githubNewIssueUrlForCase(report: ReportData, r: CaseAgg): string {
+    const [owner, repo] = (r.repo || "").split("/");
+    if (!owner || !repo) return "#";
+    const title = `Flaky test: ${r.case_name} in ${r.suite_name}`;
+    const lines = [
+      "Automated flaky test report.",
+      "",
+      `- Suite: ${r.suite_name}`,
+      `- Case: ${r.case_name}`,
+      `- Branch: ${r.branch}`,
+      `- Flaky Count: ${r.flakyCount ?? 0}`,
+      `- Thresholded Count: ${r.thresholdedCount ?? 0}`,
+      r.latestBuildUrl
+        ? `- Latest Build: ${r.latestBuildUrl}`
+        : `- Latest Build: N/A`,
+      "",
+      `Window: ${report.window.from} → ${report.window.to}`,
+      `Threshold: ${report.window.thresholdMs} ms`,
+    ];
+    const body = lines.join("\n");
+    return `https://github.com/${encodeURIComponent(owner)}/${
+      encodeURIComponent(repo)
+    }/issues/new?title=${encodeURIComponent(title)}&body=${
+      encodeURIComponent(body)
+    }`;
   }
 
   private num(n: number): string {
