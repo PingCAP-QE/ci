@@ -160,7 +160,7 @@ ${rows}
   <td class="owner">${escapeHtml(r.owner)}</td>
   <td class="mono">${escapeHtml(r.repo)}</td>
   <td class="mono">${escapeHtml(r.branch)}</td>
-  <td class="mono">${escapeHtml(r.suite_name)}</td>
+  <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td>${this.num(r.flakyCases)}</td>
   <td>${this.num(r.thresholdedCases)}</td>
 </tr>
@@ -170,7 +170,7 @@ ${rows}
 
     return `
 <details>
-  <summary>By Package (Suite)</summary>
+  <summary>By Package</summary>
   <div class="content">
 <table>
   <thead>
@@ -178,7 +178,7 @@ ${rows}
       <th>Team Owner</th>
       <th>Repo</th>
       <th>Branch</th>
-      <th>Suite</th>
+      <th>Package</th>
       <th>Flaky Cases</th>
       <th>Time Thresholded Cases</th>
     </tr>
@@ -206,7 +206,7 @@ ${rows}
   <td class="owner">${escapeHtml(r.owner)}</td>
   <td class="mono">${escapeHtml(r.repo)}</td>
   <td class="mono">${escapeHtml(r.branch)}</td>
-  <td class="mono">${escapeHtml(r.suite_name)}</td>
+  <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
   <td class="rank-cell"><span class="rank-bar rank-bar--flaky" style="width:${flakyPct}%;"></span><span class="rank-label">${
         this.num(r.flakyCount)
@@ -240,7 +240,7 @@ ${rows}
       <th>Team Owner</th>
       <th>Repo</th>
       <th>Branch</th>
-      <th>Suite</th>
+      <th>Package</th>
       <th>Case</th>
       <th>Flaky Count</th>
       <th>Time Thresholded Count</th>
@@ -272,7 +272,7 @@ ${rows}
   <td class="owner">${escapeHtml(r.owner)}</td>
   <td class="mono">${escapeHtml(r.repo)}</td>
   <td class="mono">${escapeHtml(r.branch)}</td>
-  <td class="mono">${escapeHtml(r.suite_name)}</td>
+  <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
   <td class="rank-cell"><span class="rank-bar rank-bar--flaky" style="width:${flakyPct}%;"></span><span class="rank-label">${
         this.num(r.flakyCount)
@@ -306,7 +306,7 @@ ${rows}
       <th>Team Owner</th>
       <th>Repo</th>
       <th>Branch</th>
-      <th>Suite</th>
+      <th>Package</th>
       <th>Case</th>
       <th>Flaky Count</th>
       <th>Time Thresholded Count</th>
@@ -336,11 +336,13 @@ ${rows}
   private githubNewIssueUrlForCase(report: ReportData, r: CaseAgg): string {
     const [owner, repo] = (r.repo || "").split("/");
     if (!owner || !repo) return "#";
-    const title = `Flaky test: ${r.case_name} in ${r.suite_name}`;
+    const title = `Flaky test: ${r.case_name} in ${
+      this.formatSuiteName(r.suite_name)
+    }`;
     const lines = [
       "Automated flaky test report.",
       "",
-      `- Suite: ${r.suite_name}`,
+      `- Package: ${this.formatSuiteName(r.suite_name)}`,
       `- Case: ${r.case_name}`,
       `- Branch: ${r.branch}`,
       `- Flaky Count: ${r.flakyCount ?? 0}`,
@@ -364,6 +366,15 @@ ${rows}
     return Number.isFinite(n)
       ? new Intl.NumberFormat("en-US").format(n)
       : String(n);
+  }
+
+  private formatSuiteName(s: string): string {
+    if (s && s.startsWith("//")) {
+      const noPrefix = s.slice(2);
+      const [pkg] = noPrefix.split(":");
+      return pkg;
+    }
+    return s;
   }
 }
 
