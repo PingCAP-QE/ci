@@ -132,7 +132,6 @@ export class OwnerResolver {
     for (const e of this.ownerMap) {
       if (e.repo !== repo) continue;
 
-      console.dir({ suite });
       const suiteExact = e.suite_name === suite;
       // If not exact, allow parent suite match by prefix (e.g. e.suite_name is a prefix of suite)
       const suiteParent = !suiteExact && e.suite_name !== "*" &&
