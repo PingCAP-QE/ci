@@ -20,16 +20,10 @@
 import { Database } from "./Database.ts";
 import {
   CaseKey,
-  MIXED_OWNER,
   OwnerEntry,
   OwnerResolution,
-  OwnerResolutionLevel,
   UNOWNED_OWNER,
 } from "./types.ts";
-
-function uniq<T>(arr: T[]): T[] {
-  return Array.from(new Set(arr));
-}
 
 export class OwnerResolver {
   private cache = new Map<string, OwnerResolution>();
@@ -108,55 +102,6 @@ export class OwnerResolver {
     return res;
   }
 
-  /**
-   * Resolve owner for a suite as a whole, given case-level owners already known
-   * within that suite (only capturing case-level resolutions).
-   */
-  async resolveForSuite(
-    repo: string,
-    suite: string,
-    caseOwnersInSuite: string[],
-  ): Promise<OwnerResolution> {
-    const specificOwners = uniq(
-      caseOwnersInSuite.filter((o) => o && o !== UNOWNED_OWNER),
-    );
-
-    if (specificOwners.length > 1) {
-      return { owner: MIXED_OWNER, level: "suite" };
-    }
-    if (specificOwners.length === 1) {
-      return { owner: specificOwners[0], level: "suite" };
-    }
-
-    // 1) DB table lookup by specificity
-    await this.init();
-
-    const matchPatterns: Array<
-      [string, string, string, OwnerResolutionLevel]
-    > = [];
-
-    // Add patterns from most specific (full suite path) to least (top-level suite)
-    const suiteParts = suite.split("/");
-    for (let i = suiteParts.length; i > 0; i--) {
-      const partialSuite = suiteParts.slice(0, i).join("/");
-      matchPatterns.push([repo, partialSuite, "*", "suite"]);
-    }
-
-    // Add broader patterns
-    matchPatterns.push([repo, "*", "*", "repo"]);
-
-    if (this.ownerMap && this.ownerMap.length > 0) {
-      for (const [r, s, c, level] of matchPatterns) {
-        const ret = this.resolveViaMap(r, s, c);
-        if (ret.owner !== UNOWNED_OWNER) {
-          return { owner: ret.owner, level };
-        }
-      }
-    }
-
-    return { owner: UNOWNED_OWNER, level: "none" };
-  }
-
   /* --------------------------------- Internals -------------------------------- */
 
   private resolveViaMap(
@@ -168,35 +113,62 @@ export class OwnerResolver {
       return { owner: UNOWNED_OWNER, level: "none" };
     }
 
-    const candidates = this.ownerMap.filter((e) =>
-      e.repo === repo &&
-      (e.suite_name === suite || e.suite_name === "*") &&
-      (e.case_name === kase || e.case_name === "*")
-    );
-    if (candidates.length === 0) return { owner: UNOWNED_OWNER, level: "none" };
+    type Level = OwnerResolution["level"];
+    const levelRank = (lvl: Level): number => {
+      switch (lvl) {
+        case "case":
+          return 4;
+        case "suite":
+          return 3;
+        case "repo":
+          return 1;
+        default:
+          return 0;
+      }
+    };
 
-    // Specificity scoring: case -> suite -> branch; tie-break by priority
-    const picked = [...candidates]
-      .map((e) => {
-        const score = (e.case_name !== "*" ? 8 : 0) +
-          (e.suite_name !== "*" ? 4 : 0) +
-          (e.branch !== "*" ? 2 : 0);
-        const priority = e.priority ?? 0;
-        return { e, score, priority };
-      })
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        return b.priority - a.priority;
-      })[0].e;
+    let best: { owner: string; level: Level; priority: number } | null = null;
 
-    const level: OwnerResolutionLevel = picked.case_name !== "*"
-      ? "case"
-      : picked.suite_name !== "*"
-      ? "suite"
-      : picked.branch !== "*"
-      ? "repo-branch"
-      : "repo";
+    for (const e of this.ownerMap) {
+      if (e.repo !== repo) continue;
 
-    return { owner: picked.owner_team, level };
+      console.dir({ suite });
+      const suiteExact = e.suite_name === suite;
+      // If not exact, allow parent suite match by prefix (e.g. e.suite_name is a prefix of suite)
+      const suiteParent = !suiteExact && e.suite_name !== "*" &&
+        suite.startsWith(e.suite_name + "/");
+
+      // suiteAny remains as before
+      const suiteAny = e.suite_name === "*";
+      if (!suiteExact && !suiteAny) continue;
+
+      const caseExact = e.case_name === kase;
+      const caseAny = e.case_name === "*";
+      if (!caseExact && !caseAny) continue;
+
+      let level: Exclude<Level, "none">;
+      if (suiteExact && caseExact) {
+        level = "case";
+      } else if ((suiteExact || suiteParent) && caseAny) {
+        level = "suite";
+      } else if (suiteAny && caseAny) {
+        level = "repo";
+      } else {
+        continue;
+      }
+
+      const priority = e.priority ?? 0;
+      if (
+        !best ||
+        levelRank(level) > levelRank(best.level) ||
+        (levelRank(level) === levelRank(best.level) && priority > best.priority)
+      ) {
+        best = { owner: e.owner_team, level, priority };
+      }
+    }
+
+    return best
+      ? { owner: best.owner, level: best.level }
+      : { owner: UNOWNED_OWNER, level: "none" };
   }
 }

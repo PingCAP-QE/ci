@@ -90,7 +90,7 @@ export class FlakyReporter {
 
         // Track case-level owner presence only if level is "case"
         if (ownerRes.level === "case") {
-          const sKey = this.suiteKey(r.repo, r.suite_name);
+          const sKey = this.suiteKey(r.repo, r.branch, r.suite_name);
           const owners = suiteCaseOwners.get(sKey) ?? [];
           owners.push(ownerRes.owner);
           suiteCaseOwners.set(sKey, owners);
@@ -116,18 +116,18 @@ export class FlakyReporter {
     // 2) Per-suite aggregation with suite owner resolution
     const suiteMap = new Map<SuiteKey, SuiteAgg>();
     for (const c of byCase) {
-      const sKey = this.suiteKey(c.repo, c.suite_name);
+      const sKey = this.suiteKey(c.repo, c.branch, c.suite_name);
       let s = suiteMap.get(sKey);
 
       if (!s) {
-        const [repo, suite] = sKey.split("@@");
+        const [repo, branch, suite] = sKey.split("@@");
         // replace the bazel suite name to go pkg name: //pkg/path:test_suite_name => pkg/path
         const toMatchSuite = suite.replace(/^\/\//g, "").replace(/:\w+$/, "");
-        const caseOwnersInSuite = suiteCaseOwners.get(sKey) ?? [];
-        const suiteOwnerRes = await this.ownerResolver.resolveForSuite(
+        const suiteOwnerRes = await this.ownerResolver.resolve(
           repo,
+          branch,
           toMatchSuite,
-          caseOwnersInSuite,
+          "*",
         );
         s = {
           repo: c.repo,
@@ -187,7 +187,7 @@ export class FlakyReporter {
     return { byCase, bySuite, byTeam, topFlakyCases };
   }
 
-  private suiteKey(repo: string, suite: string): SuiteKey {
-    return `${repo}@@${suite}`;
+  private suiteKey(repo: string, branch: string, suite: string): SuiteKey {
+    return `${repo}@@${branch}@@${suite}`;
   }
 }

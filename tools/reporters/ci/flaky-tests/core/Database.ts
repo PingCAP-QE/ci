@@ -76,7 +76,7 @@ export class Database {
     const sql =
       `SELECT repo, branch, suite_name, case_name, flaky, timecost_ms, report_time, build_url, reason
        FROM problem_case_runs
-       WHERE report_time >= ? AND report_time < ? AND repo = "pingcap/tidb" AND branch = "master"`;
+       WHERE report_time >= ? AND report_time < ? AND repo = "pingcap/tidb" AND branch = "master" AND suite_name like "//pkg/ddl%"`;
 
     if (this.verbose) {
       console.debug(
@@ -149,7 +149,8 @@ export class Database {
   > {
     this.assertConnected();
     const quotedTable = this.quoteTable(ownerTable);
-    const sql = `SELECT repo, suite_name, case_name, owner_team, priority
+    const sql =
+      `SELECT repo, branch, suite_name, case_name, owner_team, priority
                  FROM ${quotedTable}`;
     if (this.verbose) {
       console.debug(
