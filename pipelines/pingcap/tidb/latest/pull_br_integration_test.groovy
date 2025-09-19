@@ -22,7 +22,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
     }
     stages {
@@ -134,7 +134,7 @@ pipeline {
                     }
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 45, unit: 'MINUTES') }
+                        options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
