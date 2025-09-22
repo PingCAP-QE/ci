@@ -1,0 +1,108 @@
+# Example owner mapping for the Flaky Reporter
+#
+# Semantics:
+# - Matching precedence (most specific to least):
+#     1) repo + suite_name + case_name
+#     2) repo + suite_name + "*"
+#     3) repo + "*" + "*"
+# - Branch is ignored for matching (the 'branch' field is kept for compatibility only).
+# - Suite normalization is applied before matching:
+#     - Leading '//' is removed
+#     - A trailing ':suffix' is removed
+#     - Parent suite prefix matches are allowed (e.g., 'pkg' matches 'pkg/FooTest')
+# - Wildcard is only "*"
+# - If multiple rules match at the same specificity, higher "priority" wins (default 0)
+# - "repo" must be explicit (no wildcard)
+# - "owner_team" is the team name shown in the report
+#
+# Fields:
+# - repo:        string   (required)
+# - branch:      string   (default "*")
+# - suite_name:  string   (default "*")
+# - case_name:   string   (default "*")
+# - owner_team:  string   (required)
+# - priority:    integer  (default 0; higher wins among ties)
+# - note:        string   (optional)
+#
+# Notes:
+# - You can keep this list short and start broad (repo-level), then add more specific
+#   entries as needed for suites or single cases.
+# - This file is optional if you maintain the same data in the database table.
+
+# -----------------------------------------------------------------------------
+# Repo-wide default owner for pingcap/tidb
+# -----------------------------------------------------------------------------
+- repo: pingcap/tidb
+  branch: "*"
+  suite_name: "*"
+  case_name: "*"
+  owner_team: SQL-Engine
+  priority: 0
+  note: Default owner for all TiDB tests unless overridden by more specific rules.
+
+# -----------------------------------------------------------------------------
+# Branch-specific override for the TiDB release branch
+# -----------------------------------------------------------------------------
+- repo: pingcap/tidb
+  branch: release-8.5
+  suite_name: "*"
+  case_name: "*"
+  owner_team: Release-Owners
+  priority: 10
+  note: Release branch has a different owning group.
+
+# -----------------------------------------------------------------------------
+# Suite-level ownership for TiFlow integrated ETL
+# -----------------------------------------------------------------------------
+- repo: pingcap/tiflow
+  branch: "*"
+  suite_name: integrated_etl
+  case_name: "*"
+  owner_team: DM-Platform
+  priority: 0
+  note: All cases in the integrated_etl suite belong to DM-Platform.
+
+# -----------------------------------------------------------------------------
+# Another suite-level example for TiFlow "dm_sync"
+# -----------------------------------------------------------------------------
+- repo: pingcap/tiflow
+  branch: "*"
+  suite_name: dm_sync
+  case_name: "*"
+  owner_team: DM-Platform
+  priority: 0
+  note: dm_sync suite owned by DM-Platform.
+
+# -----------------------------------------------------------------------------
+# Case-level ownership for a specific TiDB executor test
+# (Most specific; will override any suite/repo defaults)
+# -----------------------------------------------------------------------------
+- repo: pingcap/tidb
+  branch: "*"
+  suite_name: executor
+  case_name: TestExplainAnalyze
+  owner_team: SQL-Perf
+  priority: 50
+  note: Highly specific case-level ownership for a performance-related test.
+
+# -----------------------------------------------------------------------------
+# Repo+branch ownership for TiFlow release branch
+# -----------------------------------------------------------------------------
+- repo: pingcap/tiflow
+  branch: release-8.0
+  suite_name: "*"
+  case_name: "*"
+  owner_team: DM-Release
+  priority: 20
+  note: TiFlow release branch defaults to DM-Release unless a case/suite rule is more specific.
+
+# -----------------------------------------------------------------------------
+# Another repo-wide default owner (example)
+# -----------------------------------------------------------------------------
+- repo: pingcap/tidb-binlog
+  branch: "*"
+  suite_name: "*"
+  case_name: "*"
+  owner_team: Binlog-Team
+  priority: 0
+  note: Default owner for TiDB Binlog related tests.
