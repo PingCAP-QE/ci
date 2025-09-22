@@ -73,7 +73,7 @@ export class OwnerResolver {
     const cached = this.cache.get(key);
     if (cached) return cached;
 
-    // 1) DB table lookup by specificity
+    // 1) Ensure owner map is loaded from DB (if not from file)
     await this.init();
 
     // 2) File map lookup
