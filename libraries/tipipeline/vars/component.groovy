@@ -491,7 +491,7 @@ def extractHotfixInfo(String branchName) {
  * Parse component versions from PR comment and compute final branches to use.
  * This function first tries to extract component versions from PR comment body,
  * then falls back to computeBranchFromPR for components not specified in comment.
- * 
+ *
  * @param refs The REFS object containing PR information
  * @param components List of component names to parse (e.g., ['tidb', 'tikv', 'pd', 'tiflash'])
  * @param trunkBranch Default trunk branch name (default: 'master')
@@ -499,7 +499,7 @@ def extractHotfixInfo(String branchName) {
  */
 def parseComponentVersionsFromComment(def refs, List<String> components, String trunkBranch = 'master') {
     def result = [:]
-    
+
     // Get comment body from PR
     def commentBody = ""
     try {
@@ -510,18 +510,18 @@ def parseComponentVersionsFromComment(def refs, List<String> components, String 
         println "Warning: Failed to extract comment body: ${e.message}"
         commentBody = ""
     }
-    
+
     println "Parsing component versions from comment: ${commentBody}"
-    
+
     // Parse each component
     components.each { componentName ->
         def componentBranch = refs.base_ref
         def prTitle = refs?.pulls?.get(0)?.title ?: ""
-        
+
         // Try to parse from comment first
         def commentPattern = /${componentName}\s*=\s*([^\s\\]+)(\s|\\|$)/
         def matcher = commentBody =~ commentPattern
-        
+
         if (matcher) {
             componentBranch = "${matcher[0][1]}"
             println "Using ${componentName} branch from comment: ${componentBranch}"
@@ -530,9 +530,9 @@ def parseComponentVersionsFromComment(def refs, List<String> components, String 
             componentBranch = computeBranchFromPR(componentName, refs.base_ref, prTitle, trunkBranch)
             println "Using ${componentName} branch from computeBranchFromPR: ${componentBranch}"
         }
-        
+
         result[componentName] = componentBranch
     }
-    
+
     return result
 }

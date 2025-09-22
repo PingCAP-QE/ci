@@ -64,11 +64,11 @@ pipeline {
                     script {
                         // Parse component versions using the common function
                         def componentVersions = component.parseComponentVersionsFromComment(
-                            REFS, 
-                            ['tidb', 'pd', 'tikv', 'tiflash'], 
+                            REFS,
+                            ['tidb', 'pd', 'tikv', 'tiflash'],
                             REFS.base_ref
                         )
-                        
+
                         def tidbBranch = componentVersions.tidb
                         def pdBranch = componentVersions.pd
                         def tikvBranch = componentVersions.tikv
