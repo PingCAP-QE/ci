@@ -1,35 +1,29 @@
 import * as mysql from "https://deno.land/x/mysql@v2.12.1/mod.ts";
 
-function convertDsnToClientConfig(dsn: string) {
-  // mysql://user:password@host:port/database
-  const [_, config] = dsn.split("://");
-  const [credentials, hostAndPort] = config.split("@");
-  if (!credentials || !hostAndPort) {
-    throw new Error("Invalid DSN: missing user/password or host/port");
+function convertDsnToClientConfig(dsn: string): mysql.ClientConfig {
+  try {
+    const url = new URL(dsn);
+    if (url.protocol !== "mysql:") {
+      throw new Error("Invalid DSN protocol. Expected 'mysql:'.");
+    }
+    const config: mysql.ClientConfig = {
+      hostname: url.hostname,
+      port: Number(url.port),
+      username: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      db: url.pathname.substring(1),
+    };
+    if (!config.hostname || !config.port || !config.username || !config.db) {
+      throw new Error(
+        "Incomplete DSN. Must include user, host, port, and database.",
+      );
+    }
+    return config;
+  } catch (e) {
+    throw new Error(
+      `Invalid DSN format: ${e instanceof Error ? e.message : String(e)}`,
+    );
   }
-
-  const [username, password] = credentials.split(":");
-  if (!username || !password) {
-    throw new Error("Invalid DSN: missing user or password");
-  }
-
-  const [host, portAndDb] = hostAndPort.split(":");
-  if (!host || !portAndDb) {
-    throw new Error("Invalid DSN: missing host or port/database");
-  }
-
-  const [port, db] = portAndDb.split("/");
-  if (!port || !db) {
-    throw new Error("Invalid DSN: missing port or database");
-  }
-
-  return {
-    hostname: host,
-    port: parseInt(port),
-    username: decodeURIComponent(username),
-    password: decodeURIComponent(password),
-    db,
-  } as mysql.ClientConfig;
 }
 
 export { convertDsnToClientConfig };
