@@ -2,10 +2,14 @@
 #
 # Semantics:
 # - Matching precedence (most specific to least):
-#     1) repo + branch + suite_name + case_name
-#     2) repo + branch + suite_name + "*"
-#     3) repo + branch + "*" + "*"
-#     4) repo + "*" + "*" + "*"
+#     1) repo + suite_name + case_name
+#     2) repo + suite_name + "*"
+#     3) repo + "*" + "*"
+# - Branch is ignored for matching (the 'branch' field is kept for compatibility only).
+# - Suite normalization is applied before matching:
+#     - Leading '//' is removed
+#     - A trailing ':suffix' is removed
+#     - Parent suite prefix matches are allowed (e.g., 'pkg' matches 'pkg/FooTest')
 # - Wildcard is only "*"
 # - If multiple rules match at the same specificity, higher "priority" wins (default 0)
 # - "repo" must be explicit (no wildcard)

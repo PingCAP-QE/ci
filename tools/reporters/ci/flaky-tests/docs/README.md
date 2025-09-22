@@ -1,39 +1,39 @@
 # Flaky Reporter (Deno)
 
-A small, standalone Deno tool to analyze flaky tests stored in `problem_case_runs` and generate a single-file HTML report (and optional JSON), grouped by team, package (suite), and case.
+A small Deno tool that analyzes flaky tests stored in `problem_case_runs` and generates:
+- A single-file HTML report
+- Optional JSON for automation
 
-This README covers:
-- What this tool does
-- How to run it
-- Configuration (database, owner mapping, thresholds)
-- Output formats (HTML, JSON, email)
-- Proposed schema for the Team Owner mapping table
-- Query semantics and grouping rules
-- Directory layout and development notes
+It groups results by team (owner), package (suite), and case, and highlights the top 10 flakiest cases.
+
+This README reflects the current implementation and its actual semantics.
 
 ---
 
 ## What it does
 
 Given a date/time range, the reporter:
-- Aggregates flaky test runs from the `problem_case_runs` table.
-- Produces three sections in the report:
-  - Statistics by team
-    - Columns: team owner, repo, branch, flaky case count, runtime-thresholded case count
-    - Grouping: team owner + repo + branch
-  - Statistics by package (suite)
-    - Columns: team owner, repo, branch, suite_name, flaky case count, runtime-thresholded case count
-    - Grouping: repo + branch + suite_name
-  - Statistics by case
-    - Columns: repo, branch, suite_name, case_name, flaky happened count, time-thresholded count, team owner
-    - Grouping: repo + branch + suite_name + case_name
-    - Highlight the top 10 cases with highest flaky happened count
-- Resolves “team owner” via a configurable ownership mapping (DB table or YAML file) with the following precedence:
-  1) Full case path (repo + branch + suite_name + case_name)
-  2) Suite level (repo + branch + suite_name)
-  3) Repo level (repo + branch)
-  4) Repo level (repo only)
-- Generates a single HTML file. Optionally outputs JSON. Optionally sends the HTML by email.
+
+- Queries flaky test runs from the `problem_case_runs` table.
+- Aggregates into:
+  - Top 10 flakiest cases
+  - By Case
+    - Columns: owner, repo, branch, package (suite), case, flaky count, time-thresholded count, latest build, quick links (issue search/new)
+  - By Team
+    - Columns: owner, repo, branch, count of distinct flaky cases, count of distinct time-thresholded cases
+  - By Suite
+    - Columns: owner, repo, branch, package (suite), count of distinct flaky cases, count of distinct time-thresholded cases
+- Resolves “team owner” using an owner mapping provided either from:
+  - A YAML/JSON file (if provided), or
+  - A DB table (all rows are loaded once), when no file is provided.
+- Outputs a single HTML file. Optionally writes a JSON file. Optionally emails the HTML.
+
+Notes about current owner-matching behavior:
+- Branch is not considered for matching (even if present in data). See “Team owner mapping” for details.
+- Suite normalization is applied before matching:
+  - Leading `//` is stripped
+  - A trailing `:suffix` is removed
+  - Parent suite prefix matches are allowed (see details below)
 
 ---
 
@@ -47,19 +47,19 @@ Given a date/time range, the reporter:
 
 ## Run it
 
-From the repository root (or any directory), run:
+From this directory:
 
-    deno run -A insight/reporters/ci/flaky-tests/src/main.ts [options]
+- Most explicit:
+  deno run --allow-net --allow-read --allow-write --allow-env main.ts [options]
+
+- Or via the provided task:
+  deno task run [options]
 
 Required permissions:
 - --allow-net: database + SMTP
-- --allow-read: owner map file (YAML/JSON), templates
+- --allow-read: owner map file, templates
 - --allow-write: output report files
 - --allow-env: DB/SMTP credentials, defaults
-
-If you prefer being explicit with Deno permissions:
-
-    deno run --allow-net --allow-read --allow-write --allow-env insight/reporters/ci/flaky-tests/src/main.ts [options]
 
 ---
 
@@ -72,49 +72,67 @@ If you prefer being explicit with Deno permissions:
   - Exclusive end of date/time range (ISO-8601 or “YYYY-MM-DD”).
   - Example: --to 2025-03-08T00:00:00Z
 - --range
-  - Relative range shorthand if --from/--to are omitted. Supported forms:
-    - 7d, 30d (days); 12h (hours); 90m (minutes).
-  - Example: --range 7d (means [now-7d, now))
+  - Relative range shorthand if --from/--to are omitted. Supported: 7d, 12h, 90m.
+  - Default when both --from and --to are omitted: 7d
 - --threshold-ms
-  - Runtime threshold in milliseconds to classify a run as “time-thresholded”.
+  - Runtime threshold in milliseconds to count a run as “time-thresholded”.
   - Default: 600000 (10 minutes)
-- --db-host, --db-port, --db-user, --db-pass, --db-name
-  - MySQL connection params. May be overridden by environment variables (below).
+
+- --repo
+  - Filter by repository (e.g., pingcap/tidb). Affects DB query only.
+- --branch
+  - Filter by branch (e.g., master). Affects DB query only.
+
 - --db-url
   - Alternative single URL form: mysql://user:pass@host:port/dbname
+- --db-host, --db-port, --db-user, --db-pass, --db-name
+  - MySQL connection params (used when --db-url is not provided)
+
 - --owner-table
-  - Name of the DB table to resolve ownership (see schema below).
+  - Name of the DB table to load ownership rules from (when no owner-map file is provided).
   - Default: flaky_owners
 - --owner-map
-  - Path to a YAML or JSON file for ownership definitions (when you don’t or can’t use the DB table).
+  - Path to a YAML or JSON file for ownership definitions.
+  - If provided, it takes precedence and the DB table will not be consulted.
+
 - --html
   - Path to write the HTML report (single file). Default: flaky-report.html
 - --json
-  - Path to also write a JSON report payload for automation (optional).
+  - Optional path to write a JSON payload with the same aggregates.
+
 - --email-to
-  - One or more comma-separated emails to send the report to (optional).
+  - Comma-separated list of recipients to email the report to. Requires --email-from.
 - --email-from
-  - Sender email address (optional; required if emailing).
+  - Sender email address (required if emailing).
 - --email-subject
   - Email subject. Default: Flaky Report
+
 - --dry-run
-  - Prints high-level summary to stdout and exits without writing files or sending emails.
+  - Prints a summary and top cases to stdout; does not write files or send emails.
+- --verbose
+  - Verbose logging to stderr.
+- --help
+  - Show usage.
 
 Notes:
-- If both --owner-table and --owner-map are provided, the DB table is checked first; if no match, the file is used as a fallback.
-- If neither is provided, the “owner” will be “UNOWNED” in the report.
+- If both an owner map file and owner table are provided, the file is used exclusively.
+- --repo and --branch only filter the DB query; they do not affect owner resolution.
 
 ---
 
 ## Environment variables
 
 Database:
+- DB_URL (alternative single-URL form)
 - DB_HOST
 - DB_PORT
 - DB_USER
 - DB_PASSWORD
 - DB_NAME
-- DB_URL (alternative single-URL form)
+
+Filters:
+- REPO
+- BRANCH
 
 SMTP (if emailing):
 - SMTP_HOST
@@ -122,297 +140,245 @@ SMTP (if emailing):
 - SMTP_USER
 - SMTP_PASS
 - SMTP_SECURE
-  - “true” or “false” (default true)
-- SMTP_STARTTLS
-  - “true” or “false” (default true)
+  - “true” or “false” (default true). When true, a TLS connection is used.
 
 Defaults:
-- threshold-ms: 600000
-- html: flaky-report.html
-- email-subject: Flaky Report
+- THRESHOLD_MS (default 600000)
 
 ---
 
 ## Examples
 
-1) Last 7 days, write HTML + JSON:
+1) Last 7 days (default), write HTML + JSON:
+- deno run -A main.ts --html out/flaky.html --json out/flaky.json
 
-    deno run -A insight/reporters/ci/flaky-tests/src/main.ts --range 7d --html out/flaky.html --json out/flaky.json
-
-2) Explicit date range, custom threshold, email the report:
-
-    deno run -A insight/reporters/ci/flaky-tests/src/main.ts \
-      --from 2025-03-01 --to 2025-03-08 \
-      --threshold-ms 300000 \
-      --html /tmp/flaky.html \
-      --email-to qa@example.com,eng-leads@example.com \
-      --email-from ci-bot@example.com \
-      --email-subject "Weekly Flaky Report (Mar 01–07)"
+2) Explicit date range, custom threshold, filter repo/branch:
+- deno run -A main.ts \
+    --from 2025-03-01 --to 2025-03-08 \
+    --repo pingcap/tidb --branch master \
+    --threshold-ms 300000 \
+    --html /tmp/flaky.html
 
 3) Use an owner mapping YAML file:
+- deno run -A main.ts --range 30d --owner-map docs/owner-map.example.yaml
 
-    deno run -A insight/reporters/ci/flaky-tests/src/main.ts --range 30d --owner-map insight/reporters/ci/flaky-tests/owner-map.example.yaml
+4) Email the report:
+- deno run -A main.ts --range 7d \
+    --html /tmp/flaky.html \
+    --email-to qa@example.com,eng-leads@example.com \
+    --email-from ci-bot@example.com \
+    --email-subject "Weekly Flaky Report"
 
 ---
 
-## Data source: problem_case_runs
-
-This table already exists and is populated by crawlers/CI.
+## Data source: `problem_case_runs`
 
 Columns used:
 - repo (varchar)
 - branch (varchar)
 - suite_name (varchar)
 - case_name (varchar)
-- flaky (tinyint(1), 1 indicates flaky event happened for that run)
+- flaky (tinyint(1), >0 indicates flaky event happened for that run)
 - timecost_ms (bigint)
 - report_time (timestamp)
 - build_url (varchar)
 - reason (varchar)
 
-The reporter counts “flaky happened” per case as SUM(flaky > 0) and “time thresholded” per case as COUNT(timecost_ms >= threshold_ms). It only considers rows with report_time in [from, to).
+Counting rules within the selected time window [from, to):
+- Per case:
+  - flakyCount = COUNT(rows with flaky > 0)
+  - thresholdedCount = COUNT(rows with timecost_ms >= threshold-ms)
+
+- Per team (owner + repo + branch):
+  - Count distinct cases with flakyCount > 0 as “Flaky Cases”
+  - Count distinct cases with thresholdedCount > 0 as “Time Thresholded Cases”
+
+- Per suite (repo + branch + suite_name):
+  - Count distinct cases with flakyCount > 0 as “Flaky Cases”
+  - Count distinct cases with thresholdedCount > 0 as “Time Thresholded Cases”
 
 ---
 
 ## Team owner mapping
 
-We need to associate each test case/suite/repo with a “team owner”. Resolution precedence:
+Owner resolution determines which “team owner” is attributed to each case/suite.
 
-1) Most specific: repo + branch + suite_name + case_name
-2) repo + branch + suite_name
-3) repo + branch
-4) repo
-5) Fallback owner: “UNOWNED”
+Current implementation semantics:
+- Branch is ignored for matching.
+- Matching precedence (most specific to least):
+  1) repo + suite_name + case_name
+  2) repo + suite_name + "*"
+  3) repo + "*" + "*"
+- Wildcard for suite/case is exactly "*"
+- Suite normalization is applied before matching:
+  - Leading `//` is removed
+  - A trailing `:suffix` is removed
+  - Parent suite prefix matches are allowed. For example, a rule with `suite_name: "pkg"`
+    matches a case whose suite is `"pkg/FooTest"`.
+- Fallback owner is `UNOWNED` if no rule matches.
+- If an owner map file (`--owner-map`) is provided, it is used exclusively.
+- If no file is provided and `--owner-table` is set, the entire table is loaded once
+  and matched in-memory with the same semantics as the file.
 
-You can define this in either:
-- A database table, recommended for central management (see schema below)
-- A YAML/JSON file (good for quick local usage)
-
-### Proposed DB table schema (MySQL)
-
-We use ‘*’ as a wildcard stored inside columns to make indexing straightforward.
-
-- Table name: flaky_owners (configurable via --owner-table)
-
-Suggested DDL:
-
-    CREATE TABLE flaky_owners (
-      id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-      repo        VARCHAR(255) NOT NULL,
-      branch      VARCHAR(255) NOT NULL DEFAULT '*',
-      suite_name  VARCHAR(255) NOT NULL DEFAULT '*',
-      case_name   VARCHAR(255) NOT NULL DEFAULT '*',
-      owner_team  VARCHAR(255) NOT NULL,
-      priority    INT NOT NULL DEFAULT 0,
-      note        TEXT NULL,
-      created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      UNIQUE KEY uq_match (repo, branch, suite_name, case_name),
-      KEY idx_repo_branch (repo, branch),
-      KEY idx_repo_suite (repo, suite_name),
-      KEY idx_owner (owner_team)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
-Conventions:
-- repo is always explicit (no wildcard).
-- Use '*' in branch/suite_name/case_name to indicate “any”.
-- Higher “priority” wins when multiple rows match with the same specificity (default 0). You can use this to handle exceptions/overrides.
-
-Example rows:
-
-    -- Repo-wide default owner
-    ('pingcap/tidb', '*', '*', '*', 'SQL-Engine', 0)
-
-    -- Branch-specific override
-    ('pingcap/tidb', 'release-8.5', '*', '*', 'Release-Owners', 10)
-
-    -- Suite-level ownership
-    ('pingcap/tiflow', '*', 'integrated_etl', '*', 'DM-Platform', 0)
-
-    -- Specific case owner
-    ('pingcap/tidb', '*', 'executor', 'TestExplainAnalyze', 'SQL-Perf', 50)
-
-Resolution query idea (pseudocode):
-
-- Prepare the 4 specificity patterns ordered by specificity and priority:
-  - (repo, branch, suite, case)
-  - (repo, branch, suite, '*')
-  - (repo, branch, '*', '*')
-  - (repo, '*', '*', '*')
-- For each pattern, run:
-  SELECT owner_team
-  FROM flaky_owners
-  WHERE repo = ?
-    AND branch = ?
-    AND suite_name = ?
-    AND case_name = ?
-  ORDER BY priority DESC
-  LIMIT 1;
-
-Stop at first match. If none, owner = 'UNOWNED'.
-
-### Owner map YAML/JSON
-
-When using a file, define entries with the same matching keys and wildcard semantics using '*'.
+YAML/JSON file format (entries array):
+- repo: string (required; no wildcard)
+- branch: string (allowed but currently ignored; default "*")
+- suite_name: string ("*" allowed)
+- case_name: string ("*" allowed)
+- owner_team: string (required)
+- priority: integer (default 0; higher wins among ties at the same specificity)
+- note: string (optional)
 
 YAML example:
+- repo: pingcap/tidb
+  branch: "*"         # ignored by matching
+  suite_name: executor
+  case_name: TestExplainAnalyze
+  owner_team: SQL-Perf
+  priority: 50
 
-    - repo: pingcap/tidb
-      branch: "*"
-      suite_name: "*"
-      case_name: "*"
-      owner_team: SQL-Engine
-      priority: 0
+- repo: pingcap/tidb
+  branch: "*"         # ignored by matching
+  suite_name: executor
+  case_name: "*"
+  owner_team: SQL-Engine
+  priority: 1
 
-    - repo: pingcap/tidb
-      branch: release-8.5
-      suite_name: "*"
-      case_name: "*"
-      owner_team: Release-Owners
-      priority: 10
+- repo: pingcap/tidb
+  branch: "*"         # ignored by matching
+  suite_name: "*"
+  case_name: "*"
+  owner_team: SQL-Engine
+  priority: 0
 
-    - repo: pingcap/tiflow
-      branch: "*"
-      suite_name: integrated_etl
-      case_name: "*"
-      owner_team: DM-Platform
+### DB table schema (suggested)
 
-    - repo: pingcap/tidb
-      branch: "*"
-      suite_name: executor
-      case_name: TestExplainAnalyze
-      owner_team: SQL-Perf
-      priority: 50
+You can store the same fields in a DB table and point `--owner-table` to it. The current
+implementation loads the whole table once and matches it with the same file semantics.
+The `branch` column is stored but not used for matching.
+
+Suggested DDL (MySQL):
+- CREATE TABLE flaky_owners (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    repo        VARCHAR(255) NOT NULL,
+    branch      VARCHAR(255) NOT NULL DEFAULT '*',    -- currently ignored
+    suite_name  VARCHAR(255) NOT NULL DEFAULT '*',
+    case_name   VARCHAR(255) NOT NULL DEFAULT '*',
+    owner_team  VARCHAR(255) NOT NULL,
+    priority    INT NOT NULL DEFAULT 0,
+    note        TEXT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_match (repo, suite_name, case_name),
+    KEY idx_repo_suite (repo, suite_name),
+    KEY idx_owner (owner_team)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 ---
 
 ## Output
 
 HTML (default: flaky-report.html)
-- Single file, embedded styles, ready to share by email or upload to artifacts.
+- Single page, embedded styles.
 - Sections:
-  - Overview: time window, total flaky cases, total thresholded runs
-  - By Team: table grouped by owner_team + repo + branch
-  - By Package (Suite): table grouped by repo + branch + suite_name (with owner)
-  - By Case: table grouped by repo + branch + suite_name + case_name (with owner)
-  - Top 10 Flakiest Cases: a list/table sorted by flaky count desc
-- Each row includes links to the “latest build_url” if available (best-effort based on the most recent run in the window).
+  - Header KPIs:
+    - Window, Repos, Suites, Cases, Flaky Cases, Threshold (ms), Time Thresholded Cases
+  - Top 10 Flakiest Cases
+    - Ranks the top 10 by flakyCount desc, then thresholdedCount desc, then key alpha.
+  - By Case
+    - Columns: Team Owner, Repo, Branch, Package, Case, Flaky Count, Time Thresholded Count, Latest Build, Issue Search, Create Issue
+  - By Team
+    - Columns: Team Owner, Repo, Branch, Flaky Cases, Time Thresholded Cases
+  - By Suite
+    - Columns: Team Owner, Repo, Branch, Package, Flaky Cases, Time Thresholded Cases
+- Links:
+  - “Latest Build” links to the most recent build_url in the window (best-effort).
+  - “Issue Search” links to a GitHub search using the case name.
+  - “Create Issue” opens a prefilled GitHub new issue link.
 
-JSON (optional, via --json)
-- Contains the same aggregates as the HTML for programmatic consumption:
+JSON (via --json)
+- Keys:
   - window: { from, to, thresholdMs }
-  - summary: { flakyCases, thresholdedCases, repos, suites, cases }
+  - summary: { repos, suites, cases, flakyCases, thresholdedCases }
   - byTeam: [...]
   - bySuite: [...]
   - byCase: [...]
   - topFlakyCases: [...]
 
-Email (optional)
-- Sends the HTML inline (and as an attachment if needed).
-- SMTP configuration via environment variables (see above).
-- If sending fails, the process exits non-zero.
+Email (via --email-to/--email-from)
+- Sends an HTML email (inline).
+- SMTP uses TLS when SMTP_SECURE=true (default). No STARTTLS toggle in this version.
+- If sending fails, the process exits with code 4.
 
 ---
 
-## Grouping and counting rules
+## Grouping and counting rules (recap)
 
-Within the selected time window [from, to):
-- Flaky happened count per case:
-  - COUNT of rows where flaky = 1 (or tinyint > 0).
-- Time-thresholded count per case:
-  - COUNT of rows where timecost_ms >= threshold-ms.
-- By team:
-  - First resolve owner for each case per its most-specific match.
-  - Aggregate by (owner_team, repo, branch).
-  - Sum flaky_count and thresholded_count across cases.
-- By package:
-  - Aggregate by (repo, branch, suite_name).
-  - Owner is resolved at case-level and attributed to the suite by majority or most-specific case’s owner:
-    - This tool uses “most specific present” semantics:
-      - If any case in the suite has a case-level owner mapping, that owner is used for the suite.
-      - Else if a suite-level mapping exists, use it.
-      - Else fall back to repo/branch-level, then repo-level.
-    - Rationale: gives visibility to the highest-signal mapping present.
-- By case:
-  - Aggregate by (repo, branch, suite_name, case_name) with resolved owner.
+- By Case aggregates per (repo, branch, suite_name, case_name).
+- By Team aggregates per (owner, repo, branch), counting distinct cases with >0 counts.
+- By Suite aggregates per (repo, branch, suite_name), counting distinct cases with >0 counts.
+- Top 10 is based on flakyCount, then thresholdedCount, then alpha order.
+
+Suite owner resolution used in the “By Suite” table:
+- The suite owner is determined by calling owner resolution on the normalized suite with `case_name="*"`.
+- It does not attempt to “mix” or reconcile conflicting case-level owners.
 
 ---
 
-## Directory layout (scaffold)
+## Directory layout
 
-The code is organized like this:
-
-- src/main.ts
-  - CLI parsing, env loading, orchestration
-- src/config.ts
-  - Reads CLI + env; produces a normalized Config
-- src/db.ts
-  - MySQL connection helpers; parameterized queries
-- src/owners.ts
-  - Owner resolution from DB table and/or YAML/JSON file, with caching
-- src/queries.ts
-  - Data access for problem_case_runs and aggregation helpers
-- src/report.ts
-  - Aggregation and shaping for byTeam, bySuite, byCase, and top N
-- src/render/html.ts
-  - HTML template generation (single-file output)
-- src/email.ts
-  - SMTP client wrapper (inline HTML send)
-- owner-map.example.yaml
-  - Example ownership mapping
-
-You can replace, extend, or reorganize as needed.
-
----
-
-## Development notes
-
-- Deno runtime:
-  - Use native fetch for SMTP via third-party library or bring-your-own minimal SMTP client (plaintext or STARTTLS).
-  - Use a MySQL client that supports Deno (e.g., x/mysql).
-- Safety:
-  - Queries use parameter binding.
-  - Date parsing accepts ISO-8601; for “YYYY-MM-DD”, interpret as UTC midnight.
-- Performance:
-  - Time-window filtering is pushed down to SQL.
-  - Owner resolution is memoized; it’s inexpensive compared to aggregation.
-- Logging:
-  - Use simple console logging flags (e.g., --verbose) if needed.
+- main.ts
+  - Orchestrator: CLI/env parsing, DB fetch, aggregation, rendering, email.
+- core/
+  - ConfigLoader.ts
+    - Parses CLI/env; resolves time window, DB/SMTP config; loads owner map file.
+  - Database.ts
+    - MySQL access for `problem_case_runs` and loading owner table rows.
+  - OwnerResolver.ts
+    - Owner resolution using file or a loaded owner table (branch ignored).
+  - FlakyReporter.ts
+    - Aggregation logic for byCase, bySuite, byTeam, and top 10.
+  - types.ts
+    - Shared types and constants.
+  - OwnerResolver.test.ts
+    - Tests for map-based owner resolution semantics.
+- render/
+  - HtmlRenderer.ts
+    - Generates a single-file HTML report (email-friendly mode supported).
+- utils/
+  - EmailClient.ts
+    - Simple SMTP client wrapper (HTML/text).
+  - db.ts
+    - DB DSN parsing helper.
+- docs/
+  - owner-map.example.yaml
+    - Example owner mapping file.
+- deno.json
+  - Tasks and import maps.
 
 ---
 
 ## Exit codes
 
 - 0: Success
-- 2: Invalid arguments (e.g., bad date/time)
+- 2: Invalid arguments (e.g., bad date/time, missing DB config)
 - 3: Database connection/query failure
 - 4: Email send failure
 - 5: Output write failure
+- 1: Unexpected error
 
 ---
 
 ## FAQ
 
 Q: What if there are no rows in the time window?
-- The report still renders with zeros, and a note that no data was found.
+- The report still renders. Counts will be zero, and the tables will be empty.
 
-Q: How are ties handled in the “Top 10 Flakiest Cases”?
-- Stable ordering by flaky count desc, then time-thresholded desc, then alphabetical case key.
+Q: Are branch-specific owner rules supported?
+- Not in this version. The owner matching ignores branch.
 
-Q: Can we extend ownership beyond teams?
-- Yes. The owner table can include a “note” or you can add columns like “service” or “sla_tier”. The tool currently surfaces “owner_team” only, but you can extend renderers as needed.
+Q: How are ties handled in the Top 10?
+- Ties are resolved by thresholdedCount desc, then by an alphabetical key.
 
----
-
-## Roadmap ideas
-
-- Add charts (sparklines, bar charts) inline in HTML using inline SVG.
-- Add delta vs. previous period (WoW/DoD).
-- Add optional filters (repo list, branch regex, suite glob).
-- Add export to CSV.
-
----
-
-## License
-
-MIT (or follow the repository’s prevailing license policy)
+Q: Can I extend the owner model?
+- Yes. The mapping records include an optional “note” and a “priority”. You can extend the renderer or storage as needed.
