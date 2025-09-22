@@ -125,40 +125,6 @@ export class Database {
     });
   }
 
-  /**
-   * Query ownership by exact pattern (supports '*' wildcard in owner table rows).
-   * Applies ORDER BY priority DESC LIMIT 1 to allow overrides.
-   *
-   * Callers should invoke this with specific combinations, e.g.:
-   *   (repo, suite, case)
-   *   (repo, suite, '*')
-   *   (repo, '*', '*')
-   *   (repo, '*', '*', '*')
-   */
-  async queryOwner(
-    ownerTable: string,
-    repo: string,
-    suite: string,
-    kase: string,
-  ): Promise<string | null> {
-    this.assertConnected();
-    const quotedTable = this.quoteTable(ownerTable);
-    const sql = `SELECT owner_team
-                 FROM ${quotedTable}
-                 WHERE repo = ? AND suite_name = ? AND case_name = ?
-                 ORDER BY priority DESC
-                 LIMIT 1`;
-    if (this.verbose) {
-      console.debug(
-        `[db] queryOwner: table=${quotedTable} repo=${repo} suite=${suite} case=${kase}`,
-      );
-    }
-    const res = await this.client!.execute(sql, [repo, suite, kase]);
-    const row = (res?.rows ?? [])[0] as any;
-    const owner: string | undefined = row?.owner_team;
-    return owner ? String(owner) : null;
-  }
-
   async fetchOwners(
     ownerTable: string,
   ): Promise<
