@@ -232,7 +232,14 @@ Examples:
         `DB connection is incomplete. Provide --db-url or --db-host/--db-user/--db-name`,
       );
     }
-    return { hostname, port, username, password, db };
+    return {
+      hostname,
+      port,
+      username,
+      password,
+      db,
+      tls: { mode: mysql.TLSMode.VERIFY_IDENTITY },
+    };
   }
 
   determineSmtpConfig(): SmtpConfig | null {
