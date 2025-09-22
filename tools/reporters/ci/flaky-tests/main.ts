@@ -198,11 +198,10 @@ export async function main(args: string[]): Promise<number> {
     return 0;
   }
 
-  const html = new HtmlRenderer().render(report);
-
+  const reportFileHtml = new HtmlRenderer().render(report);
   try {
     await ensureDirForFile(cli.htmlPath);
-    await Deno.writeTextFile(cli.htmlPath, html);
+    await Deno.writeTextFile(cli.htmlPath, reportFileHtml);
     if (cli.verbose) console.debug(`HTML written: ${cli.htmlPath}`);
   } catch (e: unknown) {
     await db.close();
@@ -241,8 +240,15 @@ export async function main(args: string[]): Promise<number> {
       return 4;
     }
     try {
+      const emailHtml = new HtmlRenderer({ email: true }).render(report);
       const mailer = new EmailClient(smtpCfg, { verbose: cli.verbose });
-      await mailer.sendHtml(cli.emailFrom, cli.emailTo, cli.emailSubject, html);
+      await mailer.sendHtml(
+        cli.emailFrom,
+        cli.emailTo,
+        cli.emailSubject,
+        emailHtml,
+        cli.emailCc,
+      );
       if (cli.verbose) {
         console.debug(`Email sent to: ${cli.emailTo.join(", ")}`);
       }

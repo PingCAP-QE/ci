@@ -55,6 +55,7 @@ export interface CliConfig {
   // Email
   emailTo?: string[];
   emailFrom?: string;
+  emailCc?: string[];
   emailSubject: string;
 
   // Behavior

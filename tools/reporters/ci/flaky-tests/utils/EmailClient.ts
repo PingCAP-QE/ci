@@ -20,7 +20,10 @@
  *   await mailer.sendText("from@example.com", "ops@example.com", "Ping", "Plain text body");
  */
 
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import {
+  SendConfig,
+  SMTPClient,
+} from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import type { SmtpConfig } from "../core/types.ts";
 
 type Recipients = string | string[];
@@ -32,6 +35,32 @@ export class EmailClient {
   constructor(cfg: SmtpConfig, options?: { verbose?: boolean }) {
     this.cfg = cfg;
     this.verbose = !!options?.verbose;
+  }
+
+  private newClient() {
+    if (this.verbose) {
+      console.debug(
+        `[email] connecting smtp://${this.cfg.host}:${this.cfg.port} secure=${this.cfg.secure}`,
+      );
+    }
+    const client = new SMTPClient({
+      connection: {
+        hostname: this.cfg.host,
+        port: this.cfg.port,
+        tls: this.cfg.secure,
+        auth: {
+          username: this.cfg.username!,
+          password: this.cfg.password!,
+        },
+      },
+    });
+    if (this.verbose) {
+      console.debug(
+        `[email] connected smtp://${this.cfg.host}:${this.cfg.port} secure=${this.cfg.secure}`,
+      );
+    }
+
+    return client;
   }
 
   /**
@@ -47,50 +76,29 @@ export class EmailClient {
     to: Recipients,
     subject: string,
     html: string,
+    cc?: Recipients,
   ): Promise<void> {
     const recipients = this.normalizeRecipients(to);
     if (!from) throw new Error("from is required");
     if (recipients.length === 0) throw new Error("to is required");
 
-    const client = new SmtpClient();
-
-    if (this.verbose) {
-      console.debug(
-        `[email] connecting smtp://${this.cfg.host}:${this.cfg.port} secure=${this.cfg.secure}`,
-      );
-    }
-
-    if (this.cfg.secure) {
-      await client.connectTLS({
-        hostname: this.cfg.host,
-        port: this.cfg.port,
-        username: this.cfg.username,
-        password: this.cfg.password,
-      });
-    } else {
-      await client.connect({
-        hostname: this.cfg.host,
-        port: this.cfg.port,
-        username: this.cfg.username,
-        password: this.cfg.password,
-      });
-    }
-
+    const client = this.newClient();
     try {
       if (this.verbose) {
-        console.debug(
-          `[email] sending: from=${from} to=${
-            recipients.join(",")
-          } subject="${subject}" (html)`,
-        );
+        console.debug("[email] sending (html)", { from, to, cc, subject });
       }
-      await client.send({
+
+      const sendArgs: SendConfig = {
         from,
-        to: recipients.join(","),
+        to: recipients,
         subject,
-        content: "", // plain text part (empty since we send HTML)
         html,
-      });
+      };
+      if (cc) {
+        sendArgs.cc = this.normalizeRecipients(cc);
+      }
+
+      await client.send(sendArgs);
       if (this.verbose) console.debug("[email] sent");
     } finally {
       try {
@@ -115,49 +123,33 @@ export class EmailClient {
     to: Recipients,
     subject: string,
     text: string,
+    cc?: Recipients,
   ): Promise<void> {
     const recipients = this.normalizeRecipients(to);
     if (!from) throw new Error("from is required");
     if (recipients.length === 0) throw new Error("to is required");
 
-    const client = new SmtpClient();
-
-    if (this.verbose) {
-      console.debug(
-        `[email] connecting smtp://${this.cfg.host}:${this.cfg.port} secure=${this.cfg.secure}`,
-      );
-    }
-
-    if (this.cfg.secure) {
-      await client.connectTLS({
-        hostname: this.cfg.host,
-        port: this.cfg.port,
-        username: this.cfg.username,
-        password: this.cfg.password,
-      });
-    } else {
-      await client.connect({
-        hostname: this.cfg.host,
-        port: this.cfg.port,
-        username: this.cfg.username,
-        password: this.cfg.password,
-      });
-    }
-
+    const client = this.newClient();
     try {
       if (this.verbose) {
-        console.debug(
-          `[email] sending: from=${from} to=${
-            recipients.join(",")
-          } subject="${subject}" (text)`,
-        );
+        console.debug("[email] sending (text)", {
+          from,
+          to,
+          cc,
+          subject,
+        });
       }
-      await client.send({
+
+      const sendArgs: SendConfig = {
         from,
-        to: recipients.join(","),
+        to: recipients,
         subject,
         content: text,
-      });
+      };
+      if (cc) {
+        sendArgs.cc = this.normalizeRecipients(cc);
+      }
+      await client.send(sendArgs);
       if (this.verbose) console.debug("[email] sent");
     } finally {
       try {

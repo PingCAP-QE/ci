@@ -3,10 +3,27 @@ import { CaseAgg, ReportData } from "../core/types.ts";
 /**
  * HtmlRenderer - renders a single-file HTML report from aggregated data.
  *
+ * Email-friendly mode:
+ * - Avoids CSS variables
+ * - Avoids <details>/<summary>
+ * - Uses inline styles for rank bars
+ *
  * Usage:
- *   const html = new HtmlRenderer().render(reportData);
+ *   const html = new HtmlRenderer({ email: true }).render(reportData);
+ *   const html = new HtmlRenderer().render(reportData); // browser mode (default)
  */
 export class HtmlRenderer {
+  private readonly email: boolean;
+  private readonly inlineBarWidthPx: number;
+
+  constructor(opts?: { email?: boolean; inlineBarWidthPx?: number }) {
+    this.email = !!opts?.email;
+    this.inlineBarWidthPx = Math.max(
+      40,
+      Math.min(240, opts?.inlineBarWidthPx ?? 120),
+    );
+  }
+
   render(report: ReportData): string {
     const css = this.styles();
     const header = this.header(report);
@@ -36,6 +53,35 @@ export class HtmlRenderer {
   }
 
   private styles(): string {
+    if (this.email) {
+      // Email-friendly CSS: no CSS variables, no reliance on advanced selectors or pseudo-elements.
+      return `
+html, body { margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; margin: 16px; color: #111827; }
+h1, h2, h3 { margin: 0.6em 0 0.3em; }
+.meta { color: #6b7280; margin-bottom: 12px; }
+.kpi {
+  display: inline-block;
+  margin: 4px 16px 4px 0;
+  padding: 6px 10px;
+  background: #f1f8ff;
+  border: 1px solid #daf0ff;
+  border-radius: 6px;
+}
+table { border-collapse: collapse; width: 100%; margin: 12px 0 24px; }
+th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; vertical-align: top; }
+th { background: #f6f8fa; font-weight: 600; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.small { font-size: 12px; }
+.muted { color: #6b7280; }
+.owner { font-weight: 600; }
+.email-section { border: 1px solid #e5e7eb; border-radius: 6px; margin: 12px 0 24px; }
+.email-section > .email-section__title { padding: 8px 10px; background: #f6f8fa; font-weight: 600; }
+.email-section > .email-section__content { padding: 10px; }
+`.trim();
+    }
+
+    // Browser mode: keep the original richer styling
     return `
 /* Basic layout */
 :root {
@@ -80,7 +126,7 @@ details > summary::-webkit-details-marker { display: none; }
 details[open] > summary { border-bottom: 1px solid var(--border); }
 details .content { padding: 10px; }
 
-/* Rank bars */
+/* Rank bars (browser mode uses positioned overlay; email mode inlines styles per-cell) */
 .rank-cell { position: relative; padding: 0; }
 .rank-cell .rank-label { position: relative; z-index: 1; display: block; padding: 6px 8px; text-align: right; font-variant-numeric: tabular-nums; }
 .rank-cell .rank-bar { position: absolute; top: 0; bottom: 0; left: 0; background: #f3f4f6; }
@@ -105,7 +151,7 @@ details .content { padding: 10px; }
   <span class="kpi">Threshold: <b>${
       this.num(report.window.thresholdMs)
     }</b> ms</span>
-    <span class="kpi">Time Thresholded Cases: <b>${
+  <span class="kpi">Time Thresholded Cases: <b>${
       this.num(report.summary.thresholdedCases)
     }</b></span>
 </div>
@@ -128,10 +174,7 @@ details .content { padding: 10px; }
       )
       .join("\n");
 
-    return `
-<details>
-  <summary>By Team</summary>
-  <div class="content">
+    const table = `
 <table>
   <thead>
     <tr>
@@ -139,14 +182,34 @@ details .content { padding: 10px; }
       <th>Repo</th>
       <th>Branch</th>
       <th>Flaky Cases</th>
-      <th>Thresholded Cases</th>
+      <th>Time Thresholded Cases</th>
     </tr>
   </thead>
   <tbody>
 ${rows}
   </tbody>
 </table>
+`.trim();
+
+    if (this.email) {
+      return `
+<h2>By Team</h2>
+<div class="email-section">
+  <div class="email-section__title">Details</div>
+  <div class="email-section__content">
+    ${table}
+  </div>
 </div>
+      `.trim();
+    }
+
+    return `
+<h2>By Team</h2>
+<details>
+  <summary>Details</summary>
+  <div class="content">
+    ${table}
+  </div>
 </details>
     `.trim();
   }
@@ -168,10 +231,7 @@ ${rows}
       )
       .join("\n");
 
-    return `
-<details>
-  <summary>By Package</summary>
-  <div class="content">
+    const table = `
 <table>
   <thead>
     <tr>
@@ -187,6 +247,26 @@ ${rows}
 ${rows}
   </tbody>
 </table>
+`.trim();
+
+    if (this.email) {
+      return `
+<h2>By Suite</h2>
+<div class="email-section">
+  <div class="email-section__title">Details</div>
+  <div class="email-section__content">
+    ${table}
+  </div>
+</div>
+      `.trim();
+    }
+
+    return `
+<h2>By Suite</h2>
+<details>
+  <summary>Details</summary>
+  <div class="content">
+    ${table}
   </div>
 </details>
     `.trim();
@@ -198,9 +278,11 @@ ${rows}
     );
     const maxFlaky = Math.max(1, ...data.map((x) => x.flakyCount || 0));
     const maxThresh = Math.max(1, ...data.map((x) => x.thresholdedCount || 0));
+
     const rows = data.map((r) => {
       const flakyPct = maxFlaky ? (r.flakyCount / maxFlaky) * 100 : 0;
       const thPct = maxThresh ? (r.thresholdedCount / maxThresh) * 100 : 0;
+
       return `
 <tr>
   <td class="owner">${escapeHtml(r.owner)}</td>
@@ -208,12 +290,8 @@ ${rows}
   <td class="mono">${escapeHtml(r.branch)}</td>
   <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
-  <td class="rank-cell"><span class="rank-bar rank-bar--flaky" style="width:${flakyPct}%;"></span><span class="rank-label">${
-        this.num(r.flakyCount)
-      }</span></td>
-  <td class="rank-cell"><span class="rank-bar rank-bar--th" style="width:${thPct}%;"></span><span class="rank-label">${
-        this.num(r.thresholdedCount)
-      }</span></td>
+  ${this.rankCell(r.flakyCount ?? 0, flakyPct, "flaky")}
+  ${this.rankCell(r.thresholdedCount ?? 0, thPct, "th")}
   <td>${
         r.latestBuildUrl
           ? `<a href="${
@@ -227,7 +305,6 @@ ${rows}
   <td><a href="${
         escapeHtml(this.githubNewIssueUrlForCase(report, r))
       }" target="_blank" rel="noopener">new</a></td>
-
 </tr>
 `.trim();
     }).join("\n");
@@ -247,7 +324,6 @@ ${rows}
       <th>Latest Build</th>
       <th>Issue Search</th>
       <th>Create Issue</th>
-
     </tr>
   </thead>
   <tbody>
@@ -263,9 +339,11 @@ ${rows}
     );
     const maxFlaky = Math.max(1, ...data.map((x) => x.flakyCount || 0));
     const maxThresh = Math.max(1, ...data.map((x) => x.thresholdedCount || 0));
+
     const rows = data.map((r, i) => {
       const flakyPct = maxFlaky ? (r.flakyCount / maxFlaky) * 100 : 0;
       const thPct = maxThresh ? (r.thresholdedCount / maxThresh) * 100 : 0;
+
       return `
 <tr>
   <td>${this.num(i + 1)}</td>
@@ -274,12 +352,8 @@ ${rows}
   <td class="mono">${escapeHtml(r.branch)}</td>
   <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
-  <td class="rank-cell"><span class="rank-bar rank-bar--flaky" style="width:${flakyPct}%;"></span><span class="rank-label">${
-        this.num(r.flakyCount)
-      }</span></td>
-  <td class="rank-cell"><span class="rank-bar rank-bar--th" style="width:${thPct}%;"></span><span class="rank-label">${
-        this.num(r.thresholdedCount)
-      }</span></td>
+  ${this.rankCell(r.flakyCount ?? 0, flakyPct, "flaky")}
+  ${this.rankCell(r.thresholdedCount ?? 0, thPct, "th")}
   <td>${
         r.latestBuildUrl
           ? `<a href="${
@@ -322,12 +396,51 @@ ${rows}
     `.trim();
   }
 
+  private rankCell(
+    count: number,
+    pctOfMax: number,
+    variant: "flaky" | "th",
+  ): string {
+    if (this.email) {
+      const barColor = variant === "flaky" ? "#fee2e2" : "#dbeafe";
+      const barBase = "#f3f4f6";
+      const border = "#e5e7eb";
+
+      const width = this.inlineBarWidthPx;
+      const pct = Math.max(0, Math.min(100, pctOfMax || 0));
+      const filledWidth = Math.round((pct / 100) * width);
+
+      // Inline-friendly bar: "count | [####.....]" using nested spans with fixed pixel width
+      return `
+<td>
+  <span style="font-variant-numeric: tabular-nums; min-width: 24px; display: inline-block; text-align: right; margin-right: 6px;">${
+        this.num(count)
+      }</span>
+  <span style="display:inline-block; width:${width}px; height:12px; background:${barBase}; border:1px solid ${border}; border-radius:3px; vertical-align:middle; overflow:hidden;">
+    <span style="display:inline-block; height:100%; width:${filledWidth}px; background:${barColor};"></span>
+  </span>
+</td>
+      `.trim();
+    }
+
+    // Browser mode: keep the original overlay style for a full-width cell bar
+    const cls = variant === "flaky" ? "rank-bar--flaky" : "rank-bar--th";
+    const pct = Math.max(0, Math.min(100, pctOfMax || 0));
+    return `
+<td class="rank-cell">
+  <span class="rank-bar ${cls}" style="width:${pct}%;"></span>
+  <span class="rank-label">${this.num(count)}</span>
+</td>
+    `.trim();
+  }
+
   private githubIssueSearchUrlForCase(r: CaseAgg): string {
-    const [owner, repo] = (r.repo || "").split("/");
+    const [
+      owner,
+      repo,
+    ] = (r.repo || "").split("/");
     if (!owner || !repo) return "#";
-    const terms = [`"${r.case_name}"`]
-      .filter(Boolean)
-      .join(" ");
+    const terms = [`"${r.case_name}"`].filter(Boolean).join(" ");
     return `https://github.com/${encodeURIComponent(owner)}/${
       encodeURIComponent(repo)
     }/issues?q=${encodeURIComponent(`${terms} in:title is:issue`)}`;

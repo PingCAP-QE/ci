@@ -171,6 +171,10 @@ Examples:
         ? String(flags["email-to"]).split(",").map((s: string) => s.trim())
           .filter(Boolean)
         : undefined,
+      emailCc: flags["email-cc"]
+        ? String(flags["email-cc"]).split(",").map((s: string) => s.trim())
+          .filter(Boolean)
+        : undefined,
       emailFrom: flags["email-from"],
       emailSubject: flags["email-subject"],
       dryRun: !!flags["dry-run"],
