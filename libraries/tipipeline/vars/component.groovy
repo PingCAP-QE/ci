@@ -486,3 +486,53 @@ def extractHotfixInfo(String branchName) {
     def versionTag = isHotfix ? matcher[0][1] : null
     return [isHotfix: isHotfix, versionTag: versionTag]
 }
+
+/**
+ * Parse component versions from PR comment and compute final branches to use.
+ * This function first tries to extract component versions from PR comment body,
+ * then falls back to computeBranchFromPR for components not specified in comment.
+ * 
+ * @param refs The REFS object containing PR information
+ * @param components List of component names to parse (e.g., ['tidb', 'tikv', 'pd', 'tiflash'])
+ * @param trunkBranch Default trunk branch name (default: 'master')
+ * @return Map containing component names as keys and their resolved branches as values
+ */
+def parseComponentVersionsFromComment(def refs, List<String> components, String trunkBranch = 'master') {
+    def result = [:]
+    
+    // Get comment body from PR
+    def commentBody = ""
+    try {
+        if (refs?.pulls && refs.pulls.size() > 0) {
+            commentBody = refs.pulls[0]?.body ?: ""
+        }
+    } catch (Exception e) {
+        println "Warning: Failed to extract comment body: ${e.message}"
+        commentBody = ""
+    }
+    
+    println "Parsing component versions from comment: ${commentBody}"
+    
+    // Parse each component
+    components.each { componentName ->
+        def componentBranch = refs.base_ref
+        def prTitle = refs?.pulls?.get(0)?.title ?: ""
+        
+        // Try to parse from comment first
+        def commentPattern = /${componentName}\s*=\s*([^\s\\]+)(\s|\\|$)/
+        def matcher = commentBody =~ commentPattern
+        
+        if (matcher) {
+            componentBranch = "${matcher[0][1]}"
+            println "Using ${componentName} branch from comment: ${componentBranch}"
+        } else {
+            // Fallback to computeBranchFromPR
+            componentBranch = computeBranchFromPR(componentName, refs.base_ref, prTitle, trunkBranch)
+            println "Using ${componentName} branch from computeBranchFromPR: ${componentBranch}"
+        }
+        
+        result[componentName] = componentBranch
+    }
+    
+    return result
+}
