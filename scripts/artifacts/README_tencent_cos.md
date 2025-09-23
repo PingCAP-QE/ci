@@ -56,11 +56,3 @@ export TENCENT_COS_REGION="ap-beijing"
 在Jenkins中需要配置以下凭据：
 - `tencent_cos_access_key`: 腾讯云Access Key
 - `tencent_cos_secret_key`: 腾讯云Secret Key
-
-## 错误处理
-
-脚本包含以下错误处理机制：
-- 环境变量检查
-- 本地文件存在性检查
-- 上传后验证
-- 详细的错误信息输出
