@@ -54,5 +54,6 @@ export TENCENT_COS_REGION="ap-beijing"
 ## 凭据配置
 
 在Jenkins中需要配置以下凭据：
-- `tencent_cos_access_key`: 腾讯云Access Key
-- `tencent_cos_secret_key`: 腾讯云Secret Key
+- `operator_v1_tencent_cos_access_key`: 腾讯云Access Key
+- `operator_v1_tencent_cos_secret_key`: 腾讯云Secret Key
+- `operator_v1_tencent_cos_bucket_name`: COS存储桶名称
