@@ -2,11 +2,11 @@
 
 ## 功能说明
 
-本脚本提供了将Helm chart文件上传到腾讯云COS（对象存储）的功能，作为现有七牛云上传功能的补充。
+本脚本提供了将Helm chart文件上传到腾讯云COS（对象存储）的功能。
 
 ## 依赖要求
 
-- Python 3.6+
+- Python 3.10+
 - 腾讯云COS Python SDK: `cos-python-sdk-v5`
 
 安装依赖：
