@@ -19,7 +19,7 @@ pip install cos-python-sdk-v5
 脚本需要以下环境变量：
 
 - `TENCENT_COS_ACCESS_KEY`: 腾讯云AccessKey
-- `TENCENT_COS_SECRET_KEY`: 腾讯云SecretKey  
+- `TENCENT_COS_SECRET_KEY`: 腾讯云SecretKey
 - `TENCENT_COS_BUCKET_NAME`: COS存储桶名称
 - `TENCENT_COS_REGION`: COS地域（可选，默认为ap-beijing）
 
@@ -48,7 +48,7 @@ export TENCENT_COS_REGION="ap-beijing"
 在tidb-operator.groovy pipeline中，现在会自动同时上传到七牛云和腾讯云COS：
 
 1. **charts阶段**: 上传基础chart文件
-2. **charts br-federation阶段**: 上传br-federation相关chart文件  
+2. **charts br-federation阶段**: 上传br-federation相关chart文件
 3. **charts index阶段**: 上传索引文件
 
 ## 凭据配置
