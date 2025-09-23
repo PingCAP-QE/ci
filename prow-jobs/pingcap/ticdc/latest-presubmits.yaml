@@ -62,7 +62,7 @@ presubmits:
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
-      # context: pull-cdc-storage-integration-light
+      context: pull-cdc-storage-integration-light
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light"
       branches: *branches
