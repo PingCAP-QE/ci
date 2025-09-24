@@ -38,18 +38,17 @@ refresh_tiup_packages() {
         darwin_arm64
     )
     local oci_repos=(
-        # pd
-        ${repo_base}/tikv/pd/package
-        # tikv
-        ${repo_base}/tikv/tikv/package
-        # tidb
-        ${repo_base}/pingcap/tidb/package
-        # tiflash
-        ${repo_base}/pingcap/tiflash/package
-        # tiflow
-        ${repo_base}/pingcap/tiflow/package
-        # ticdc
+        ${repo_base}/pingcap/ctl/package
+        ${repo_base}/pingcap/monitoring/package
+        ${repo_base}/pingcap/ng-monitoring/package
         ${repo_base}/pingcap/ticdc/package
+        ${repo_base}/pingcap/tidb-binlog/package
+        ${repo_base}/pingcap/tidb-dashboard/package
+        ${repo_base}/pingcap/tidb/package
+        ${repo_base}/pingcap/tiflash/package
+        ${repo_base}/pingcap/tiflow/package
+        ${repo_base}/tikv/pd/package
+        ${repo_base}/tikv/tikv/package
     )
 
 
