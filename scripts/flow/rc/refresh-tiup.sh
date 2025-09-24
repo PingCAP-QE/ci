@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -euo pipefail
 EXEC_BIN="go run github.com/PingCAP-QE/ee-apps/publisher/cmd/publisher-cli@main"
 
 main() {
