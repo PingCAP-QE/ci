@@ -16,6 +16,11 @@ check_tools() {
 }
 
 refresh_tiup_packages() {
+    if [[ $# -lt 2 ]]; then
+        echo "Usage: $0 <svc_url> <branch> [repo_base]" >&2
+        exit 1
+    fi
+
     local svc_url="$1"
     local branch="$2"
     local repo_base="${3:-hub.pingcap.net}"
