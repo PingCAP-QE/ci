@@ -7,23 +7,12 @@ main() {
 }
 
 check_tools() {
-    # Check if jq is installed
-    if ! command -v jq &> /dev/null; then
-        echo "jq is not installed. Please install jq before running this script."
-        exit 1
-    fi
-
-    # check if go is installed
-    if ! command -v go &> /dev/null; then
-        echo "go is not installed. Please install go before running this script."
-        exit 1
-    fi
-
-    # check if crane is installed
-    if ! command -v crane &> /dev/null; then
-        echo "crane is not installed. Please install crane before running this script."
-        exit 1
-    fi
+    for tool in jq go crane; do
+        if ! command -v "$tool" &> /dev/null; then
+            echo "$tool is not installed. Please install $tool before running this script." >&2
+            exit 1
+        fi
+    done
 }
 
 refresh_tiup_packages() {
