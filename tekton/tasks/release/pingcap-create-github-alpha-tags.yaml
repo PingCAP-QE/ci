@@ -1,0 +1,29 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-create-github-alpha-tags
+spec:
+  description: >
+    create github alpha tags on product GitHub repositories and send github push events to trigger build with new git metadata.
+  params:
+    - name: version
+      description: the release semver tag name, e.g. v5.0.0-alpha
+  workspaces:
+    - name: github
+      description: Must includes a key `token`
+  steps:
+    - name: create-tags
+      image: docker.io/denoland/deno:alpine-2.1.4
+      script: |
+        deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/flow/sprint/create_github_alpha_tags.ts \
+          --version="$(params.version)" \
+          --token="$(cat $(workspaces.github.path)/token)" \
+          --pushEventUrl=http://el-public:8080
+    - name: reset-tiup-rate-limit
+      image: ghcr.io/pingcap-qe/ee-apps/publisher:v2025.1.30-22-g04a67a4
+      command:
+        - /app/publisher-cli
+      args:
+        - --url=http://publisher-prod-mirror.apps.svc
+        - tiup
+        - reset-rate-limit

@@ -1,0 +1,258 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: scan-go-modules-in-binaries
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: Security
+    tekton.dev/tags: scanning,go,oci
+    tekton.dev/displayName: "Scan Go modules in compiled binaries from an OCI artifact"
+spec:
+  description: |
+    Downloads a compiled package artifact from an OCI registry, extracts it, and scans all detected Go binaries
+    for the presence of disallowed Go modules using `go tool nm`.
+
+    Inputs:
+    - org/repo: Only supports repositories: pingcap/tidb, pingcap/tiflow, pingcap/ticdc, tikv/pd
+    - version: v<X.Y.Z> (e.g., v8.5.0)
+    - modules: newline-separated list of Go modules to detect (disallow-list). If none are found in any binary, the Task succeeds.
+
+    Artifact source:
+      <registry>/<org>/<repo>/package:v<X.Y.Z>_linux_<arch>
+
+    Behavior:
+    - Pulls the OCI artifact for the given org/repo/version/arch.
+    - Extracts any found tarballs; if none, scans the pulled content directly.
+    - For each detected Go binary, runs: `go tool nm <binary> | grep "$pkg"`.
+    - Fails if any disallowed module is found in any binary; succeeds otherwise.
+
+  params:
+    - name: registry
+      type: string
+      description: OCI registry hostname (e.g., ghcr.io, registry.example.com)
+      default: hub.pingcap.net
+    - name: github-repo
+      type: string
+      description: |
+        GitHub repository in the form <org>/<repo>. Only supports: pingcap/tidb, pingcap/tiflow, pingcap/ticdc, tikv/pd
+    - name: version
+      type: string
+      description: Release version in the form vX.Y.Z (e.g., v8.5.0)
+    - name: arch
+      type: string
+      default: amd64
+      description: Linux architecture for the artifact tag (e.g., amd64 or arm64)
+    - name: modules
+      type: string
+      default: ""
+      description: Newline-separated list of go module import paths to detect (disallowed set)
+    - name: plain-http
+      type: string
+      default: "false"
+      description: If "true", pull from registry using plain HTTP (insecure)
+  results:
+    - name: artifact-url
+      description: The fully resolved artifact URL used for the scan
+    - name: scanned-binaries
+      description: Newline-separated list of binaries that were scanned
+    - name: found-modules
+      description: Newline-separated list of "module in binary" matches, empty if none
+  steps:
+    - name: validate-and-prepare
+      image: bash:5.2
+      workingDir: /workspace
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        GH_REPO="$(params.github-repo)"
+        VERSION="$(params.version)"
+        ARCH="$(params.arch)"
+        REGISTRY="$(params.registry)"
+        PLAIN_HTTP="$(params.plain-http)"
+        MODULES_INPUT="$(params.modules)"
+
+        # Parse org/repo
+        if [[ "$GH_REPO" =~ ^([^/]+)/([^/]+)$ ]]; then
+          ORG="${BASH_REMATCH[1]}"
+          REPO="${BASH_REMATCH[2]}"
+        else
+          echo "Invalid github-repo: $GH_REPO. Expected <org>/<repo>." >&2
+          exit 1
+        fi
+
+        # Validate allowed <org>/<repo> pairs
+        case "${ORG}/${REPO}" in
+          pingcap/tidb|pingcap/tiflow|pingcap/ticdc|tikv/pd) ;;
+          *) echo "Unsupported repo pair: ${ORG}/${REPO}. Only support: pingcap/tidb, pingcap/tiflow, pingcap/ticdc, tikv/pd." >&2; exit 1 ;;
+        esac
+
+        # Basic version check
+        if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+          echo "Invalid version: $VERSION. Expected vX.Y.Z" >&2
+          exit 1
+        fi
+
+        # Arch check
+        case "$ARCH" in
+          amd64|arm64) ;;
+          *) echo "Unsupported arch: $ARCH. Only support: amd64, arm64." >&2; exit 1 ;;
+        esac
+
+        ARTIFACT_URL="${REGISTRY}/${ORG}/${REPO}/package:${VERSION}_linux_${ARCH}"
+        printf "%s" "$ARTIFACT_URL" > "$(results.artifact-url.path)"
+        echo "Artifact URL: $ARTIFACT_URL"
+
+        # Persist modules list into a file
+        printf "%s\n" "${MODULES_INPUT}" | \
+          sed -E 's/\r$//' | \
+          tr ',' '\n' | \
+          awk 'length>0{print}' > /workspace/modules.txt
+        echo "Modules to detect (disallow-list):"
+        nl -ba /workspace/modules.txt || true
+
+        # For visibility, show org/repo mapping
+        echo "Scanning repo: ${ORG}/${REPO}, version: ${VERSION}, arch: ${ARCH}"
+
+    - name: pull-and-extract
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      workingDir: /workspace
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        GH_REPO="$(params.github-repo)"
+        ORG="${GH_REPO%%/*}"
+        REPO="${GH_REPO#*/}"
+        ARTIFACT_URL="$(params.registry)/${ORG}/${REPO}/package:$(params.version)_linux_$(params.arch)"
+        echo "Pulling artifact: ${ARTIFACT_URL}"
+
+        if [[ "$(params.plain-http)" == "true" ]]; then
+          export ORAS_INSECURE=true
+        fi
+
+        oras pull --concurrency 1 "${ARTIFACT_URL}"
+
+        # Extract tarballs if present; otherwise use the pulled content directly.
+        mkdir -p /workspace/extracted
+        shopt -s nullglob || true
+        TARBALLS_FOUND=0
+
+        for f in *.tar.gz *.tgz; do
+          [ -e "$f" ] || continue
+          echo "Extracting (gzip): $f"
+          tar -xzf "$f" -C /workspace/extracted
+          TARBALLS_FOUND=1
+        done
+
+        for f in *.tar; do
+          [ -e "$f" ] || continue
+          echo "Extracting (tar): $f"
+          tar -xf "$f" -C /workspace/extracted
+          TARBALLS_FOUND=1
+        done
+
+        shopt -u nullglob || true
+
+        if [[ "${TARBALLS_FOUND}" -eq 0 ]]; then
+          echo "No tarballs detected. Using pulled content as scan root."
+          # Copy non-hidden files and directories into extracted (best effort)
+          # Keep structure shallow; avoid copying oras metadata if present in hidden paths.
+          rsync -a --exclude='.*' ./ /workspace/extracted/ 2>/dev/null || cp -a ./ /workspace/extracted/ || true
+        fi
+
+        echo "Extraction complete. Contents under /workspace/extracted:"
+        (cd /workspace/extracted && find . -maxdepth 3 -print | sed 's|^\./||')
+
+    - name: scan
+      image: docker.io/library/golang:1.22
+      workingDir: /workspace
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        SCAN_ROOT="/workspace/extracted"
+        if [[ ! -d "$SCAN_ROOT" ]] || [[ -z "$(ls -A "$SCAN_ROOT" 2>/dev/null)" ]]; then
+          SCAN_ROOT="/workspace"
+        fi
+        echo "Scan root: $SCAN_ROOT"
+
+        # Compile candidate list of potential binaries:
+        # 1) Executable bit set and larger than 256KB
+        # 2) Common binary names for these projects (fallback)
+        declare -a CANDIDATES=()
+        while IFS= read -r -d '' f; do
+          CANDIDATES+=("$f")
+        done < <(find "$SCAN_ROOT" -type f -size +256k -perm -u+x -print0 2>/dev/null)
+
+        # Add common names and bin directories
+        while IFS= read -r -d '' f; do
+          CANDIDATES+=("$f")
+        done < <(find "$SCAN_ROOT" -type f \( -path '*/bin/*' -o -regex '.*\b(tidb|tidb-server|tidb-lightning|br|dumpling|pd|pd-server|tiflow|cdc)\b.*' \) -print0 2>/dev/null)
+
+        # De-duplicate
+        mapfile -t CANDIDATES < <(printf "%s\n" "${CANDIDATES[@]}" | awk 'NF' | sort -u)
+
+        # If still empty, scan everything (last-resort; nm will filter non-Go binaries)
+        if [[ ${#CANDIDATES[@]} -eq 0 ]]; then
+          echo "No executable candidates found; broadening search."
+          while IFS= read -r -d '' f; do
+            CANDIDATES+=("$f")
+          done < <(find "$SCAN_ROOT" -type f -size +256k -print0 2>/dev/null)
+          mapfile -t CANDIDATES < <(printf "%s\n" "${CANDIDATES[@]}" | awk 'NF' | sort -u)
+        fi
+
+        printf "%s\n" "${CANDIDATES[@]}" > "$(results.scanned-binaries.path)"
+        echo "Candidate binaries to scan:"
+        nl -ba "$(results.scanned-binaries.path)" || true
+
+        # Load modules (disallow-list)
+        declare -a MODULES=()
+        if [[ -f /workspace/modules.txt ]]; then
+          mapfile -t MODULES < /workspace/modules.txt
+        fi
+
+        if [[ ${#CANDIDATES[@]} -eq 0 ]]; then
+          echo "No binaries detected to scan; treating as success."
+          : > "$(results.found-modules.path)"
+          exit 0
+        fi
+
+        if [[ ${#MODULES[@]} -eq 0 ]]; then
+          echo "No disallowed modules provided; nothing to check. Treating as success."
+          : > "$(results.found-modules.path)"
+          exit 0
+        fi
+
+        FOUND=0
+        : > /workspace/found.txt
+
+        for bin in "${CANDIDATES[@]}"; do
+          # Try to inspect symbol table with go tool nm; skip file if it fails
+          if ! go tool nm "$bin" > "$bin.nm" 2>/dev/null; then
+            continue
+          fi
+          for pkg in "${MODULES[@]}"; do
+            [[ -z "$pkg" ]] && continue
+            if grep -F -m 1 -- "$pkg" "$bin.nm" > /dev/null 2>&1; then
+              echo "${pkg} in ${bin}" | tee -a /workspace/found.txt
+              FOUND=1
+            fi
+          done
+        done
+
+        if [[ -s /workspace/found.txt ]]; then
+          cat /workspace/found.txt > "$(results.found-modules.path)"
+        else
+          : > "$(results.found-modules.path)"
+        fi
+
+        if [[ "$FOUND" -eq 1 ]]; then
+          echo "Disallowed modules were found in one or more binaries. Failing."
+          exit 1
+        fi
+
+        echo "No disallowed modules found in scanned binaries. Success."
+        exit 0

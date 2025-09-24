@@ -1,0 +1,66 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-get-set-release-version
+spec:
+  results:
+    - description: The release version of the git repo
+      name: version
+      type: string
+  steps:
+    - image: alpine/git:v2.47.2
+      name: git-describe
+      workingDir: $(workspaces.source.path)
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: "100m"
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "Delete the none-standard tags"
+        if git tag | grep -E "v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|fips))?$" > /dev/null; then
+          # Only delete the none-standard tags when the repo has standard semver tags.
+          git tag | grep -vE "^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|fips|202[1-9][0-1][0-9][0-3][0-9]-[0-9a-f]{7,10}))?$" | xargs git tag -d || true
+        fi
+
+        RESULT_VERSION="$(git describe --tags --always --dirty --exclude 'v20[0-9][0-9].[0-1][0-9].[0-3][0-9]*')"
+        echo "Draft version got with git: $RESULT_VERSION"
+        version_part=$(echo "$RESULT_VERSION" | cut -d '-' -f 1)
+        major=$(echo "$version_part" | cut -d '.' -f 1)
+        minor=$(echo "$version_part" | cut -d '.' -f 2)
+        patch=$(echo "$version_part" | cut -d '.' -f 3)
+
+        if git branch --contains | grep -E "\brelease-[0-9]+[.][0-9]+"; then
+          if [[ "$RESULT_VERSION" =~ "-[0-9]+-g[0-9a-f]{7,10}(-dirty)?$" ]]; then
+            git_tag="$major.$minor.$patch"
+
+            # Check if "-alpha-" is included in the version string
+            if [[ "$RESULT_VERSION" == *"-alpha-"* ]]; then
+              echo "First patch version detected. Skipping patch increment."
+            else
+              # Increment the patch version.
+              echo "The code is checkouted on branch, I will increase the patch version."
+              git_tag="$major.$minor.$((patch + 1))"
+            fi
+
+            echo "Force add a local tag ${git_tag} for build when on current release branch."
+            git tag --contains | xargs git tag -d
+            git tag -f ${git_tag}
+            RESULT_VERSION="${git_tag}-pre"
+          elif [[ "$RESULT_VERSION" =~ "v[0-9]+[.][0-9]+[.][0-9]+(-alpha)$" ]]; then
+            git_tag="$major.$minor.$patch"
+            echo "Force add a local tag ${git_tag} for build when on current release branch."
+            git tag --contains | xargs git tag -d
+            git tag -f ${git_tag}
+            RESULT_VERSION="${git_tag}-pre"
+          fi
+        else
+          echo "Skipping tagging when not building on release branches."
+        fi
+
+        printf "%s" "${RESULT_VERSION}" | tee $(results.version.path)
+
+  workspaces:
+    - name: source

@@ -1,0 +1,53 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: wait-delivery-images
+spec:
+  description: |
+    Wait for images delivery to complete.
+    This task should be run with service account with `pull-images` permission on the OCI registry.
+  params:
+    - name: version
+      type: string
+      description: the version to wait for delivery.
+    - name: oci-registry
+      default: hub.pingcap.net
+      description: The OCI registry stored the origin tarball files.
+    - name: delivery-config
+      default: "https://github.com/PingCAP-QE/artifacts/raw/main/packages/delivery.yaml"
+      description: The delivery config yaml file, it contains delivery rules.
+  steps:
+    - name: compute
+      image: docker.io/denoland/deno:alpine-2.1.4
+      script: |
+        deno run --allow-all https://github.com/PingCAP-QE/artifacts/raw/main/packages/scripts/get-delivery-target-images.ts \
+          --version="$(params.version)" \
+          --registry="$(params.oci-registry)" \
+          --config="$(params.delivery-config)" \
+          --save_to=/workspace/target-images.yaml
+    - name: wait
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      script: |
+        cat /workspace/target-images.yaml
+
+        while true; do
+          # loop with yq for /workspace/target-images.yaml:
+          check_success=true
+          for image in $(yq -r '.[]' /workspace/target-images.yaml); do
+            echo -en "Checking $image...\t"
+            if oras manifest fetch $image > /dev/null; then
+              echo "🏅 delivery succeeded!"
+            else
+              echo "🤷 not found."
+              check_success=false
+            fi
+          done
+
+          if $check_success; then
+            echo "🏅🏅🏅 All images delivery succeeded!"
+            break
+          else
+            echo "❌❌❌ Some images delivery failed, retrying in 1 minute..."
+            sleep 60
+          fi
+        done

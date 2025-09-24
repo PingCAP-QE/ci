@@ -1,0 +1,80 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-upload-enterprise-plugins
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.39.0"
+    tekton.dev/categories: CLI
+    tekton.dev/tags: cli
+    tekton.dev/displayName: "aws cli"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    This task performs upload for pingcap's offline packages.
+  params:
+    - name: version
+      type: string
+    - name: dry-run
+      default: "false"
+    - name: oci-repo
+      default: hub.pingcap.net/pingcap/tidb/package
+  workspaces:
+    - name: aws-secrets-tencent
+  steps:
+    - name: uploads
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      workingDir: /workspace
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        apk add curl
+        if [ ! -f "$(workspaces.aws-secrets-tencent.path)/credentials" ]; then
+          echo "Error: aws-secrets-tencent workspace is not bound."
+          exit 1
+        fi
+
+        mkdir -p ~/.aws
+        cat $(workspaces.aws-secrets-tencent.path)/credentials > ~/.aws/credentials
+        cat $(workspaces.aws-secrets-tencent.path)/config > ~/.aws/config
+        aws configure set plugins.cli_legacy_plugin_path $(find /usr/lib -name site-packages -type d | head -1)
+        aws configure set plugins.endpoint awscli_plugin_endpoint
+
+        bucket_name=$(cat $(workspaces.aws-secrets-tencent.path)/bucket_name)
+
+        repo="$(params.oci-repo)"
+        dl_svr_url="https://internal-do.pingcap.net/dl"
+        FILE_SERVER_URL="http://fileserver.pingcap.net"
+
+        for platform in linux_amd64 linux_arm64; do
+          tag="$(params.version)-enterprise_${platform}"
+          echo "🚀 uploading for ${tag} ..."
+
+          curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}"
+          for f in $(curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}" | jq -r '.[]' | grep "plugins-v"); do
+            # TODO: skip it if it is uploaded remotely.
+
+            # download from oci artifact.
+            echo "🚀 Downloading $f from ${repo}:${tag} ..."
+            wget -q -O "$f" "${dl_svr_url}/oci-file/${repo}?tag=${tag}&file=$f"
+            echo "✅ Downloaded $f from ${repo}:${tag} ."
+
+            # upload it.
+            target_f="enterprise-plugin-v${f#*-v}"
+            target_f=$(echo "$target_f" | sed 's/[-.]pre//')
+
+            echo "🚀 Uploading $f => $target_f ..."
+            if [ "$(params.dry-run)" == "true" ]; then
+              echo "🧪🩺 DRY run mode enabled."
+              aws s3 cp $f s3://${bucket_name}/fake-release/$target_f --acl public-read
+              curl --fail -F fake-release/${target_f}=@${f} ${FILE_SERVER_URL}/upload | grep -E 'success'
+            else
+              aws s3 cp $f s3://${bucket_name}/$target_f --acl public-read
+              curl --fail -F release/${target_f}=@${f} ${FILE_SERVER_URL}/upload | grep -E 'success'
+            fi
+            echo "✅ Uploaded $f => $target_f."
+          done
+          echo "✅ Uploaded for ${tag} ."
+        done

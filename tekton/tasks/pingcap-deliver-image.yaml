@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-deliver-image
+  labels:
+    app.kubernetes.io/version: "0.1.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: CLI
+    tekton.dev/tags: cli
+    tekton.dev/displayName: "pingcap inner image delivery"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  params:
+    - name: src-image-url
+      description: URL of the image to be copied to the destination registry
+  steps:
+    - name: gen-commands
+      image: docker.io/denoland/deno:alpine-2.0.6 # it has `wget` tool.
+      env:
+        - name: CACHE_READ_SERVER_BASE_URL
+          value: "http://fileserver.pingcap.net/download"
+      script: |
+        cfg_github_raw_path_url="PingCAP-QE/artifacts/main/packages/delivery.yaml"
+        gs_github_raw_path_url="PingCAP-QE/artifacts/main/packages/scripts/gen-delivery-image-commands.ts"
+        cfg_yaml_file="https://raw.githubusercontent.com/$cfg_github_raw_path_url"
+        gen_script_url="https://raw.githubusercontent.com/$gs_github_raw_path_url"
+
+        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$cfg_github_raw_path_url"; then
+          cfg_yaml_file="$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$cfg_github_raw_path_url"
+        fi
+        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$gs_github_raw_path_url"; then
+          gen_script_url="$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$gs_github_raw_path_url"
+        fi
+
+        wget -O delivery.yaml "$cfg_yaml_file"
+        deno run --allow-read --allow-write "$gen_script_url" \
+          --image_url="$(params.src-image-url)" \
+          --yaml_file=delivery.yaml \
+          --outfile=/workspace/delivery.sh
+    - name: run-commands
+      image: gcr.io/go-containerregistry/crane/debug:latest
+      script: |
+        #!/busybox/sh
+        set -e
+
+        script="/workspace/delivery.sh"
+        if [ ! -f "$script" ]; then
+          echo "No build script, skip it."
+          exit 0
+        fi
+
+        chmod +x $script
+        tries=0
+        max_retries=3
+        until $script; do
+          tries=$((tries + 1))
+          if [ $tries -ge $max_retries ]; then
+            echo "Script '$script' failed after $max_retries attempts."
+            exit 1
+          fi
+          echo "Script '$script' failed. Retrying in 10 seconds... ($tries/$max_retries)"
+          sleep 10
+        done
