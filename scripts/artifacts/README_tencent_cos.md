@@ -54,5 +54,6 @@ In the tidb-operator.groovy pipeline, uploads are now automatically performed to
 ## Credentials Configuration
 
 The following credentials need to be configured in Jenkins:
-- `tencent_cos_access_key`: Tencent Cloud Access Key
-- `tencent_cos_secret_key`: Tencent Cloud Secret Key
+- `operator_v1_tencent_cos_access_key`: 腾讯云Access Key
+- `operator_v1_tencent_cos_secret_key`: 腾讯云Secret Key
+- `operator_v1_tencent_cos_bucket_name`: COS存储桶名称
