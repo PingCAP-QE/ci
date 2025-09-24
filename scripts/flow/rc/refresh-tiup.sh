@@ -56,7 +56,8 @@ publish_and_wait() {
     local svc_url="$1"
     local url="$2"
 
-    tmp_result=$(mktemp)
+    local tmp_result=$(mktemp)
+    trap 'rm -f -- "$tmp_result"' RETURN
     if crane digest $url > /dev/null; then
         echo "🚀 Request to publish tiup packages from oci artifact: $url"
 
