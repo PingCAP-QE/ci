@@ -44,8 +44,8 @@ refresh_tiup_packages() {
     # reset rate limit
     $EXEC_BIN --url $svc_url tiup reset-rate-limit
 
-    for oci_repo in ${oci_repos[@]}; do
-        for platform in ${platforms[@]}; do
+    for oci_repo in "${oci_repos[@]}"; do
+        for platform in "${platforms[@]}"; do
             oci_url="${oci_repo}:${branch}_${platform}"
             publish_and_wait $svc_url $oci_url
         done
