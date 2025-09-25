@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - _/build-component-all-platforms.yaml
+  - _/build-component-single-platform.yaml
+  - _/build-component.yaml
+  - _/ci-helper-for-pr.yaml
+  - pingcap/bump-placeholder-version-in-readme.yaml
+  - pingcap/sync-owners-for-hotfix-branch.yaml
+  - pingcap/tidb/update-gomod-fix-ladp-for-hotfix-branch.yaml
+  - tikv/tikv/bump-tikv-cargo-pkg-version.yaml
