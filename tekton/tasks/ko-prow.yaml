@@ -1,0 +1,66 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: ko-prow
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Image Build
+    tekton.dev/tags: image-build
+    tekton.dev/displayName: "Build and upload container image for prow"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    This Task builds source into a container image using ko.
+  params:
+    - name: ko-image
+      description: ko image to use for builds
+      default: "ghcr.io/ko-build/ko:latest"
+    - name: push
+      default: "false"
+    - name: docker-cred-secret-name
+      default: ""
+    - name: REGISTRY
+      default: "ko.local"
+    - name: PROW_IMAGE
+      default: ""
+  workspaces:
+    - name: source
+      description: Go source code to build
+  volumes:
+    - name: docker-socket
+      hostPath:
+        path: /var/run/docker.sock
+    - name: docker-config
+      secret:
+        optional: true
+        secretName: $(params.docker-cred-secret-name)
+  steps:
+    - name: build
+      image: $(params.ko-image)
+      securityContext:
+        privileged: true
+      workingDir: $(workspaces.source.path)
+      volumeMounts:
+        - name: docker-socket
+          mountPath: /var/run/docker.sock
+        - name: docker-config
+          subPath: .dockerconfigjson
+          mountPath: /root/.docker/config.json
+      script: |
+        #!/usr/bin/env bash
+
+        if [ "$(params.push)" = "true" ]; then
+          if [ "$(params.PROW_IMAGE)" = "" ]; then
+            make -C prow push-images REGISTRY=$(params.REGISTRY)
+          else
+            make -C prow push-single-image PROW_IMAGE=$(params.PROW_IMAGE) REGISTRY=$(params.REGISTRY)
+          fi
+        else
+          if [ "$(params.PROW_IMAGE)" = "" ]; then
+            make -C prow build-images
+          else
+            make -C prow build-single-image PROW_IMAGE=$(params.PROW_IMAGE)
+          fi
+        fi

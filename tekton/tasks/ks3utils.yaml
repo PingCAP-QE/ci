@@ -1,0 +1,41 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: ks3utils
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: CLI
+    tekton.dev/tags: cli
+    tekton.dev/displayName: "aws cli"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: |-
+    This task performs operations on KS3 resources using ks3utils.
+    Ref: https://ks3util-version-update.ks3-cn-beijing.ksyuncs.com/history/index.html
+
+  workspaces:
+    - name: source
+      optional: true
+    - name: secrets
+      optional: true
+      description: need a key `.ks3utilconfig` to set ks3 credential.
+  params:
+    - name: SCRIPT
+      description: The ks3util script to run
+      type: string
+      default: "ks3util $@"
+    - name: ARGS
+      description: ks3util cli arguments to be passed
+      type: array
+      default: ["help"]
+  steps:
+    - name: ks3util
+      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v20231216-31-g613ba06
+      script: |
+        $(workspaces.secrets.bound) && cp $(workspaces.secrets.path)/.ks3utilconfig /root/.ks3utilconfig
+
+        $(params.SCRIPT)
+      args:
+        - "$(params.ARGS)"

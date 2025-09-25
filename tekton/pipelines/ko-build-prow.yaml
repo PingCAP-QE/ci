@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ko-build-prow
+spec:
+  workspaces:
+    - name: git-source
+  params:
+    - name: git-url
+      type: string
+    - name: git-revision
+      default: main
+    - name: push
+      type: string
+      default: "false"
+    - name: docker-cred-secret-name
+      description: docker credential.
+      default: "dockerconfig-ticommunityinfra"
+    - name: REGISTRY
+      description: ko environment variable which identifies where to push images
+      default: "ko.local"
+      type: string
+    - name: PROW_IMAGE
+      description: image to build
+      default: ""
+  tasks:
+    - name: fetch-from-git
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+      workspaces:
+        - name: output
+          workspace: git-source
+    - name: build-images
+      runAfter:
+        - fetch-from-git
+      taskRef:
+        name: ko-prow
+      params:
+        - name: REGISTRY
+          value: "$(params.REGISTRY)"
+        - name: PROW_IMAGE
+          value: "$(params.PROW_IMAGE)"
+        - name: push
+          value: "$(params.push)"
+        - name: docker-cred-secret-name
+          value: "$(params.docker-cred-secret-name)"
+      workspaces:
+        - name: source
+          workspace: git-source

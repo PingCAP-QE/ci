@@ -1,0 +1,70 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-pr-to-sync-owners
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.29.0"
+    tekton.dev/categories: Deno
+    tekton.dev/tags: deno
+    tekton.dev/displayName: "sync owners"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    Create pull request to sync `OWNERS`` file to github repository branch.
+  params:
+    - name: git-url
+      description: repository clone url
+      type: string
+    - name: branch
+      description: branch name
+      type: string
+  steps:
+    - name: clone-community-repo
+      image: bitnami/git:2.43.0
+      workingDir: /workspace
+      script: |
+        git clone https://github.com/pingcap/community.git --branch master
+    - name: create-pull-request
+      image: denoland/deno:1.45.5
+      workingDir: /workspace/community
+      script: |
+        owner=$(basename $(dirname $(params.git-url)))
+        repo=$(basename $(params.git-url) .git)
+
+        echo "url=$(params.git-url)"
+        echo "branch=$(params.branch)"
+        echo "owner=${owner}"
+        echo "repo=${repo}"
+
+        if [ "$owner" == "pingcap" ]; then
+          deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts \
+            --force \
+            --owner=${owner} \
+            --github_private_token=$(cat /etc/github/token) \
+            --only_repo.repo=${repo} \
+            --only_repo.branch=$(params.branch) \
+            --inputs=teams/diagnostic/membership.json \
+            --inputs=teams/docs/membership.json \
+            --inputs=teams/ticdc/membership.json \
+            --inputs=teams/tidb/membership.json \
+            --inputs=teams/tiflash/membership.json \
+            --inputs=teams/tiup/membership.json \
+            --inputs=teams/kubernetes/membership.json \
+            --inputs=teams/migration/membership.json \
+            --inputs=teams/bigdata/membership.json
+        elif [ "$owner" == "tikv" ]; then
+          deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts \
+            --force \
+            --owner=${owner} \
+            --github_private_token=$(cat /etc/github/token) \
+            --only_repo.repo=${repo} \
+            --only_repo.branch=$(params.branch) \
+            --inputs=teams/pd/team.json \
+            --inputs=teams/tikv/team.json
+        fi
+  workspaces:
+    - name: github
+      description: Must includes a key `token`
+      mountPath: /etc/github

@@ -1,0 +1,25 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: crane-copy
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: CLI
+    tekton.dev/tags: cli
+    tekton.dev/displayName: "crane copy"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  params:
+    - name: src-image-url
+      description: URL of the image to be copied to the destination registry
+    - name: dst-image-url
+      description: URL of the image where the image from source should be copied to
+  steps:
+    - name: copy
+      image: gcr.io/go-containerregistry/crane:v0.20.3
+      args:
+        - copy
+        - $(params.src-image-url)
+        - $(params.dst-image-url)
