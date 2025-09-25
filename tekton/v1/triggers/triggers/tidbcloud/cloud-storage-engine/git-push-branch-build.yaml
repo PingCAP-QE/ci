@@ -1,0 +1,31 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-push-cloud-storage-engine-build
+  labels:
+    type: github-branch-push
+    github-owner: tidbcloud
+    profile: next-gen
+spec:
+  interceptors:
+    - name: filter on repo
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name == 'tidbcloud/cloud-storage-engine'
+            &&
+            body.ref.matches('^refs/heads/(dedicated|release-nextgen-[0-9]+)$')
+
+  bindings:
+    - ref: github-branch-push
+    - { name: component, value: tikv }
+    - { name: profile, value: next-gen }
+    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/hub }
+    - { name: timeout, value: 2h }
+    - { name: source-ws-size, value: 100Gi }
+    - { name: builder-resources-cpu, value: "12" }
+    - { name: builder-resources-memory, value: "48Gi" }
+
+  template:
+    ref: build-component

@@ -1,0 +1,89 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: branch-create-pingcap-tidb-hotfix-lt-v7.0
+  labels:
+    type: github-branch-create
+spec:
+  interceptors:
+    - name: filter on repo owner and name
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflow']
+    # filter git refs that match regexp: ^release-\d+\.\d+-\d+-v\d+\.\d+\.\d+$
+    # example values of `body.ref`:
+    #   release-6.5-20231020-v6.5.5
+    #   release-6.5-20231020-v6.5.5-1
+    # regular use re2: https://github.com/google/re2/wiki/Syntax
+    - name: filter on branch names
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.ref.matches('^release-[0-9]+[.][0-9]+-[0-9]+-v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$') &&
+            body.ref < 'release-7.0'
+
+  bindings:
+    - ref: github-branch-create
+    - {
+        name: golang-image,
+        value: "ghcr.io/pingcap-qe/ci/base:v20231216-50-gc125b52-go1.19",
+      }
+  template:
+    ref: update-pingcap-tidb-gomod-fix-ladp-for-hotfix-branch
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: branch-create-pingcap-tidb-hotfix-be-v7.0-v7.3
+  labels:
+    type: github-branch-create
+spec:
+  interceptors:
+    - name: combined filter on repo owner, name, and branch
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflow'] &&
+            body.ref.matches('^release-7[.][0-3]-[0-9]+-v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$')
+  bindings:
+    - ref: github-branch-create
+    - {
+        name: golang-image,
+        value: "ghcr.io/pingcap-qe/ci/base:v20231216-50-gc125b52-go1.20",
+      }
+  template:
+    ref: update-pingcap-tidb-gomod-fix-ladp-for-hotfix-branch
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: branch-create-pingcap-tidb-hotfix-ge-v7.4
+  labels:
+    type: github-branch-create
+spec:
+  interceptors:
+    - name: combined filter on repo owner, name, and branch
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflow'] &&
+            body.ref.matches('^release-[0-9]+[.][0-9]+-[0-9]+-v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$') &&
+            body.ref >= 'release-7.4'
+
+  bindings:
+    - ref: github-branch-create
+    - {
+        name: golang-image,
+        value: "ghcr.io/pingcap-qe/ci/base:v20231216-50-gc125b52-go1.21",
+      }
+  template:
+    ref: update-pingcap-tidb-gomod-fix-ladp-for-hotfix-branch
