@@ -1,0 +1,203 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pingcap-build-package-linux
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: git-ref
+      type: string
+      default: master
+    - name: git-refspec
+      default: +refs/heads/*:refs/heads/*
+      type: string
+    - name: git-revision
+      default: master
+      type: string
+    - name: component
+      type: string
+      description: |
+        compoent name, supports:
+        - tidb
+        - tikv
+        - pd
+        - tiflash
+        - tiflow
+        - advanced-statefulset
+
+        May be it is an idea to judge it by git-url, but it maybe
+        not a generic way for forked repositories with custom names.
+    - name: os
+      default: linux
+    - name: arch
+      default: amd64
+    - name: profile
+      default: release
+    - name: push
+      default: "true"
+    - name: registry
+      description: the base OCI registry server for store artifacts, it can be set with prefix repo path.
+      default: "hub.pingcap.net"
+    - name: force-builder-image
+      description: >
+        The builder image to use for building binaries by force, if empty.
+        Default the task will complete one from config in artifacts.git repo.
+      type: string
+      default: ""
+  results:
+    - name: pushed-binaries
+      description: pushed binaries.
+      value: "$(tasks.build-binaries.results.pushed)"
+    - name: pushed-images
+      description: pushed single images.
+      value: "$(tasks.build-images.results.pushed)"
+    # - name: pushed-multi-arch-images
+    #   description: pushed multi-arch images.
+    #   value: "$(tasks.build-images.results.pushed-multi-arch)"
+  workspaces:
+    - name: source
+      description: The workspace where the git repo will be cloned.
+    - name: cargo-home
+      description: cache for cargo packages when build binaries
+      optional: true
+    - name: cypress-cache
+      description: cache for cypress installation files when building frontend projects.
+      optional: true
+  tasks:
+    - name: checkout
+      retries: 2
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: depth
+          value: "0"
+        - name: refspec
+          value: $(params.git-refspec)
+        - name: subdirectory
+          value: $(params.component)
+      workspaces:
+        - name: output
+          workspace: source
+    - name: checkout-ext
+      runAfter:
+        - checkout
+      taskRef:
+        name: pingcap-git-clone-ext
+      params:
+        - name: master-git-url
+          value: $(params.git-url)
+        - name: master-git-ref
+          value: $(params.git-ref)
+        - name: depth
+          value: "0"
+        - name: refspec
+          value: +refs/heads/*:refs/heads/*
+        - name: master-directory
+          value: $(params.component)
+      workspaces:
+        - name: output
+          workspace: source
+    - name: get-release-ver
+      runAfter:
+        - checkout
+      taskRef:
+        name: pingcap-get-set-release-version-v2
+      params:
+        - name: git-ref
+          value: $(params.git-ref)
+        - name: git-refspec
+          value: $(params.git-refspec)
+      workspaces:
+        - name: source
+          workspace: source
+          subPath: $(params.component)
+    - name: get-binaries-builder
+      taskRef:
+        name: pingcap-get-builder-image
+      params:
+        - name: component
+          value: "$(params.component)"
+        - name: os
+          value: "$(params.os)"
+        - name: arch
+          value: "$(params.arch)"
+        - name: profile
+          value: "$(params.profile)"
+        - name: version
+          value: "$(tasks.get-release-ver.results.version)"
+        - name: force-builder-image
+          value: "$(params.force-builder-image)"
+    - name: build-binaries
+      runAfter:
+        - checkout-ext
+      taskRef:
+        name: pingcap-build-binaries-linux
+      params:
+        - name: os
+          value: "$(params.os)"
+        - name: arch
+          value: "$(params.arch)"
+        - name: profile
+          value: "$(params.profile)"
+        - name: component
+          value: "$(params.component)"
+        - name: version
+          value: "$(tasks.get-release-ver.results.version)"
+        - name: git-ref
+          value: "$(tasks.get-release-ver.results.build-ref)"
+        - name: git-sha
+          value: $(tasks.checkout.results.commit)
+        - name: builder-image
+          value: "$(tasks.get-binaries-builder.results.image-url)"
+        - name: release-dir
+          value: build
+        - name: push
+          value: "$(params.push)"
+        - name: registry
+          value: "$(params.registry)"
+      workspaces:
+        - name: source
+          workspace: source
+        - name: cargo-home
+          workspace: cargo-home
+        - name: cypress-cache
+          workspace: cypress-cache
+    - name: build-images
+      when:
+        - input: "$(params.push)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        name: pingcap-build-images
+      runAfter:
+        - build-binaries
+      # TODO: currently matrix feature is not support in v0.32.x, we need upgrade the K8S cluster and then upgrade Tekton.
+      params:
+        - name: os
+          value: "$(params.os)"
+        - name: arch
+          value: "$(params.arch)"
+        - name: profile
+          value: "$(params.profile)"
+        - name: component
+          value: "$(params.component)"
+        - name: version
+          value: "$(tasks.get-release-ver.results.version)"
+        - name: git-ref
+          value: "$(tasks.get-release-ver.results.build-ref)"
+        - name: git-sha
+          value: $(tasks.checkout.results.commit)
+        - name: release-dir
+          value: build
+        - name: build
+          value: "false"
+        - name: registry
+          value: "$(params.registry)"
+      workspaces:
+        - name: source
+          workspace: source
