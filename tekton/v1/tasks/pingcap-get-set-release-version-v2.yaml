@@ -1,0 +1,95 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-get-set-release-version-v2
+spec:
+  params:
+    - name: git-ref
+      type: string
+      default: ""
+    - name: git-refspec
+      type: string
+      default: ""
+  results:
+    - name: version
+      description: The release version of the git repo
+    - name: build-ref
+      description: The git-ref to use for build-bin, used to set the artifact tags.
+  workspaces:
+    - name: source
+  steps:
+    - name: cleanup-tags
+      image: alpine/git:v2.49.1
+      workingDir: $(workspaces.source.path)
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: "100m"
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "Delete the none-standard tags"
+        # keep these the tags matched these styles:
+        # - v1.2.3-alpha
+        # - v1.2.3-beta
+        # - v1.2.3-beta.4
+        # - v1.2.3-rc
+        # - v1.2.3-rc.4
+        # - v1.2.3
+        # - v1.2.3-(fips|cse|...), but currently we only allow "fips" and "cse" for the range in `()`.
+        if git tag | grep -E "v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|fips|cse)([.][0-9]+)?)?$" > /dev/null; then
+          # Only delete the none-standard tags when the repo has standard semver tags.
+          git tag | grep -vE "^v[0-9]+[.][0-9]+[.][0-9]+(-(((alpha|beta|rc)([.].+)?)|fips|cse|202[1-9][0-1][0-9][0-3][0-9]-[0-9a-f]{7,10}))?$" | xargs git tag -d || true
+        fi
+
+        # delete the date tags
+        echo "Deleting date style tags ..."
+        git tag | grep -E "^v20[0-9][0-9].[0-1]{1,2}.[0-3][0-9]" | xargs git tag -d || true
+
+        # Get raw version and save to file for next step
+        git describe --tags --always --dirty > /workspace/raw-version.txt
+
+        # Get the branches which contained the commits
+        git branch --contains > /workspace/branches.txt
+    - name: compute-version
+      image: denoland/deno:2.4.5
+      command:
+        - deno
+        - run
+        - --allow-read
+        - --allow-write
+        - https://github.com/PingCAP-QE/ci/raw/refs/heads/main/scripts/flow/build/versioning-strategy.ts
+      args:
+        - --git_version_file=/workspace/raw-version.txt
+        - --contain_branches_file=/workspace/branches.txt
+        - --save_build_git_tag_file=/workspace/new-tag
+        - --save_release_version_file=$(results.version.path)
+    - name: apply-tags
+      image: alpine/git:v2.49.1
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -e
+
+        if [ -f "/workspace/new-tag" ]; then
+          NEW_TAG=$(cat /workspace/new-tag)
+          echo "Applying new tag: ${NEW_TAG}"
+          git tag --contains | xargs git tag -d
+          git tag -f "${NEW_TAG}"
+        else
+          echo "No new tag needs to be applied."
+        fi
+    - name: set-ref
+      image: alpine/git:v2.49.1
+      script: |
+        #!/bin/sh
+        set -e
+
+        if echo "$(params.git-refspec)" | grep -E '^refs/pull/[0-9]+:pull/[0-9]+$'; then
+          # Extract the part after the colon
+          ref=$(echo "$(params.git-refspec)" | awk -F: '{print $2}')
+          echo -n "$ref" > $(results.build-ref.path)
+        else
+          echo -n "$(params.git-ref)" > $(results.build-ref.path)
+        fi

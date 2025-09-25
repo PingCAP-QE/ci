@@ -1,0 +1,94 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: kaniko-build
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: git-revision
+      default: main
+    - name: IMAGE
+      description: Name (reference) of the image to build.
+    - name: TAGS
+      description: image tags to push additionally.
+      default: "debug"
+    - name: DOCKERFILE
+      description: Path to the Dockerfile to build.
+      default: ./Dockerfile
+    - name: CONTEXT
+      description: The build context used by Kaniko.
+      default: ./
+    - name: BUILDER_IMAGE
+      description: The image on which builds will run.
+      default: gcr.io/kaniko-project/executor:v1.24.0
+    - name: EXTRA_ARGS
+      type: array
+      default: []
+  tasks:
+    - name: fetch-from-git
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+      workspaces:
+        - name: output
+          workspace: git-source
+    - name: build-amd64
+      runAfter:
+        - fetch-from-git
+      taskRef:
+        name: kaniko
+      params:
+        - name: IMAGE
+          value: "$(params.IMAGE)"
+        - name: DOCKERFILE
+          value: "$(params.DOCKERFILE)"
+        - name: CONTEXT
+          value: "$(params.CONTEXT)"
+        - name: BUILDER_IMAGE
+          value: "$(params.BUILDER_IMAGE)"
+        - name: EXTRA_ARGS
+          value: ["$(params.EXTRA_ARGS[*])", --build-arg, ARCH=amd64]
+      workspaces:
+        - name: source
+          workspace: git-source
+    - name: build-arm64
+      runAfter:
+        - fetch-from-git
+      taskRef:
+        name: kaniko
+      params:
+        - name: IMAGE
+          value: "$(params.IMAGE)"
+        - name: DOCKERFILE
+          value: "$(params.DOCKERFILE)"
+        - name: CONTEXT
+          value: "$(params.CONTEXT)"
+        - name: BUILDER_IMAGE
+          value: "$(params.BUILDER_IMAGE)"
+        - name: EXTRA_ARGS
+          value: ["$(params.EXTRA_ARGS[*])", --build-arg, ARCH=arm64]
+      workspaces:
+        - name: source
+          workspace: git-source
+    - name: mult-arch-push
+      runAfter:
+        - "build-amd64"
+        - "build-arm64"
+      taskRef:
+        name: multi-arch-image-push
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+        - name: tags
+          value: "$(params.TAGS)"
+        - name: platform-and-digest-list
+          value:
+            - linux/amd64 => $(tasks.build-amd64.results.IMAGE_DIGEST)
+            - linux/arm64 => $(tasks.build-arm64.results.IMAGE_DIGEST)
+  workspaces:
+    - name: git-source
