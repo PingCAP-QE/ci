@@ -25,6 +25,70 @@ periodics:
             requests:
               memory: 1Gi
               cpu: 200m
+  - name: periodic-reporter-flaky-tests-tidb
+    decorate: true # need add this.
+    cron: "0 1 * * 1" # Run weekly at 9:00 UTC+8 (which is 1:00 UTC) every Monday
+    hidden: true
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - name: main
+          image: denoland/deno:2.5.2
+          command: [base, -c]
+          args:
+            - |
+              #!/usr/bin/env bash
+              set -euxo pipefail
+
+              script_url="https://github.com/PingCAP-QE/ci/raw/main/tools/reporters/ci/flaky-tests/main.ts"
+
+              start_date=$(date -v-7d +%Y-%m-%d)
+              end_date=$(date +%Y-%m-%d)
+              email_subject="Flaky Tests Report of pingcap/tidb repository between ${start_date} and ${end_date}"
+
+              deno run --allow-env --allow-net --allow-write ${script_url} \
+                --repo pingcap/tidb \
+                --branch master \
+                --from ${start_date} \
+                --to ${end_date} \
+                --threshold-ms 100000 \
+                --db-url ${DSN} \
+                --email-to $EMAIL_TO \
+                --email-cc $EMAIL_CC \
+                --email-from $SMTP_USER \
+                --email-subject "${email_subject}"
+          env:
+            - name: SMTP_SECURE
+              value: "true"
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-host
+                  name: CI_MAIL
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-port
+                  name: CI_MAIL
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-user
+                  name: CI_MAIL
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-pass
+                  name: CI_MAIL
+            - name: DSN
+              valueFrom:
+                secretKeyRef:
+                  key: DSN
+                  name: insight-db-readonly
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 200m
 
 prow_ignored: # currently we setup self-hosted github action runners to run for the jobs.
   periodics:
