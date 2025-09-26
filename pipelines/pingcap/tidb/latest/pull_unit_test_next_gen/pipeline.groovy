@@ -48,13 +48,6 @@ pipeline {
                         git diff .
                         git status
                     """
-
-                    // temporary hacking:
-                    sh label: 'modify to disable fail fast for UT cases', script: '''
-                        # modify Makefile: `--test_keep_going=false` => `-k`
-                        sed -i 's/ --test_keep_going=false / -k /g' Makefile
-                        git diff Makefile
-                    '''
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
