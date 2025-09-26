@@ -5,81 +5,67 @@ global_definitions:
       - ^release-nextgen-\d+$
       - ^feature/next[-]gen.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false # need add this.
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tidb:
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/pull_build_next_gen
-      agent: jenkins
-      decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-build-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-build-next-gen(?: .*?)?$"
       rerun_command: "/test pull-build-next-gen"
 
-    - <<: *brancher
+    - <<: [*brancher, *jenkins_job]
+      name: pingcap/tidb/pull_unit_test_next_gen
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-unit-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-unit-test-next-gen(?: .*?)?$"
+      rerun_command: "/test pull-unit-test-next-gen"
+
+    - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_realcluster_test_next_gen
-      agent: jenkins
-      decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-realcluster-test-next-gen"
 
-    - <<: *brancher
+    - <<: [*brancher, *jenkins_job]
+      name: pingcap/tidb/pull_mysql_client_test_next_gen
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-mysql-client-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
+      rerun_command: "/test pull-mysql-client-test-next-gen"
+
+    - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_mysql_test_next_gen
-      agent: jenkins
-      decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-mysql-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-mysql-test-next-gen"
 
-    - <<: *brancher
-      name: pingcap/tidb/pull_unit_test_next_gen
-      agent: jenkins
-      decorate: false # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
-      optional: true
-      context: non-block/pull-unit-test-next-gen
-      trigger: "(?m)^/test (?:.*? )?pull-unit-test-next-gen(?: .*?)?$"
-      rerun_command: "/test pull-unit-test-next-gen"
-
-    - <<: *brancher
+    - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_e2e_test_next_gen
-      agent: jenkins
-      decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-integration-e2e-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-e2e-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-e2e-test-next-gen"
 
-    - <<: *brancher
-      name: pingcap/tidb/pull_mysql_client_test_next_gen
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: pull-mysql-client-test-next-gen
-      trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
-      rerun_command: "/test pull-mysql-client-test-next-gen"
-
-    - <<: *brancher
+    - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_br_integration_test_next_gen
-      agent: jenkins
-      decorate: false # need add this.
       # run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       optional: true
       context: non-block/pull-br-integration-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test-next-gen"
 
-    - <<: *brancher
+    - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_ddl_test_next_gen
-      agent: jenkins
-      decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-integration-ddl-test-next-gen
