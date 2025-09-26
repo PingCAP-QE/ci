@@ -33,7 +33,9 @@ spec:
       default: "4"
     - name: ce-context
       description: cloud event context.
-      default: '{}'
+      default: "{}"
+    - name: force-builder-image
+      default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
@@ -69,6 +71,8 @@ spec:
             value: amd64
           - name: registry
             value: $(tt.params.registry)
+          - name: force-builder-image
+            value: $(tt.params.force-builder-image)
         taskRunSpecs:
           - pipelineTaskName: build-binaries
             taskPodTemplate:
@@ -142,6 +146,8 @@ spec:
             value: arm64
           - name: registry
             value: $(tt.params.registry)
+          - name: force-builder-image
+            value: $(tt.params.force-builder-image)
         taskRunSpecs:
           - pipelineTaskName: build-binaries
             taskPodTemplate:
