@@ -19,7 +19,7 @@ spec:
       emptyDir: {}
   steps:
     - name: prepare-manifest
-      image: mikefarah/yq:4.47.1
+      image: mikefarah/yq:4.47.2
       args: ["$(params.platform-and-digest-list[*])"]
       script: |
         #! /usr/bin/env sh
