@@ -60,7 +60,7 @@ spec:
                     gh auth login --with-token < $(workspaces.github.path)/token
                     pr_url="https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
                     # TODO: Judge if we can add approved label by the comments from prow approve plugin
-                    # Add label only if there are sufficient approvals from trusted users```
+                    # Add label only if there are sufficient approvals from trusted users
                     gh pr edit --add-label approved "$pr_url"
               workspaces:
                 - name: github
