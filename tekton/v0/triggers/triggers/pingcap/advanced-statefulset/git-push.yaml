@@ -1,0 +1,30 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-push-pingcap-advanced-statefulset
+  labels:
+    type: github-branch-push
+    github-owner: pingcap
+    github-repo: advanced-statefulset
+spec:
+  interceptors:
+    - name: filter on repo owner and name
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name == 'pingcap/advanced-statefulset'
+            &&
+            body.ref.matches('^refs/heads/(master)$')
+  bindings:
+    - ref: github-branch-push
+    - { name: component, value: $(body.repository.name) }
+    - { name: os, value: linux }
+    - { name: profile, value: release }
+    - { name: timeout, value: 15m }
+    - { name: source-ws-size, value: 10Gi }
+    - { name: builder-resources-memory, value: 8Gi }
+    - { name: builder-resources-cpu, value: "2" }
+  template:
+    ref: build-component

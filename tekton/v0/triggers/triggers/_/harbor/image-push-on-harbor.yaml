@@ -1,0 +1,72 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: single-arch-image-push-on-harbor
+  labels:
+    type: image-push
+spec:
+  interceptors:
+    - name: filter on image repo names
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            (
+            body.event_data.repository.repo_full_name.matches('^(pingcap_enterprise)/')
+            && !
+            body.event_data.repository.repo_full_name.matches('/(package|offline-package)(s)?')
+            )
+            &&
+            body.event_data.resources[0].tag.matches('[-_](amd64|arm64)$')
+            &&
+            body.event_data.resources[0].resource_url.startsWith('hub.pingcap.net/')
+  bindings:
+    - ref: harbor-image-push
+  template:
+    ref: collect-multi-arch-image
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: multi-arch-image-push-on-harbor
+  labels:
+    type: image-push
+spec:
+  interceptors:
+    - name: filter on image repo names and tags
+      ref:
+        name: cel
+      params:
+        - name: filter
+          # tag matches:
+          # - master, main, release-X.Y, vX.Y.Z-pre, vX.Y.Z. with or not with suffix: "-enterprise", "-failpoint"
+          value: >-
+            (
+            body.event_data.repository.repo_full_name.matches('^(pingcap|tikv)/')
+            && !
+            body.event_data.repository.repo_full_name.matches('/package(s)?')
+            ) && (
+            body.event_data.resources[0].tag.matches('^(master|main|release-[0-9]+[.][0-9]+(-beta[.][0-9]+)?|v[0-9]+[.][0-9]+[.][0-9]+(-(beta|rc)[.][0-9]+)?([-.]pre)?)(-[0-9]+-g[0-9a-f]+)?(-(enterprise|failpoint))?$')
+            ||
+            body.event_data.resources[0].tag.matches('^(master|release-nextgen-[0-9]+|dedicated|feature-next-gen.*|v[0-9]+[.][0-9]+[.][0-9]+)(-.*)?-next-gen$')
+            ||
+            (
+            body.event_data.repository.repo_full_name.matches('^pingcap/tidb-operator/')
+            &&
+            body.event_data.resources[0].tag.matches('^v2[.][0-9]+[.][0-9]+(-(alpha|beta)[.][0-9]+)?$')
+            )
+            ||
+            (
+            body.event_data.repository.repo_full_name.matches('^pingcap/tiproxy/')
+            &&
+            body.event_data.resources[0].tag.matches('^v[0-9]+[.][0-9]+[.][0-9]+')
+            )
+            )
+            &&
+            body.event_data.resources[0].resource_url.startsWith('hub.pingcap.net/')
+
+  bindings:
+    - ref: harbor-image-push
+  template:
+    ref: image-deliver-to-external-registries

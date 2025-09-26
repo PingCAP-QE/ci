@@ -1,0 +1,27 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-push-pingcap-tidb-ctl
+  labels:
+    type: github-branch-push
+    github-owner: pingcap
+    github-repo: tidb-ctl
+spec:
+  interceptors:
+    - name: filter on repo owner and name
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name == 'pingcap/tidb-ctl' && body.ref.matches('^refs/heads/(master)$')
+  bindings:
+    - ref: github-branch-push
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: release }
+    - { name: timeout, value: 1h }
+    - { name: source-ws-size, value: 10Gi }
+    - { name: builder-resources-memory, value: 4Gi }
+    - { name: builder-resources-cpu, value: "2" }
+  template:
+    ref: build-component-all-platforms
