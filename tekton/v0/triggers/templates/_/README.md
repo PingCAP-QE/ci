@@ -1,1 +1,2 @@
-It's a public folder not special for any single git repo or artifact sources.
+This is a public folder containing trigger templates that are not specific to any single Git repository or artifact source.
+
