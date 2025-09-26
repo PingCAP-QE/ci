@@ -1,13 +1,13 @@
 module github.com/PingCAP-QE/ci/tools/list-go-dependencies
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.25.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/rs/zerolog v1.34.0
-	golang.org/x/mod v0.24.0
+	golang.org/x/mod v0.28.0
 )
 
 require (
