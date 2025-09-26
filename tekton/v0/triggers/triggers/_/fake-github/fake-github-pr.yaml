@@ -49,7 +49,6 @@ spec:
                 'pingcap/tidb-dashboard': '40m',
                 'pingcap/tidb-operator': '30m',
                 'pingcap/tidb-tools': '1h',
-                'pingcap/ticdc': '20m',
                 'pingcap/tiflash': '2h',
                 'pingcap/tiflow': '40m',
                 'pingcap/tiproxy': '30m',
