@@ -44,7 +44,6 @@ spec:
                 'pingcap/tiflash': '2h',
                 'pingcap/tiflow': '40m',
                 'pingcap/ng-monitoring': '30m',
-                'pingcap/tidb': '40m',
                 'pingcap/tidb-binlog': '2h',
                 'pingcap/tidb-dashboard': '40m',
                 'pingcap/tidb-operator': '30m',

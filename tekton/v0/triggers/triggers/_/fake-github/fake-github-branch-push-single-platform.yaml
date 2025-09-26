@@ -40,12 +40,12 @@ spec:
               expression: >-
                 {
                 'pingcap/ng-monitoring': '30m',
+                'pingcap/ticdc': '20m',
                 'pingcap/tidb': '40m',
                 'pingcap/tidb-binlog': '2h',
                 'pingcap/tidb-dashboard': '40m',
                 'pingcap/tidb-operator': '30m',
                 'pingcap/tidb-tools': '1h',
-                'pingcap/ticdc': '20m',
                 'pingcap/tiflash': '2h',
                 'pingcap/tiflow': '40m',
                 'pingcap/tiproxy': '30m',
@@ -58,12 +58,12 @@ spec:
               expression: >-
                 {
                 'pingcap/ng-monitoring': '8Gi',
+                'pingcap/ticdc': '50Gi',
                 'pingcap/tidb': '50Gi',
                 'pingcap/tidb-binlog': '100Gi',
                 'pingcap/tidb-dashboard': '8Gi',
                 'pingcap/tidb-operator': '10Gi',
                 'pingcap/tidb-tools': '10Gi',
-                'pingcap/ticdc': '50Gi',
                 'pingcap/tiflash': '100Gi',
                 'pingcap/tiflow': '50Gi',
                 'pingcap/tiproxy': '10Gi',
@@ -76,12 +76,12 @@ spec:
               expression: >-
                 {
                 'pingcap/ng-monitoring': '2',
+                'pingcap/ticdc': '4',
                 'pingcap/tidb': '8',
                 'pingcap/tidb-binlog': '8',
                 'pingcap/tidb-dashboard': '2',
                 'pingcap/tidb-operator': '2',
                 'pingcap/tidb-tools': '4',
-                'pingcap/ticdc': '4',
                 'pingcap/tiflash': '16',
                 'pingcap/tiflow': '8',
                 'pingcap/tiproxy': '4',
@@ -94,12 +94,12 @@ spec:
               expression: >-
                 {
                 'pingcap/ng-monitoring': '4Gi',
+                'pingcap/ticdc': '16Gi',
                 'pingcap/tidb': '32Gi',
                 'pingcap/tidb-binlog': '32Gi',
                 'pingcap/tidb-dashboard': '4Gi',
                 'pingcap/tidb-operator': '8Gi',
                 'pingcap/tidb-tools': '16Gi',
-                'pingcap/ticdc': '16Gi',
                 'pingcap/tiflash': '64Gi',
                 'pingcap/tiflow': '32Gi',
                 'pingcap/tiproxy': '16Gi',
