@@ -1,0 +1,26 @@
+## You should run it firstly:
+## kubectl port-forward -n ee-cd svc/el-internal 8080
+
+########################
+### push tidb oci artifacts
+POST http://127.0.0.1:8080 HTTP/1.1
+Content-Type: application/json
+
+{
+    "type": "PUSH_ARTIFACT",
+    "event_data": {
+        "resources": [
+            {
+                "digest": "sha256:135e16fc9db29cba5c6bb59a837af7da53c25332d3213d534cab4afa9122a9d7",
+                "tag": "master-38abd86_linux_amd64",
+                "resource_url": "hub.pingcap.net/pingcap/tidb/package:master-38abd86_linux_amd64"
+            }
+        ],
+        "repository": {
+            "name": "tidb/package",
+            "namespace": "pingcap",
+            "repo_full_name": "pingcap/tidb/package",
+            "repo_type": "public"
+        }
+    }
+}

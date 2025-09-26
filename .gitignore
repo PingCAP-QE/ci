@@ -24,5 +24,9 @@ lib/
 .cursor
 .cursorrules
 
+# Outputs from tool runs.
 tools/reporters/**/*.html
 tools/reporters/**/*.pdf
+
+# Secret local files
+.env

@@ -1,0 +1,22 @@
+## You should run it firstly:
+## kubectl port-forward -n ee-cd svc/el-public 8080
+
+### pingcap/tiflow-operator: push on master branch
+POST http://127.0.0.1:8080 HTTP/1.1
+Accept: */*
+content-type: application/json
+X-GitHub-Event: push
+
+{
+    "ref": "refs/heads/master",
+    "before": "00000000000000000000000000000000000000000",
+    "after": "815345d55ba8a68dc74d14bd5127db5c1a727a5e",
+    "ref_type": "branch",
+    "repository": {
+        "name": "tiflow-operator",
+        "clone_url": "https://github.com/pingcap/tiflow-operator.git",
+        "owner": {
+            "login": "pingcap"
+        }
+    }
+}

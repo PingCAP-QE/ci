@@ -1,0 +1,71 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: pr-to-feature-branches-labeled-with-lgtm
+  labels:
+    type: github-pr
+spec:
+  interceptors:
+    - name: filter on repo owner and name and tags
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.action == 'labeled'
+            &&
+            body.label.name in ['lgtm']
+            &&
+            body.repository.full_name in [ 'pingcap/tidb', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/ticdc', 'tikv/tikv', 'tikv/pd' ]
+            &&
+            body.pull_request.base.ref.startsWith('feature/')
+  bindings:
+    - ref: github-pr
+  template:
+    spec:
+      params:
+        - name: pr-owner
+        - name: pr-repo
+        - name: pr-number
+      resourcetemplates:
+        - apiVersion: tekton.dev/v1beta1
+          kind: TaskRun
+          metadata:
+            generateName: auto-add-approved-label-to-pr-on-special-branch-
+          spec:
+            params:
+              - name: owner
+                value: $(tt.params.pr-owner)
+              - name: repo
+                value: $(tt.params.pr-repo)
+              - name: number
+                value: $(tt.params.pr-number)
+            taskSpec:
+              description: CI helper for contribution pull requests
+              params:
+                - name: owner
+                  description: repo owner
+                - name: repo
+                  description: repo short name
+                - name: number
+                  description: pull request number
+              steps:
+                - name: edit-pull-request
+                  image: alpine:3.21.3
+                  script: |
+                    #!/usr/bin/env sh
+
+                    # install `gh` tool
+                    apk add github-cli
+
+                    gh auth login --with-token < $(workspaces.github.path)/token
+                    pr_url="https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
+                    # TODO: Judge if we can add approved label by the comments from prow approve plugin
+                    # Add label only if there are sufficient approvals from trusted users```
+                    gh pr edit --add-label approved "$pr_url"
+              workspaces:
+                - name: github
+                  description: Must includes a key `token`
+            workspaces:
+              - name: github
+                secret:
+                  secretName: github
