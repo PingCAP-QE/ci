@@ -46,7 +46,6 @@ presubmits:
                     git checkout "$tidb_commit"
                   popd
                 else
-                  tidb_branch="$"
                   git clone --no-recurse-submodules --branch "$PULL_BASE_REF" $tidb_repo_url ../tidb
                 fi
 
