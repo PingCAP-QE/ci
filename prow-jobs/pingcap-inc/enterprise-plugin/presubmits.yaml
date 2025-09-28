@@ -1,0 +1,77 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^release-[0-9]+[.][0-9]+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  decoration: &decoration
+    decorate: true
+    decoration_config:
+      timeout: 80m
+      oauth_token_secret:
+        name: github-token
+        key: token
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap-inc/enterprise-plugin:
+    - <<: [*decoration, *brancher]
+      name: pull-build
+      # * uncomment it when the job is stable:
+      # skip_if_only_changed: *skip_if_only_changed
+      # * remove it when the job is stable
+      optional: true
+      always_run: false
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/cd/builders/tidb:v2025.8.10-8-g63921ca-centos7-go1.23
+            command: [/bin/bash, -c]
+            args:
+              - |
+                set -euo pipefail
+
+                # Clone tidb repo: determine tidb branch or PR merge commit to checkout
+                tidb_repo_url="https://github.com/pingcap/tidb.git"
+                if [[ "$PULL_TITLE" =~ \|[[:space:]]tidb=pr/([0-9]+)$ ]]; then
+                  pr_num="${BASH_REMATCH[1]}"
+                  # Fetch the PR and checkout its merge commit
+                  git ls-remote $tidb_repo_url "refs/pull/${pr_num}/merge" | awk '{print $1}' > /tmp/tidb_pr_merge_commit
+                  tidb_commit=$(cat /tmp/tidb_pr_merge_commit)
+
+                  git clone --no-recurse-submodules $tidb_repo_url ../tidb
+
+                  pushd ../tidb
+                    git fetch origin "pull/${pr_num}/merge"
+                    git checkout "$tidb_commit"
+                  popd
+                else
+                  git clone --no-recurse-submodules --branch "$PULL_BASE_REF" $tidb_repo_url ../tidb
+                fi
+
+                mkdir -p ../plugin-so
+                cur_dir="$(pwd)"
+
+                # compile go plugin: audit
+                pushd audit && go mod tidy && popd
+                pushd ../tidb && go run ./cmd/pluginpkg -pkg-dir "$cur_dir/audit" -out-dir ../plugin-so && popd
+
+                # compile go plugin: whitelist
+                pushd whitelist && go mod tidy && popd
+                pushd ../tidb && go run ./cmd/pluginpkg -pkg-dir "$cur_dir/whitelist" -out-dir ../plugin-so && popd
+
+                # test them.
+                make server -C ../tidb
+                ../tidb/bin/tidb-server -plugin-dir=../plugin-so -plugin-load=audit-1,whitelist-1 | tee "$ARTIFACTS/loading-test.log" &
+
+                sleep 30
+                echo "💡 Please check the artifact `loading-test.log` if the job failed!"
+                ps aux | grep tidb-server
+                pkill -9 -f tidb-server
+            resources:
+              requests:
+                cpu: "3"
+                memory: 6Gi
+              limits:
+                cpu: "3"
+                memory: 6Gi
