@@ -17,8 +17,11 @@ presubmits:
   pingcap-inc/enterprise-plugin:
     - <<: [*decoration, *brancher]
       name: pull-build
-      skip_if_only_changed: *skip_if_only_changed
-      optional: true # remove it when the job is stable
+      # * uncomment it when the job is stable:
+      # skip_if_only_changed: *skip_if_only_changed
+      # * remove it when the job is stable
+      optional: true
+      always_run: false
       spec:
         containers:
           - name: build
@@ -28,8 +31,24 @@ presubmits:
               - |
                 set -euo pipefail
 
-                # clone tidb repo
-                git clone --no-recurse-submodules --branch "$PULL_BASE_REF" https://github.com/pingcap/tidb.git ../tidb
+                # Clone tidb repo: determine tidb branch or PR merge commit to checkout
+                tidb_repo_url="https://github.com/pingcap/tidb.git"
+                if [[ "$PULL_TITLE" =~ \|[[:space:]]tidb=pr/([0-9]+)$ ]]; then
+                  pr_num="${BASH_REMATCH[1]}"
+                  # Fetch the PR and checkout its merge commit
+                  git ls-remote $tidb_repo_url "refs/pull/${pr_num}/merge" | awk '{print $1}' > /tmp/tidb_pr_merge_commit
+                  tidb_commit=$(cat /tmp/tidb_pr_merge_commit)
+
+                  git clone --no-recurse-submodules $tidb_repo_url ../tidb
+
+                  pushd ../tidb
+                    git fetch origin "pull/${pr_num}/merge"
+                    git checkout "$tidb_commit"
+                  popd
+                else
+                  tidb_branch="$"
+                  git clone --no-recurse-submodules --branch "$PULL_BASE_REF" $tidb_repo_url ../tidb
+                fi
 
                 mkdir -p ../plugin-so
                 cur_dir="$(pwd)"
