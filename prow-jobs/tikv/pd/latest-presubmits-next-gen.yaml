@@ -12,14 +12,18 @@ global_definitions:
                 operator: In
                 values:
                   - amd64
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false
+  kubernetes_job: &kubernetes_job
+    agent: kubernetes
+    decorate: true
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
-    - <<: *brancher
+    - <<: [*brancher, *kubernetes_job]
       name: pull-build-next-gen
-      agent: kubernetes
-      decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity: *affinity
@@ -39,10 +43,8 @@ presubmits:
                 cpu: "6"
                 memory: 12Gi
 
-    - <<: *brancher
+    - <<: [*brancher, *kubernetes_job]
       name: pull-unit-test-next-gen
-      agent: kubernetes
-      decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
       optional: true # delete it when the test is stable
       context: non-block/pull-unit-test-next-gen # delete it when the test is stable
@@ -74,17 +76,16 @@ presubmits:
                 memory: 12Gi
         affinity: *affinity
 
-    # WIP
-    # - <<: *brancher
-    #   name: pull-integration-copr-test-next-gen
-    #   agent: kubernetes
-    #   decorate: true # need add this.
-    #   # skip_if_only_changed: *skip_if_only_changed
-    #   optional: true
+    - <<: [*brancher, *jenkins_job]
+      name: tikv/pd/pull_integration_realcluster_test_next_gen
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-integration-realcluster-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
+      rerun_command: "/test pull-integration-realcluster-test-next-gen"
 
     # WIP
     # - <<: *brancher
-    #   name: pull-integration-realcluster-test-next-gen
+    #   name: pull-integration-copr-test-next-gen
     #   agent: kubernetes
     #   decorate: true # need add this.
     #   # skip_if_only_changed: *skip_if_only_changed
