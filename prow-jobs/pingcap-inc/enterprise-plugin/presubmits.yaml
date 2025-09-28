@@ -2,7 +2,7 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
-      - ^release-[0-9]+[0-9]+$
+      - ^release-[0-9]+[.][0-9]+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   decoration: &decoration
     decorate: true
@@ -63,11 +63,11 @@ presubmits:
 
                 # test them.
                 make server -C ../tidb
-                ../tidb/bin/tidb-server -plugin-dir=../plugin-so -plugin-load=audit-1,whitelist-1 | tee ./loading-plugin.log &
+                ../tidb/bin/tidb-server -plugin-dir=../plugin-so -plugin-load=audit-1,whitelist-1 | tee "$ARTIFACTS/loading-test.log" &
 
-                sleep 10
+                sleep 30
+                echo "💡 Please check the artifact `loading-test.log` if the job failed!"
                 ps aux | grep tidb-server
-
                 pkill -9 -f tidb-server
             resources:
               requests:
