@@ -7,7 +7,7 @@ global_definitions:
   decoration: &decoration
     decorate: true
     decoration_config:
-      timeout: 80m
+      timeout: 30m
       oauth_token_secret:
         name: github-token
         key: token
@@ -60,10 +60,12 @@ presubmits:
                   git ls-remote "$tidb_repo_url" "refs/pull/${pr_num}/merge" | awk '{print $1}' > /tmp/tidb_pr_merge_commit
                   tidb_commit="$(cat /tmp/tidb_pr_merge_commit || true)"
                   [[ -n "$tidb_commit" ]] || fail "Cannot resolve merge commit for TiDB PR #$pr_num"
+                  log "ℹ️ TiDB PR ref: pull/${pr_num}/merge"
+                  log "ℹ️ TiDB PR merge commit: $tidb_commit"
 
                   git clone --no-recurse-submodules "$tidb_repo_url" ../tidb
                   pushd ../tidb >/dev/null
-                    git fetch origin "pull/${pr_num}/merge" --depth=1
+                    git fetch origin "pull/${pr_num}/merge"
                     git checkout "$tidb_commit"
                   popd >/dev/null
                 else
