@@ -1,0 +1,4 @@
+labels:
+  - area/tekton
+approvers:
+  - sig-approvers-ee
