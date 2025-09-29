@@ -78,7 +78,7 @@ periodics:
             - name: SMTP_PASS
               valueFrom:
                 secretKeyRef:
-                  key: smtp-pass
+                  key: smtp-password
                   name: CI_MAIL
             - name: DSN
               valueFrom:
