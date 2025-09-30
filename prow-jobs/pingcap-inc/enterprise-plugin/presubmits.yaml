@@ -97,7 +97,7 @@ presubmits:
                 ../tidb/bin/tidb-server -plugin-dir=../plugin-so -plugin-load=audit-1,whitelist-1 > "$ARTIFACTS/loading-test.log" 2>&1 &
                 TIDB_PID=$!
                 log "ℹ️ tidb-server PID: $TIDB_PID (logging to $ARTIFACTS/loading-test.log)"
-                echo "💡 Please check the artifact `loading-test.log` if the job failed!"
+                echo "💡 Please check the artifact loading-test.log if the job failed!"
 
                 # Wait up to 30s; if TiDB exits early, fail and show logs
                 for i in $(seq 1 30); do
