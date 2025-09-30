@@ -92,6 +92,9 @@ presubmits:
                   time go run ./cmd/pluginpkg -pkg-dir "$cur_dir/whitelist" -out-dir ../plugin-so
                 popd >/dev/null
 
+                log "🧱 Build tidb-server"
+                make server -C ../tidb
+
                 # Run TiDB with plugins loaded; fail fast if it crashes early
                 log "🚀 Start TiDB with plugins (audit, whitelist)"
                 ../tidb/bin/tidb-server -plugin-dir=../plugin-so -plugin-load=audit-1,whitelist-1 > "$ARTIFACTS/loading-test.log" 2>&1 &
