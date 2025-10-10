@@ -28,7 +28,7 @@ repositories:
       - "maintainer1"
       - "maintainer2"
       - "security-team-lead"
-    
+
     # Optional: Global excludes for all patterns in this repository
     # These work in addition to pattern-specific excludes
     # excludes:
