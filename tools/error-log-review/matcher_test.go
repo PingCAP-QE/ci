@@ -150,42 +150,42 @@ index 1234567..abcdefg 100644
 }
 
 func TestTiCDCExclusionScenario(t *testing.T) {
-// Create a test configuration similar to pingcap/ticdc
-config := &Config{
-Repositories: []Repository{
-{
-Name: "pingcap/ticdc",
-Patterns: []Pattern{
-{
-Name:        "string_literals",
-Description: "Pattern for string literals",
-Regex:       `log\.Fatalf\(".*"\)`,
-Excludes:    []string{"tests/**"},
-},
-{
-Name:        "variables_and_functions",
-Description: "Pattern for variables and function calls",
-Regex:       `log\.Fatalf\(`,
-Excludes:    []string{"tests/**"},
-},
-},
-},
-},
-}
+	// Create a test configuration similar to pingcap/ticdc
+	config := &Config{
+		Repositories: []Repository{
+			{
+				Name: "pingcap/ticdc",
+				Patterns: []Pattern{
+					{
+						Name:        "string_literals",
+						Description: "Pattern for string literals",
+						Regex:       `log\.Fatalf\(".*"\)`,
+						Excludes:    []string{"tests/**"},
+					},
+					{
+						Name:        "variables_and_functions",
+						Description: "Pattern for variables and function calls",
+						Regex:       `log\.Fatalf\(`,
+						Excludes:    []string{"tests/**"},
+					},
+				},
+			},
+		},
+	}
 
-// Compile the regex patterns
-for i := range config.Repositories {
-for j := range config.Repositories[i].Patterns {
-pattern := &config.Repositories[i].Patterns[j]
-compiled, _ := regexp.Compile(pattern.Regex)
-pattern.compiled = compiled
-}
-}
+	// Compile the regex patterns
+	for i := range config.Repositories {
+		for j := range config.Repositories[i].Patterns {
+			pattern := &config.Repositories[i].Patterns[j]
+			compiled, _ := regexp.Compile(pattern.Regex)
+			pattern.compiled = compiled
+		}
+	}
 
-checker := NewErrorLogChecker(config)
+	checker := NewErrorLogChecker(config)
 
-// Simulate the diff from the issue: tests/integration_tests/ddl_wait/test.go
-diff := `diff --git a/tests/integration_tests/ddl_wait/test.go b/tests/integration_tests/ddl_wait/test.go
+	// Simulate the diff from the issue: tests/integration_tests/ddl_wait/test.go
+	diff := `diff --git a/tests/integration_tests/ddl_wait/test.go b/tests/integration_tests/ddl_wait/test.go
 index 1234567..abcdefg 100644
 --- a/tests/integration_tests/ddl_wait/test.go
 +++ b/tests/integration_tests/ddl_wait/test.go
@@ -199,31 +199,31 @@ index 1234567..abcdefg 100644
 +    log.Fatalf("production error: %v", err)
 `
 
-matches, err := checker.CheckPRDiff("pingcap/ticdc", diff)
-if err != nil {
-t.Fatalf("CheckPRDiff failed: %v", err)
-}
+	matches, err := checker.CheckPRDiff("pingcap/ticdc", diff)
+	if err != nil {
+		t.Fatalf("CheckPRDiff failed: %v", err)
+	}
 
-// Should only match the production file (pkg/main.go)
-// Should NOT match tests/integration_tests/ddl_wait/test.go (excluded by tests/**)
-// The string_literals pattern requires quotes which the production line has
-// The variables_and_functions pattern matches any log.Fatalf( call
-if len(matches) < 1 {
-t.Errorf("Expected at least 1 match in pkg/main.go, got %d", len(matches))
-return
-}
+	// Should only match the production file (pkg/main.go)
+	// Should NOT match tests/integration_tests/ddl_wait/test.go (excluded by tests/**)
+	// The string_literals pattern requires quotes which the production line has
+	// The variables_and_functions pattern matches any log.Fatalf( call
+	if len(matches) < 1 {
+		t.Errorf("Expected at least 1 match in pkg/main.go, got %d", len(matches))
+		return
+	}
 
-// Verify all matches are from pkg/main.go, not from tests directory
-for _, match := range matches {
-if match.File != "pkg/main.go" {
-t.Errorf("Expected match only in pkg/main.go, but got match in %s", match.File)
-}
-}
+	// Verify all matches are from pkg/main.go, not from tests directory
+	for _, match := range matches {
+		if match.File != "pkg/main.go" {
+			t.Errorf("Expected match only in pkg/main.go, but got match in %s", match.File)
+		}
+	}
 
-// Verify no matches from test files
-for _, match := range matches {
-if len(match.File) >= 5 && match.File[:5] == "tests" {
-t.Errorf("Test file should be excluded but got match in %s", match.File)
-}
-}
+	// Verify no matches from test files
+	for _, match := range matches {
+		if len(match.File) >= 5 && match.File[:5] == "tests" {
+			t.Errorf("Test file should be excluded but got match in %s", match.File)
+		}
+	}
 }

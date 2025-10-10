@@ -18,7 +18,7 @@ type Pattern struct {
 }
 
 type Repository struct {
-	Name      string   `yaml:"name"`
+	Name      string    `yaml:"name"`
 	Patterns  []Pattern `yaml:"patterns"`
 	Approvers []string  `yaml:"approvers"`
 	Excludes  []string  `yaml:"excludes,omitempty"`
