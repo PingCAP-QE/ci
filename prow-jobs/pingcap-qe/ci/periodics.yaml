@@ -52,11 +52,11 @@ periodics:
                 --from ${start_date} \
                 --to ${end_date} \
                 --threshold-ms ${PARAM_CASE_THRESHOLD_MS} \
-                --db-url ${PARAM_DSN} \
-                --email-to "${PARAM_EMAIL_TO}" \
-                --email-cc "${PARAM_EMAIL_CC}" \
-                --email-from "${SMTP_USER}" \
-                --email-subject "${email_subject}"
+                --db-url=${PARAM_DSN} \
+                --email-to="${PARAM_EMAIL_TO}" \
+                --email-cc="${PARAM_EMAIL_CC}" \
+                --email-from="${SMTP_USER}" \
+                --email-subject="${email_subject}"
           env:
             - name: PARAM_REPO
               value: pingcap/tidb
