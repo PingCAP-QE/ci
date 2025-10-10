@@ -35,14 +35,13 @@ periodics:
       containers:
         - name: main
           image: denoland/deno:2.5.2
-          command: [base, -c]
+          command: [bash, -c]
           args:
             - |
               #!/usr/bin/env bash
               set -euxo pipefail
 
               script_url="https://github.com/PingCAP-QE/ci/raw/main/tools/reporters/ci/flaky-tests/main.ts"
-
               start_date=$(date -v-7d +%Y-%m-%d)
               end_date=$(date +%Y-%m-%d)
               email_subject="Flaky Tests Report of $PARAM_REPO repository (branch: $PARAM_BRANCH) between ${start_date} and ${end_date}"
@@ -80,7 +79,6 @@ periodics:
                 secretKeyRef:
                   key: ci-job-flay-report-email-cc
                   name: ci-job-params-mono
-
             - name: SMTP_SECURE
               value: "true"
             - name: SMTP_HOST
