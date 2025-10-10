@@ -1,0 +1,170 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-pr-to-bump-tikv-version
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.29.0"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Create pull request to fix `go.mod` file to github repository branch.
+  params:
+    - name: git-url
+      description: repository clone url
+      type: string
+    - name: branch
+      description: branch or tag to checkout. (branch, tag)
+      type: string
+      default: ""
+    - name: rust-image
+      description: the image to run go mod edit and go mod tidy
+      default: ghcr.io/pingcap-qe/cd/builders/tikv:v20231116-e1c4b43
+  steps:
+    - name: analyse
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      script: |
+        #!/bin/bash
+
+        set -euo pipefail
+
+        git_url=$(params.git-url)
+        branch=$(params.branch)
+
+        if [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-alpha$ ]]; then
+            echo -n "master" > /workspace/inner-results-branch
+            echo -n "${branch#v}" > /workspace/inner-results-version
+        elif [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|rc)[.][0-9]+[.]pre$ ]]; then
+            echo -n "master" > /workspace/inner-results-branch
+            # Remove the ".pre" suffix from the version string
+            echo -n "${branch#v}" | sed 's/.pre$//' > /workspace/inner-results-version
+        elif [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          major_minor_version=$(echo "$branch" | cut -d'.' -f1-2)
+          echo -n "release-${major_minor_version#v}" > /workspace/inner-results-branch
+          echo -n "--bump patch" > /workspace/inner-results-version
+        elif [[ "$branch" =~ ^release-[0-9]+\.[0-9]+$ ]]; then
+          echo -n "$branch" > /workspace/inner-results-branch
+          echo -n "--bump patch" > /workspace/inner-results-version
+        else
+          echo "Invalid branch/tag format: $branch"
+          exit 1
+        fi
+
+        cat /workspace/inner-results-branch
+        cat /workspace/inner-results-version
+    - name: clone
+      image: bitnami/git:2.43.0
+      workingDir: /workspace
+      script: |
+        git clone $(params.git-url) --branch $(cat /workspace/inner-results-branch) --depth 1 /workspace/src
+    - name: update-crate-pkg-ver
+      image: "$(params.rust-image)"
+      workingDir: /workspace/src
+      env:
+        - name: CARGO_NET_GIT_FETCH_WITH_CLI
+          value: "true"
+        - name: RUSTUP_DIST_SERVER
+          value: https://rsproxy.cn
+        - name: RUSTUP_UPDATE_ROOT
+          value: https://rsproxy.cn/rustup
+        - name: CARGO_HOME
+          value: /workspace/.cargo
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # Note: rust toolchain was upgraded in v7.6.0
+        case "$(cat /workspace/inner-results-branch)" in
+          "master")
+            cargo_edit_ver="0.12.2"
+            ;;
+          release-[0-6].*|release-7.[0-5])
+            cargo_edit_ver="0.11.11"
+            ;;
+          *)
+            cargo_edit_ver="0.12.2"
+            ;;
+        esac
+        cargo install cargo-edit --version ${cargo_edit_ver} --locked --features vendored-openssl || exit 1
+        cargo set-version --package tikv $(cat /workspace/inner-results-version)
+        if git diff --exit-code --name-status Cargo.toml; then
+          echo "🤷 No need to update the go.mod file, they are updated."
+          exit 1
+        fi
+    - name: create-pr
+      image: bitnami/git:2.43.0
+      workingDir: /workspace/src
+      env:
+        - name: REF_ISSUE_NUMBER
+          value: "15990"
+      script: |
+        git config --global --add safe.directory `pwd`
+        git config --global user.email "ti-community-prow-bot@tidb.io"
+        git config --global user.name  "ti-chi-bot"
+
+        if git diff --exit-code --name-status Cargo.toml; then
+          echo "🤷 No need to update the Cargo.toml file, they are updated."
+          exit 0
+        else
+          echo "🚀 Let's update Cargo.toml and Cargo.lock files..."
+        fi
+
+        # install `gh` tool
+        type -p curl >/dev/null || ( apt update &&  apt install curl -y)
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |  tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && apt update \
+        && apt install gh -y
+
+        # login and setup git
+        gh auth login --with-token < $(workspaces.github.path)/token
+        gh auth setup-git
+
+        # commit and push the changes.
+        head_branch="build/$(cat /workspace/inner-results-branch)/bump-tikv-version"
+        git checkout -b "$head_branch"
+        commit_msg="build: bump tikv pkg version to $(cat /workspace/inner-results-version)"
+        git commit -am "$commit_msg" --signoff
+        git push origin "$head_branch" --force
+
+        # create pull request
+        cat <<EOF > pr_body.txt
+        ### What is changed and how it works?
+
+        Issue Number: ref #${REF_ISSUE_NUMBER}
+
+        What's Changed:
+
+        \`\`\`commit-message
+        build: bump tikv pkg version
+        \`\`\`
+
+        ### Release note
+
+        \`\`\`release-note
+        None
+        \`\`\`
+        EOF
+
+        base_branch="$(cat /workspace/inner-results-branch)"
+        label_options="--label lgtm --label approved"
+        if [ "$base_branch" != "master" ]; then
+          label_options="$label_options --label cherry-pick-approved"
+        fi
+
+        gh pr create -B "$base_branch" -H "$head_branch" -t "$commit_msg" -F pr_body.txt $label_options
+
+        # solve the problem that the prow plugin will remove the approved label.
+        sleep 10
+        pr_url=$(gh pr list --repo $(params.git-url) --base "$base_branch" --head "$head_branch"  --json url --jq .[].url | head -1)
+        gh pr edit --add-label lgtm --add-label approved --add-label cherry-pick-approved ${pr_url}
+
+  workspaces:
+    - name: github
+      description: Must includes a key `token`
+    - name: cargo-home
+      description: Cache for cargo packages.
+      mountPath: /workspace/.cargo
+      optional: true

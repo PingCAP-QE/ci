@@ -1,0 +1,128 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^release-[0-9]+[.][0-9]+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  decoration: &decoration
+    decorate: true
+    decoration_config:
+      timeout: 30m
+      oauth_token_secret:
+        name: github-token
+        key: token
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap-inc/enterprise-plugin:
+    - <<: [*decoration, *brancher]
+      name: pull-build
+      # * uncomment it when the job is stable:
+      # skip_if_only_changed: *skip_if_only_changed
+      # * remove it when the job is stable
+      optional: true
+      always_run: false
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/cd/builders/tidb:v2025.8.10-8-g63921ca-centos7-go1.23
+            command: [/bin/bash, -c]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -euo pipefail
+
+                log() {
+                  printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" | tee -a "$ARTIFACTS/steps.log"
+                }
+                fail() {
+                  log "❌ $*"
+                  exit 1
+                }
+                cleanup() {
+                  set +e
+                  if [[ -n "${TIDB_PID:-}" ]] && kill -0 "$TIDB_PID" 2>/dev/null; then
+                    log "🛑 Stopping tidb-server (pid=$TIDB_PID)"
+                    kill "$TIDB_PID" 2>/dev/null || true
+                    sleep 2
+                    kill -9 "$TIDB_PID" 2>/dev/null || true
+                  fi
+                }
+                trap cleanup EXIT
+
+                # Clone TiDB (from PR merge commit when hinted via PR title)
+                log "📥 Clone TiDB"
+                tidb_repo_url="https://github.com/pingcap/tidb.git"
+                pull_title="${PULL_TITLE:-}"
+                if [[ "$pull_title" =~ \|[[:space:]]tidb=pr/([0-9]+)$ ]]; then
+                  pr_num="${BASH_REMATCH[1]}"
+                  log "ℹ️ Detected TiDB dependency: PR #$pr_num"
+                  git ls-remote "$tidb_repo_url" "refs/pull/${pr_num}/merge" | awk '{print $1}' > /tmp/tidb_pr_merge_commit
+                  tidb_commit="$(cat /tmp/tidb_pr_merge_commit || true)"
+                  [[ -n "$tidb_commit" ]] || fail "Cannot resolve merge commit for TiDB PR #$pr_num"
+                  log "ℹ️ TiDB PR ref: pull/${pr_num}/merge"
+                  log "ℹ️ TiDB PR merge commit: $tidb_commit"
+
+                  git clone --no-recurse-submodules "$tidb_repo_url" ../tidb
+                  pushd ../tidb >/dev/null
+                    git fetch origin "pull/${pr_num}/merge"
+                    git checkout "$tidb_commit"
+                  popd >/dev/null
+                else
+                  base_ref="${PULL_BASE_REF:-master}"
+                  log "ℹ️ Cloning TiDB branch: $base_ref"
+                  git clone --no-recurse-submodules --branch "$base_ref" --depth=1 "$tidb_repo_url" ../tidb
+                fi
+                [[ -d ../tidb ]] || fail "TiDB repository not present at ../tidb"
+
+                mkdir -p ../plugin-so
+                cur_dir="$(pwd)"
+
+
+                # Build plugins
+                log "🧱 Build plugin: audit"
+                pushd audit >/dev/null && go mod tidy && popd >/dev/null
+                pushd ../tidb >/dev/null
+                  time go run ./cmd/pluginpkg -pkg-dir "$cur_dir/audit" -out-dir ../plugin-so
+                popd >/dev/null
+
+                log "🧱 Build plugin: whitelist"
+                pushd whitelist >/dev/null && go mod tidy && popd >/dev/null
+                pushd ../tidb >/dev/null
+                  time go run ./cmd/pluginpkg -pkg-dir "$cur_dir/whitelist" -out-dir ../plugin-so
+                popd >/dev/null
+
+                log "🧱 Build tidb-server"
+                make server -C ../tidb
+
+                # Run TiDB with plugins loaded; fail fast if it crashes early
+                log "🚀 Start TiDB with plugins (audit, whitelist)"
+                ../tidb/bin/tidb-server -plugin-dir=../plugin-so -plugin-load=audit-1,whitelist-1 > "$ARTIFACTS/loading-test.log" 2>&1 &
+                TIDB_PID=$!
+                log "ℹ️ tidb-server PID: $TIDB_PID (logging to $ARTIFACTS/loading-test.log)"
+                echo "💡 Please check the artifact loading-test.log if the job failed!"
+
+                # Wait up to 30s; if TiDB exits early, fail and show logs
+                for i in $(seq 1 30); do
+                  if ! kill -0 "$TIDB_PID" 2>/dev/null; then
+                    log "❌ tidb-server exited prematurely (within ${i}s)"
+                    tail -n 200 "$ARTIFACTS/loading-test.log" || true
+                    fail "tidb-server failed to stay up; plugin load likely failed"
+                  fi
+                  sleep 1
+                done
+                log "✅ tidb-server stayed up for 30s. Assuming plugins loaded successfully."
+
+                # Show quick context, then stop
+                log "📋 Process snapshot"
+                ps -p "$TIDB_PID" -o pid,ppid,etimes,pcpu,pmem,cmd || true
+
+                log "🧹 Shutdown tidb-server"
+                cleanup
+            resources:
+              requests:
+                cpu: "3"
+                memory: 6Gi
+              limits:
+                cpu: "3"
+                memory: 6Gi

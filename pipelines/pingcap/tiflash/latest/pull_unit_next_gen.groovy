@@ -388,9 +388,9 @@ pipeline {
                         sh label: "change permission", script: """
                             chown -R 1000:1000 ./
                         """
-                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')) {
+                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'ut-build')) {
                             if (build_cache_ready) {
-                                println "build cache exist, restore from cache key: ${prow.getCacheKey('ng-binary', REFS, 'it-build')}"
+                                println "build cache exist, restore from cache key: ${prow.getCacheKey('ng-binary', REFS, 'ut-build')}"
                                 sh """
                                 du -sh ./
                                 ls -alh ./

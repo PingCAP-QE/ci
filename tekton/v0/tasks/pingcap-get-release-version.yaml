@@ -1,0 +1,44 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-get-release-version
+spec:
+  results:
+    - description: The release version of the git repo
+      name: version
+      type: string
+  steps:
+    - image: alpine/git:2.40.1
+      name: git-describe
+      workingDir: $(workspaces.source.path)
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: '100m'
+      script: |
+        #!/bin/sh
+        set -e
+
+        RESULT_VERSION="$(git describe --tags --always --dirty --exclude 'v20[0-9][0-9].[0-1][0-9].[0-3][0-9]*')"
+        echo "Draft version got with git: $RESULT_VERSION"
+        if [[ "$RESULT_VERSION" =~ "-[0-9]+-g[0-9a-f]{7,10}(-dirty)?$" ]]; then
+          # Check if "-alpha-" is included in the version string
+          if [[ "$RESULT_VERSION" == *"-alpha-"* ]]; then
+            echo "First patch version detected. Skipping patch increment."
+          else
+            echo "The code is checkouted on branch, I will increase the patch version."
+            # Extract version components
+            version_part=$(echo "$RESULT_VERSION" | cut -d '-' -f 1)
+            major=$(echo "$version_part" | cut -d '.' -f 1)
+            minor=$(echo "$version_part" | cut -d '.' -f 2)
+            patch=$(echo "$version_part" | cut -d '.' -f 3)
+
+            # Increment the patch version
+            RESULT_VERSION="$major.$minor.$((++patch))-pre"
+          fi
+        fi
+
+        printf "%s" "${RESULT_VERSION}" | tee $(results.version.path)
+
+  workspaces:
+    - name: source

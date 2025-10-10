@@ -1,0 +1,102 @@
+# Note: Tekton Triggers v0.24.x CEL implementation doesn't support the 'last()' method
+# See: https://tekton.dev/vault/triggers-v0.24.x-lts/cel_expressions/
+# Workaround: Use explicit array indexing instead of 'last()'
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: artifact-push-on-harbor-with-trunk-branch-tags-ctl-repos
+  labels:
+    type: image-push
+spec:
+  interceptors:
+    - name: filter on image repo names and tags
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.event_data.repository.repo_full_name in [
+            'pingcap/tidb/package',
+            'pingcap/tiflow/package',
+            'pingcap/tidb-binlog/package',
+            'pingcap/tidb-ctl/package',
+            'tikv/pd/package',
+            'tikv/tikv/package'
+            ] &&
+            body.event_data.resources[0].tag.matches('^(master|main)(-[0-9a-f]{7,10})_(darwin|linux)_(amd64|arm64)$')
+            &&
+            body.event_data.resources[0].resource_url.startsWith('hub.pingcap.net/')
+        - name: overlays
+          value:
+            - key: git-url
+              expression: >-
+                'https://github.com/' + body.event_data.repository.repo_full_name.replace('/package', '.git')
+            - key: git-ref
+              expression: body.event_data.resources[0].tag.split('_')[0].split('-')[0]
+            - key: os
+              expression: body.event_data.resources[0].tag.split('_')[1]
+            - key: arch
+              # Using explicit index instead of 'last()' which is not supported in Tekton CEL
+              expression: body.event_data.resources[0].tag.split('_')[2]
+  bindings:
+    - { name: component, value: ctl }
+    - { name: profile, value: release }
+    - { name: git-url, value: https://github.com/tikv/pd.git } # no need the repo to build but need it to compute version routes.
+    # Both git-ref and git-revision intentionally use the same extension value
+    - { name: git-ref, value: $(extensions.git-ref) }
+    - { name: git-revision, value: $(extensions.git-ref) }
+    - { name: os, value: $(extensions.os) }
+    - { name: arch, value: $(extensions.arch) }
+  template:
+    ref: build-ctl-single-platform
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: artifact-push-on-harbor-with-release-branch-tags-ctl-repos
+  labels:
+    type: image-push
+spec:
+  interceptors:
+    - name: filter on image repo names and tags
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.event_data.repository.repo_full_name in [
+            'pingcap/tidb/package',
+            'pingcap/tiflow/package',
+            'pingcap/tidb-binlog/package',
+            'pingcap/tidb-ctl/package',
+            'tikv/pd/package',
+            'tikv/tikv/package'
+            ] &&
+            body.event_data.resources[0].tag.matches('^release-[0-9]+[.][0-9]+(-beta[.][0-9]+)?-[0-9a-f]{7,10}_(darwin|linux)_(amd64|arm64)$')
+            &&
+            body.event_data.resources[0].resource_url.startsWith('hub.pingcap.net/')
+        - name: overlays
+          value:
+            - key: git-url
+              expression: >-
+                "https://github.com/" + body.event_data.repository.repo_full_name.replace('/package', '.git')
+            - key: git-ref
+              # Fixed to avoid 'last()' method which is unsupported in Tekton v0.24.x CEL
+              # Using size()-1 pattern to get the last element as recommended in documentation
+              expression: body.event_data.resources[0].tag.split("_")[0].replace('-' + body.event_data.resources[0].tag.split("_")[0].split('-')[body.event_data.resources[0].tag.split("_")[0].split('-').size()-1], '')
+            - key: os
+              expression: body.event_data.resources[0].tag.split('_')[1]
+            - key: arch
+              # Using explicit index instead of 'last()' which is not supported in Tekton CEL
+              expression: body.event_data.resources[0].tag.split('_')[2]
+  bindings:
+    - { name: component, value: ctl }
+    - { name: profile, value: release }
+    - { name: git-url, value: https://github.com/tikv/pd.git } # no need the repo to build but need it to compute version routes.
+    # Both git-ref and git-revision intentionally use the same extension value
+    - { name: git-ref, value: $(extensions.git-ref) }
+    - { name: git-revision, value: $(extensions.git-ref) }
+    - { name: os, value: $(extensions.os) }
+    - { name: arch, value: $(extensions.arch) }
+  template:
+    ref: build-ctl-single-platform

@@ -19,8 +19,8 @@ periodics:
             - name: DSN
               valueFrom:
                 secretKeyRef:
-                  key: DSN
-                  name: job-insight
+                  key: ci-job-periodic-crawl-ci-run-data-dsn
+                  name: ci-job-params-mono
           resources:
             requests:
               memory: 1Gi

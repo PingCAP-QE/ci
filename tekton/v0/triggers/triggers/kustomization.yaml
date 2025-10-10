@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - _/ctl/artifact-push-on-harbor.yaml
+  - _/fake-github/fake-github-branch-push-single-platform.yaml
+  - _/fake-github/fake-github-branch-push.yaml
+  - _/fake-github/fake-github-pr-single-platform.yaml
+  - _/fake-github/fake-github-pr.yaml
+  - _/fake-github/fake-github-tag-create-single-platform.yaml
+  - _/fake-github/fake-github-tag-create.yaml
+  - _/git-push-on-fips-branches.yaml
+  - _/github-pr-labeled-with-lgtm.yaml
+  - _/github-pr-labeled-with-needs-ok-to-test.yaml
+  - _/harbor/artifact-push-on-harbor.yaml
+  - _/harbor/image-push-on-harbor.yaml
+  - PingCAP-QE/artifacts/git-push.yaml
+  - pingcap-inc/tici/git-create-tag.yaml
+  - pingcap-inc/tici/git-push.yaml
+  - pingcap/_/git-create-branch-gomod-update.yaml
+  - pingcap/_/git-create-branch.yaml
+  - pingcap/_/git-create-tag.yaml
+  - pingcap/_/git-push-branch-build-community.yaml
+  - pingcap/_/git-push-branch-build-enterprise.yaml
+  - pingcap/_/git-push-branch-build-failpoint.yaml
+  - pingcap/advanced-statefulset/git-create-tag.yaml
+  - pingcap/advanced-statefulset/git-push.yaml
+  - pingcap/ticdc/git-push-branch-build.yaml
+  - pingcap/tidb-binlog/git-push.yaml
+  - pingcap/tidb-ctl/git-create-tag.yaml
+  - pingcap/tidb-ctl/git-push.yaml
+  - pingcap/tidb-operator/git-create-tag.yaml
+  - pingcap/tidb-operator/git-push.yaml
+  - pingcap/tidb-tools/git-create-tag.yaml
+  - pingcap/tidb-tools/git-push.yaml
+  - pingcap/tidb/git-push-branch-build.yaml
+  - pingcap/tiflash/git-push-branch-build.yaml
+  - pingcap/tiflow-operator/git-create-tag.yaml
+  - pingcap/tiflow-operator/git-push.yaml
+  - pingcap/tiproxy/git-create-tag.yaml
+  - pingcap/tiproxy/git-push.yaml
+  - tidbcloud/cloud-storage-engine/git-push-branch-build.yaml
+  - tikv/_/git-push-branch-build-community.yaml
+  - tikv/_/git-push-branch-build-enterprise.yaml
+  - tikv/_/git-push-branch-build-failpoint.yaml
+  - tikv/pd/git-push-branch-build.yaml
+  - tikv/tikv/git-create-branch.yaml
+  - tikv/tikv/git-create-tag.yaml

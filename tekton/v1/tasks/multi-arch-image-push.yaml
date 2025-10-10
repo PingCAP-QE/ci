@@ -1,0 +1,60 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: multi-arch-image-push
+spec:
+  params:
+    - name: IMAGE
+      description: Name (reference) of the image to push.
+    - name: tags # seperate with blankspace
+      type: string
+      description: image tags to tag.
+      default: ""
+    - name: platform-and-digest-list
+      description: >
+        platform-digest list for multi-arch, element format k => v
+      type: array
+  volumes:
+    - name: manifest
+      emptyDir: {}
+  steps:
+    - name: prepare-manifest
+      image: mikefarah/yq:4.47.2
+      args: ["$(params.platform-and-digest-list[*])"]
+      script: |
+        #! /usr/bin/env sh
+
+        :> manifest.yaml
+        yq -i '.image = "$(params.IMAGE)"' manifest.yaml
+
+        # for manifests
+        for kv in "$@"; do
+          echo "add for: ${kv}"
+          platform=${kv%% => *}
+          digest=${kv#* => }
+
+          os="$(echo "$platform" | awk -F/ '{print $1}')"
+          architecture="${platform#*/}"
+          yq -i '.manifests += [{}]' manifest.yaml
+          yq -i ".manifests[-1].image = \"$(params.IMAGE)@${digest}\"" manifest.yaml
+          yq -i ".manifests[-1].platform.os = \"$os\"" manifest.yaml
+          yq -i ".manifests[-1].platform.architecture = \"$architecture\"" manifest.yaml
+        done
+
+        # for tags
+        for tag in $(params.tags); do
+          yq -i ".tags += [\"${tag}\"]" manifest.yaml
+        done
+
+        cat manifest.yaml
+      volumeMounts:
+        - mountPath: /workspace
+          name: manifest
+      workingDir: /workspace
+    - name: push-manifest
+      image: mplatform/manifest-tool:alpine-v2.0.8
+      args: [push, from-spec, manifest.yaml]
+      volumeMounts:
+        - mountPath: /workspace
+          name: manifest
+      workingDir: /workspace

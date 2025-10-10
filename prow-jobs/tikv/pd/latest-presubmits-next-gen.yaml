@@ -43,8 +43,9 @@ presubmits:
       name: pull-unit-test-next-gen
       agent: kubernetes
       decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
-      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      optional: true # delete it when the test is stable
+      context: non-block/pull-unit-test-next-gen # delete it when the test is stable
       spec:
         containers:
           - name: test

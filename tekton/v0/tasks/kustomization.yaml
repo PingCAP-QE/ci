@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - aws-cli.yaml # from and hacked: https://hub.tekton.dev/tekton/task/aws-cli
+  - build/pingcap-build-binaries-darwin.yaml
+  - build/pingcap-build-binaries-linux.yaml
+  - build/pingcap-build-images.yaml
+  - ci/ci-helper-for-pr.yaml
+  - crane-copy.yaml # crane copy task
+  - echo.yaml ##### an example task.
+  - gen-build-binaries-scripts.yaml
+  - gen-build-images-scripts.yaml
+  - git-clone.yaml
+  - github-set-status.yaml
+  - golang-build.yaml
+  - golang-test.yaml
+  - hotfix/create-pr-to-sync-owners.yaml
+  - hotfix/create-pr-to-update-gomod-fix-ladp.yaml
+  - https://raw.githubusercontent.com/tektoncd/catalog/main/task/kaniko/0.6/kaniko.yaml # kaniko task
+  - https://raw.githubusercontent.com/tektoncd/catalog/main/task/ko/0.1/ko.yaml # ko task
+  - https://raw.githubusercontent.com/tektoncd/catalog/main/task/tkn/0.4/tkn.yaml # tkn task
+  - ko-prow.yaml
+  - ks3utils.yaml # from and hacked: https://hub.tekton.dev/tekton/task/aws-cli
+  - kubernetes-actions.yaml
+  - multi-arch-image-collect.yaml
+  - multi-arch-image-push.yaml
+  - ops/scan-go-modules-in-binaries.yaml
+  - pingcap-auto-add-image-major-tag.yaml
+  - pingcap-compose-offline-pkgs.yaml
+  - pingcap-deliver-image.yaml
+  - pingcap-get-builder-image.yaml
+  - pingcap-get-release-version.yaml
+  - pingcap-get-set-release-version-v2.yaml
+  - pingcap-get-set-release-version.yaml
+  - pingcap-git-clone-ext.yaml
+  - pingcap-upload-enterprise-plugins.yaml
+  - pingcap-upload-offline-package.yaml
+  - publish-fileserver-from-oci-artifact.yaml
+  - publish-tiup-from-oci-artifact-v2.yaml
+  - publish-tiup-from-oci-artifact.yaml
+  - release/create-pr-to-add-release-anchor-commit.yaml
+  - release/create-pr-to-bump-tikv-version.yaml
+  - release/pingcap-create-github-alpha-tags.yaml
+  - release/pingcap-create-github-releases.yaml
+  - release/pingcap-upload-hotfix-tarball-from-url.yaml
+  - release/tag-rc2ga-on-oci-artifacts.yaml
+  - release/wait-delivery-images.yaml
+  - release/wait-delivery-tiup.yaml
+  - restore-cache-with-ks3.yaml
+  - save-cache-with-ks3.yaml

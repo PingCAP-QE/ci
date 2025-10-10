@@ -1,0 +1,131 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-build-images
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    This task builds images for pingcap components.
+
+    ## How to run to push to google artifact registries.
+
+    1. prepare `docker-registry` secret.
+    2. append the google service account key json the to the secret.
+    3. add the secret to the Kubernetes service account
+    4. run the task with the service account, Tekton pipeline controller will auto inject the volume from the `docker-registry` type secret to `/tekton/creds-secrets/<secret-name>/` path.
+  workspaces:
+    - name: source
+  results:
+    - description: Built and pushed images, it will be a yaml content.
+      name: pushed
+      type: string
+  params:
+    - name: component
+    - name: os
+      default: linux
+    - name: arch
+      default: amd64
+    - name: version
+      type: string
+      description: the version to releasing.
+    - name: profile
+      type: string
+      default: release
+      description: >
+        supports: 'release' or 'failpoint'.
+    - name: git-ref
+    - name: git-sha
+    - name: release-dir
+      default: build
+    - name: build
+      default: "false"
+      description: Does it need to build the binaries before packing the images?
+    - name: registry
+      default: hub.pingcap.net
+  steps:
+    - name: generate
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      results:
+        - name: generated
+          type: string
+      script: |
+        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
+
+        git_ref="$(params.git-ref)"
+        git_sha="$(params.git-sha)"
+        if [ "$git_sha" == "$git_ref" ]; then
+          git_sha=""
+        fi
+
+        out_script="/workspace/build-package-images.sh"
+        /workspace/artifacts/packages/scripts/gen-package-images-with-config.sh \
+          $(params.component) \
+          $(params.os) \
+          $(params.arch) \
+          $(params.version) \
+          $(params.profile) \
+          $git_ref \
+          "$git_sha" \
+          /workspace/artifacts/packages/packages.yaml.tmpl \
+          "$out_script" \
+          $(params.registry) || true
+
+        if [ -f "$out_script" ]; then
+          echo -n "true" > $(step.results.generated.path)
+          cat "$out_script"
+        else
+          echo -n "false" > $(step.results.generated.path)
+          echo "🤷 no output script generated!"
+          printf '"{}"' > $(task.results.pushed.path)
+        fi
+    - name: build-and-publish
+      image: gcr.io/kaniko-project/executor:v1.24.0-debug
+      when:
+        - input: "$(steps.generate.results.generated)"
+          operator: in
+          values: ["true"]
+      workingDir: $(workspaces.source.path)/$(params.component)
+      env:
+        - name: KANIKO_EXECUTOR
+          value: /kaniko/executor
+        # To Support GAR for kaniko: the service account should add a secret named `image-release-cred` with key `gsa.json` included
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /tekton/creds-secrets/image-release-cred/gsa.json
+      resources:
+        requests:
+          cpu: "4"
+          memory: 8Gi
+      script: |
+        script="/workspace/build-package-images.sh"
+
+        if [ "$(params.build)" = "true" ]; then
+          # try 2 times.
+          "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path) -b || \
+          "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path) -b
+        else
+          # try 2 times.
+          "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path) || \
+          "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path)
+        fi
+    - name: add-more-tags
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      when:
+        - input: "$(steps.generate.results.generated)"
+          operator: in
+          values: ["true"]
+      script: |
+        script="/workspace/build-package-images.sh"
+        oras version
+        "$script" -P -t -o $(results.pushed.path) # -P means disable build and push the image.
+    - name: collect-multi-arch
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      when:
+        - input: "$(steps.generate.results.generated)"
+          operator: in
+          values: ["true"]
+      script: |
+        script="/workspace/build-package-images.sh"
+        "$script" -P -m -o $(results.pushed.path) # -P means disable build and push the image.

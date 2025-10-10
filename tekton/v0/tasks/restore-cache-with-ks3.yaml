@@ -1,0 +1,66 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: restore-cache-with-s3
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: cache
+    tekton.dev/tags: cache,ks3
+    tekton.dev/displayName: "restore cache from KS3 bucket"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  workspaces:
+    - name: source
+      optional: true
+    - name: secrets
+      optional: true
+      description: need a key `.ks3utilconfig` to set ks3 credential.
+  params:
+    - name: bucket
+      description: KS3 bucket name
+    - name: key
+      description: "Saved key for cache"
+      type: string
+    - name: restore-keys
+      description: "List of key prefixes to try for restore"
+      type: array
+      default: []
+    - name: path
+      description: Cache workspace path
+      default: ""
+    - name: includes
+      description: Include file globs, default is all, "*" covers `/` chars.
+      default: ""
+  steps:
+    - name: restore
+      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v20231216-31-g613ba06
+      workingDir: $(workspaces.source.path)/$(params.path)
+      args: [$(params.key), "$(params.restore-keys[*])"] # retore keys.
+      script: |
+        $(workspaces.secrets.bound) && cp $(workspaces.secrets.path)/.ks3utilconfig /root/.ks3utilconfig
+        local_file=/workspace/cache.tar.gz
+
+        # fetch
+        if [ ! -f $local_file ]; then
+          for restore_key in $@; do
+            echo "try restore_from: $restore_key"
+            key="$(ks3util list ks3://$(params.bucket)/${restore_key} -d | grep 'ks3://' | tail -1)"
+            [ "$key" != "" ]; && ks3util cp ks3://$(params.bucket)/${key} $local_file && break
+          done
+        fi
+
+        if [ ! -f $local_file ]; then
+          echo "🤷 None cached objects found"
+          exit 0
+        fi
+
+        # extract
+        if [ "$(params.includes)" == "" ]; then
+          tar -zxvf $local_file  .
+        else
+          # split the includes params
+          include_options=$(echo "$(params.includes)" | sed -E 's/\s*,\s*/ /g' | sed -E 's/([^ ]+)/--include="\1"/g')
+          tar ${include_options} -zxvf $local_file
+        fi

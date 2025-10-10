@@ -1,0 +1,180 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: build-component
+spec:
+  params:
+    - name: git-url
+      description: The git repository full url
+    - name: git-refspec
+      default: +refs/heads/*:refs/heads/*
+    - name: git-revision
+      description: The git revision
+    - name: git-ref
+      description: The git branch
+    - name: component
+      description: component name, tidb|tikv|pd|tiflow|tiflash, etc...
+    - name: os
+      default: linux
+    - name: profile
+      description: build target profile
+      default: release
+    - name: registry
+      default: hub.pingcap.net
+    - name: timeout
+      description: pipeline run timeout
+      default: 2h
+    - name: source-ws-size
+      description: workspace size for source.
+      default: 10Gi
+    - name: builder-resources-memory
+      default: 16Gi
+    - name: builder-resources-cpu
+      default: "4"
+    - name: ce-context
+      description: cloud event context.
+      default: '{}'
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-amd64-
+        annotations:
+          "tekton.dev/ce-context": $(tt.params.ce-context)
+          "tibuild.pingcap.net/git-repo": $(tt.params.git-url)
+          "tibuild.pingcap.net/git-ref": $(tt.params.git-ref)
+          "tibuild.pingcap.net/git-revision": $(tt.params.git-revision)
+          "tibuild.pingcap.net/component": $(tt.params.component)
+          "tibuild.pingcap.net/profile": $(tt.params.profile)
+          "tibuild.pingcap.net/platform": $(tt.params.os)/amd64
+      spec:
+        pipelineRef:
+          name: pingcap-build-package-linux
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: git-refspec
+            value: $(tt.params.git-refspec)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: git-ref
+            value: $(tt.params.git-ref)
+          - name: component
+            value: $(tt.params.component)
+          - name: profile
+            value: $(tt.params.profile)
+          - name: os
+            value: $(tt.params.os)
+          - name: arch
+            value: amd64
+          - name: registry
+            value: $(tt.params.registry)
+        podTemplate:
+          nodeSelector:
+            kubernetes.io/arch: amd64
+        taskRunSpecs:
+          - pipelineTaskName: checkout
+            taskServiceAccountName: github-bot
+          - pipelineTaskName: checkout-ext
+            taskServiceAccountName: github-bot
+          - pipelineTaskName: build-binaries
+            taskServiceAccountName: image-releaser
+            stepOverrides:
+              - name: build
+                resources:
+                  requests:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
+          - pipelineTaskName: build-images
+            taskServiceAccountName: image-releaser
+        timeouts:
+          pipeline: $(tt.params.timeout)
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              spec:
+                storageClassName: hyperdisk-rwo
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: $(tt.params.source-ws-size)
+          # - name: git-basic-auth # fetch with git-cdn.
+          #   secret:
+          #     secretName: git-credentials-basic
+          # - name: cargo-home
+          #   persistentVolumeClaim:
+          #     claimName: cargo-home
+          # - name: cypress-cache
+          #   persistentVolumeClaim:
+          #     claimName: cypress-cache
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-arm64-
+        annotations:
+          "tekton.dev/ce-context": $(tt.params.ce-context)
+          "tibuild.pingcap.net/git-repo": $(tt.params.git-url)
+          "tibuild.pingcap.net/git-ref": $(tt.params.git-ref)
+          "tibuild.pingcap.net/git-revision": $(tt.params.git-revision)
+          "tibuild.pingcap.net/component": $(tt.params.component)
+          "tibuild.pingcap.net/profile": $(tt.params.profile)
+          "tibuild.pingcap.net/platform": $(tt.params.os)/arm64
+      spec:
+        pipelineRef:
+          name: pingcap-build-package-linux
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: git-refspec
+            value: $(tt.params.git-refspec)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: git-ref
+            value: $(tt.params.git-ref)
+          - name: component
+            value: $(tt.params.component)
+          - name: profile
+            value: $(tt.params.profile)
+          - name: os
+            value: $(tt.params.os)
+          - name: arch
+            value: arm64
+          - name: registry
+            value: $(tt.params.registry)
+        podTemplate:
+          nodeSelector:
+            kubernetes.io/arch: arm64
+        taskRunSpecs:
+          - pipelineTaskName: checkout
+            taskServiceAccountName: github-bot
+          - pipelineTaskName: checkout-ext
+            taskServiceAccountName: github-bot
+          - pipelineTaskName: build-binaries
+            taskServiceAccountName: image-releaser
+            stepOverrides:
+              - name: build
+                resources:
+                  requests:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
+          - pipelineTaskName: build-images
+            taskServiceAccountName: image-releaser
+        timeouts:
+          pipeline: $(tt.params.timeout)
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              spec:
+                storageClassName: hyperdisk-rwo
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: $(tt.params.source-ws-size)
+          # - name: cargo-home
+          #   persistentVolumeClaim:
+          #     claimName: cargo-home
+          # - name: cypress-cache
+          #   persistentVolumeClaim:
+          #     claimName: cypress-cache

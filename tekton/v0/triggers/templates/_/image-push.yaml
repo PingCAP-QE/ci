@@ -1,0 +1,72 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: collect-multi-arch-image
+spec:
+  params:
+    - name: image_url
+      description: The image full url for pull
+    - name: tag
+      description: The image tag
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: TaskRun
+      metadata:
+        generateName: auto-compose-multi-arch-image-run-
+      spec:
+        taskRef:
+          name: multi-arch-image-collect
+        params:
+          - name: image_url
+            value: "$(tt.params.image_url)"
+          - name: release_tag_suffix
+            value: release
+        workspaces:
+          - name: dockerconfig
+            secret:
+              secretName: hub-pingcap-net-ee
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: add-image-major-tag
+spec:
+  params:
+    - name: image_url
+      description: The image full url for pull
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: TaskRun
+      metadata:
+        generateName: auto-add-image-major-tag-
+      spec:
+        taskRef:
+          name: pingcap-auto-add-image-major-tag
+        params:
+          - name: image_url
+            value: "$(tt.params.image_url)"
+        workspaces:
+          - name: dockerconfig
+            secret:
+              secretName: hub-pingcap-net-ee
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: image-deliver-to-external-registries
+spec:
+  params:
+    - name: image_url
+      description: The image full url with tag.
+  resourcetemplates:
+      - apiVersion: tekton.dev/v1beta1
+        kind: TaskRun
+        metadata:
+          generateName: pingcap-deliver-image-
+        spec:
+          taskRef:
+            name: pingcap-deliver-image
+          params:
+          - name: src-image-url
+            value: $(tt.params.image_url)
+          serviceAccountName: image-releaser

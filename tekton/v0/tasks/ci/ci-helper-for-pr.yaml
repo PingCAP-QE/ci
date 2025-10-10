@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: ci-helper-for-pr
+spec:
+  description: CI helper for contribution pull requests
+  params:
+    - name: owner
+      description: repo owner
+    - name: repo
+      description: repo short name
+    - name: number
+      description: pull request number
+  steps:
+    - name: create-pull-request
+      image: bitnami/git:2.43.0
+      script: |
+        #!/usr/bin/env bash
+        set -exo pipefail
+
+        # install `gh` tool
+        type -p curl >/dev/null || ( apt update &&  apt install curl -y)
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |  tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && apt update \
+        && apt install gh -y
+
+        gh auth login --with-token < $(workspaces.github.path)/token
+
+        # truct the pull request
+        echo "pull request url: https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
+        gh pr edit --add-label ok-to-test --remove-label needs-ok-to-test https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)
+        gh pr comment --body 'Now you can start all CI jobs with `/test all` in comment or query the triggers with `/test ?`' https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)
+  workspaces:
+    - name: github
+      description: Must includes a key `token`

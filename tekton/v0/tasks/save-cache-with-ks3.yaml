@@ -1,0 +1,50 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: save-cache-with-ks3
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: cache
+    tekton.dev/tags: cache,ks3
+    tekton.dev/displayName: "save cache to KS3 bucket"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  workspaces:
+    - name: source
+      optional: true
+    - name: secrets
+      optional: true
+      description: need a key `.ks3utilconfig` to set ks3 credential.
+  params:
+    - name: bucket
+      description: KS3 bucket name
+    - name: key
+      description: Save key for cache
+      type: string
+    - name: path
+      description: Cache workspace path
+      default: ""
+    - name: includes
+      description: Include file globs, default is all, "*" covers `/` chars.
+      default: ""
+  steps:
+    - name: save
+      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v20231216-31-g613ba06
+      workingDir: $(workspaces.source.path)/$(params.path)
+      script: |
+        $(workspaces.secrets.bound) && cp $(workspaces.secrets.path)/.ks3utilconfig /root/.ks3utilconfig
+        local_file=/workspace/cache.tar.gz
+
+        # archive
+        if [ "$(params.includes)" == "" ]; then
+          tar -zcvf $local_file  .
+        else
+          # split the includes params
+          include_options=$(echo "$(params.includes)" | sed -E 's/\s*,\s*/ /g' | sed -E 's/([^ ]+)/--include="\1"/g')
+          find . -type f -print0 | tar ${include_options} -zcvf $local_file --files-from -
+        fi
+
+        # push
+        ks3util cp $local_file ks3://$(params.bucket)/$(params.key)

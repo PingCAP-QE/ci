@@ -6,6 +6,7 @@
 - `/prow-jobs` - Top-level Prow job trigger configurations
 - `/jobs` - Jenkins CI job DSL definition files (called by Prow jobs)
 - `/pipelines` - Jenkins pipeline script implementations
+- `/tekton` - Tekton CI/CD static resources definitions
 - `/libraries` - Jenkins CI shared libraries
 - `/staging` - Staging environment for jobs and pipelines before production deployment
   - `/staging/jobs` - Similar to `/jobs` but deployed to staging environment
@@ -60,6 +61,16 @@ Located at `/pipelines/<org>/<repo>/<branch-special>/`:
 - **Pipeline scripts**: `*.groovy` files containing the Jenkins pipeline implementation
 - **Pod templates**: `pod-*.yaml` files defining Kubernetes pod configurations for the pipeline
 
+
+### Tekton Resources
+
+Located at `/tekton/v<Number>/`:
+
+- **Pipelines**: `pipelines/*.yaml` files defining Tekton Pipeline resources
+- **Tasks**: `tasks/*.yaml` files defining reusable Tekton Task resources
+- **Triggers**: `triggers/*.yaml` files for EventListener, TriggerTemplate, and TriggerBinding
+- **Naming conventions**:
+  - Use lowercase with hyphens: `[a-z][a-z0-9-]*[a-z0-9]`
 
 ## Example: Complete CI Pipeline Structure
 

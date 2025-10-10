@@ -1,0 +1,241 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-pr-to-update-gomod-fix-ladp
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.29.0"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Create pull request to fix `go.mod` file to github repository branch.
+    Also, update ldap crt/key if the branch is a hotfix branch for specific release series(release-7.5-*, release-8.1-*, release-8.5-*).
+  params:
+    - name: git-url
+      description: repository clone url
+      type: string
+    - name: branch
+      description: branch name
+      type: string
+    - name: golang-image
+      description: the image to run go mod edit and go mod tidy
+      default: ghcr.io/pingcap-qe/ci/base:v20231216-14-g77d0cd2-go1.19
+  steps:
+    - name: clone
+      image: bitnami/git:2.43.0
+      workingDir: /workspace
+      script: |
+        git clone $(params.git-url) --branch $(params.branch) /workspace/src
+
+    - name: update-ladp-crt-key
+      image: bitnami/git:2.43.0
+      workingDir: /workspace/src
+      script: |
+        git config --global --add safe.directory `pwd`
+        git config --global user.email "ti-community-prow-bot@tidb.io"
+        git config --global user.name  "ti-chi-bot"
+
+        # Update ladp crt/key by cherry-pick specific commit from base release branch
+        # Check if the branch is a hotfix branch for specific hotfix release branch
+
+        base_release_branch=""
+        is_ldap_hotfix_candidate_branch=false
+
+        case "$(params.branch)" in
+          release-7.5-*)
+            base_release_branch="release-7.5"
+            is_ldap_hotfix_candidate_branch=true
+            ;;
+          release-8.1-*)
+            base_release_branch="release-8.1"
+            is_ldap_hotfix_candidate_branch=true
+            ;;
+          release-8.5-*)
+            base_release_branch="release-8.5"
+            is_ldap_hotfix_candidate_branch=true
+            ;;
+          *)
+            echo "Branch $(params.branch) is not a designated hotfix release for ldap crt/key update (release-7.5-*, release-8.1-*, release-8.5-*)."
+            ;;
+        esac
+
+        if [ "$is_ldap_hotfix_candidate_branch" = "true" ] && [ -n "$base_release_branch" ]; then
+          echo "Branch $(params.branch) is a hotfix branch for $base_release_branch which may need to update the ldap crt/key."
+          echo "Fetching base release branch: $base_release_branch..."
+          git fetch origin $base_release_branch
+          git remote -v
+          git branch
+          echo "Successfully fetched $base_release_branch."
+
+          echo "Performing git cherry-pick if needed..."
+          commit_to_cherry_pick=$(git log FETCH_HEAD --grep="re-generate crt/key for ldap test" --format=%H -n 1)
+          echo "commit_to_cherry_pick: $commit_to_cherry_pick"
+
+          # Debug: Show current branch's ldap related commits
+          echo "=== Debug: Current branch ldap commits ==="
+          git log HEAD --grep="re-generate crt/key for ldap test" --oneline -n 5 || echo "No ldap commits found in current branch"
+
+          # Debug: Show base branch's ldap related commits
+          echo "=== Debug: Base branch ldap commits ==="
+          git log FETCH_HEAD --grep="re-generate crt/key for ldap test" --oneline -n 5 || echo "No ldap commits found in base releasebranch"
+
+          should_cherry_pick=false
+          skip_reason=""
+
+          # Check 1: Is there a commit to cherry-pick?
+          if [ -z "$commit_to_cherry_pick" ]; then
+            skip_reason="No relevant commit found in $base_release_branch to cherry-pick for ldap update."
+          # Check 2: Is the exact commit already in current branch?
+          elif git merge-base --is-ancestor $commit_to_cherry_pick HEAD; then
+            skip_reason="Commit $commit_to_cherry_pick already exists in current branch, skipping cherry-pick."
+          else
+            # Check 3: Does current branch already have similar ldap crt/key commits?
+            existing_ldap_commit=$(git log HEAD --grep="re-generate crt/key for ldap test" --format=%H -n 1)
+            if [ -n "$existing_ldap_commit" ]; then
+              skip_reason="Current branch already has an ldap crt/key update commit: $existing_ldap_commit. Skipping cherry-pick to avoid duplicate changes."
+            else
+              # If no skip reason found, proceed with cherry-pick
+              should_cherry_pick=true
+            fi
+          fi
+
+          echo "should_cherry_pick: $should_cherry_pick"
+          echo "skip_reason: $skip_reason"
+
+          # Execute based on decision
+          if [ "$should_cherry_pick" = true ]; then
+            echo "Cherry-picking commit $commit_to_cherry_pick from $base_release_branch"
+            if git cherry-pick $commit_to_cherry_pick; then
+              echo "Successfully cherry-picked commit $commit_to_cherry_pick"
+            else
+              echo "Cherry-pick failed, possibly due to conflicts. Attempting to abort..."
+              git cherry-pick --abort || true
+              echo "Cherry-pick aborted. The ldap update may need manual intervention."
+            fi
+          else
+            echo "$skip_reason"
+          fi
+        else
+          echo "Skipping ldap crt/key update for branch $(params.branch)."
+        fi
+
+    - name: update-gomod
+      image: "$(params.golang-image)"
+      workingDir: /workspace/src
+      env:
+        - name: GOPROXY
+          value: "http://goproxy.apps.svc,direct"
+      script: |
+        git config --global --add safe.directory `pwd`
+
+        # replace appdash and update go.mod
+        go mod edit -replace sourcegraph.com/sourcegraph/appdash=github.com/sourcegraph/appdash@v0.0.0-20190731080439-ebfcffb1b5c0
+        go mod edit -replace sourcegraph.com/sourcegraph/appdash-data=github.com/sourcegraph/appdash-data@v0.0.0-20151005221446-73f23eafcf67
+        go mod tidy
+
+        if git diff --exit-code --name-status go.mod; then
+          echo "🤷 No need to update the go.mod file, they are updated."
+          exit 0
+        else
+          # update bazel file
+          echo 'build --remote_cache=http://ats.apps.svc/brc/tidb --remote_timeout="30s"' > ~/.bazelrc
+          make bazel_prepare || true
+        fi
+
+    - name: create-pr
+      image: bitnami/git:2.43.0
+      workingDir: /workspace/src
+      script: |
+        git config --global --add safe.directory `pwd`
+        git config --global user.email "ti-community-prow-bot@tidb.io"
+        git config --global user.name  "ti-chi-bot"
+
+        gomod_has_changes=false
+        if ! git diff --exit-code --quiet go.mod; then
+          echo "go.mod has uncommitted changes."
+          gomod_has_changes=true
+        fi
+
+        # Fetch the latest state of the remote branch to accurately compare
+        echo "Fetching remote branch $(params.branch)..."
+        git fetch origin $(params.branch)
+
+        # Check if the local branch is ahead of the remote branch to determine if the update ldap crt/key cherry-pick has been processed
+        local_commits_ahead_count=$(git rev-list origin/$(params.branch)..HEAD --count)
+        local_branch_is_ahead=false
+        if [ "$local_commits_ahead_count" -gt 0 ]; then
+          echo "Local branch $(params.branch) is $local_commits_ahead_count commit(s) ahead of origin/$(params.branch)."
+          local_branch_is_ahead=true
+        else
+          echo "Local branch $(params.branch) is not ahead of origin/$(params.branch)."
+        fi
+
+        pr_title=""
+        head_branch_name_suffix=""
+
+        if [ "$gomod_has_changes" = true ] && [ "$local_branch_is_ahead" = true ]; then
+          # Case 1: Both go.mod changed AND LDAP commit exists
+          pr_title="deps: update go.mod and re-generate crt/key for ldap test"
+          head_branch_name_suffix="gomod-appdash-and-ldap-crt-key-update"
+        elif [ "$gomod_has_changes" = true ]; then
+          # Case 2: Only go.mod changed
+          pr_title="deps: replace 'sourcegraph.com/sourcegraph/appdash*' in go.mod"
+          head_branch_name_suffix="go-module-appdash"
+        elif [ "$local_branch_is_ahead" = true ]; then
+          # Case 3: Only LDAP commit exists
+          pr_title="ldap,test: re-generate crt/key for ldap test"
+          head_branch_name_suffix="ldap-crt-key-update"
+        else
+          # Case 4: No changes
+          echo "🤷 No uncommitted go.mod/go.sum changes and local branch is not ahead of remote. Exiting without creating PR."
+          exit 0
+        fi
+
+        echo "🚀 Changes detected, proceeding to create PR..."
+        echo "PR Title: $pr_title"
+        echo "Head branch suffix: $head_branch_name_suffix"
+
+        if [ "$gomod_has_changes" = true ]; then
+          go_mod_commit_msg="deps: replace 'sourcegraph.com/sourcegraph/appdash*' in go.mod"
+          echo "Committing go.mod changes with message: $go_mod_commit_msg"
+          git commit -am "$go_mod_commit_msg"
+        fi
+
+        # login and setup git (gh tool installation assumed to be idempotent or handled)
+        # install `gh` tool (ensure it's available)
+        type -p curl >/dev/null || ( apt update && apt install curl -y)
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |  tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && apt update \
+        && apt install gh -y
+
+        gh auth login --with-token < $(workspaces.github.path)/token
+        gh auth setup-git
+
+        head_branch="fix/$(params.branch)/$head_branch_name_suffix"
+        echo "Checking out and pushing to new branch: $head_branch"
+        git checkout -b "$head_branch"
+        git push origin "$head_branch"
+
+        # create pull request
+        cat <<EOF > pr_body.txt
+        ### Release note
+
+        Please refer to [Release Notes Language Style Guide](https://pingcap.github.io/tidb-dev-guide/contribute-to-tidb/release-notes-style-guide.html) to write a quality release note.
+
+        \`\`\`release-note
+        None
+        \`\`\`
+        EOF
+
+        echo "Creating PR with title: '$pr_title' for head branch '$head_branch' into base '$(params.branch)'"
+        gh pr create \
+          --base $(params.branch) \
+          --head "$head_branch" \
+          --title "$pr_title" \
+          --body-file pr_body.txt
+  workspaces:
+    - name: github
+      description: Must includes a key `token`

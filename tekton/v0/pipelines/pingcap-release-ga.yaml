@@ -1,0 +1,208 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pingcap-release-ga
+spec:
+  params:
+    - name: version
+      type: string
+    - name: rc-version
+      type: string
+      description: >
+        The version of the artifact to be released on, examples:
+        - v5.4.0-pre
+        - v9.0.0-beta.1.pre
+        - v9.0.0-rc.1.pre
+    - name: tiup-mirror
+      default: http://tiup.pingcap.net:8987
+      description: the product tiup mirror site.
+    - name: oci-registry
+      default: hub.pingcap.net
+      description: The OCI registry stored the origin artifacts.
+  workspaces:
+    # TODO: why need to push dm offline pkgs to another bucket?
+    - name: aws-secrets
+      optional: true
+    - name: aws-secrets-tencent
+    - name: github
+      description: for creating github release
+  tasks:
+    - name: ga-tag-oci-artifacts
+      params:
+        - name: rc-version
+          value: "$(params.rc-version)"
+        - name: ga-version
+          value: $(params.version)
+      taskRef:
+        name: tag-rc2ga-on-oci-artifacts
+    - name: create-releases
+      runAfter: [ga-tag-oci-artifacts]
+      taskRef:
+        name: pingcap-create-github-releases
+      params:
+        - { name: version, value: $(params.version) }
+      workspaces:
+        - { name: github, workspace: github }
+    - name: wait-delivery-tiup
+      runAfter: [ga-tag-oci-artifacts]
+      timeout: 2h0s
+      params:
+        - { name: version, value: $(params.version) }
+        - { name: mirror, value: $(params.tiup-mirror) }
+        - { name: oci-registry, value: $(params.oci-registry) }
+      taskRef:
+        name: wait-delivery-tiup
+    - name: wait-delivery-images
+      runAfter:
+        - ga-tag-oci-artifacts
+      timeout: 1h0s
+      params:
+        - { name: version, value: $(params.version) }
+        - { name: oci-registry, value: $(params.oci-registry) }
+        - name: delivery-config
+          value: https://github.com/PingCAP-QE/artifacts/raw/main/packages/delivery.yaml
+      taskRef:
+        name: wait-delivery-images
+    - name: compose-offline-pkgs-amd64-community
+      runAfter: [wait-delivery-tiup]
+      taskRef: { name: pingcap-compose-offline-pkgs }
+      params:
+        - { name: os, value: linux }
+        - { name: version, value: "$(params.version)" }
+        - { name: tiup-mirror, value: "$(params.tiup-mirror)" }
+        - { name: push, value: "true" }
+        - { name: arch, value: amd64 }
+        - { name: edition, value: community }
+    - name: upload-offline-pkgs-to-buckets-amd64-community
+      runAfter:
+        - "compose-offline-pkgs-amd64-community"
+      taskRef:
+        name: pingcap-upload-offline-package
+      workspaces:
+        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+      params:
+        - { name: version, value: "$(params.version)" }
+        - { name: edition, value: community }
+        - { name: os, value: linux }
+        - { name: arch, value: amd64 }
+    - name: compose-offline-pkgs-amd64-enterprise
+      runAfter: [wait-delivery-tiup]
+      taskRef: { name: pingcap-compose-offline-pkgs }
+      params:
+        - { name: os, value: linux }
+        - { name: version, value: "$(params.version)" }
+        - { name: tiup-mirror, value: "$(params.tiup-mirror)" }
+        - { name: push, value: "true" }
+        - { name: arch, value: amd64 }
+        - { name: edition, value: enterprise }
+    - name: upload-offline-pkgs-to-buckets-amd64-enterprise
+      runAfter:
+        - "compose-offline-pkgs-amd64-enterprise"
+      taskRef:
+        name: pingcap-upload-offline-package
+      params:
+        - { name: version, value: "$(params.version)" }
+        - { name: edition, value: enterprise }
+        - { name: os, value: linux }
+        - { name: arch, value: amd64 }
+      workspaces:
+        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+    - name: compose-offline-pkgs-amd64-dm
+      runAfter: [wait-delivery-tiup]
+      taskRef: { name: pingcap-compose-offline-pkgs }
+      params:
+        - { name: os, value: linux }
+        - { name: version, value: "$(params.version)" }
+        - { name: tiup-mirror, value: "$(params.tiup-mirror)" }
+        - { name: push, value: "true" }
+        - { name: arch, value: amd64 }
+        - { name: edition, value: dm }
+    - name: upload-offline-pkgs-to-buckets-amd64-dm
+      runAfter:
+        - "compose-offline-pkgs-amd64-dm"
+      taskRef:
+        name: pingcap-upload-offline-package
+      workspaces:
+        - { name: aws-secrets, workspace: aws-secrets }
+        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+      params:
+        - { name: version, value: "$(params.version)" }
+        - { name: edition, value: dm }
+        - { name: os, value: linux }
+        - { name: arch, value: amd64 }
+    - name: compose-offline-pkgs-arm64-community
+      runAfter: [wait-delivery-tiup]
+      taskRef: { name: pingcap-compose-offline-pkgs }
+      params:
+        - { name: os, value: linux }
+        - { name: version, value: "$(params.version)" }
+        - { name: tiup-mirror, value: "$(params.tiup-mirror)" }
+        - { name: push, value: "true" }
+        - { name: arch, value: arm64 }
+        - { name: edition, value: community }
+    - name: upload-offline-pkgs-to-buckets-arm64-community
+      runAfter:
+        - "compose-offline-pkgs-arm64-community"
+      taskRef:
+        name: pingcap-upload-offline-package
+      workspaces:
+        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+      params:
+        - { name: version, value: "$(params.version)" }
+        - { name: edition, value: community }
+        - { name: os, value: linux }
+        - { name: arch, value: arm64 }
+    - name: compose-offline-pkgs-arm64-enterprise
+      runAfter: [wait-delivery-tiup]
+      taskRef: { name: pingcap-compose-offline-pkgs }
+      params:
+        - { name: os, value: linux }
+        - { name: version, value: "$(params.version)" }
+        - { name: tiup-mirror, value: "$(params.tiup-mirror)" }
+        - { name: push, value: "true" }
+        - { name: arch, value: arm64 }
+        - { name: edition, value: enterprise }
+    - name: upload-offline-pkgs-to-buckets-arm64-enterprise
+      runAfter:
+        - "compose-offline-pkgs-arm64-enterprise"
+      taskRef:
+        name: pingcap-upload-offline-package
+      workspaces:
+        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+      params:
+        - { name: version, value: "$(params.version)" }
+        - { name: edition, value: enterprise }
+        - { name: os, value: linux }
+        - { name: arch, value: arm64 }
+    - name: compose-offline-pkgs-arm64-dm
+      runAfter: [wait-delivery-tiup]
+      taskRef: { name: pingcap-compose-offline-pkgs }
+      params:
+        - { name: os, value: linux }
+        - { name: version, value: "$(params.version)" }
+        - { name: tiup-mirror, value: "$(params.tiup-mirror)" }
+        - { name: push, value: "true" }
+        - { name: arch, value: arm64 }
+        - { name: edition, value: dm }
+    - name: upload-offline-pkgs-to-buckets-arm64-dm
+      runAfter:
+        - "compose-offline-pkgs-arm64-dm"
+      taskRef:
+        name: pingcap-upload-offline-package
+      workspaces:
+        - { name: aws-secrets, workspace: aws-secrets }
+        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+      params:
+        - { name: version, value: "$(params.version)" }
+        - { name: edition, value: dm }
+        - { name: os, value: linux }
+        - { name: arch, value: arm64 }
+    - name: upload-plugin-tarballs
+      runAfter:
+        - ga-tag-oci-artifacts
+      taskRef:
+        name: pingcap-upload-enterprise-plugins
+      workspaces:
+        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+      params:
+        - { name: version, value: "$(params.version)" }

@@ -1,0 +1,28 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: ci-helper-for-pr
+spec:
+  params:
+    - name: pr-owner
+    - name: pr-repo
+    - name: pr-number
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: TaskRun
+      metadata:
+        generateName: ci-helper-for-pr-
+      spec:
+        params:
+          - name: owner
+            value: $(tt.params.pr-owner)
+          - name: repo
+            value: $(tt.params.pr-repo)
+          - name: number
+            value: $(tt.params.pr-number)
+        taskRef:
+          name: ci-helper-for-pr
+        workspaces:
+          - name: github
+            secret:
+              secretName: github

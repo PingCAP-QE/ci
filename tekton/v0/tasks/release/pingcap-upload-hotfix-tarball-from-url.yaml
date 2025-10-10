@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-upload-hotfix-tarball-from-url
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: CLI
+    tekton.dev/tags: cli
+    tekton.dev/displayName: "aws cli"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    This task performs upload for PingCAP's hot-fix packages .
+  params:
+    - name: src-url
+      type: string
+      description: The URL of the source file to upload, like http://fileserver.pingcap.net/......
+    - name: dst-path
+      type: string
+    - name: dry-run
+      default: "false"
+  workspaces:
+    - name: aws-secrets
+  steps:
+    - name: upload
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      workingDir: /workspace
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        if [ ! -f "$(workspaces.aws-secrets.path)/credentials" ]; then
+          echo "Error: aws-secrets workspace is not bound."
+          exit 1
+        fi
+
+        mkdir -p ~/.aws
+        cat $(workspaces.aws-secrets.path)/credentials > ~/.aws/credentials
+        cat $(workspaces.aws-secrets.path)/config > ~/.aws/config
+        aws configure set plugins.cli_legacy_plugin_path $(find /usr/lib -name site-packages -type d | head -1)
+        aws configure set plugins.endpoint awscli_plugin_endpoint
+
+        # download the file.
+        src_url="$(params.src-url)"
+        f=$(basename "${src_url}")
+        echo "🚀 Downloading $f from ${src_url} ..."
+        wget -q -O "$f" "${src_url}"
+        echo "✅ Downloaded $f from ${src_url} ."
+
+        # upload it.
+        target_f="$(params.dst-path)"
+        echo "🚀 Uploading $f ..."
+
+        bucket_name=$(cat $(workspaces.aws-secrets.path)/bucket_name)
+        if [ "$(params.dry-run)" == "true" ]; then
+          echo "🧪🩺 DRY run mode enabled."
+          echo "aws s3 cp $f s3://${bucket_name}/${target_f} --acl public-read"
+          echo "🧪🩺 Uploaded $f to path ${target_f} of bucket ${bucket_name}."
+        else
+          aws s3 cp $f s3://${bucket_name}/${target_f} --acl public-read
+          echo "✅ Uploaded $f to path ${target_f} of bucket ${bucket_name}."
+        fi
