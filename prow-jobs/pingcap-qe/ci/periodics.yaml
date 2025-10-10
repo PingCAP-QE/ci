@@ -45,7 +45,7 @@ periodics:
 
               start_date=$(date -v-7d +%Y-%m-%d)
               end_date=$(date +%Y-%m-%d)
-              email_subject="Flaky Tests Report of pingcap/tidb repository between ${start_date} and ${end_date}"
+              email_subject="Flaky Tests Report of $PARAM_REPO repository (branch: $PARAM_BRANCH) between ${start_date} and ${end_date}"
 
               deno run --allow-env --allow-net --allow-write ${script_url} \
                 --repo ${PARAM_REPO} \
