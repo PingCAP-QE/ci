@@ -34,7 +34,7 @@ periodics:
       activeDeadlineSeconds: 300
       containers:
         - name: main
-          image: denoland/deno:2.5.2
+          image: denoland/deno:2.5.4
           command: [bash, -c]
           args:
             - |
