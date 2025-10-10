@@ -47,11 +47,21 @@ func (clc *ErrorLogChecker) CheckPRDiff(repoName, diff string) ([]Match, error) 
 			continue
 		}
 
+		// Check if current file is excluded at repository level
+		if matchesAnyPattern(currentFile, repo.Excludes) {
+			continue
+		}
+
 		// Remove the + prefix for pattern matching
 		content := strings.TrimPrefix(line, "+")
 
 		// Check against all patterns for this repository
 		for _, pattern := range repo.Patterns {
+			// Check if current file is excluded for this specific pattern
+			if matchesAnyPattern(currentFile, pattern.Excludes) {
+				continue
+			}
+
 			if pattern.compiled.MatchString(content) {
 				matches = append(matches, Match{
 					Pattern:     pattern.Name,

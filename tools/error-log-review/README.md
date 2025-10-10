@@ -61,6 +61,7 @@ The tool uses a YAML configuration file to define:
 
 - Repository-specific log patterns to detect
 - Required approvers for each repository
+- Exclusion patterns to skip certain files/directories
 - Global behavior settings
 
 See `config.yaml.example` for a detailed configuration template with comments.
@@ -74,9 +75,15 @@ repositories:
       - name: "pattern_name"
         description: "Pattern description"
         regex: "regular_expression"
+        excludes:  # Optional: pattern-specific exclusions
+          - "tests/**"
+          - "*_test.go"
     approvers:
       - "github_username1"
       - "github_username2"
+    excludes:  # Optional: repository-level exclusions (apply to all patterns)
+      - "vendor/**"
+      - "third_party/**"
 
 settings:
   min_approvals: 1
@@ -84,6 +91,41 @@ settings:
   check_behavior:
     mode: "check_and_fail"  # or "check_and_warn"
 ```
+
+### Exclusion Patterns
+
+You can exclude files from being checked using glob patterns at two levels:
+
+1. **Pattern-specific excludes**: Apply only to specific patterns
+   ```yaml
+   patterns:
+     - name: "string_literals"
+       regex: "..."
+       excludes:
+         - "tests/**"           # Exclude all files under tests/ directory
+         - "*_test.go"          # Exclude all Go test files
+         - "examples/**"        # Exclude all files under examples/ directory
+   ```
+
+2. **Repository-level excludes**: Apply to all patterns in the repository
+   ```yaml
+   repositories:
+     - name: "owner/repo"
+       excludes:
+         - "vendor/**"
+         - "third_party/**"
+       patterns:
+         - name: "..."
+   ```
+
+Glob pattern syntax:
+- `*` matches any sequence of non-separator characters
+- `**` at the end of a path matches that directory and all subdirectories
+- `?` matches any single non-separator character
+- Examples:
+  - `tests/**` - matches all files under tests/ directory and subdirectories
+  - `*_test.go` - matches all test files in the root directory
+  - `pkg/*/test.go` - matches test.go in any immediate subdirectory of pkg/
 
 ## Exit Codes
 
