@@ -11,17 +11,29 @@ repositories:
       - name: "string_literals"
         description: "Pattern for string literals in Go logging"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\([^"]*"([^"]+)"[^)]*\)'
+        # Optional: Exclude specific paths from this pattern (glob patterns)
+        excludes:
+          - "tests/**"           # Exclude all files under tests/ directory
+          - "*_test.go"          # Exclude all Go test files
+          - "examples/**"        # Exclude all files under examples/ directory
 
       # Pattern to match variables and function calls in log statements
       - name: "variables_and_functions"
         description: "Pattern for variables and function calls in Go logging"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
+        # This pattern doesn't have excludes, so it applies to all files
 
     # List of GitHub usernames who can approve error log changes for this repository
     approvers:
       - "maintainer1"
       - "maintainer2"
       - "security-team-lead"
+    
+    # Optional: Global excludes for all patterns in this repository
+    # These work in addition to pattern-specific excludes
+    # excludes:
+    #   - "vendor/**"
+    #   - "third_party/**"
 
   # Example Rust project configuration
   - name: "tikv/tikv"
