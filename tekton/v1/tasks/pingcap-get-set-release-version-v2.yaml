@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: pingcap-get-set-release-version-v2
@@ -21,7 +22,7 @@ spec:
     - name: cleanup-tags
       image: alpine/git:v2.49.1
       workingDir: $(workspaces.source.path)
-      resources:
+      computeResources:
         requests:
           memory: 512Mi
           cpu: "100m"
