@@ -100,7 +100,7 @@ spec:
         - name: githubtoken
           mountPath: /etc/github-set-status
 
-      image: python:3.13
+      image: python:3.14
       script: |
         #!/usr/bin/env python3
 
