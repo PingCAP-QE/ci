@@ -89,7 +89,7 @@ spec:
             taskServiceAccountName: image-releaser
             stepOverrides:
               - name: build
-                resources:
+                computeResources:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
@@ -104,7 +104,7 @@ spec:
                 storageClassName: hyperdisk-rwo
                 accessModes:
                   - ReadWriteOnce
-                resources:
+                computeResources:
                   requests:
                     storage: $(tt.params.source-ws-size)
           # - name: cargo-home # for linux platforms

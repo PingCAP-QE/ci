@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: pingcap-git-clone-ext
@@ -115,7 +116,7 @@ spec:
     - name: get
       image: alpine/git:v2.49.1
       workingDir: $(workspaces.output.path)/$(params.master-directory)
-      resources:
+      computeResources:
         requests:
           memory: 512Mi
           cpu: "100m"

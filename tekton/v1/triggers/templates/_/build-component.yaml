@@ -33,7 +33,7 @@ spec:
       default: "4"
     - name: ce-context
       description: cloud event context.
-      default: '{}'
+      default: "{}"
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
@@ -81,7 +81,7 @@ spec:
             taskServiceAccountName: image-releaser
             stepOverrides:
               - name: build
-                resources:
+                computeResources:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
@@ -96,7 +96,7 @@ spec:
                 storageClassName: hyperdisk-rwo
                 accessModes:
                   - ReadWriteOnce
-                resources:
+                computeResources:
                   requests:
                     storage: $(tt.params.source-ws-size)
           # - name: git-basic-auth # fetch with git-cdn.
@@ -154,7 +154,7 @@ spec:
             taskServiceAccountName: image-releaser
             stepOverrides:
               - name: build
-                resources:
+                computeResources:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
@@ -169,7 +169,7 @@ spec:
                 storageClassName: hyperdisk-rwo
                 accessModes:
                   - ReadWriteOnce
-                resources:
+                computeResources:
                   requests:
                     storage: $(tt.params.source-ws-size)
           # - name: cargo-home
