@@ -117,8 +117,8 @@ presubmits:
                 cleanup
             resources:
               requests:
-                cpu: "6"
-                memory: 12Gi
+                cpu: "3"
+                memory: 6Gi
               limits:
                 cpu: "6"
                 memory: 12Gi
