@@ -4,7 +4,7 @@ spec:
   securityContext:
     fsGroup: 1000
   containers:
-    - name: tikv
+    - name: builder
       image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.4.24-10-g9c32f77-centos7-devtoolset10
       tty: true
       resources:

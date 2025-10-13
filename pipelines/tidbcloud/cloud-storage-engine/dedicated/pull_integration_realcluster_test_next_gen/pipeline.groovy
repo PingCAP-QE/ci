@@ -18,7 +18,6 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile MAIN_POD_TEMPLATE_FILE
-            defaultContainer 'golang'
         }
     }
     options {
@@ -56,7 +55,7 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS) {
-                        container('tikv') {
+                        container('builder') {
                             sh label: 'build tikv server and worker', script: '''#!/usr/bin/env bash
                                 set -euo pipefail
 
