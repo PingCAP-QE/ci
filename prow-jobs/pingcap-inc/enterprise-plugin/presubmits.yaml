@@ -17,11 +17,7 @@ presubmits:
   pingcap-inc/enterprise-plugin:
     - <<: [*decoration, *brancher]
       name: pull-build
-      # * uncomment it when the job is stable:
-      # skip_if_only_changed: *skip_if_only_changed
-      # * remove it when the job is stable
-      optional: true
-      always_run: false
+      skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
           - name: build
@@ -121,8 +117,8 @@ presubmits:
                 cleanup
             resources:
               requests:
-                cpu: "3"
-                memory: 6Gi
+                cpu: "6"
+                memory: 12Gi
               limits:
-                cpu: "3"
-                memory: 6Gi
+                cpu: "6"
+                memory: 12Gi
