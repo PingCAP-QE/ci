@@ -57,7 +57,9 @@ pipeline {
                 dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS) {
                         container('tikv') {
-                            sh label: 'build tikv server and worker', script: '''
+                            sh label: 'build tikv server and worker', script: '''#!/usr/bin/env bash
+                                set -euo pipefail
+
                                 latest_devtoolset_dir=$(ls -d /opt/rh/devtoolset-* | sort -t- -k2,2nr | head -1)
                                 if [ -d "${latest_devtoolset_dir}" ]; then
                                     source ${latest_devtoolset_dir}/enable
