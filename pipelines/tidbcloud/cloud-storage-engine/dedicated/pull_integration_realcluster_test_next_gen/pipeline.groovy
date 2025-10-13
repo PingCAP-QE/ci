@@ -11,6 +11,7 @@ final TEST_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/
 
 final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
 final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -84,7 +85,7 @@ pipeline {
                                 \${script} \
                                     --pd=${TARGET_BRANCH_PD}-next-gen \
                                     --tidb=${TARGET_BRANCH_TIDB}-next-gen \
-                                    --minio=RELEASE.2025-07-23T15-54-02Z
+                                    --minio=${MINIO_VERSION}
                             """
                             sh "mv -v ${WORKSPACE}/${REFS.repo}/bin/{tikv-server,cse-ctl,tikv-worker} ./"
                         }
