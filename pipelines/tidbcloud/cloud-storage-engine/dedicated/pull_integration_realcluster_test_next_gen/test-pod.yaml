@@ -6,8 +6,6 @@ spec:
   containers:
     - name: golang
       image: "hub.pingcap.net/wangweizhen/tidb_image:go12320241009"
-      securityContext:
-        privileged: true
       tty: true
       resources:
         limits:
