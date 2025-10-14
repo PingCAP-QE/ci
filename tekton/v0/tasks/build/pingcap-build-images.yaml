@@ -44,7 +44,7 @@ spec:
       default: hub.pingcap.net
   steps:
     - name: generate
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       script: |
         git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
 
@@ -102,7 +102,7 @@ spec:
           "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path)
         fi
     - name: add-more-tags
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       script: |
         script="/workspace/build-package-images.sh"
         if [ ! -f "$script" ]; then
@@ -114,7 +114,7 @@ spec:
         cp -r $(workspaces.dockerconfig.path) ~/.docker # need the credentials.
         "$script" -P -t -o $(results.pushed.path) # -P means disable build and push the image.
     - name: collect-multi-arch
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       script: |
         script="/workspace/build-package-images.sh"
         if [ ! -f "$script" ]; then

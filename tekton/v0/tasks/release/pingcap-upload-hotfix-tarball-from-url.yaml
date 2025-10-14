@@ -25,7 +25,7 @@ spec:
     - name: aws-secrets
   steps:
     - name: upload
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       workingDir: /workspace
       script: |
         #!/usr/bin/env bash
