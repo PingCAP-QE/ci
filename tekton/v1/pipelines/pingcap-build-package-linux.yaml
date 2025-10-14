@@ -207,7 +207,7 @@ spec:
           operator: notin
           values: ["{}"]
       taskRef:
-        name: pingcap-build-images
+        name: pingcap-deliver-images
       runAfter:
         - build-images
       params:
