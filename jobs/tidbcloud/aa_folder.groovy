@@ -1,0 +1,51 @@
+folder('tidbcloud') {
+    description("Folder for all project in tidbcloud org")
+    properties {
+        folderLibraries {
+            libraries {
+                libraryConfiguration {
+                    // An identifier you pick for this library, to be used in the @Library annotation.
+                    name('tipipeline')
+                    retriever {
+                        modernSCM {
+                            scm {
+                                git {
+                                    remote('https://github.com/PingCAP-QE/ci')
+                                    extensions {
+                                        cloneOption {
+                                            depth(1)
+                                            shallow(true)
+                                            noTags(true)
+                                            reference('/var/lib/scm-git/ci')
+                                            timeout(5)
+                                        }
+                                    }
+                                }
+                            }
+                            // A relative path from the root of the SCM to the root of the library.
+                            libraryPath('libraries/tipipeline')
+                        }
+                    }
+                    // If checked, scripts may select a custom version of the library by appending @someversion in the @Library annotation.
+                    allowVersionOverride(true)
+                    // If checked, versions fetched using this library will be cached on the controller.
+                    cachingConfiguration {
+                        // Determines the amount of time until the cache is refreshed.
+                        // 0 means disable auto refresh
+                        refreshTimeMinutes(0)
+                        // Space separated list of versions to exclude from caching via substring search using .contains() method.
+                        excludedVersionsStr('feature/ fix/ bugfix/')
+                        //Space separated list of versions to include to allow caching via substring search using .contains() method. Ex: "release/ master".
+                        includedVersionsStr('main')
+                    }
+                    // A default version of the library to load if a script does not select another.
+                    defaultVersion('main')
+                    // If checked, scripts will automatically have access to this library without needing to request it via @Library.
+                    implicit(false)
+                    // If checked, any changes in the library will be included in the changesets of a build, and changing the library would cause new builds to run for Pipelines that include this library.
+                    includeInChangesets(true)
+                }
+            }
+        }
+    }
+}
