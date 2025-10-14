@@ -35,7 +35,7 @@ spec:
       description: cloud event context.
       default: "{}"
   resourcetemplates:
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-amd64-
@@ -110,7 +110,7 @@ spec:
           # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-arm64-
