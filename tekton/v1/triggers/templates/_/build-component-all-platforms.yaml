@@ -71,26 +71,27 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
-        podTemplate:
-          nodeSelector:
-            kubernetes.io/arch: amd64
+        taskRunTemplate:
+          podTemplate:
+            nodeSelector:
+              kubernetes.io/arch: amd64
         taskRunSpecs:
           - pipelineTaskName: checkout
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: checkout-ext
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
-            taskServiceAccountName: image-releaser
-            stepOverrides:
+            serviceAccountName: image-releaser
+            stepSpecs:
               - name: build
                 computeResources:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
-            taskServiceAccountName: image-releaser
+            serviceAccountName: image-releaser
           - pipelineTaskName: deliver-images
-            taskServiceAccountName: image-releaser
+            serviceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:
@@ -100,7 +101,7 @@ spec:
                 storageClassName: hyperdisk-rwo
                 accessModes:
                   - ReadWriteOnce
-                computeResources:
+                resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
           # - name: git-basic-auth # fetch with git-cdn.
@@ -148,26 +149,27 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
-        podTemplate:
-          nodeSelector:
-            kubernetes.io/arch: arm64
+        taskRunTemplate:
+          podTemplate:
+            nodeSelector:
+              kubernetes.io/arch: arm64
         taskRunSpecs:
           - pipelineTaskName: checkout
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: checkout-ext
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
-            taskServiceAccountName: image-releaser
-            stepOverrides:
+            serviceAccountName: image-releaser
+            stepSpecs:
               - name: build
                 computeResources:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
-            taskServiceAccountName: image-releaser
+            serviceAccountName: image-releaser
           - pipelineTaskName: deliver-images
-            taskServiceAccountName: image-releaser
+            serviceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:
@@ -177,7 +179,7 @@ spec:
                 storageClassName: hyperdisk-rwo
                 accessModes:
                   - ReadWriteOnce
-                computeResources:
+                resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
           # - name: git-basic-auth # fetch with git-cdn.
@@ -236,7 +238,7 @@ spec:
                 storageClassName: hyperdisk-rwo
                 accessModes:
                   - ReadWriteOnce
-                computeResources:
+                resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
           # - name: git-basic-auth # fetch with git-cdn.
@@ -292,7 +294,7 @@ spec:
                 storageClassName: hyperdisk-rwo
                 accessModes:
                   - ReadWriteOnce
-                computeResources:
+                resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
           # - name: git-basic-auth # fetch with git-cdn.
