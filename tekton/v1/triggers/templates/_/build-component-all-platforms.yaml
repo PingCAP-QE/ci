@@ -89,6 +89,8 @@ spec:
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
             taskServiceAccountName: image-releaser
+          - pipelineTaskName: deliver-images
+            taskServiceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:
@@ -163,6 +165,8 @@ spec:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
+            taskServiceAccountName: image-releaser
+          - pipelineTaskName: deliver-images
             taskServiceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)

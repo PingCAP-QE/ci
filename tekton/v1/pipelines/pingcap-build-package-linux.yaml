@@ -177,7 +177,6 @@ spec:
         name: pingcap-build-images
       runAfter:
         - build-binaries
-      # TODO: currently matrix feature is not support in v0.32.x, we need upgrade the K8S cluster and then upgrade Tekton.
       params:
         - name: os
           value: "$(params.os)"
@@ -202,3 +201,17 @@ spec:
       workspaces:
         - name: source
           workspace: source
+    - name: deliver-images
+      when:
+        - input: "$(params.push)"
+          operator: notin
+          values: ["{}"]
+      taskRef:
+        name: pingcap-build-images
+      runAfter:
+        - build-images
+      params:
+        - name: src
+          value: $(tasks.build-images.results.pushed)
+        - name: src-type
+          value: images-info
