@@ -55,7 +55,7 @@ pipeline {
         stage("Prepare") {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS)) {
                         container('builder') {
                             sh label: 'build tikv server and worker', script: '''#!/usr/bin/env bash
                                 set -euo pipefail
