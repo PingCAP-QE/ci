@@ -26,7 +26,7 @@ spec:
           --config="$(params.delivery-config)" \
           --save_to=/workspace/target-images.yaml
     - name: wait
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       script: |
         cat /workspace/target-images.yaml
 

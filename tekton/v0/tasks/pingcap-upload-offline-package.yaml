@@ -34,7 +34,7 @@ spec:
     - name: aws-secrets-tencent
   steps:
     - name: upload-offline-tarballs
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       workingDir: /workspace
       script: |
         #!/usr/bin/env bash
@@ -87,7 +87,7 @@ spec:
         done
         echo "✅ Uploaded for ${tag} ."
     - name: upload-dm-tarballs-to-s3
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       workingDir: /workspace
       script: |
         #!/usr/bin/env bash

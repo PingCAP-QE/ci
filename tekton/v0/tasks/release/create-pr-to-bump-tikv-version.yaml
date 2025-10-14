@@ -23,7 +23,7 @@ spec:
       default: ghcr.io/pingcap-qe/cd/builders/tikv:v20231116-e1c4b43
   steps:
     - name: analyse
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       script: |
         #!/bin/bash
 
