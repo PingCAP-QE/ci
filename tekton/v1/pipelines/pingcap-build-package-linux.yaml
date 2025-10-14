@@ -203,7 +203,7 @@ spec:
           workspace: source
     - name: deliver-images
       when:
-        - input: "$(params.push)"
+        - input: $(tasks.build-images.results.pushed)
           operator: notin
           values: ["{}"]
       taskRef:
