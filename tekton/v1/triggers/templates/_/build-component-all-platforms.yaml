@@ -35,7 +35,7 @@ spec:
     - name: force-builder-image
       default: ""
   resourcetemplates:
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-linux-amd64-
@@ -112,7 +112,7 @@ spec:
           # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-linux-arm64-
@@ -189,7 +189,7 @@ spec:
           # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-darwin-amd64-
@@ -245,7 +245,7 @@ spec:
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-darwin-arm64-

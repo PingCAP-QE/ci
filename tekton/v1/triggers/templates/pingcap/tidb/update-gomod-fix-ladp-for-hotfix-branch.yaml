@@ -12,7 +12,7 @@ spec:
     - name: golang-image
       default: ghcr.io/pingcap-qe/ci/base:v20231216-14-g77d0cd2-go1.19
   resourcetemplates:
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: TaskRun
       metadata:
         generateName: create-pr-to-update-gomod-fix-ladp-for-hotfix-
@@ -28,8 +28,8 @@ spec:
           kind: Task
           name: create-pr-to-update-gomod-fix-ladp
         podTemplate:
-            nodeSelector:
-              kubernetes.io/arch: "amd64"
+          nodeSelector:
+            kubernetes.io/arch: "amd64"
         workspaces:
           - name: github
             secret:
