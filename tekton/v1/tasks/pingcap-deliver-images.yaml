@@ -50,7 +50,6 @@ spec:
           values: [images-info]
       script: |
         wget -O delivery.yaml $(params.delivery-config-url)
-
         # write param `src` content to temp file
         echo "$(params.src)" > /workspace/src.txt
         deno run --allow-read --allow-write "$(params.generator-script-url)" \
