@@ -1,4 +1,4 @@
-folder('pingcap') {
+folder('tidbcloud') {
     description("Folder for all project in tidbcloud org")
     properties {
         folderLibraries {
