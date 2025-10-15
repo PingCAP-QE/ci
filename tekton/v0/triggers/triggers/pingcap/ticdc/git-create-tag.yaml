@@ -1,11 +1,11 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: tag-create-pingcap-operator
+  name: tag-create-pingcap-ticdc
   labels:
     type: github-tag-create
     github-owner: pingcap
-    github-repo: operator
+    github-repo: ticdc
 spec:
   interceptors:
     - name: filter on repo owner and name and tags
@@ -13,17 +13,16 @@ spec:
       params:
         - name: filter
           value: >-
-            body.repository.full_name == 'pingcap/tidb-operator'
+            body.repository.full_name == 'pingcap/ticdc'
             &&
-            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$')
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+[.]release[.][0-9]+$')
   bindings:
     - ref: github-tag-create
     - { name: component, value: $(body.repository.name) }
-    - { name: os, value: linux }
     - { name: profile, value: release }
-    - { name: timeout, value: 30m }
-    - { name: source-ws-size, value: 10Gi }
-    - { name: builder-resources-memory, value: 8Gi }
-    - { name: builder-resources-cpu, value: "2" }
+    - { name: timeout, value: 20m }
+    - { name: source-ws-size, value: 50Gi }
+    - { name: builder-resources-memory, value: 16Gi }
+    - { name: builder-resources-cpu, value: "4" }
   template:
-    ref: build-component
+    ref: build-component-all-platforms

@@ -10,8 +10,7 @@ metadata:
 spec:
   interceptors:
     - name: filter on repo owner and name and branches
-      ref:
-        name: cel
+      ref: { name: cel }
       params:
         - name: filter
           # support branches:
