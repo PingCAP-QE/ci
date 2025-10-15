@@ -3,13 +3,10 @@ kind: Kustomization
 resources:
   - _/git-create-branch-gomod-update.yaml
   - _/git-create-branch.yaml
+  - _/git-create-tag-build-ng.yaml
   - _/git-create-tag.yaml
+  - _/git-push-branch-build-ng.yaml
   - _/github-pr-labeled-with-lgtm.yaml
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
-  - pingcap/ticdc/git-push-branch-build.yaml
-  - pingcap/tidb/git-push-branch-build.yaml
-  - pingcap/tiflash/git-push-branch-build.yaml
-  - tidbcloud/cloud-storage-engine/git-push-branch-build.yaml
-  - tikv/pd/git-push-branch-build.yaml
   - tikv/tikv/git-create-branch.yaml
   - tikv/tikv/git-create-tag.yaml
