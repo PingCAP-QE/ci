@@ -8,7 +8,5 @@ resources:
   - _/git-push-branch-build-ng.yaml
   - _/github-pr-labeled-with-lgtm.yaml
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
-  - tidbcloud/cloud-storage-engine/git-create-tag.yaml
-  - tidbcloud/cloud-storage-engine/git-push-branch-build.yaml
   - tikv/tikv/git-create-branch.yaml
   - tikv/tikv/git-create-tag.yaml
