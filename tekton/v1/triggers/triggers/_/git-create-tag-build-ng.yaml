@@ -1,0 +1,84 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-tag-build-ng
+  labels:
+    type: github-tag-create
+    profile: next-gen
+spec:
+  interceptors:
+    - name: filter on repo and git tags
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in [
+            'pingcap/ticdc',
+            'pingcap/tidb',
+            'pingcap/tiflash',
+            'tikv/pd',
+            'tidbcloud/cloud-storage-engine',
+            ]
+            &&
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+-nextgen[.][0-9]{6}[.][0-9]+$')
+        - name: overlays
+          value:
+            - key: timeout
+              expression: >-
+                {
+                'pingcap/ticdc': '20m',
+                'pingcap/tidb': '45m',
+                'pingcap/tiflash': '2h',
+                'tikv/pd': '20m',
+                'tidbcloud/cloud-storage-engine': '2h',
+                }[body.repository.full_name]
+            - key: source-ws-size
+              expression: >-
+                {
+                'pingcap/ticdc': '50Gi',
+                'pingcap/tidb': '50Gi',
+                'pingcap/tiflash': '100Gi',
+                'tikv/pd': '50Gi',
+                'tidbcloud/cloud-storage-engine': '100Gi',
+                }[body.repository.full_name]
+            - key: builder-resources-cpu
+              expression: >-
+                {
+                'pingcap/ticdc': '4',
+                'pingcap/tidb': '6',
+                'pingcap/tiflash': '12',
+                'tikv/pd': '6',
+                'tidbcloud/cloud-storage-engine': '12',
+                }[body.repository.full_name]
+            - key: builder-resources-memory
+              expression: >-
+                {
+                'pingcap/ticdc': '16Gi',
+                'pingcap/tidb': '24Gi',
+                'pingcap/tiflash': '48Gi',
+                'tikv/pd': '24Gi',
+                'tidbcloud/cloud-storage-engine': '48Gi',
+                }[body.repository.full_name]
+            - key: component
+              expression: >-
+                body.repository.full_name == 'tidbcloud/cloud-storage-engine'
+                ?
+                'tikv'
+                :
+                body.repository.name
+
+  bindings:
+    - ref: github-tag-create
+    - name: builder-resources-cpu
+      value: $(extensions.builder-resources-cpu)
+    - name: builder-resources-memory
+      value: $(extensions.builder-resources-memory)
+    - { name: component, value: $(extensions.component) }
+    - { name: os, value: linux }
+    - { name: profile, value: next-gen }
+    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/hub }
+    - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - { name: timeout, value: $(extensions.timeout) }
+
+  template:
+    ref: build-component
