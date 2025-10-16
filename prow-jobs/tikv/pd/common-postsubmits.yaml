@@ -12,6 +12,7 @@ postsubmits:
       decorate_config:
         skip_cloning: true
       skip_if_only_changed: *skip_if_only_changed
+      run_if_changed: "^client/.*$"
       branches: *branches
       spec:
         containers:
@@ -24,7 +25,7 @@ postsubmits:
                 git clone https://github.com/pingcap/tidb.git --branch "${PULL_BASE_REF}" ../tidb && cd ../tidb
 
                 ###### update mods that comes from pd repo #####
-                new_pd="$(go list -m github.com/tikv/pd@${PULL_BASE_REF} | awk '{print $1 "@" $2}')"
+                new_pd="$(go list -m github.com/tikv/pd/client@${PULL_BASE_REF} | awk '{print $1 "@" $2}')"
                 echo "new pd: $new_pd"
                 go mod edit --require "$new_pd" go.mod
 
@@ -55,7 +56,7 @@ postsubmits:
                 # commit and push the changes.
                 head_branch="fix/${PULL_BASE_REF}/update-dep-pd"
                 git checkout -b "$head_branch"
-                commit_msg="chore(deps): bump go mod github.com/tikv/pd"
+                commit_msg="chore(deps): bump go mod github.com/tikv/pd/client"
                 git commit -m "$commit_msg"
                 git push -f --set-upstream origin "$head_branch"
 
