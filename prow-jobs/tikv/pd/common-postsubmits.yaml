@@ -76,7 +76,9 @@ postsubmits:
                   --base $PULL_BASE_REF \
                   --head "$head_branch" \
                   --title "$commit_msg" \
-                  --body "$pr_desc"
+                  --body "$pr_desc" \
+                  --reviewer "$REVIEWER" \
+                  --assignee "$ASSIGNEE"
             env:
               - name: REVIEWER
                 value: "rleungx"
