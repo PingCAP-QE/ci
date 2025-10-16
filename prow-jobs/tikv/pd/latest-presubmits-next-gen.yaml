@@ -67,6 +67,9 @@ presubmits:
 
                 # ls -alh covprofile_*
             resources:
+              requests:
+                cpu: "6"
+                memory: "12Gi"
               limits:
                 cpu: "12"
                 memory: 24Gi
