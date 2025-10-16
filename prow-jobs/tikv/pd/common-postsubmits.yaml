@@ -11,7 +11,6 @@ postsubmits:
       decorate: true
       decorate_config:
         skip_cloning: true
-      skip_if_only_changed: *skip_if_only_changed
       run_if_changed: "^client/.*$"
       branches: *branches
       spec:
