@@ -67,9 +67,9 @@ postsubmits:
                 Issue Number: ref #${REF_ISSUE_NUM}
 
                 ### Check List
-                
+
                 Tests <!-- At least one of them must be included. -->
-                
+
                 - [x] Unit test
                 - [ ] Integration test
                 - [ ] Manual test (add detailed scripts or steps below)
