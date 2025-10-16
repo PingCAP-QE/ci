@@ -78,7 +78,12 @@ postsubmits:
                   --title "$commit_msg" \
                   --body "$pr_desc"
             env:
+              - name: REVIEWER
+                value: "rleungx"
+              - name: ASSIGNEE
+                value: "rleungx"
               - name: REF_ISSUE_NUM
+                value: "63997"
                 value: "1074"
               - name: GH_TOKEN
                 valueFrom:
