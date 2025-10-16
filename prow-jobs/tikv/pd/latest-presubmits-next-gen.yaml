@@ -2,6 +2,7 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
+      - ^release-nextgen-\d+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   affinity: &affinity
     nodeAffinity:
