@@ -16,7 +16,7 @@ spec:
             &&
             body.event_data.repository.repo_full_name.matches('/package(s)?')
             &&
-            body.event_data.resources[0].tag.matches('^(master|main|v[0-9]+[.][0-9]+[.][0-9]+(-(beta|rc)[.][0-9]+)?)_(darwin|linux)_(amd64|arm64)$')
+            body.event_data.resources[0].tag.matches('^(master|main|v[0-9]+[.][0-9]+[.][0-9]+(-(beta|rc|release)[.][0-9]+)?)_(darwin|linux)_(amd64|arm64)$')
             &&
             body.event_data.resources[0].resource_url.startsWith('hub-mig.pingcap.net/')
   bindings:
