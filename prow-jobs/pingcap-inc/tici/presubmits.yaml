@@ -23,7 +23,7 @@ presubmits:
       spec:
         containers:
           - name: build-debug
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.8.10-2-gc9e3144
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.10.12-18-g734592b
             command: [/bin/bash, -ce]
             args:
               - |
@@ -52,14 +52,14 @@ presubmits:
                 memory: 12Gi
 
     - <<: *brancher
-      name: pull-e2e
+      name: pull-it
       decorate: true
       decoration_config: *decoration_config
       skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
-          - name: e2e
-            image: ghcr.io/pingcap-qe/ci/tici:v2025.8.10-2-gc9e3144
+          - name: it
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.10.12-18-g734592b
             command: [/bin/bash, -ce]
             env:
               - name: ASSET_DIR
@@ -71,8 +71,37 @@ presubmits:
                 mkdir -p /cache
                 wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > /cache/hdfs-logs-multitenants.json
                 echo "Running tests..."
-                make ci-prepare-test
-                make ci-run-test
+                make ci-prepare-it
+                make ci-run-it
+            resources:
+              requests:
+                cpu: "6"
+                memory: 12Gi
+              limits:
+                cpu: "6"
+                memory: 12Gi
+
+    - <<: *brancher
+      name: pull-e2e
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        containers:
+          - name: e2e
+            image: ghcr.io/pingcap-qe/ci/tici:v2025.10.12-18-g734592b
+            command: [/bin/bash, -ce]
+            env:
+              - name: ASSET_DIR
+                value: /cache
+            args:
+              - |
+                set -ex
+                echo "Preparing test assets..."
+                mkdir -p /cache
+                wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > /cache/hdfs-logs-multitenants.json
+                echo "Running tests..."
+                make ci-e2e
             resources:
               requests:
                 cpu: "6"
