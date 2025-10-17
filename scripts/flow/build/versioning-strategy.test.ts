@@ -62,7 +62,7 @@ Deno.test("compute", () => {
     },
     {
       description:
-        "`release` pre-release tag on release branch and mster branch",
+        "`release` pre-release tag on release branch and master branch",
       gitVer: "v8.5.4-release.1",
       branches: ["master", "release-8.5"],
       expect: {
