@@ -27,7 +27,7 @@ presubmits:
             command: [/bin/bash, -ce]
             args:
               - |
-                set -ex
+                set -exo pipefail
                 # Verify Rust environment
                 echo "Rust version: $(rustc --version)"
                 echo "Cargo version: $(cargo --version)"
@@ -66,7 +66,7 @@ presubmits:
                 value: /cache
             args:
               - |
-                set -ex
+                set -exo pipefail
                 echo "Preparing test assets..."
                 mkdir -p /cache
                 wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > /cache/hdfs-logs-multitenants.json
@@ -96,7 +96,7 @@ presubmits:
                 value: /cache
             args:
               - |
-                set -ex
+                set -exo pipefail
                 echo "Preparing test assets..."
                 mkdir -p /cache
                 wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > /cache/hdfs-logs-multitenants.json
