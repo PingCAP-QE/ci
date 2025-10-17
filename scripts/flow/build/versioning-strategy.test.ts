@@ -53,6 +53,23 @@ Deno.test("compute", () => {
       },
     },
     {
+      description: "`release` pre-release tag on release branch",
+      gitVer: "v8.5.4-release.1",
+      branches: ["release-8.5"],
+      expect: {
+        version: "v8.5.4-release.1",
+      },
+    },
+    {
+      description:
+        "`release` pre-release tag on release branch and master branch",
+      gitVer: "v8.5.4-release.1",
+      branches: ["master", "release-8.5"],
+      expect: {
+        version: "v8.5.4-release.1",
+      },
+    },
+    {
       description: "history style - has new commits after GA tag",
       gitVer: "v8.5.0-2-g1234567",
       branches: ["release-8.5"],
