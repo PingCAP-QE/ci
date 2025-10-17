@@ -123,7 +123,7 @@ export function compute(
     } else {
       console.warn("I will do nothing for this rc version:", rawVersion);
     }
-  } else if (rv.prerelease![0] == "release") {
+  } else if (preRelease.startsWith("release")) {
     console.info("I will do nothing for this release version:", rawVersion);
   } else if (preRelease.startsWith("pre")) {
     newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}`;
