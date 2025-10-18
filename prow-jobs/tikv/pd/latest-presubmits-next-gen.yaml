@@ -45,8 +45,6 @@ presubmits:
       agent: kubernetes
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      optional: true # delete it when the test is stable
-      context: non-block/pull-unit-test-next-gen # delete it when the test is stable
       spec:
         containers:
           - name: test
@@ -70,9 +68,12 @@ presubmits:
 
                 # ls -alh covprofile_*
             resources:
-              limits:
+              requests:
                 cpu: "6"
                 memory: 12Gi
+              limits:
+                cpu: "12"
+                memory: 24Gi
         affinity: *affinity
 
     # WIP
