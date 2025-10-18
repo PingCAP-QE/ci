@@ -25,7 +25,7 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1'
-        OCI_ARTIFACT_HOST = 'hub-mig.pingcap.net'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
