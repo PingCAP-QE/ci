@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1beta1_Task.json
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
@@ -36,11 +37,13 @@ spec:
         # - v1.2.3-beta.4
         # - v1.2.3-rc
         # - v1.2.3-rc.4
+        # - v1.2.3-release.1
+        # - v1.2.3-nextgen.202510.1
         # - v1.2.3
-        # - v1.2.3-(fips|cse|...), but currently we only allow "fips" and "cse" for the range in `()`.
-        if git tag | grep -E "v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|fips|cse)([.][0-9]+)?)?$" > /dev/null; then
+        # - v1.2.3-(fips|nextgen|...), but currently we only allow "fips" and "nextgen" for the range in `()`.
+        if git tag | grep -E "v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|fips|nextgen)([.0-9]+)?)?$" > /dev/null; then
           # Only delete the none-standard tags when the repo has standard semver tags.
-          git tag | grep -vE "^v[0-9]+[.][0-9]+[.][0-9]+(-(((alpha|beta|rc|release)([.].+)?)|fips|cse|202[1-9][0-1][0-9][0-3][0-9]-[0-9a-f]{7,10}))?$" | xargs git tag -d || true
+          git tag | grep -vE "^v[0-9]+[.][0-9]+[.][0-9]+(-(((alpha|beta|rc|release)([.].+)?)|fips|nextgen|202[1-9][0-1][0-9][0-3][0-9]-[0-9a-f]{7,10}))?$" | xargs git tag -d || true
         fi
 
         # delete the date tags

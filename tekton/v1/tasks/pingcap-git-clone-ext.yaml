@@ -146,8 +146,51 @@ spec:
         elif [[ $origin_ref =~ "^(master|main|feature/.*)$" ]]; then
           # trunk and common feature branches.
           EXT_REVERSION="master"
+        elif [[ $origin_ref =~ "^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$" ]]; then
+          # Handle version tags (GA/RC/etc.) by choosing a containing branch in priority:
+          # 1) release-X.Y, 2) any release-*, 3) master (or main), 4) fallback to the tag itself.
+          echo "Detected version tag: $origin_ref - resolving containing branch..."
+
+          # Resolve current commit SHA(the tag's commit SHA).
+          TAG_SHA="$(git rev-parse --verify HEAD)"
+
+          if [ -n "$TAG_SHA" ]; then
+            # Fetch remote branches (unshallow) so we can test containment reliably.
+            git fetch origin "+refs/heads/*:refs/remotes/origin/*" --prune >/dev/null 2>&1 || true
+
+            # All remote branches that contain the tag commit.
+            CONTAINS_LIST="$(git branch -r --contains "$TAG_SHA" 2>/dev/null | sed -E 's#^[ *]*origin/##' | tr -d '\r' || true)"
+            echo "Branches containing $origin_ref ($TAG_SHA):"
+            echo "$CONTAINS_LIST"
+
+            # 1) Prefer exact minor release branch release-X.Y
+            MAJOR_MINOR="$(echo "$origin_ref" | sed -nE 's/^v([0-9]+\.[0-9]+).*$/\1/p')"
+            if [ -n "$MAJOR_MINOR" ] && echo "$CONTAINS_LIST" | grep -qx "release-$MAJOR_MINOR"; then
+              EXT_REVERSION="release-$MAJOR_MINOR"
+              echo "Matched exact minor release branch: $EXT_REVERSION"
+            else
+              # 2) Any release-* branch (choose highest version by -V sort)
+              CANDIDATES="$(echo "$CONTAINS_LIST" | grep -E '^release-.+$' || true)"
+              if [ -n "$CANDIDATES" ]; then
+                EXT_REVERSION="$(echo "$CANDIDATES" | sed 's/^release-//' | sort -t. -k1,1nr -k2,2nr | head -n1 | sed 's/^/release-/')"
+              elif echo "$CONTAINS_LIST" | grep -qx "master"; then
+                EXT_REVERSION="master"
+                echo "Matched master"
+              elif echo "$CONTAINS_LIST" | grep -qx "main"; then
+                  EXT_REVERSION="main"
+                  echo "Matched main"
+              else
+                # 4) Fallback to the tag itself
+                EXT_REVERSION="$origin_ref"
+                echo "No containing branches matched priority. Fallback to tag: $EXT_REVERSION"
+              fi
+            fi
+          else
+            # Tag not found locally (or cannot resolve) - fallback to the tag ref
+            EXT_REVERSION="$origin_ref"
+            echo "Could not resolve tag SHA for $origin_ref. Fallback to tag."
+          fi
         else
-          # GA version tags and RC release branches
           EXT_REVERSION="$origin_ref"
         fi
 
@@ -157,8 +200,6 @@ spec:
 
         echo "🔗 git url: $(cat /workspace/inner-results-url)"
         echo "📝 git reversion: $(cat /workspace/inner-results-revision)"
-
-        # TODO(wuhuizuo): support tag checkout cases.
     - name: clone
       image: "$(params.gitInitImage)"
       env:
