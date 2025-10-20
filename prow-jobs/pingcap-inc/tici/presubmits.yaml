@@ -56,7 +56,6 @@ presubmits:
       decorate: true
       decoration_config: *decoration_config
       skip_if_only_changed: *skip_if_only_changed
-      optional: true # Remove it when it is stable
       spec:
         containers:
           - name: it
@@ -87,6 +86,7 @@ presubmits:
       decorate: true
       decoration_config: *decoration_config
       skip_if_only_changed: *skip_if_only_changed
+      optional: true # Remove it when it is stable
       spec:
         containers:
           - name: e2e
