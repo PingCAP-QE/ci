@@ -172,8 +172,7 @@ spec:
               # 2) Any release-* branch (choose highest version by -V sort)
               CANDIDATES="$(echo "$CONTAINS_LIST" | grep -E '^release-.+$' || true)"
               if [ -n "$CANDIDATES" ]; then
-                EXT_REVERSION="$(echo "$CANDIDATES" | sed 's/^release-//' | sort -Vr | head -n1 | sed 's/^/release-/')"
-                echo "Matched other release branch: $EXT_REVERSION"
+                EXT_REVERSION="$(echo "$CANDIDATES" | sed 's/^release-//' | sort -t. -k1,1nr -k2,2nr | head -n1 | sed 's/^/release-/')"
               elif echo "$CONTAINS_LIST" | grep -qx "master"; then
                 EXT_REVERSION="master"
                 echo "Matched master"
