@@ -32,24 +32,14 @@ function parsePRUrl(
   // expect: /<owner>/<repo>/pull/<number>
   const owner = parts[0];
   const repo = parts[1];
+  if (parts[2] !== "pull") {
+    throw new Error(`Invalid PR URL: not a pull request URL: ${prUrl}`);
+  }
   const pull_number = Number(parts[3]);
   if (!owner || !repo || !Number.isFinite(pull_number)) {
     throw new Error(`Invalid PR URL: ${prUrl}`);
   }
   return { owner, repo, pull_number };
-}
-
-async function getLatestCommitSha(octokit: Octokit, p: {
-  owner: string;
-  repo: string;
-  pull_number: number;
-}): Promise<string> {
-  const { data: commits } = await octokit.rest.pulls.listCommits(p);
-  if (!Array.isArray(commits) || commits.length === 0) {
-    throw new Error("No commits found in the PR");
-  }
-  const commitSha = commits[commits.length - 1]!.sha;
-  return commitSha;
 }
 
 type StatusItem = {
@@ -138,7 +128,7 @@ async function main({ github_private_token, pr_url, check_name }: CliArgs) {
     Deno.exit(1);
   }
 
-  const sha = await getLatestCommitSha(octokit, { owner, repo, pull_number });
+  const sha = pr.data.head.sha;
   console.log(`Last PR commit: ${sha}`);
 
   let contextToSkip = check_name;
