@@ -16,3 +16,4 @@ resources:
   - https://raw.githubusercontent.com/tektoncd/catalog/main/task/kaniko/0.6/kaniko.yaml # kaniko task
   - https://raw.githubusercontent.com/tektoncd/catalog/main/task/ko/0.1/ko.yaml # ko task
   - https://raw.githubusercontent.com/tektoncd/catalog/main/task/tkn/0.4/tkn.yaml # tkn task
+  - release/create-pr-to-add-release-anchor-commit.yaml

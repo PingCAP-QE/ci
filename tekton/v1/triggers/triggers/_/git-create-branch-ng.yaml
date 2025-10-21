@@ -1,0 +1,27 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: branch-create-pingcap-org-bump-placeholder-ng
+  labels:
+    type: github-branch-create
+    github-owner: pingcap
+spec:
+  interceptors:
+    - name: filter on repo owner and name and branches
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in [
+            'pingcap/ticdc',
+            'pingcap/tidb',
+            'pingcap/tiflash',
+            'tidbcloud/cloud-storage-engine',
+            'tikv/pd',
+            ]
+            &&
+            body.ref.matches('^release-nextgen-[0-9]+$')
+  bindings:
+    - ref: github-branch-create
+  template:
+    ref: bump-placeholder-version-in-readme

@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: create-pr-to-add-release-anchor-commit
@@ -51,14 +52,14 @@ spec:
           echo "Current branch is up-to-date(version is: ${version}). Exiting."
             exit 1
           else
-            printf "master" > /workspace/inner-results-branch
-            printf "${branch#v}" > /workspace/inner-results-version
+            echo -n "master" > /workspace/inner-results-branch
+            echo -n "${branch#v}" > /workspace/inner-results-version
           fi
         elif [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           major_minor_version=$(echo "$branch" | cut -d'.' -f1-2)
           next_patch_version=$(echo "$branch" | awk -F. '{print $1"."$2"."($3+1)}')
-          printf "release-${major_minor_version#v}" > /workspace/inner-results-branch
-          printf "${next_patch_version#v}" > /workspace/inner-results-version
+          echo -n "release-${major_minor_version#v}" > /workspace/inner-results-branch
+          echo -n "${next_patch_version#v}" > /workspace/inner-results-version
         elif [[ "$branch" =~ ^release-[0-9]+\.[0-9]+$ ]]; then
           major_minor_version=$(echo "$branch" | cut -d'-' -f2)
           compare_result=$(compare_versions "$version" "v$major_minor_version.0")
