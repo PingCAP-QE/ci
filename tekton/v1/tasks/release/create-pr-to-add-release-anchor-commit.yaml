@@ -64,14 +64,14 @@ spec:
           major_minor_version=$(echo "$branch" | cut -d'-' -f2)
           compare_result=$(compare_versions "$version" "v$major_minor_version.0")
           if [ "$compare_result" -lt 0 ]; then
-            echo -n "$branch" > /workspace/inner-results-branch
-            echo -n "$major_minor_version.0" > /workspace/inner-results-version
+            printf "$branch" > /workspace/inner-results-branch
+            printf "$major_minor_version.0" > /workspace/inner-results-version
           else
           echo "Current branch is up-to-date(version is: ${version}). Exiting."
             exit 1
           fi
         elif [[ "$branch" =~ ^release-nextgen-[0-9]+$ ]]; then
-          echo -n "$branch" > /workspace/inner-results-version
+          printf "$branch" > /workspace/inner-results-version
         else
           echo "Invalid branch format: $branch"
           exit 1
