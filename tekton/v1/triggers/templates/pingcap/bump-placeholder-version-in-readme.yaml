@@ -1,0 +1,29 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: bump-placeholder-version-in-readme
+spec:
+  params:
+    - name: git-url
+      description: The git repository full url
+    - name: git-ref
+      description: The git branch or tag.
+    - name: rust-image
+      default: ghcr.io/pingcap-qe/cd/builders/tikv:v20231116-e1c4b43
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: TaskRun
+      metadata:
+        generateName: create-pr-to-add-release-anchor-commit-
+      spec:
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: branch
+            value: $(tt.params.git-ref)
+        taskRef:
+          name: create-pr-to-add-release-anchor-commit
+        workspaces:
+          - name: github
+            secret:
+              secretName: github

@@ -2,7 +2,7 @@ global_definitions:
   branches: &branches
     - ^feature/v2$
   skip_if_only_changed: &skip_if_only_changed
-    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|OWNERS|OWNERS_ALIASES)$"
   decoration_config: &decoration_config
     timeout: 2h
 
@@ -13,9 +13,7 @@ presubmits:
     - name: pull-e2e
       decorate: true # need add this.
       decoration_config: *decoration_config
-      always_run: false
-      optional: true
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
         nodeSelector:
@@ -35,6 +33,36 @@ presubmits:
                   resources:
                     requests:
                       storage: 500Gi
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+            - /bin/sh
+            - -c
+            - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+            resources:
+              requests:
+                memory: "28Gi"
+                cpu: "1"
+              limits:
+                memory: "28Gi"
+                cpu: "1"
         containers:
           - name: e2e-runner
             image: ubuntu:22.04

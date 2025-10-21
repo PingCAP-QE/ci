@@ -1,0 +1,66 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: push-oci-artifact-to-tiup
+spec:
+  params:
+    - name: image_url
+      description: The OCI artifact full url
+    - name: tag
+      description: The artifact tag
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: TaskRun
+      metadata:
+        generateName: publish-tiup-from-oci-artifact-staging-
+        labels:
+          server: staging
+      spec:
+        taskRef:
+          name: publish-tiup-from-oci-artifact-v2
+        params:
+          - name: artifact-url
+            value: "$(tt.params.image_url)"
+          - name: publisher-url
+            value: http://publisher-staging-mirror.apps.svc
+    - apiVersion: tekton.dev/v1beta1
+      kind: TaskRun
+      metadata:
+        generateName: publish-tiup-from-oci-artifact-prod-
+        labels:
+          server: prod
+      spec:
+        taskRef:
+          name: publish-tiup-from-oci-artifact-v2
+        timeout: 1h
+        params:
+          - name: artifact-url
+            value: "$(tt.params.image_url)"
+          - name: publisher-url
+            value: http://publisher-prod-mirror.apps.svc
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: push-oci-artifact-to-tiup-staging
+spec:
+  params:
+    - name: image_url
+      description: The OCI artifact full url
+    - name: tag
+      description: The artifact tag
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: TaskRun
+      metadata:
+        generateName: publish-tiup-from-oci-artifact-staging-
+        labels:
+          server: staging
+      spec:
+        taskRef:
+          name: publish-tiup-from-oci-artifact-v2
+        params:
+          - name: artifact-url
+            value: "$(tt.params.image_url)"
+          - name: publisher-url
+            value: http://publisher-staging-mirror.apps.svc

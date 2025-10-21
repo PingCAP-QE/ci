@@ -1,0 +1,186 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pingcap-build-package-darwin
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: git-ref
+      type: string
+      default: master
+    - name: git-refspec
+      default: +refs/heads/*:refs/heads/*
+      type: string
+    - name: git-revision
+      default: master
+      type: string
+    - name: component
+      type: string
+      description: |
+        compoent name, supports:
+        - tidb
+        - tikv
+        - pd
+        - tiflash
+        - tiflow
+        - advanced-statefulset
+
+        May be it is an idea to judge it by git-url, but it maybe
+        not a generic way for forked repositories with custom names.
+    - name: os
+      default: darwin
+    - name: arch
+      default: amd64
+    - name: profile
+      default: release
+    - name: push
+      default: "true"
+    - name: registry
+      description: the base OCI registry server for store artifacts, it can be set with prefix repo path.
+      default: "hub.pingcap.net"
+    - name: force-builder-image
+      description: >
+        The builder image to use for building binaries by force, if empty.
+        Default the task will complete one from config in artifacts.git repo.
+      type: string
+      default: ""
+    - name: boskos-server-url
+      description: The URL of the running boskos server
+      default: http://boskos.apps.svc
+  results:
+    - name: pushed-binaries
+      description: pushed binaries.
+      value: "$(tasks.build-binaries.results.pushed)"
+    - name: pushed-images
+      description: pushed images.
+      value: "$(tasks.build-images.results.printed)"
+  workspaces:
+    - name: source
+      description: The workspace where the git repo will be cloned.
+    - name: dockerconfig
+      description: Includes a docker `config.json`
+    - name: git-basic-auth
+      description: secret containing a .gitconfig and .git-credentials file.
+      optional: true
+    - name: mac-ssh-credentials
+      description: secret contains ssh private key in `id_rsa` key for login mac
+  tasks:
+    - name: checkout
+      retries: 2
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: depth
+          value: "0"
+        - name: refspec
+          value: $(params.git-refspec)
+        - name: subdirectory
+          value: $(params.component)
+      workspaces:
+        - name: output
+          workspace: source
+        - name: basic-auth
+          workspace: git-basic-auth
+    - name: checkout-ext
+      runAfter:
+        - checkout
+      taskRef:
+        name: pingcap-git-clone-ext
+      params:
+        - name: master-git-url
+          value: $(params.git-url)
+        - name: master-git-ref
+          value: $(params.git-ref)
+        - name: depth
+          value: "0"
+        - name: refspec
+          value: +refs/heads/*:refs/heads/*
+        - name: master-directory
+          value: $(params.component)
+      workspaces:
+        - name: output
+          workspace: source
+        - name: basic-auth
+          workspace: git-basic-auth
+    - name: get-release-ver
+      runAfter:
+        - checkout
+      taskRef:
+        name: pingcap-get-set-release-version-v2
+      params:
+        - name: git-ref
+          value: $(params.git-ref)
+        - name: git-refspec
+          value: $(params.git-refspec)
+      workspaces:
+        - name: source
+          workspace: source
+          subPath: $(params.component)
+    - name: get-binaries-builder
+      taskRef:
+        name: pingcap-get-builder-image
+      params:
+        - name: component
+          value: "$(params.component)"
+        - name: os
+          value: "$(params.os)"
+        - name: arch
+          value: "$(params.arch)"
+        - name: profile
+          value: "$(params.profile)"
+        - name: version
+          value: "$(tasks.get-release-ver.results.version)"
+        - name: force-builder-image
+          value: "$(params.force-builder-image)"
+    - name: build-binaries
+      runAfter:
+        - checkout-ext
+      taskRef:
+        name: pingcap-build-binaries-darwin
+      params:
+        - name: os
+          value: "$(params.os)"
+        - name: arch
+          value: "$(params.arch)"
+        - name: profile
+          value: "$(params.profile)"
+        - name: component
+          value: "$(params.component)"
+        - name: version
+          value: "$(tasks.get-release-ver.results.version)"
+        - name: git-ref
+          value: "$(tasks.get-release-ver.results.build-ref)"
+        - name: git-sha
+          value: $(tasks.checkout.results.commit)
+        - name: builder-image
+          value: "$(tasks.get-binaries-builder.results.image-url)"
+        - name: release-dir
+          value: build
+        - name: push
+          value: "$(params.push)"
+        - name: registry
+          value: "$(params.registry)"
+        - name: boskos-server-url
+          value: $(params.boskos-server-url)
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: dockerconfig
+        - name: ssh-directory
+          workspace: mac-ssh-credentials
+    - name: build-images
+      when:
+        - input: "$(params.push)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        name: echo
+      params:
+        - name: message
+          value: "'{}'"

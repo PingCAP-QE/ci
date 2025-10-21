@@ -9,8 +9,8 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final TARGET_BRANCH_PD = "master"
-final TARGET_BRANCH_TIKV = "dedicated"
+final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -27,7 +27,7 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'hub-mig.pingcap.net'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     stages {
         stage('Checkout') {
@@ -46,7 +46,7 @@ pipeline {
         stage("Prepare") {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: "binary-nextgen/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                    cache(path: "./bin", includes: '**/*', key: "ng-binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     container("utils") {

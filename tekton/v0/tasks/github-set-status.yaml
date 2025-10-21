@@ -1,0 +1,150 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: github-set-status
+  labels:
+    app.kubernetes.io/version: "0.3"
+  annotations:
+    tekton.dev/categories: Git
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/tags: github
+    tekton.dev/displayName: "set github status"
+    tekton.dev/platforms: "linux/amd64,linux/s390x,linux/ppc64le"
+spec:
+  description: >-
+    This task will set the status of the CI job to the specified value along
+    witha link to the specified target URL where developers can follow the
+    progress of the CI job.
+
+    The `github-set-status` task allows external services to mark GitHub commits
+    with an `error`, `failure`, `pending`, or `success` state, which is then
+    reflected in pull requests involving those commits. Statuses include as well a
+    `description` and a `targetUrl`, to give the user informations about the CI
+    statuses or a direct link to the full log.
+
+  params:
+    - name: git-url
+      description: |
+        The GitHub repository full url, e.g.: https://github.com/tektoncd/catalog.git
+      type: string
+
+    - name: github-token-secret-name
+      description: |
+        The name of the kubernetes secret that contains the GitHub token, default: github
+      type: string
+      default: github
+
+    - name: github-token-secret-key
+      description: |
+        The key within the kubernetes secret that contains the GitHub token, default: token
+      type: string
+      default: token
+
+    - name: sha
+      description: |
+        Commit SHA to set the status for.
+      type: string
+
+    - name: target-url
+      description: |
+        The target URL to associate with this status. This URL will be linked
+        from the GitHub UI to allow users to easily see the source of the
+        status.
+      type: string
+
+    - name: description
+      description: |
+        A short description of the status.
+      type: string
+
+    - name: context
+      description: |
+        The GitHub context, A string label to differentiate this status from
+        the status of other systems. ie: "continuous-integration/tekton"
+      type: string
+
+    - name: state
+      description: |
+        The state of the status. Can be one of the following:
+        `error`, `failure`, `pending`, or `success`.
+      type: string
+
+    - name: github-host-url
+      description: |
+        The GitHub host, adjust this if you run a GitHub enterprise.
+      default: "api.github.com"
+      type: string
+
+    - name: api-path-prefix
+      description: |
+        The API path prefix, GitHub Enterprise has a prefix e.g. /api/v3
+      default: ""
+      type: string
+
+    - name: auth-type
+      description: |
+        The type of authentication to use. You could use the less secure "Basic" for example
+        options: Bearer, token
+      type: string
+      default: token
+
+  volumes:
+    - name: githubtoken
+      secret:
+        secretName: $(params.github-token-secret-name)
+
+  steps:
+    - name: set-status
+      volumeMounts:
+        - name: githubtoken
+          mountPath: /etc/github-set-status
+
+      image: python:3.14
+      script: |
+        #!/usr/bin/env python3
+
+        """This script will set the CI status on GitHub PR"""
+
+        import json
+        import sys
+        import http.client
+        from urllib.parse import urlparse
+
+        github_token = open("/etc/github-set-status/$(params.github-token-secret-key)", "r").read().rstrip()
+
+        repo_full_name = urlparse("$(params.git-url)").path.lstrip("/").rstrip(".git")
+        status_url = "{}/repos/{}/statuses/{}".format("$(params.api-path-prefix)", repo_full_name, "$(params.sha)")
+
+        data = {
+            "state": "$(params.state)",
+            "target_url": "$(params.target-url)",
+            "description": "$(params.description)",
+            "context": "$(params.context)"
+        }
+        print("Sending this data to GitHub: ")
+        print(data)
+
+        authHeader = "$(params.auth-type) " + github_token
+
+        conn = http.client.HTTPSConnection("$(params.github-host-url)")
+        conn.request(
+            "POST",
+            status_url,
+            body=json.dumps(data),
+            headers={
+                "User-Agent": "TektonCD, the peaceful cat",
+                "Authorization": authHeader,
+                "Accept": "application/vnd.github.v3+json ",
+            })
+        resp = conn.getresponse()
+        if not str(resp.status).startswith("2"):
+            print("Error: %d" % (resp.status))
+            print(resp.read())
+            sys.exit(1)
+        else:
+            print("GitHub status {} has been set on {}/{} ".format(
+              "$(params.state)",
+              repo_full_name,
+              "$(params.sha)",
+            ))

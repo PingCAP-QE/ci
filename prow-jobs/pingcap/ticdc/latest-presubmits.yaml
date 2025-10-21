@@ -1,6 +1,7 @@
 global_definitions:
   branches: &branches
     - ^master$
+    - ^release-nextgen-\d+$
     - ^feature/.+
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
@@ -9,7 +10,7 @@ presubmits:
   pingcap/ticdc:
     - name: pingcap/ticdc/pull_cdc_mysql_integration_light
       agent: jenkins
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light|all)(?: .*?)?$"
@@ -29,7 +30,7 @@ presubmits:
     - name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-heavy
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy|all)(?: .*?)?$"
@@ -50,10 +51,10 @@ presubmits:
     - name: pingcap/ticdc/pull_cdc_kafka_integration_light
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-kafka-integration-light
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light"
       branches: *branches
 
@@ -71,10 +72,10 @@ presubmits:
     - name: pingcap/ticdc/pull_cdc_kafka_integration_heavy
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-kafka-integration-heavy
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-heavy"
       branches: *branches
 
@@ -92,11 +93,11 @@ presubmits:
     - name: pingcap/ticdc/pull_cdc_pulsar_integration_light
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-pulsar-integration-light
       optional: true # TODO: change this after the job is ready
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-pulsar-integration-light"
       branches: *branches
 
@@ -114,10 +115,10 @@ presubmits:
     - name: pingcap/ticdc/pull_cdc_storage_integration_light
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-light
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light"
       branches: *branches
 
@@ -135,10 +136,10 @@ presubmits:
     - name: pingcap/ticdc/pull_cdc_storage_integration_heavy
       agent: jenkins
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-heavy
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-heavy"
       branches: *branches
 

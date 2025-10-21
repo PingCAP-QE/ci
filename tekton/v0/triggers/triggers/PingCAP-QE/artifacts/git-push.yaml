@@ -1,0 +1,57 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-push-pingcap-qe-artifacts
+  labels:
+    type: github-branch-push
+    github-owner: pingcap-qe
+    github-repo: artifacts
+spec:
+  interceptors:
+    - name: filter on repo owner and name and branches
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.owner.login == 'PingCAP-QE'
+            &&
+            body.repository.name == 'artifacts'
+            &&
+            body.ref.matches('^refs/heads/(main)$')
+  bindings:
+    - ref: github-branch-push
+  template:
+    spec:
+      params:
+        - name: git-url
+          description: The git repository full url
+        - name: git-ref
+          description: The git branch
+      resourcetemplates:
+        - apiVersion: tekton.dev/v1beta1
+          kind: TaskRun
+          metadata:
+            generateName: update-github-raw-cache-for-artifacts-repo-
+          spec:
+            taskRef:
+              name: ks3utils
+            params:
+              - name: SCRIPT
+                value: |
+                  url="$(tt.params.git-url)"
+                  org=${url#https://github.com/}
+                  org=${org%/*}
+                  repo=${url##*/}
+                  repo=${repo%.git}
+                  branch="$(tt.params.git-ref)"
+                  echo "Downloading from: https://github.com/${org}/${repo}/archive/${branch}.zip"
+
+                  wget "https://github.com/${org}/${repo}/archive/${branch}.zip" -O ${branch}.zip && unzip "${branch}.zip"
+
+                  ks3util sync "${repo}-${branch}" ks3://ee-fileserver/download/raw.githubusercontent.com/${org}/${repo}/${branch} --delete -f
+              - name: ARGS
+                value: []
+            workspaces:
+              - name: secrets
+                secret:
+                  secretName: ks3utilconfig

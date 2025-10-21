@@ -1,0 +1,34 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: bump-tikv-cargo-pkg-version
+spec:
+  params:
+    - name: git-url
+      description: The git repository full url
+    - name: git-ref
+      description: The git branch or tag.
+    - name: rust-image
+      default: ghcr.io/pingcap-qe/cd/builders/tikv:v20231116-e1c4b43
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: TaskRun
+      metadata:
+        generateName: create-pr-to-bump-tikv-version-
+      spec:
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: branch
+            value: $(tt.params.git-ref)
+          - name: rust-image
+            value: $(tt.params.rust-image)
+        taskRef:
+          name: create-pr-to-bump-tikv-version
+        workspaces:
+          - name: github
+            secret:
+              secretName: github
+          # - name: cargo-home
+          #   persistentVolumeClaim:
+          #     claimName: cargo-home

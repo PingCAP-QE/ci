@@ -106,7 +106,7 @@ kind: Pod
 spec:
   containers:
   - name: uploader
-    image: hub.pingcap.net/jenkins/uploader
+    image: hub.pingcap.net/jenkins/uploader:v20250923
     args: ["sleep", "infinity"]
   - name: helm
     image: hub.pingcap.net/jenkins/helm:2.14.1
@@ -458,13 +458,14 @@ pipeline {
                         }
                     }
                     environment {
-                        QINIU_ACCESS_KEY = credentials('qn_access_key');
-                        QINIU_SECRET_KEY = credentials('qiniu_secret_key');
+                        TENCENT_COS_ACCESS_KEY = credentials('operator_v1_tencent_cos_access_key');
+                        TENCENT_COS_SECRET_KEY = credentials('operator_v1_tencent_cos_secret_key');
+                        TENCENT_COS_BUCKET_NAME = credentials('operator_v1_tencent_cos_bucket_name');
                     }
                     stages {
                         stage("charts") {
                             environment {
-                                QINIU_BUCKET_NAME = "charts";
+                                TENCENT_COS_REGION = "ap-beijing";
                             }
                             steps {
                                 unstash "bin"
@@ -473,8 +474,9 @@ pipeline {
                                     for chartItem in ${CHART_ITEMS}
                                     do
                                         chartPrefixName=\$chartItem-${ReleaseTag}
-                                        upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
-                                        upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
+                                        # Upload to Tencent COS
+                                        upload_tencent_cos.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
+                                        upload_tencent_cos.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
                                     done
                                     """
                             }
@@ -482,7 +484,7 @@ pipeline {
                         stage("charts br-federation") {
                             when { expression { BrFederation } }
                             environment {
-                                QINIU_BUCKET_NAME = "charts";
+                                TENCENT_COS_REGION = "ap-beijing";
                             }
                             steps {
                                 unstash "bin"
@@ -490,24 +492,26 @@ pipeline {
                                     cd ${CHARTS_BUILD_DIR}
                                     chartItem=br-federation
                                     chartPrefixName=\$chartItem-${ReleaseTag}
-                                    upload_qiniu.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
-                                    upload_qiniu.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
+                                    # Upload to Tencent COS
+                                    upload_tencent_cos.py \${chartPrefixName}.tgz \${chartPrefixName}.tgz
+                                    upload_tencent_cos.py \${chartPrefixName}.sha256 \${chartPrefixName}.sha256
                                     """
                             }
                         }
                         stage("charts index") {
                             when { expression { !(ReleaseTag in ["latest", "nightly", "test"]) } }
                             environment {
-                                QINIU_BUCKET_NAME = "charts";
+                                TENCENT_COS_REGION = "ap-beijing";
                             }
                             steps {
                                 dir(CHARTS_BUILD_DIR){
                                     sh "curl http://charts.pingcap.org/index.yaml -o index.yaml"
-				    container("helm") {
+			    container("helm") {
                                         sh "helm repo index . --url https://charts.pingcap.org/ --merge index.yaml"
                                     }
                                     sh "cat index.yaml"
-                                    sh "upload_qiniu.py index.yaml index.yaml"
+                                    // Upload to Tencent COS
+                                    sh "upload_tencent_cos.py index.yaml index.yaml"
                                 }
                             }
                         }

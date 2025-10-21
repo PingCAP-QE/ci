@@ -25,7 +25,7 @@ spec:
           memory: 8Gi
           cpu: "4"
     - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.5.11-2-gfd3e259
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:

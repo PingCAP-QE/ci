@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-get-builder-image
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Build binaries for the component.
+  results:
+    - description: The builder image url
+      name: image-url
+      type: string
+  params:
+    - name: component
+      type: string
+    - name: os
+      default: linux
+    - name: arch
+      default: amd64
+    - name: version
+      type: string
+      description: the version to releasing.
+    - name: profile
+      type: string
+      default: release
+      description: >
+        supports: 'release' or 'failpoint' or others.
+    - name: force-builder-image
+      type: string
+      description: >
+        force to use a specific builder image, it will be used as the base
+        image for building binaries.
+      default: ""
+  steps:
+    - name: get
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      script: |
+        if [ -n "$(params.force-builder-image)" ]; then
+          echo "use force builder image: $(params.force-builder-image)"
+          printf "%s" "$(params.force-builder-image)" > $(results.image-url.path)
+          exit 0
+        fi
+
+        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
+
+        out="/workspace/builder-package-artifacts.txt"
+        /workspace/artifacts/packages/scripts/get-package-builder-with-config.sh \
+          $(params.component) \
+          $(params.os) \
+          $(params.arch) \
+          $(params.version) \
+          $(params.profile) \
+          /workspace/artifacts/packages/packages.yaml.tmpl \
+          $out
+
+        printf "%s" "$(cat $out)" > $(results.image-url.path)

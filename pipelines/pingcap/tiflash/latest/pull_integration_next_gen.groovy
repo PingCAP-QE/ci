@@ -17,6 +17,10 @@ String tiflash_commit_hash = null
 Boolean libclara_cache_ready = false
 String libclara_commit_hash = null
 
+final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
+
 pipeline {
     agent {
         kubernetes {
@@ -60,10 +64,10 @@ pipeline {
                     // test build cache, if cache is exist, then skip the following build steps
                     try {
                         dir("test-build-cache") {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build-next-gen')){
+                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')){
                                 // if file README.md not exist, then build-cache-ready is false
                                 build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build-next-gen')}"
+                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('ng-binary', REFS, 'it-build')}"
                                 println "skip build..."
                                 // if build cache not ready, then throw error to avoid cache empty directory
                                 // for the same cache key, if throw error, will skip the cache step
@@ -414,7 +418,7 @@ pipeline {
                     sh label: "change permission", script: """
                         chown -R 1000:1000 ./
                     """
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build-next-gen')){
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')){
                        dir('tests/.build') {
                             sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
@@ -455,8 +459,8 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir("${WORKSPACE}/tiflash") {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build-next-gen')){
-                                    println "restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build-next-gen')}"
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')){
+                                    println "restore from cache key: ${prow.getCacheKey('ng-binary', REFS, 'it-build')}"
                                     sh label: "debug info", script: """
                                     printenv
                                     pwd && ls -alh
@@ -467,10 +471,9 @@ pipeline {
                                         docker ps -a && docker version
                                         """
                                         script {
-                                            def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                            // def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                            def tikvBranch = "dedicated-next-gen_linux_amd64"
-                                            def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                            def pdBranch = component.computeBranchFromPR('pd', TARGET_BRANCH_PD, REFS.pulls[0].title, 'master')
+                                            def tikvBranch = component.computeBranchFromPR('tidb', TARGET_BRANCH_TIKV, REFS.pulls[0].title, 'master')
+                                            def tidbBranch = component.computeBranchFromPR('tidb', TARGET_BRANCH_TIDB, REFS.pulls[0].title, 'master')
 
                                             sh label: "run integration tests", script: """
                                             PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh

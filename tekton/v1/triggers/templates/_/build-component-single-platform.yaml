@@ -1,0 +1,121 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: build-component-single-platform
+spec:
+  params:
+    - name: git-url
+      description: The git repository full url
+    - name: git-refspec
+      default: +refs/heads/*:refs/heads/*
+    - name: git-revision
+      description: The git revision
+    - name: git-ref
+      description: The git branch
+    - name: component
+      description: component name, tidb|tikv|pd|tiflow|tiflash, etc...
+    - name: os
+      default: linux
+    - name: arch
+      default: amd64
+    - name: profile
+      description: build target profile
+      default: release
+    - name: registry
+      default: hub.pingcap.net
+    - name: timeout
+      description: pipeline run timeout
+      default: 2h
+    - name: source-ws-size
+      description: workspace size for source.
+      default: 10Gi
+    - name: builder-resources-memory
+      default: 16Gi
+    - name: builder-resources-cpu
+      default: "4"
+    - name: ce-context
+      description: cloud event context.
+      default: "{}"
+    - name: force-builder-image
+      default: ""
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-$(tt.params.arch)-
+        annotations:
+          "tekton.dev/ce-context": $(tt.params.ce-context)
+          "tibuild.pingcap.net/git-repo": $(tt.params.git-url)
+          "tibuild.pingcap.net/git-ref": $(tt.params.git-ref)
+          "tibuild.pingcap.net/git-revision": $(tt.params.git-revision)
+          "tibuild.pingcap.net/component": $(tt.params.component)
+          "tibuild.pingcap.net/profile": $(tt.params.profile)
+          "tibuild.pingcap.net/platform": $(tt.params.os)/$(tt.params.arch)
+      spec:
+        pipelineRef:
+          name: pingcap-build-package-$(tt.params.os)
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: git-refspec
+            value: $(tt.params.git-refspec)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: git-ref
+            value: $(tt.params.git-ref)
+          - name: component
+            value: $(tt.params.component)
+          - name: profile
+            value: $(tt.params.profile)
+          - name: os
+            value: $(tt.params.os)
+          - name: arch
+            value: $(tt.params.arch)
+          - name: registry
+            value: $(tt.params.registry)
+          - name: force-builder-image
+            value: $(tt.params.force-builder-image)
+          - name: boskos-server-url # for darwin platforms
+            value: http://boskos.apps.svc
+        taskRunTemplate:
+          podTemplate:
+            nodeSelector:
+              kubernetes.io/arch: $(tt.params.arch)
+        taskRunSpecs:
+          - pipelineTaskName: checkout
+            serviceAccountName: github-bot
+          - pipelineTaskName: checkout-ext
+            serviceAccountName: github-bot
+          - pipelineTaskName: build-binaries
+            serviceAccountName: image-releaser
+            stepSpecs:
+              - name: build
+                computeResources:
+                  requests:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
+          - pipelineTaskName: build-images
+            serviceAccountName: image-releaser
+          - pipelineTaskName: deliver-images
+            serviceAccountName: image-releaser
+        timeouts:
+          pipeline: $(tt.params.timeout)
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              spec:
+                storageClassName: hyperdisk-rwo
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: $(tt.params.source-ws-size)
+          # - name: cargo-home # for linux platforms
+          #   persistentVolumeClaim:
+          #     claimName: cargo-home
+          # - name: cypress-cache # for linux platforms
+          #   persistentVolumeClaim:
+          #     claimName: cypress-cache
+          - name: mac-ssh-credentials # for darwin platforms
+            secret:
+              secretName: mac-ssh-credentials

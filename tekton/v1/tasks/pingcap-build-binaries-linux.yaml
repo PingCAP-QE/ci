@@ -1,0 +1,130 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: pingcap-build-binaries-linux
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Build binaries for the component.
+  workspaces:
+    - name: source
+      description: source code.
+    - name: cargo-home
+      description: Cache for cargo packages.
+      mountPath: /workspace/.cargo
+      optional: true
+    - name: cypress-cache
+      description: Cache for cypress installation files.
+      mountPath: /workspace/.cache/Cypress
+      optional: true
+  results:
+    - description: Just built and pushed artifacts, it will be a yaml content.
+      name: pushed
+  params:
+    - name: component
+    - name: os
+      default: linux
+    - name: arch
+      default: amd64
+    - name: version
+      type: string
+      description: the version to releasing.
+    - name: profile
+      type: string
+      default: release
+      description: >
+        supports: 'release' or 'failpoint'.
+    - name: git-ref
+    - name: git-sha
+    - name: builder-image
+      default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+    - name: release-dir
+      default: build
+    - name: push
+      type: string
+      default: "false"
+    - name: registry
+      default: hub.pingcap.net
+  steps:
+    - name: generate
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      results:
+        - name: generated
+          type: string
+      script: |
+        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
+
+        git_ref="$(params.git-ref)"
+        git_sha="$(params.git-sha)"
+        if [ "$git_sha" == "$git_ref" ]; then
+          git_sha=""
+        fi
+
+        out_script="/workspace/build-package-artifacts.sh"
+        /workspace/artifacts/packages/scripts/gen-package-artifacts-with-config.sh \
+          $(params.component) \
+          $(params.os) \
+          $(params.arch) \
+          $(params.version) \
+          $(params.profile) \
+          $git_ref \
+          "$git_sha" \
+          /workspace/artifacts/packages/packages.yaml.tmpl \
+          "$out_script" \
+          $(params.registry)
+
+        if [ -f "$out_script" ]; then
+          echo -n "true" > $(step.results.generated.path)
+          sed -i 's/fetch_file_from_oci_artifact hub.pingcap.net/fetch_file_from_oci_artifact hub-mig.pingcap.net/g' "$out_script"
+          cat "$out_script"
+        else
+          echo -n "false" > $(step.results.generated.path)
+          echo "🤷 no output script generated!"
+          printf '"{}"' > $(task.results.pushed.path)
+        fi
+    - name: build
+      image: "$(params.builder-image)"
+      when:
+        - input: "$(steps.generate.results.generated)"
+          operator: in
+          values: ["true"]
+      workingDir: $(workspaces.source.path)/$(params.component)
+      env:
+        - name: CARGO_NET_GIT_FETCH_WITH_CLI
+          value: "true"
+        # - name: RUSTUP_DIST_SERVER
+        #   value: https://rsproxy.cn
+        # - name: RUSTUP_UPDATE_ROOT
+        #   value: https://rsproxy.cn/rustup
+        # - name: GOPROXY
+        #   value: "http://goproxy.apps.svc,direct"
+        # - name: CARGO_HOME
+        #   value: /workspace/.cargo
+        # - name: NPM_CONFIG_REGISTRY
+        #   value: https://registry.npmmirror.com
+        # - name: CYPRESS_CACHE_FOLDER
+        #   value: /workspace/.cache/Cypress
+      script: |
+        script="/workspace/build-package-artifacts.sh"
+        "$script" -b -a -w "$(params.release-dir)"
+    - name: publish
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      when:
+        - input: "$(steps.generate.results.generated)"
+          operator: in
+          values: ["true"]
+      workingDir: $(workspaces.source.path)/$(params.component)
+      script: |
+        script="/workspace/build-package-artifacts.sh"
+
+        for f in $(find $(params.release-dir) -name "*.tar.gz"); do
+          tar -tf $f
+        done
+
+        oras version
+        # try 2 times.
+        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || \
+        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path)

@@ -1,0 +1,159 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: fake-github-pr
+  labels:
+    type: fake-github-pr
+spec:
+  interceptors:
+    - name: filter on repo
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in [
+              'pingcap/ng-monitoring',
+              'pingcap/tidb',
+              'pingcap/tidb-binlog',
+              'pingcap/tidb-dashboard',
+              'pingcap/tidb-operator',
+              'pingcap/tidb-tools',
+              'pingcap/ticdc',
+              'pingcap/tiflash',
+              'pingcap/tiflow',
+              'pingcap/tiproxy',
+              'tidbcloud/cloud-storage-engine',
+              'tidbcloud/tiflash-cse',
+              'tikv/pd',
+              'tikv/tikv'
+            ]
+            &&
+            ! (header.canonical('ce-paramPlatform') in [
+              'linux/amd64',
+              'linux/arm64',
+              'darwin/amd64',
+              'darwin/arm64'
+            ])
+        - name: overlays
+          value:
+            - key: timeout
+              expression: >-
+                {
+                'pingcap/ticdc': '20m',
+                'pingcap/tidb': '40m',
+                'pingcap/tiflash': '2h',
+                'pingcap/tiflow': '40m',
+                'pingcap/ng-monitoring': '30m',
+                'pingcap/tidb-binlog': '2h',
+                'pingcap/tidb-dashboard': '40m',
+                'pingcap/tidb-operator': '30m',
+                'pingcap/tidb-tools': '1h',
+                'pingcap/tiflash': '2h',
+                'pingcap/tiflow': '40m',
+                'pingcap/tiproxy': '30m',
+                'tidbcloud/cloud-storage-engine': '2h30m',
+                'tidbcloud/tiflash-cse': '2h',
+                'tikv/pd': '40m',
+                'tikv/tikv': '2h30m',
+                }[body.repository.full_name]
+            - key: source-ws-size
+              expression: >-
+                {
+                'pingcap/ticdc': '50Gi',
+                'pingcap/tidb': '50Gi',
+                'pingcap/tiflash': '100Gi',
+                'pingcap/tiflow': '50Gi',
+                'pingcap/ng-monitoring': '8Gi',
+                'pingcap/tidb': '50Gi',
+                'pingcap/tidb-binlog': '100Gi',
+                'pingcap/tidb-dashboard': '8Gi',
+                'pingcap/tidb-operator': '10Gi',
+                'pingcap/tidb-tools': '10Gi',
+                'pingcap/ticdc': '50Gi',
+                'pingcap/tiflash': '100Gi',
+                'pingcap/tiflow': '50Gi',
+                'pingcap/tiproxy': '10Gi',
+                'tidbcloud/cloud-storage-engine': '100Gi',
+                'tidbcloud/tiflash-cse': '100Gi',
+                'tikv/pd': '50Gi',
+                'tikv/tikv': '100Gi',
+                }[body.repository.full_name]
+            - key: builder-resources-cpu
+              expression: >-
+                {
+                'pingcap/ticdc': '4',
+                'pingcap/tidb': '8',
+                'pingcap/tiflash': '16',
+                'pingcap/tiflow': '8',
+                'pingcap/ng-monitoring': '2',
+                'pingcap/tidb': '8',
+                'pingcap/tidb-binlog': '8',
+                'pingcap/tidb-dashboard': '2',
+                'pingcap/tidb-operator': '2',
+                'pingcap/tidb-tools': '4',
+                'pingcap/ticdc': '4',
+                'pingcap/tiflash': '16',
+                'pingcap/tiflow': '8',
+                'pingcap/tiproxy': '4',
+                'tidbcloud/cloud-storage-engine': '16',
+                'tidbcloud/tiflash-cse': '16',
+                'tikv/pd': '8',
+                'tikv/tikv': '16',
+                }[body.repository.full_name]
+            - key: builder-resources-memory
+              expression: >-
+                {
+                'pingcap/ticdc': '16Gi',
+                'pingcap/tidb': '32Gi',
+                'pingcap/tiflash': '64Gi',
+                'pingcap/tiflow': '32Gi',
+                'pingcap/ng-monitoring': '4Gi',
+                'pingcap/tidb': '32Gi',
+                'pingcap/tidb-binlog': '32Gi',
+                'pingcap/tidb-dashboard': '4Gi',
+                'pingcap/tidb-operator': '8Gi',
+                'pingcap/tidb-tools': '16Gi',
+                'pingcap/ticdc': '16Gi',
+                'pingcap/tiflash': '64Gi',
+                'pingcap/tiflow': '32Gi',
+                'pingcap/tiproxy': '16Gi',
+                'tidbcloud/cloud-storage-engine': '64Gi',
+                'tidbcloud/tiflash-cse': '64Gi',
+                'tikv/pd': '32Gi',
+                'tikv/tikv': '64Gi',
+                }[body.repository.full_name]
+            - key: custom-params
+              expression: >-
+                {
+                  'builder-image': header.canonical('ce-paramBuilderImage'),
+                  'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
+                }
+            - key: component
+              expression: >-
+                body.repository.full_name.startsWith('tidbcloud/') ? {
+                  'tidbcloud/tiflash-cse': 'tiflash',
+                  'tidbcloud/cloud-storage-engine': 'tikv',
+                }[body.repository.full_name]
+                : body.repository.name
+  bindings:
+    - ref: github-pr
+    - ref: ce-context
+    - { name: component, value: $(extensions.component) }
+    - { name: profile, value: $(extensions.custom-params.profile) }
+    - { name: timeout, value: $(extensions.timeout) }
+    - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - {
+        name: builder-resources-cpu,
+        value: $(extensions.builder-resources-cpu),
+      }
+    - {
+        name: builder-resources-memory,
+        value: $(extensions.builder-resources-memory),
+      }
+    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/dev }
+    - {
+        name: force-builder-image,
+        value: $(extensions.custom-params.builder-image),
+      }
+  template:
+    ref: build-component-all-platforms

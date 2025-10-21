@@ -1,0 +1,24 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: branch-create-tikv-tikv
+  labels:
+    type: github-branch-create
+    github-owner: tikv
+    github-repo: tikv
+spec:
+  interceptors:
+    - name: filter on repo owner and name and branches
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.owner.login == 'tikv'
+            &&
+            body.repository.name == 'tikv'
+            &&
+            body.ref.matches('^release-[0-9]+[.][0-9]+(-beta[.][0-9]+)?$')
+  bindings:
+    - ref: github-branch-create
+  template:
+    ref: bump-tikv-cargo-pkg-version

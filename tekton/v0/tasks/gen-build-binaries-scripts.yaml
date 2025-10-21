@@ -1,0 +1,50 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: generate-building-scripts-for-tarballs
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  workspaces:
+    - name: output
+  params:
+    - name: component
+    - name: os
+      default: linux
+    - name: arch
+      default: amd64
+    - name: version
+      type: string
+      description: the version to releasing.
+    - name: profile
+      type: string
+      default: release
+      description: >
+        supports: 'release' or 'failpoint'.
+    - name: git-ref
+    - name: git-sha
+    - name: build-image
+      default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+    - name: save-file
+      default: build-package-artifacts.sh
+  steps:
+    - name: generate
+      image: "$(params.build-image)"
+      workingDir: /workspace
+      script: |
+        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git
+
+        /workspace/artifacts/packages/scripts/build-package-artifacts-with-config.sh \
+          $(params.component) \
+          $(params.os) \
+          $(params.arch) \
+          $(params.version) \
+          $(params.profile) \
+          $(params.git-ref) \
+          $(params.git-sha) \
+          /workspace/artifacts/packages/packages.yaml.tmpl \
+          $(workspaces.output.path)/$(params.save-file)
+
+        cat $(workspaces.output.path)/$(params.save-file)

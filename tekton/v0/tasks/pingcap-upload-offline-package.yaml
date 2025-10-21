@@ -1,0 +1,132 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-upload-offline-package
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: CLI
+    tekton.dev/tags: cli
+    tekton.dev/displayName: "aws cli"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    This task performs upload for pingcap's offline packages.
+  params:
+    - name: version
+      type: string
+    - name: edition
+      type: string
+      default: community
+    - name: os
+      default: linux
+    - name: arch
+      type: string
+      default: amd64
+    - name: oci-repo
+      default: "hub.pingcap.net/pingcap/offline-package"
+    - name: dry-run
+      default: "false"
+  workspaces:
+    - name: aws-secrets
+      optional: true
+    - name: aws-secrets-tencent
+  steps:
+    - name: upload-offline-tarballs
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      workingDir: /workspace
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        apk add curl
+
+        if [ ! -f "$(workspaces.aws-secrets-tencent.path)/credentials" ]; then
+          echo "Error: aws-secrets-tencent workspace is not bound."
+          exit 1
+        fi
+
+        mkdir -p ~/.aws
+        cat $(workspaces.aws-secrets-tencent.path)/credentials > ~/.aws/credentials
+        cat $(workspaces.aws-secrets-tencent.path)/config > ~/.aws/config
+        aws configure set plugins.cli_legacy_plugin_path $(find /usr/lib -name site-packages -type d | head -1)
+        aws configure set plugins.endpoint awscli_plugin_endpoint
+
+        bucket_name=$(cat $(workspaces.aws-secrets-tencent.path)/bucket_name)
+
+        repo="$(params.oci-repo)"
+        dl_svr_url="https://internal-do.pingcap.net/dl"
+        FILE_SERVER_URL="http://fileserver.pingcap.net"
+
+        tag="$(params.version)-$(params.edition)_$(params.os)_$(params.arch)"
+        echo "🚀 uploading for ${tag} ..."
+
+        # download the files.
+        curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}"
+        for f in $(curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}" | jq -r '.[]'); do
+          # TODO: skip it if it is uploaded remotely.
+
+          # download from oci artifact.
+          echo "🚀 Downloading $f from ${repo}:${tag} ..."
+          wget -q -O "$f" "${dl_svr_url}/oci-file/${repo}?tag=${tag}&file=$f"
+          echo "✅ Downloaded $f from ${repo}:${tag} ."
+
+          # upload it.
+          target_f=$(echo "$f" | sed 's/-pre//')
+          echo "🚀 Uploading $f ..."
+          if [ "$(params.dry-run)" == "true" ]; then
+            echo "🧪🩺 DRY run mode enabled."
+            aws s3 cp $f s3://${bucket_name}/fake-release/$target_f --acl public-read
+            curl --fail -F fake-release/$f=@${target_f} ${FILE_SERVER_URL}/upload | grep -E 'success'
+          else
+            aws s3 cp $f s3://${bucket_name}/$target_f --acl public-read
+            curl --fail -F release/$target_f=@${f} ${FILE_SERVER_URL}/upload | grep -E 'success'
+          fi
+          echo "✅ Uploaded $f ."
+        done
+        echo "✅ Uploaded for ${tag} ."
+    - name: upload-dm-tarballs-to-s3
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      workingDir: /workspace
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        if [ "$(params.edition)" != "dm" ]; then
+          exit 0
+        fi
+
+        apk add curl
+        if [ ! -f "$(workspaces.aws-secrets.path)/credentials" ]; then
+          echo "Error: aws-secrets workspace is not bound."
+          exit 1
+        fi
+        mkdir -p ~/aws
+        cat $(workspaces.aws-secrets.path)/credentials > ~/.aws/credentials
+        cat $(workspaces.aws-secrets.path)/config > ~/.aws/config
+
+        bucket_name=$(cat $(workspaces.aws-secrets.path)/bucket_name)
+
+        repo="$(params.oci-repo)"
+        dl_svr_url="https://internal-do.pingcap.net/dl"
+
+        tag="$(params.version)-$(params.edition)_$(params.os)_$(params.arch)"
+        echo "🚀 uploading for ${tag} ..."
+
+        # no need to download it again, it is downloaded in previous step.
+
+        # upload them.
+        for f in $(curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}" | jq -r '.[]'); do
+          # upload it.
+          target_f=$(echo "$f" | sed 's/-pre//')
+          echo "🚀 Uploading $f ..."
+          if [ "$(params.dry-run)" == "true" ]; then
+            echo "🧪🩺 DRY run mode enabled."
+            aws s3 cp $f s3://${bucket_name}/fake-release/$target_f --acl public-read
+          else
+            aws s3 cp $f s3://${bucket_name}/$target_f --acl public-read
+          fi
+          echo "✅ Uploaded $f ."
+        done
+        echo "✅ Uploaded for ${tag} ."

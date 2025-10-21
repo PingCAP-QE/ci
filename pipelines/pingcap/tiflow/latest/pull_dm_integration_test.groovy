@@ -49,14 +49,15 @@ pipeline {
                 container("golang") {
                     script {
                         def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                        def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
+                        def pattern = /(^dm\/|^pkg\/|^sync_diff_inspector\/|^go\.mod).*$/
                         println "pr_diff_files: ${pr_diff_files}"
                         // if any diff files start with dm/ or pkg/ or file go.mod, run the dm integration test
+                        // besides, any changes in sync_diff_inspector also need to run test
                         def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
                         if (matched) {
-                            println "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm integration test"
+                            println "matched, some diff files full path start with dm/, sync_diff_inspector/ or pkg/ or go.mod, run the dm integration test"
                         } else {
-                            println "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
+                            println "not matched, all files full path not start with dm/, sync_diff_inspector/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
                             currentBuild.result = 'SUCCESS'
                             skipRemainingStages = true
                             return 0

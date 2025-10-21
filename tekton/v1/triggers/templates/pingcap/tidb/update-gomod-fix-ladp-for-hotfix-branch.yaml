@@ -1,0 +1,36 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: update-pingcap-tidb-gomod-fix-ladp-for-hotfix-branch
+spec:
+  params:
+    - name: git-url
+      description: The git repository full url
+    - name: git-ref
+      description: The git ref
+      default: main
+    - name: golang-image
+      default: ghcr.io/pingcap-qe/ci/base:v20231216-14-g77d0cd2-go1.19
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: TaskRun
+      metadata:
+        generateName: create-pr-to-update-gomod-fix-ladp-for-hotfix-
+      spec:
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: branch
+            value: $(tt.params.git-ref)
+          - name: golang-image
+            value: $(tt.params.golang-image)
+        taskRef:
+          kind: Task
+          name: create-pr-to-update-gomod-fix-ladp
+        podTemplate:
+          nodeSelector:
+            kubernetes.io/arch: "amd64"
+        workspaces:
+          - name: github
+            secret:
+              secretName: github

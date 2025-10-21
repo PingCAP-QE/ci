@@ -1,0 +1,86 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pingcap-compose-offline-pkgs
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Compose TiUP offline deploy packages.
+  results:
+    - description: Just built and pushed images, it will be a yaml content.
+      name: pushed
+      type: string
+  params:
+    - name: os
+      default: linux
+    - name: arch
+      default: amd64
+    - name: version
+      type: string
+      description: the version to releasing.
+    - name: edition
+      type: string
+      default: community
+      description: >
+        supports: 'community' or 'enterprise'.
+    - name: push
+      type: string
+      default: "false"
+    - name: registry
+      default: hub.pingcap.net
+    - name: tiup-mirror
+      description: Product is http://tiup.pingcap.net:8987, Staging is http://tiup.pingcap.net:8988,
+      default: http://tiup.pingcap.net:8988
+  stepTemplate:
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+    env:
+      - name: OUT_SCRIPT
+        value: /workspace/compose-offline-packages-artifacts.sh
+  steps:
+    - name: generate-composing-script
+      resources:
+        requests:
+          cpu: "100m"
+          memory: 1Gi
+      script: |
+        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
+
+        /workspace/artifacts/packages/scripts/gen-package-offline-package-with-config.sh \
+          $(params.os) \
+          $(params.arch) \
+          $(params.version) \
+          $(params.edition) \
+          /workspace/artifacts/packages/offline-packages.yaml.tmpl \
+          "$OUT_SCRIPT" \
+          $(params.tiup-mirror) \
+          $(params.registry)
+
+        if [ -f "$OUT_SCRIPT" ]; then
+          cat "$OUT_SCRIPT"
+        else
+          echo "🤷 no output script generated!"
+          exit 1
+        fi
+    - name: run
+      resources:
+        limits:
+          cpu: "4"
+          memory: 16Gi
+      script: |
+        #! /usr/bin/env bash
+        set -exo pipefail
+
+        mkdir -vp ~/.tiup/{keys,bin}
+
+        # set mirror.
+        tiup mirror set $(params.tiup-mirror) && tiup -v
+
+        if $(params.push); then
+          "$OUT_SCRIPT" -c -r -w build -p -o $(results.pushed.path)
+        else
+          "$OUT_SCRIPT" -c -r -w build
+          printf "%s" "null" > $(results.pushed.path)
+        fi

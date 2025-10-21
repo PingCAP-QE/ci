@@ -1,0 +1,69 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-push-build-failpoint
+  labels:
+    type: github-branch-push
+    profile: failpoint
+spec:
+  interceptors:
+    - name: filter on repo and branch
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in [
+            'pingcap/tidb',
+            'pingcap/tiflash',
+            'tikv/pd',
+            'tikv/tikv',
+            ]
+            &&
+            body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+(-beta[.][0-9]+)?)$')
+        - name: overlays
+          value:
+            - key: timeout
+              expression: >-
+                {
+                'pingcap/tidb': '1h',
+                'pingcap/tiflash': '3h',
+                'tikv/pd': '40m',
+                'tikv/tikv': '2h30m',
+                }[body.repository.full_name]
+            - key: source-ws-size
+              expression: >-
+                {
+                'pingcap/tidb': '50Gi',
+                'pingcap/tiflash': '100Gi',
+                'tikv/pd': '50Gi',
+                'tikv/tikv': '100Gi',
+                }[body.repository.full_name]
+            - key: builder-resources-cpu
+              expression: >-
+                {
+                'pingcap/tidb': '8',
+                'pingcap/tiflash': '16',
+                'tikv/pd': '8',
+                'tikv/tikv': '16',
+                }[body.repository.full_name]
+            - key: builder-resources-memory
+              expression: >-
+                {
+                'pingcap/tidb': '32Gi',
+                'pingcap/tiflash': '64Gi',
+                'tikv/pd': '32Gi',
+                'tikv/tikv': '64Gi',
+                }[body.repository.full_name]
+  bindings:
+    - ref: github-branch-push
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: failpoint }
+    - { name: timeout, value: $(extensions.timeout) }
+    - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - name: builder-resources-cpu
+      value: $(extensions.builder-resources-cpu)
+    - name: builder-resources-memory
+      value: $(extensions.builder-resources-memory)
+
+  template:
+    ref: build-component
