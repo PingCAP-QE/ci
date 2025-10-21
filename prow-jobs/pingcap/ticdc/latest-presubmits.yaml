@@ -98,6 +98,27 @@ presubmits:
                 memory: 24Gi
                 cpu: "12"
 
+    - name: pull-unit-test-next-gen
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: check
+            image: &image ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            command: [bash, -ce]
+            args:
+              - |
+                make unit_test_in_verify_ci_next_gen
+            resources:
+              requests:
+                memory: 24Gi
+                cpu: "12"
+              limits:
+                memory: 24Gi
+                cpu: "12"
+
     - name: pull-build
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
