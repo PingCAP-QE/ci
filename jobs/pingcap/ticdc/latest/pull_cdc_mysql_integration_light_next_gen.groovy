@@ -17,7 +17,7 @@ pipelineJob('pingcap/ticdc/pull_cdc_mysql_integration_light_next_gen') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/ticdc/latest/pull_cdc_mysql_integration_light_next_gen.groovy")
+            scriptPath("pipelines/pingcap/ticdc/latest/pull_cdc_mysql_integration_light_next_gen/pipeline.groovy")
             scm {
                 git{
                     remote {
