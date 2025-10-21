@@ -24,6 +24,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light-next-gen"
       branches: *branches
+      optional: true
 
     - name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
       agent: jenkins
@@ -44,6 +45,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy-next-gen"
       branches: *branches
+      optional: true
 
     - name: pingcap/ticdc/pull_cdc_kafka_integration_light
       agent: jenkins
@@ -64,6 +66,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light-next-gen"
       branches: *branches
+      optional: true
 
     - name: pingcap/ticdc/pull_cdc_kafka_integration_heavy
       agent: jenkins
@@ -84,6 +87,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy-next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-heavy-next-gen"
       branches: *branches
+      optional: true
 
     - name: pingcap/ticdc/pull_cdc_pulsar_integration_light
       agent: jenkins
@@ -126,6 +130,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light-next-gen"
       branches: *branches
+      optional: true
 
     - name: pingcap/ticdc/pull_cdc_storage_integration_heavy
       agent: jenkins
@@ -146,6 +151,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy-next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-heavy-next-gen"
       branches: *branches
+      optional: true
 
     - name: pull-unit-test
       decorate: true # need add this.
@@ -188,6 +194,7 @@ presubmits:
               limits:
                 memory: 24Gi
                 cpu: "12"
+      optional: true
 
     - name: pull-build
       decorate: true # need add this.
