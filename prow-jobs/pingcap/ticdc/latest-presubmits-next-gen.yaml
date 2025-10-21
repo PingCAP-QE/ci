@@ -1,0 +1,128 @@
+global_definitions:
+  branches: &branches
+    - ^master$
+    - ^release-nextgen-\d+$
+    - ^feature/.+
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/ticdc:
+    - name: pingcap/ticdc/pull_cdc_mysql_integration_light_next_gen
+      agent: jenkins
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-mysql-integration-light-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-light-next-gen"
+      branches: *branches
+      optional: true
+
+    - name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-mysql-integration-heavy-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-next-gen|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-heavy-next-gen"
+      branches: *branches
+      optional: true
+
+    - name: pingcap/ticdc/pull_cdc_kafka_integration_light_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-kafka-integration-light-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-light-next-gen"
+      branches: *branches
+      optional: true
+
+    - name: pingcap/ticdc/pull_cdc_kafka_integration_heavy_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-kafka-integration-heavy-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy-next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-heavy-next-gen"
+      branches: *branches
+      optional: true
+
+    - name: pingcap/ticdc/pull_cdc_pulsar_integration_light_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-pulsar-integration-light-next-gen
+      optional: true # TODO: change this after the job is ready
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light-next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-pulsar-integration-light-next-gen"
+      branches: *branches
+
+    - name: pingcap/ticdc/pull_cdc_storage_integration_light_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-storage-integration-light-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-light-next-gen"
+      branches: *branches
+      optional: true
+
+    - name: pingcap/ticdc/pull_cdc_storage_integration_heavy_next_gen
+      agent: jenkins
+      decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-storage-integration-heavy-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy-next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-heavy-next-gen"
+      branches: *branches
+      optional: true
+
+    - name: pull-unit-test-next-gen
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: check
+            image: &image ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            command: [bash, -ce]
+            args:
+              - |
+                make unit_test_in_verify_ci_next_gen
+            resources:
+              requests:
+                memory: 24Gi
+                cpu: "12"
+              limits:
+                memory: 24Gi
+                cpu: "12"
+      optional: true
+
+    - name: pull-build-next-gen
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: build
+            image: *image
+            command: [bash, -ce]
+            args:
+              - |
+                NEXT_GEN=1 make cdc
+            resources: &resources
+              requests:
+                memory: 12Gi
+                cpu: "6"
+              limits:
+                memory: 24Gi
+                cpu: "6"
