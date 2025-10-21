@@ -107,12 +107,12 @@ pipeline {
                             }
                         }
                     }
-                }
-                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                    sh label: "prepare", script: """
-                        cp -r ../third_party_download/bin/* ./bin/
-                        ls -alh ./bin
-                    """
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
+                        sh label: "prepare", script: """
+                            cp -r ../third_party_download/bin/* ./bin/
+                            ls -alh ./bin
+                        """
+                    }
                 }
             }
         }
