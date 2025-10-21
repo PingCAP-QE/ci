@@ -139,7 +139,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
-                            dir('ticdc') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                     container("kafka") {
                                         timeout(time: 6, unit: 'MINUTES') {
