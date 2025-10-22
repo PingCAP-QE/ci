@@ -13,9 +13,8 @@ presubmits:
   tidbcloud/cloud-storage-engine:
     - <<: [*brancher, *jenkins_job]
       name: tidbcloud/cloud-storage-engine/dedicated/pull_integration_realcluster_test_next_gen
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true # remove it when all tests are passed
-      always_run: false # remove it when all tests are passed
-      context: pull-integration-realcluster-test-next-gen
+      context: non-block/pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-realcluster-test-next-gen"
