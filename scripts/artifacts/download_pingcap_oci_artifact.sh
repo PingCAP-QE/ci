@@ -92,7 +92,7 @@ function main() {
     fi
     if [[ -n "$TIKV_WORKER" ]]; then
         echo "🚀 start download TiKV worker"
-        download_and_extract_with_path "$tikv_oci_url" '^tikv-worker-v.+.tar.gz$' tikv.tar.gz tikv-worker
+        download_and_extract_with_path "$tikv_worker_oci_url" '^tikv-worker-v.+.tar.gz$' tikv.tar.gz tikv-worker
         chmod +x tikv-worker
         echo "🎉 download TiKV worker success"
     fi
@@ -210,6 +210,7 @@ function parse_cli_args() {
     tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
+    tikv_worker_oci_url="${registry_host}/tikv/tikv/package:${TIKV_WORKER}_${tag_suffix}"
     pd_oci_url="${registry_host}/tikv/pd/package:${PD}_${tag_suffix}"
     pd_ctl_oci_url="${registry_host}/tikv/pd/package:${PD_CTL}_${tag_suffix}"
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
