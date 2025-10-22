@@ -16,6 +16,7 @@ spec:
             'pingcap/ticdc',
             'pingcap/tidb',
             'pingcap/tiflash',
+            'pingcap/tiproxy',
             'tikv/pd',
             'tidbcloud/cloud-storage-engine',
             ]
@@ -29,6 +30,7 @@ spec:
                 'pingcap/ticdc': '20m',
                 'pingcap/tidb': '45m',
                 'pingcap/tiflash': '2h',
+                'pingcap/tiproxy': '20m',
                 'tikv/pd': '20m',
                 'tidbcloud/cloud-storage-engine': '2h',
                 }[body.repository.full_name]
@@ -38,6 +40,7 @@ spec:
                 'pingcap/ticdc': '50Gi',
                 'pingcap/tidb': '50Gi',
                 'pingcap/tiflash': '100Gi',
+                'pingcap/tiproxy': '50Gi',
                 'tikv/pd': '50Gi',
                 'tidbcloud/cloud-storage-engine': '100Gi',
                 }[body.repository.full_name]
@@ -47,6 +50,7 @@ spec:
                 'pingcap/ticdc': '4',
                 'pingcap/tidb': '6',
                 'pingcap/tiflash': '12',
+                'pingcap/tiproxy': '4',
                 'tikv/pd': '6',
                 'tidbcloud/cloud-storage-engine': '12',
                 }[body.repository.full_name]
@@ -56,6 +60,7 @@ spec:
                 'pingcap/ticdc': '16Gi',
                 'pingcap/tidb': '24Gi',
                 'pingcap/tiflash': '48Gi',
+                'pingcap/tiproxy': '16Gi',
                 'tikv/pd': '24Gi',
                 'tidbcloud/cloud-storage-engine': '48Gi',
                 }[body.repository.full_name]

@@ -16,6 +16,7 @@ spec:
             'pingcap/ticdc',
             'pingcap/tidb',
             'pingcap/tiflash',
+            'pingcap/tiproxy',
             'tidbcloud/cloud-storage-engine',
             'tikv/pd',
             ]
