@@ -90,6 +90,7 @@ pipeline {
                                             --tikv=${TARGET_BRANCH_TIKV}-next-gen \
                                             --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
                                             --tidb=${TARGET_BRANCH_TIDB}-next-gen \
+                                            --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
                                             --minio=RELEASE.2025-07-23T15-54-02Z
                                     """
                                 }
