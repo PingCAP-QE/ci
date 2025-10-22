@@ -96,7 +96,8 @@ pipeline {
 
                                         ls -d tiflash
                                         mv tiflash tiflash-dir
-                                        mv tiflash-dir/tiflash .
+                                        mv tiflash-dir/* .
+                                        rm -rf tiflash-dir
                                     """
                                 }
                             }
