@@ -7,7 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
-final POD_TEMPLATE_FILE = 'pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
