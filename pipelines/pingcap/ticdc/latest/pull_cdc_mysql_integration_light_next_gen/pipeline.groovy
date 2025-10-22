@@ -91,6 +91,10 @@ pipeline {
                                             --tidb=${TARGET_BRANCH_TIDB}-next-gen \
                                             --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
                                             --minio=RELEASE.2025-07-23T15-54-02Z
+
+                                        ls -d tiflash
+                                        mv tiflash tiflash-dir
+                                        mv tiflash-dir/tiflash .
                                     """
                                 }
                             }
