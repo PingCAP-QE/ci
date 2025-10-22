@@ -108,16 +108,6 @@ spec:
         limits:
           memory: 128Mi
           cpu: 600m
-    - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
-      tty: true
-      resources:
-        requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
-          cpu: "1"
-          memory: 4Gi
     - name: mysql
       image: quay.io/debezium/example-mysql:2.4
       imagePullPolicy: IfNotPresent
