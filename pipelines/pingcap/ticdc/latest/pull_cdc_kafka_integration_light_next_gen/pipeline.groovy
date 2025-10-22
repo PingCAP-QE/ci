@@ -84,7 +84,7 @@ pipeline {
                         dir("bin") {
                             script {
                                 retry(2) {
-                                    sh label: "download third_party", script: """
+                                    sh label: "download tidb components", script: """
                                         export next_gen_artifact_script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                         chmod +x $next_gen_artifact_script
                                         ${next_gen_artifact_script} \
