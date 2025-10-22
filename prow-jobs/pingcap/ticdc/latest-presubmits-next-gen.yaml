@@ -105,13 +105,17 @@ presubmits:
                 memory: 24Gi
                 cpu: "12"
       optional: true
+      run_before_merge: true
       trigger: "(?m)^/test (?:.*? )?(pull-unit-test-next-gen|all)(?: .*?)?$"
+      rerun_command: "/test pull-unit-test-next-gen"
 
     - name: pull-build-next-gen
       decorate: true # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
+      run_before_merge: true
       trigger: "(?m)^/test (?:.*? )?(pull-build-next-gen|all)(?: .*?)?$"
+      rerun_command: "/test pull-build-next-gen"
       branches:
         - ^master$
       spec:
