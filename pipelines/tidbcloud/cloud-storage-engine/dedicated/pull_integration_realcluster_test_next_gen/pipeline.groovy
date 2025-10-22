@@ -5,6 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final BRANCH_ALIAS = 'dedicated'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = "${REFS.org}/${REFS.repo}"
 final MAIN_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/main-pod.yaml"
 final TEST_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/test-pod.yaml"
@@ -36,7 +37,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
                             }
                         }
                     }
@@ -45,7 +46,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                component.checkout('git@github.com:pingcap/tidb.git', 'tidb', TARGET_BRANCH_TIDB, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -58,19 +59,25 @@ pipeline {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS)) {
                         container('builder') {
                             sh label: 'build tikv server and worker', script: '''#!/usr/bin/env bash
-                                set -euo pipefail
+                                set -eo pipefail
 
-                                latest_devtoolset_dir=$(ls -d /opt/rh/devtoolset-* | sort -t- -k2,2nr | head -1)
-                                if [ -d "${latest_devtoolset_dir}" ]; then
-                                    source ${latest_devtoolset_dir}/enable
-                                fi
-                                if [ "$(uname -m)" == "aarch64" ]; then
-                                    export JEMALLOC_SYS_WITH_LG_PAGE=16
+                                if ls -l bin/{tikv-server,cse-ctl,tikv-worker} && [ $? -eq 0 ]; then
+                                    echo "💾 Binary already exists (restored from cache)."
+                                else
+                                    echo "🚀 Binary not found. Proceeding with build."
+                                    latest_devtoolset_dir=$(ls -d /opt/rh/devtoolset-* | sort -t- -k2,2nr | head -1)
+                                    if [ -d "${latest_devtoolset_dir}" ]; then
+                                        source ${latest_devtoolset_dir}/enable
+                                    fi
+                                    if [ "$(uname -m)" == "aarch64" ]; then
+                                        export JEMALLOC_SYS_WITH_LG_PAGE=16
+                                    fi
+
+                                    make release
+                                    mkdir bin
+                                    mv -v target/release/{tikv-server,cse-ctl,tikv-worker} bin/
                                 fi
 
-                                make release
-                                mkdir bin
-                                cp -v target/release/{tikv-server,cse-ctl,tikv-worker} bin/
                                 bin/tikv-server -V | grep -E "^Edition:.*Cloud Storage Engine"
                             '''
                         }
@@ -79,7 +86,9 @@ pipeline {
                 dir('tidb') {
                     container("utils") {
                         dir('bin') {
-                            sh """
+                            sh label: 'download peer component binaries', script: """#!/usr/bin/env bash
+                                set -eo pipefail
+
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
                                 \${script} \
@@ -87,7 +96,9 @@ pipeline {
                                     --tidb=${TARGET_BRANCH_TIDB}-next-gen \
                                     --minio=${MINIO_VERSION}
                             """
-                            sh "mv -v ${WORKSPACE}/${REFS.repo}/bin/{tikv-server,cse-ctl,tikv-worker} ./"
+                            sh """#!/usr/bin/env bash
+                                cp -v ${WORKSPACE}/${REFS.repo}/bin/{tikv-server,cse-ctl,tikv-worker} ./
+                            """
                         }
                     }
                     // cache it for other pods
@@ -133,7 +144,6 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
-                        options { timeout(time: 50, unit: 'MINUTES') }
                         environment {
                             MINIO_BIN_PATH = "bin/minio"
                         }
