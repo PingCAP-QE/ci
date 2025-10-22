@@ -61,22 +61,23 @@ pipeline {
                             sh label: 'build tikv server and worker', script: '''#!/usr/bin/env bash
                                 set -eo pipefail
 
-                                if ls -l bin/{tikv-server,cse-ctl,tikv-worker}; then
-                                    echo "Binary already exists (restored from cache)."
-                                    exit 0
+                                if ls -l bin/{tikv-server,cse-ctl,tikv-worker} && [ $? -eq 0 ]; then
+                                    echo "💾 Binary already exists (restored from cache)."
+                                else
+                                    echo "🚀 Binary not found. Proceeding with build."
+                                    latest_devtoolset_dir=$(ls -d /opt/rh/devtoolset-* | sort -t- -k2,2nr | head -1)
+                                    if [ -d "${latest_devtoolset_dir}" ]; then
+                                        source ${latest_devtoolset_dir}/enable
+                                    fi
+                                    if [ "$(uname -m)" == "aarch64" ]; then
+                                        export JEMALLOC_SYS_WITH_LG_PAGE=16
+                                    fi
+
+                                    make release
+                                    mkdir bin
+                                    cp -v target/release/{tikv-server,cse-ctl,tikv-worker} bin/
                                 fi
 
-                                latest_devtoolset_dir=$(ls -d /opt/rh/devtoolset-* | sort -t- -k2,2nr | head -1)
-                                if [ -d "${latest_devtoolset_dir}" ]; then
-                                    source ${latest_devtoolset_dir}/enable
-                                fi
-                                if [ "$(uname -m)" == "aarch64" ]; then
-                                    export JEMALLOC_SYS_WITH_LG_PAGE=16
-                                fi
-
-                                make release
-                                mkdir bin
-                                cp -v target/release/{tikv-server,cse-ctl,tikv-worker} bin/
                                 bin/tikv-server -V | grep -E "^Edition:.*Cloud Storage Engine"
                             '''
                         }
