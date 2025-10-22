@@ -9,6 +9,11 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+final tidbBranch = "master"
+final pdBranch = "master"
+final tikvBranch = "dedicated"
+final tiflashBranch = "master"
+
 pipeline {
     agent {
         kubernetes {
@@ -75,19 +80,10 @@ pipeline {
                         """
                     }
                     container("utils") {
-                        dir("third_party_download") {
+                        dir("bin") {
                             script {
-                                def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
                                 retry(2) {
                                     sh label: "download third_party", script: """
-                                        export TIDB_BRANCH=${tidbBranch}
-                                        export PD_BRANCH=${pdBranch}
-                                        export TIKV_BRANCH=${tikvBranch}
-                                        export TIFLASH_BRANCH=${tiflashBranch}
-
                                         export next_gen_artifact_script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                         chmod +x $next_gen_artifact_script
                                         ${next_gen_artifact_script} \
@@ -96,24 +92,24 @@ pipeline {
                                             --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
                                             --minio=RELEASE.2025-07-23T15-54-02Z
 
-                                        cd ../ticdc && ./tests/scripts/download-integration-test-binaries-next-gen.sh ${REFS.base_ref} && ls -alh ./bin
-                                        make check_third_party_binary
-                                        cd - && mkdir -p bin && mv ../ticdc/bin/* ./bin/
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tiflash --version
                                     """
                                 }
                             }
                         }
-                    }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
+                        dir(REFS.repo) {
+                            script {
+                                retry(2) {
+                                    sh label: "download third_party", script: """
+                                        ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
+                                    """
+                                }
+                            }
+                        }
+                        cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
+                            sh label: "prepare", script: """
+                                ls -alh ./bin
+                            """
+                        }
                     }
                 }
             }
@@ -141,10 +137,18 @@ pipeline {
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_light_it_in_ci.sh storage ${TEST_GROUP}
+                                    sh """
+                                        make check_third_party_binary
+                                        ls -alh ./bin
+                                        ./bin/tidb-server -V
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/tiflash --version
                                     """
                                 }
+                                sh label: "${TEST_GROUP}", script: """
+                                    ./tests/integration_tests/run_light_it_in_ci.sh storage ${TEST_GROUP}
+                                """
                             }
                         }
                         post {
