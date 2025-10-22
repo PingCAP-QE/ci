@@ -71,7 +71,6 @@ pipeline {
                         // build cdc, pulsar_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
-                            ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
                             [ -f ./bin/cdc_pulsar_consumer ] || make pulsar_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
