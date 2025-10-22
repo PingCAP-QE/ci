@@ -6,6 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = 'pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -66,7 +67,7 @@ pipeline {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'cdc-integration-test')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
