@@ -10,10 +10,10 @@ final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = 'pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final tidbBranch = "master"
-final pdBranch = "master"
-final tikvBranch = "dedicated"
-final tiflashBranch = "master"
+final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIFLASH = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
 
 pipeline {
     agent {
@@ -88,22 +88,20 @@ pipeline {
                                         export next_gen_artifact_script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                         chmod +x $next_gen_artifact_script
                                         ${next_gen_artifact_script} \
-                                            --pd=${pdBranch}-next-gen \
-                                            --tikv=${tikvBranch}-next-gen \
-                                            --tikv-worker=${tikvBranch}-next-gen \
-                                            --tidb=${tidbBranch}-next-gen \
+                                            --pd=${TARGET_BRANCH_PD}-next-gen \
+                                            --tikv=${TARGET_BRANCH_TIKV}-next-gen \
+                                            --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
+                                            --tidb=${TARGET_BRANCH_TIDB}-next-gen \
                                             --minio=RELEASE.2025-07-23T15-54-02Z
                                     """
                                 }
                             }
                         }
-                        dir(REFS.repo) {
-                            script {
-                                retry(2) {
-                                    sh label: "download third_party", script: """
-                                        ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
-                                    """
-                                }
+                        script {
+                            retry(2) {
+                                sh label: "download third_party", script: """
+                                    ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
+                                """
                             }
                         }
                         cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
@@ -112,7 +110,6 @@ pipeline {
                             """
                         }
                     }
-                }
             }
         }
 
