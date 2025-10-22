@@ -96,18 +96,18 @@ pipeline {
                                 }
                             }
                         }
-                        script {
-                            retry(2) {
-                                sh label: "download third_party", script: """
-                                    ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
-                                """
-                            }
-                        }
-                        cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                            sh label: "prepare", script: """
-                                ls -alh ./bin
+                    }
+                    script {
+                        retry(2) {
+                            sh label: "download third_party", script: """
+                                ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
                             """
                         }
+                    }
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
+                        sh label: "prepare", script: """
+                            ls -alh ./bin
+                        """
                     }
                 }
             }
