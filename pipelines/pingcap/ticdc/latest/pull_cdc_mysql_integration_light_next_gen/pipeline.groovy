@@ -82,7 +82,7 @@ pipeline {
                             script {
                                 retry(2) {
                                     sh label: "download tidb components", script: """
-                                        export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                        export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
                                         chmod +x \$script
                                         \$script \
                                             --pd=${TARGET_BRANCH_PD}-next-gen \
