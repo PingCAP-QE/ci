@@ -75,7 +75,7 @@ pipeline {
 
                                     make release
                                     mkdir bin
-                                    cp -v target/release/{tikv-server,cse-ctl,tikv-worker} bin/
+                                    mv -v target/release/{tikv-server,cse-ctl,tikv-worker} bin/
                                 fi
 
                                 bin/tikv-server -V | grep -E "^Edition:.*Cloud Storage Engine"
