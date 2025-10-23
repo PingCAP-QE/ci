@@ -71,6 +71,13 @@ spec:
                 'tikv'
                 :
                 body.repository.name
+            - key: profile
+              expression: >-
+                body.repository.full_name == 'pingcap/tiproxy'
+                ?
+                'release'
+                :
+                'next-gen'
 
   bindings:
     - ref: github-tag-create
@@ -80,7 +87,7 @@ spec:
       value: $(extensions.builder-resources-memory)
     - { name: component, value: $(extensions.component) }
     - { name: os, value: linux }
-    - { name: profile, value: next-gen }
+    - { name: profile, value: $(extensions.profile) }
     - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/hub }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
     - { name: timeout, value: $(extensions.timeout) }
