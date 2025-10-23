@@ -1,0 +1,47 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-push-build-ng-pingcap-ticdc
+  labels:
+    type: github-branch-push
+    profile: next-gen
+    github-owner: pingcap
+    github-repo: ticdc
+spec:
+  interceptors:
+    - name: filter on repo and branches
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name == 'pingcap/ticdc'
+            &&
+            body.ref.matches('^refs/heads/(master|release-nextgen-[0-9]+|release-8\.5)$')
+        - name: overlays
+          value:
+            - key: timeout
+              expression: "'20m'"
+            - key: source-ws-size
+              expression: "'50Gi'"
+            - key: builder-resources-cpu
+              expression: "'4'"
+            - key: builder-resources-memory
+              expression: "'16Gi'"
+            - key: component
+              expression: "body.repository.name"
+
+  bindings:
+    - ref: github-branch-push
+    - name: builder-resources-cpu
+      value: $(extensions.builder-resources-cpu)
+    - name: builder-resources-memory
+      value: $(extensions.builder-resources-memory)
+    - { name: component, value: $(extensions.component) }
+    - { name: os, value: linux }
+    - { name: profile, value: next-gen }
+    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/hub }
+    - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - { name: timeout, value: $(extensions.timeout) }
+
+  template:
+    ref: build-component
