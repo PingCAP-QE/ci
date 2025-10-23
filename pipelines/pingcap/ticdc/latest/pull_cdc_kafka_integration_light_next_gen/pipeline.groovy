@@ -89,6 +89,7 @@ pipeline {
                                         chmod +x \$script
                                         \$script \
                                             --pd=${TARGET_BRANCH_PD}-next-gen \
+                                            --pd-ctl=${TARGET_BRANCH_PD}-next-gen \
                                             --tikv=${TARGET_BRANCH_TIKV}-next-gen \
                                             --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
                                             --tidb=${TARGET_BRANCH_TIDB}-next-gen \
