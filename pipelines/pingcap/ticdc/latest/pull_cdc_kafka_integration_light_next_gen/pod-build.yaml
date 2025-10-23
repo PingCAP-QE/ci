@@ -9,7 +9,7 @@ spec:
       tty: true
       resources:
         limits:
-          memory: 32Gi
+          memory: 16Gi
           cpu: "12"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
@@ -17,7 +17,7 @@ spec:
       resources:
         limits:
           memory: 128Mi
-          cpu: 600m
+          cpu: 100m
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true

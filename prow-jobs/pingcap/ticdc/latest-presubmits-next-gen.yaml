@@ -11,7 +11,7 @@ presubmits:
     - name: pingcap/ticdc/pull_cdc_mysql_integration_light_next_gen
       agent: jenkins
       # skip_if_only_changed: *skip_if_only_changed
-      run_before_merge: true
+      # run_before_merge: true
       context: pull-cdc-mysql-integration-light-next-gen
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light-next-gen"
@@ -22,7 +22,7 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
-      run_before_merge: true
+      # run_before_merge: true
       context: pull-cdc-mysql-integration-heavy-next-gen
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy-next-gen"
@@ -33,9 +33,9 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
-      run_before_merge: true
+      # run_before_merge: true
       context: pull-cdc-kafka-integration-light-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light-next-gen"
       branches: *branches
       optional: true
@@ -44,9 +44,9 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
-      run_before_merge: true
+      # run_before_merge: true
       context: pull-cdc-kafka-integration-heavy-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy-next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-heavy-next-gen"
       branches: *branches
       optional: true
@@ -55,10 +55,10 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
-      run_before_merge: true
+      # run_before_merge: true
       context: pull-cdc-pulsar-integration-light-next-gen
       optional: true # TODO: change this after the job is ready
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light-next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-pulsar-integration-light-next-gen"
       branches: *branches
 
@@ -66,9 +66,9 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
-      run_before_merge: true
+      # run_before_merge: true
       context: pull-cdc-storage-integration-light-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light-next-gen"
       branches: *branches
       optional: true
@@ -77,9 +77,9 @@ presubmits:
       agent: jenkins
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
-      run_before_merge: true
+      # run_before_merge: true
       context: pull-cdc-storage-integration-heavy-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy-next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-heavy-next-gen"
       branches: *branches
       optional: true
@@ -105,11 +105,17 @@ presubmits:
                 memory: 24Gi
                 cpu: "12"
       optional: true
+      # run_before_merge: true
+      trigger: "(?m)^/test (?:.*? )?(pull-unit-test-next-gen|all)(?: .*?)?$"
+      rerun_command: "/test pull-unit-test-next-gen"
 
     - name: pull-build-next-gen
       decorate: true # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
+      # run_before_merge: true
+      trigger: "(?m)^/test (?:.*? )?(pull-build-next-gen|all)(?: .*?)?$"
+      rerun_command: "/test pull-build-next-gen"
       branches:
         - ^master$
       spec:

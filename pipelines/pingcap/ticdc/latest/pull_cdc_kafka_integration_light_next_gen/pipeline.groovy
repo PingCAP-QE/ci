@@ -7,7 +7,8 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
-final POD_TEMPLATE_FILE = 'pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
+final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
@@ -19,7 +20,7 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yamlFile POD_TEMPLATE_FILE_BUILD
             defaultContainer 'golang'
         }
     }
@@ -71,7 +72,6 @@ pipeline {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
-                            ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
                             [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
                             [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
@@ -84,31 +84,38 @@ pipeline {
                         dir("bin") {
                             script {
                                 retry(2) {
-                                    sh label: "download third_party", script: """
-                                        export next_gen_artifact_script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                                        chmod +x $next_gen_artifact_script
-                                        ${next_gen_artifact_script} \
+                                    sh label: "download tidb components", script: """
+                                        export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        chmod +x \$script
+                                        \$script \
                                             --pd=${TARGET_BRANCH_PD}-next-gen \
+                                            --pd-ctl=${TARGET_BRANCH_PD}-next-gen \
                                             --tikv=${TARGET_BRANCH_TIKV}-next-gen \
                                             --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
                                             --tidb=${TARGET_BRANCH_TIDB}-next-gen \
+                                            --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
                                             --minio=RELEASE.2025-07-23T15-54-02Z
+
+                                        ls -d tiflash
+                                        mv tiflash tiflash-dir
+                                        mv tiflash-dir/* .
+                                        rm -rf tiflash-dir
                                     """
                                 }
                             }
                         }
-                        script {
-                            retry(2) {
-                                sh label: "download third_party", script: """
-                                    ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
-                                """
-                            }
-                        }
-                        cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                            sh label: "prepare", script: """
-                                ls -alh ./bin
+                    }
+                    script {
+                        retry(2) {
+                            sh label: "download third_party", script: """
+                                ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
                             """
                         }
+                    }
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
+                        sh label: "prepare", script: """
+                            ls -alh ./bin
+                        """
                     }
                 }
             }
