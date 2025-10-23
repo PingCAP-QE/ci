@@ -92,7 +92,7 @@ function main() {
     fi
     if [[ -n "$TIKV_WORKER" ]]; then
         echo "🚀 start download TiKV worker"
-        download_and_extract_with_path "$tikv_oci_url" '^tikv-worker-v.+.tar.gz$' tikv.tar.gz tikv-worker
+        download_and_extract_with_path "$tikv_worker_oci_url" '^tikv-worker-v.+.tar.gz$' tikv.tar.gz tikv-worker
         chmod +x tikv-worker
         echo "🎉 download TiKV worker success"
     fi
@@ -101,6 +101,12 @@ function main() {
         download_and_extract_with_path "$pd_oci_url" '^pd-v.+.tar.gz$' pd.tar.gz pd-server
         chmod +x pd-server
         echo "🎉 download PD server success"
+    fi
+    if [[ -n "$PD_CTL" ]]; then
+        echo "🚀 start download pd-ctl"
+        download_and_extract_with_path "$pd_ctl_oci_url" '^pd-ctl-v.+.tar.gz$' pd.tar.gz pd-ctl
+        chmod +x pd-ctl
+        echo "🎉 download pd-ctl success"
     fi
     if [[ -n "$TIFLASH" ]]; then
         echo "🚀 start download TiFlash"
@@ -139,6 +145,10 @@ function parse_cli_args() {
         ;;
         -pd=*|--pd=*)
         PD="${i#*=}"
+        shift # past argument=value
+        ;;
+        -pd-ctl=*|--pd-ctl=*)
+        PD_CTL="${i#*=}"
         shift # past argument=value
         ;;
         -tikv=*|--tikv=*)
@@ -182,6 +192,7 @@ function parse_cli_args() {
     [[ -n "${TIKV}" ]]          && echo "TIKV        = ${TIKV}"
     [[ -n "${TIKV_WORKER}" ]]   && echo "TIKV_WORKER = ${TIKV_WORKER}"
     [[ -n "${PD}" ]]            && echo "PD          = ${PD}"
+    [[ -n "${PD_CTL}" ]]        && echo "PD_CTL      = ${PD_CTL}"
     [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
     [[ -n "${TICDC}" ]]         && echo "TICDC       = ${TICDC}"
     [[ -n "${TICDC_NEW}" ]]     && echo "TICDC_NEW   = ${TICDC_NEW}"
@@ -199,7 +210,9 @@ function parse_cli_args() {
     tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
+    tikv_worker_oci_url="${registry_host}/tikv/tikv/package:${TIKV_WORKER}_${tag_suffix}"
     pd_oci_url="${registry_host}/tikv/pd/package:${PD}_${tag_suffix}"
+    pd_ctl_oci_url="${registry_host}/tikv/pd/package:${PD_CTL}_${tag_suffix}"
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
     ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
     minio_oci_url="${registry_host}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
