@@ -27,7 +27,7 @@ periodics:
               cpu: 200m
   - name: periodic-reporter-flaky-tests-tidb
     decorate: true # need add this.
-    cron: "0 1 * * 5" # Run weekly at 9:00 UTC+8 (which is 1:00 UTC) every Friday
+    cron: "0 6 * * 5" # Run weekly at 14:00 UTC+8 (which is 6:00 UTC) every Friday
     hidden: true
     spec:
       activeDeadlineSeconds: 300
