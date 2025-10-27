@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-set -euo pipefail
+set -uo pipefail
 
 check_tools() {
     # Check if jq is installed
@@ -18,16 +18,15 @@ check_tools() {
 
 # get the last exact images for next-gen components.
 fetch_next_gen_exact_tags() {
-    repo="$1"
-    tag="$2"
-
-    commit_sha=$(crane config $repo:$tag | jq -r '.config.Labels["net.pingcap.tibuild.git-sha"]')
-    short_commit_sha=$(echo $commit_sha | cut -c1-7)
-    commit_img_tag=""
+    local repo="$1"
+    local tag="$2"
+    local commit_sha=$(crane config $repo:$tag | jq -r '.config.Labels["net.pingcap.tibuild.git-sha"]')
+    local short_commit_sha=$(echo $commit_sha | cut -c1-7)
+    local commit_img_tag=""
     if [[ $repo == */tiproxy ]]; then
-        commit_img_tag="$(crane ls $repo | grep -E "\-g${short_commit_sha}[0-9a-f]*$")"
+        commit_img_tag="$(crane ls $repo | grep -E "\-g${short_commit_sha}[0-9a-f]*$" | head -1)"
     else
-        commit_img_tag="$(crane ls $repo | grep -E "\-${short_commit_sha}[0-9a-f]*" | grep -E "\bnext(-)?gen\b")"
+        commit_img_tag="$(crane ls $repo | grep -E "\-${short_commit_sha}[0-9a-f]*" | grep -E "\bnext(-)?gen\b" | head -1)"
     fi
     if [[ -z $commit_img_tag ]]; then
         echo "  📦 $repo:$tag"
