@@ -103,9 +103,9 @@ fetch_all() {
     echo "🚀 Fetch images built from tikv/pd..."
     trunk_branch=master
     release_branch=release-nextgen-20251011
-    repo=gcr.io/pingcap-public/dbaas/pd
-    fetch_next_gen_exact_tags gcr.io/pingcap-public/dbaas/pd "${trunk_branch}-next-gen"
-    fetch_next_gen_exact_tags gcr.io/pingcap-public/dbaas/pd $release_branch
+    img_repo="gcr.io/pingcap-public/dbaas/pd"
+    fetch_next_gen_exact_tags "$img_repo" "${trunk_branch}-next-gen"
+    fetch_next_gen_exact_tags "$img_repo" "$release_branch"
 
     echo "🎉🎉🎉 All gotten"
 }
