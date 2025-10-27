@@ -80,7 +80,7 @@ pipeline {
                         """
                     }
                     container("utils") {
-                        dir("third_party_download") {
+                        dir("bin") {
                             script {
                                 retry(2) {
                                     sh label: "download tidb components", script: """
@@ -142,10 +142,18 @@ pipeline {
                         steps {
                             dir('ticdc') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_heavy_it_in_ci.sh storage ${TEST_GROUP}
+                                    sh """
+                                        make check_third_party_binary
+                                        ls -alh ./bin
+                                        ./bin/tidb-server -V
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/tiflash --version
                                     """
                                 }
+                                sh label: "${TEST_GROUP}", script: """
+                                    ./tests/integration_tests/run_heavy_it_in_ci.sh storage ${TEST_GROUP}
+                                """
                             }
                         }
                         post {
