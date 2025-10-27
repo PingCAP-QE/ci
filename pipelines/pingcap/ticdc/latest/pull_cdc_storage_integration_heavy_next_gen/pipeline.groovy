@@ -140,7 +140,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
-                            dir('ticdc') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                     sh """
                                         make check_third_party_binary
