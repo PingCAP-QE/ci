@@ -6,7 +6,7 @@ A Bash utility that resolves human-friendly branch tags to the exact, content-ad
 
 ### Overview
 
-The `ci/scripts/ops/nextgen/get-next-gen-exact-image-tags.sh` script:
+The `scripts/ops/nextgen/get-next-gen-exact-image-tags.sh` script:
 - Reads the `net.pingcap.tibuild.git-sha` label from a given image tag
 - Derives the short commit SHA
 - Finds the exact image tag built from that commit (next-gen flavored), validating its existence via digest lookup
