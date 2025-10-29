@@ -12,7 +12,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
-final OCI_TAG_TICDC = "master-next-gen"
 
 prow.setPRDescription(REFS)
 pipeline {
