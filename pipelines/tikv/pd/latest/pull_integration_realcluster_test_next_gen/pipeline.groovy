@@ -1,28 +1,29 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master and latest release branches
 @Library('tipipeline') _
 
 final BRANCH_ALIAS = 'latest'
-final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final K8S_NAMESPACE = "jenkins-tidb"
-final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_FULL_REPO_NAME = "${REFS.org}/${REFS.repo}"
+final MAIN_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/main-pod.yaml"
+final TEST_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/test-pod.yaml"
 
-final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIFLASH = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
 final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
+final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
+            yamlFile MAIN_POD_TEMPLATE_FILE
         }
     }
     options {
-        timeout(time: 65, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         // parallelsAlwaysFailFast() // disable for debug.
     }
     environment {
@@ -41,24 +42,44 @@ pipeline {
                         }
                     }
                 }
+                dir('tidb') {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkout('git@github.com:pingcap/tidb.git', 'tidb', TARGET_BRANCH_TIDB, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                            }
+                        }
+                    }
+                }
             }
         }
-        stage("Prepare") {
+        stage('Prepare') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, "tidb-server")) {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS)) {
+                        container('builder') {
+                            sh label: 'pd-server', script: '[ -f bin/pd-server ] || WITH_RACE=1 RUN_CI=1 make pd-server-basic'
+                            sh 'bin/pd-server -V'
+                        }
                     }
+                }
+                dir('tidb') {
                     container("utils") {
                         dir('bin') {
-                            sh """
+                            sh label: 'download peer component binaries', script: """#!/usr/bin/env bash
+                                set -eo pipefail
+
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
                                 \${script} \
-                                    --pd=${TARGET_BRANCH_PD}-next-gen \
+                                    --tidb=${TARGET_BRANCH_TIDB}-next-gen \
                                     --tikv=${TARGET_BRANCH_TIKV}-next-gen \
                                     --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
-                                    --minio=RELEASE.2025-07-23T15-54-02Z
+                                    --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
+                                    --minio=${MINIO_VERSION}
+                            """
+                            sh """#!/usr/bin/env bash
+                                cp -v ${WORKSPACE}/${REFS.repo}/bin/pd-server ./
                             """
                         }
                     }
@@ -100,17 +121,16 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yamlFile TEST_POD_TEMPLATE_FILE
                     }
                 }
                 stages {
                     stage('Test')  {
-                        options { timeout(time: 50, unit: 'MINUTES') }
                         environment {
                             MINIO_BIN_PATH = "bin/minio"
                         }
                         steps {
-                            dir(REFS.repo) {
+                            dir('tidb') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
@@ -129,7 +149,7 @@ pipeline {
                         }
                         post {
                             always {
-                                dir(REFS.repo) {
+                                dir('tidb') {
                                     // archive test report to Jenkins.
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                                 }
@@ -141,8 +161,8 @@ pipeline {
                                             --header "ce-id: \$(uuidgen)" \
                                             --header "ce-source: \${JENKINS_URL}" \
                                             --header 'ce-type: test-case-run-report' \
-                                            --header 'ce-repo: ${REFS.org}/${REFS.repo}' \
-                                            --header 'ce-branch: ${REFS.base_ref}' \
+                                            --header 'ce-repo: pingcap/tidb' \
+                                            --header 'ce-branch: ${TARGET_BRANCH_TIDB}' \
                                             --header "ce-buildurl: \${BUILD_URL}" \
                                             --header 'ce-specversion: 1.0' \
                                             --header 'content-type: application/json; charset=UTF-8' \
@@ -152,7 +172,7 @@ pipeline {
                                 }
                             }
                             unsuccessful {
-                                dir(REFS.repo) {
+                                dir('tidb') {
                                     sh label: "archive log", script: """
                                     str="$SCRIPT_AND_ARGS"
                                     logs_dir="logs_\$(echo \"\$str\" | tr ' /' '_')"
