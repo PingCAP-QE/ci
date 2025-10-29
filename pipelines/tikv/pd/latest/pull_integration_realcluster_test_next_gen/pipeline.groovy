@@ -58,7 +58,6 @@ pipeline {
                 dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS)) {
                         container('builder') {
-
                             sh label: 'pd-server', script: '[ -f bin/pd-server ] || WITH_RACE=1 RUN_CI=1 make pd-server-basic'
                             sh 'bin/pd-server -V'
                         }
