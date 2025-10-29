@@ -6,9 +6,9 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-periodics_tidb_next_gen_smoke_test.yaml'
-final TARGET_BRANCH_TIDB = "master"
-final TARGET_BRANCH_PD = "master"
-final TARGET_BRANCH_TIKV = "dedicated"
+final OCI_TAG_TIDB = "master"
+final OCI_TAG_PD = "master"
+final OCI_TAG_TIKV = "dedicated"
 
 pipeline {
     agent {
@@ -44,28 +44,28 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${TARGET_BRANCH_TIDB}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${OCI_TAG_TIDB}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', TARGET_BRANCH_TIDB, "", trunkBranch=TARGET_BRANCH_TIDB, timeout=5, credentialsId="")
+                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', OCI_TAG_TIDB, "", trunkBranch=OCI_TAG_TIDB, timeout=5, credentialsId="")
                             }
                         }
                     }
                 }
                 dir("pd") {
-                    cache(path: "./", includes: '**/*', key: "git/tikv/pd/rev-${TARGET_BRANCH_PD}", restoreKeys: ['git/tikv/pd/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/tikv/pd/rev-${OCI_TAG_PD}", restoreKeys: ['git/tikv/pd/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutWithMergeBase('https://github.com/tikv/pd.git', 'pd', TARGET_BRANCH_PD, "", trunkBranch=TARGET_BRANCH_PD, timeout=5, credentialsId="")
+                                component.checkoutWithMergeBase('https://github.com/tikv/pd.git', 'pd', OCI_TAG_PD, "", trunkBranch=OCI_TAG_PD, timeout=5, credentialsId="")
                             }
                         }
                     }
                 }
                 dir("tikv") {
-                    cache(path: "./", includes: '**/*', key: "git/tidbcloud/cloud-storage-engine/rev-${TARGET_BRANCH_TIKV}", restoreKeys: ['git/tidbcloud/cloud-storage-engine/rev-']) {
+                    cache(path: "./", includes: '**/*', key: "git/tidbcloud/cloud-storage-engine/rev-${OCI_TAG_TIKV}", restoreKeys: ['git/tidbcloud/cloud-storage-engine/rev-']) {
                         retry(2) {
                             script {
-                                component.checkoutSupportBatch('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', TARGET_BRANCH_TIKV, "", [], GIT_CREDENTIALS_ID)
+                                component.checkoutSupportBatch('git@github.com:tidbcloud/cloud-storage-engine.git', 'tikv', OCI_TAG_TIKV, "", [], GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -77,13 +77,13 @@ pipeline {
                 dir('tikv') {
                     container('rust') {
                         // Cache cargo registry and git dependencies
-                        // Use TARGET_BRANCH_TIKV and the pipeline file name in the key for better scoping
+                        // Use OCI_TAG_TIKV and the pipeline file name in the key for better scoping
                         script {
                             def pipelineIdentifier = env.JOB_BASE_NAME ?: "periodics-tidb-next-gen-smoke-test"
                             // Clean workspace .cargo directory before attempting cache restore/build
                             sh "rm -rf .cargo"
                             // Cache paths relative to the current workspace directory ('tikv')
-                            cache(path: ".cargo/git", key: "cargo-git-ws-tikv-next-gen-${TARGET_BRANCH_TIKV}-${pipelineIdentifier}") {
+                            cache(path: ".cargo/git", key: "cargo-git-ws-tikv-next-gen-${OCI_TAG_TIKV}-${pipelineIdentifier}") {
                                 sh label: "build tikv", script: """
                                     set -e
                                     source /opt/rh/devtoolset-10/enable

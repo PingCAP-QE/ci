@@ -9,9 +9,10 @@ final GIT_FULL_REPO_NAME = "${REFS.org}/${REFS.repo}"
 final MAIN_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/main-pod.yaml"
 final TEST_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/test-pod.yaml"
 
-final TARGET_BRANCH_TIFLASH = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
-final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
-final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
+final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
+final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
+final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master")
 final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
 
 prow.setPRDescription(REFS)
@@ -72,10 +73,10 @@ pipeline {
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
                                 \${script} \
-                                    --tidb=${TARGET_BRANCH_TIDB}-next-gen \
-                                    --tikv=${TARGET_BRANCH_TIKV}-next-gen \
-                                    --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
-                                    --tiflash=${TARGET_BRANCH_TIFLASH}-next-gen \
+                                    --tidb=${OCI_TAG_TIDB} \
+                                    --tikv=${OCI_TAG_TIKV} \
+                                    --tikv-worker=${OCI_TAG_TIKV} \
+                                    --tiflash=${OCI_TAG_TIFLASH} \
                                     --minio=${MINIO_VERSION}
                             """
                             sh """#!/usr/bin/env bash
