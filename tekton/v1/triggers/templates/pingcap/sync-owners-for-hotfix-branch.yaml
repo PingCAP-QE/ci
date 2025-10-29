@@ -10,7 +10,7 @@ spec:
       description: The git ref
       default: main
   resourcetemplates:
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: TaskRun
       metadata:
         generateName: create-pr-to-sync-owners-for-hotfix-

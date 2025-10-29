@@ -180,17 +180,6 @@ presubmits:
       rerun_command: "/test pull-sqllogic-test"
 
     - <<: *brancher
-      name: pingcap/tidb/release-8.5/pull_tiflash_test
-      agent: jenkins
-      decorate: false # need add this.
-      always_run: false
-      optional: true
-      context: pull-tiflash-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-tiflash-test(?: .*?)?$"
-      rerun_command: "/test pull-tiflash-test"
-
-    - <<: *brancher
       name: pingcap/tidb/release-8.5/pull_integration_nodejs_test
       agent: jenkins
       decorate: false # need add this.

@@ -1,0 +1,20 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^dedicated$
+      - ^release-nextgen-\d+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false # need add this.
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  tidbcloud/cloud-storage-engine:
+    - <<: [*brancher, *jenkins_job]
+      name: tidbcloud/cloud-storage-engine/dedicated/pull_integration_realcluster_test_next_gen
+      skip_if_only_changed: *skip_if_only_changed
+      optional: true # remove it when all tests are passed
+      context: non-block/pull-integration-realcluster-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
+      rerun_command: "/test pull-integration-realcluster-test-next-gen"

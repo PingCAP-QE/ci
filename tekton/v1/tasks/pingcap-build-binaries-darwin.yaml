@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: pingcap-build-binaries-darwin
@@ -34,7 +35,7 @@ spec:
     - name: git-ref
     - name: git-sha
     - name: builder-image
-      default: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
     - name: release-dir
       default: build
     - name: push
@@ -47,7 +48,7 @@ spec:
       default: "http://boskos.test-pods.svc.cluster.local"
   steps:
     - name: generate
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       results:
         - name: generated
           type: string
@@ -144,7 +145,7 @@ spec:
           --boskos.owner $(context.taskRun.name) \
           --releaseDir $(params.release-dir)
     - name: publish
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in

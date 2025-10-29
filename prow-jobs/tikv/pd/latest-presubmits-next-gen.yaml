@@ -2,6 +2,7 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
+      - ^release-nextgen-\d+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   affinity: &affinity
     nodeAffinity:
@@ -46,8 +47,6 @@ presubmits:
     - <<: [*brancher, *kubernetes_job]
       name: pull-unit-test-next-gen
       skip_if_only_changed: *skip_if_only_changed
-      optional: true # delete it when the test is stable
-      context: non-block/pull-unit-test-next-gen # delete it when the test is stable
       spec:
         containers:
           - name: test
@@ -71,9 +70,12 @@ presubmits:
 
                 # ls -alh covprofile_*
             resources:
-              limits:
+              requests:
                 cpu: "6"
                 memory: 12Gi
+              limits:
+                cpu: "12"
+                memory: 24Gi
         affinity: *affinity
 
     - <<: [*brancher, *jenkins_job]

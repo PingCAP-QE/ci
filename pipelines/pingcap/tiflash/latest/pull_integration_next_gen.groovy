@@ -17,6 +17,10 @@ String tiflash_commit_hash = null
 Boolean libclara_cache_ready = false
 String libclara_commit_hash = null
 
+final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
+
 pipeline {
     agent {
         kubernetes {
@@ -467,10 +471,9 @@ pipeline {
                                         docker ps -a && docker version
                                         """
                                         script {
-                                            def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                            // def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                            def tikvBranch = "dedicated-next-gen_linux_amd64"
-                                            def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                            def pdBranch = component.computeBranchFromPR('pd', TARGET_BRANCH_PD, REFS.pulls[0].title, 'master')
+                                            def tikvBranch = component.computeBranchFromPR('tidb', TARGET_BRANCH_TIKV, REFS.pulls[0].title, 'master')
+                                            def tidbBranch = component.computeBranchFromPR('tidb', TARGET_BRANCH_TIDB, REFS.pulls[0].title, 'master')
 
                                             sh label: "run integration tests", script: """
                                             PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh

@@ -39,7 +39,7 @@ spec:
     - name: force-builder-image
       default: ""
   resourcetemplates:
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-$(tt.params.arch)-
@@ -77,24 +77,27 @@ spec:
             value: $(tt.params.force-builder-image)
           - name: boskos-server-url # for darwin platforms
             value: http://boskos.apps.svc
-        podTemplate:
-          nodeSelector:
-            kubernetes.io/arch: $(tt.params.arch)
+        taskRunTemplate:
+          podTemplate:
+            nodeSelector:
+              kubernetes.io/arch: $(tt.params.arch)
         taskRunSpecs:
           - pipelineTaskName: checkout
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: checkout-ext
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
-            taskServiceAccountName: image-releaser
-            stepOverrides:
+            serviceAccountName: image-releaser
+            stepSpecs:
               - name: build
-                resources:
+                computeResources:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
-            taskServiceAccountName: image-releaser
+            serviceAccountName: image-releaser
+          - pipelineTaskName: deliver-images
+            serviceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:

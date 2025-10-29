@@ -53,6 +53,58 @@ Deno.test("compute", () => {
       },
     },
     {
+      description: "`release` pre-release tag on release branch",
+      gitVer: "v8.5.4-release.1",
+      branches: ["release-8.5"],
+      expect: {
+        version: "v8.5.4-release.1",
+      },
+    },
+    {
+      description:
+        "`release` pre-release tag on release branch and master branch",
+      gitVer: "v8.5.4-release.1",
+      branches: ["master", "release-8.5"],
+      expect: {
+        version: "v8.5.4-release.1",
+      },
+    },
+    {
+      description: "`nextgen` pre-release tag on release branch",
+      gitVer: "v8.5.4-nextgen.202510.0",
+      branches: ["release-nextgen-20251011"],
+      expect: {
+        version: "v8.5.4-nextgen.202510.0",
+      },
+    },
+    {
+      description:
+        "`nextgen` pre-release tag on release branch and master branch",
+      gitVer: "v8.5.4-nextgen.202510.1",
+      branches: ["master", "release-nextgen-20251011"],
+      expect: {
+        version: "v8.5.4-nextgen.202510.1",
+      },
+    },
+    {
+      description:
+        "history style - has new commits after next-gen tag on release branch, we will do nothing for it",
+      gitVer: "v8.5.4-nextgen.202510.0-2-g1234567",
+      branches: ["release-nextgen-20251011"],
+      expect: {
+        version: "v8.5.4-nextgen.202510.0-2-g1234567",
+      },
+    },
+    {
+      description:
+        "history style - has new commits after next-gen tag on master branch, we will do nothing for it",
+      gitVer: "v8.5.4-nextgen.202510.0-1-g1234567",
+      branches: ["master"],
+      expect: {
+        version: "v8.5.4-nextgen.202510.0-1-g1234567",
+      },
+    },
+    {
       description: "history style - has new commits after GA tag",
       gitVer: "v8.5.0-2-g1234567",
       branches: ["release-8.5"],

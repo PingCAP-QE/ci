@@ -9,14 +9,13 @@ metadata:
 spec:
   interceptors:
     - name: filter on repo owner and name and tags
-      ref:
-        name: cel
+      ref: { name: cel }
       params:
         - name: filter
           value: >-
             body.repository.full_name == 'pingcap/tiproxy'
             &&
-            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta)([.][0-9]+.*)?)?$')
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|nextgen)([.][0-9]+.*)?)?$')
   bindings:
     - ref: github-tag-create
     - { name: component, value: $(body.repository.name) }

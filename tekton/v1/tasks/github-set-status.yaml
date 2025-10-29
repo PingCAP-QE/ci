@@ -1,5 +1,5 @@
----
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: github-set-status
@@ -100,7 +100,7 @@ spec:
         - name: githubtoken
           mountPath: /etc/github-set-status
 
-      image: python:3.13
+      image: python:3.14
       script: |
         #!/usr/bin/env python3
 

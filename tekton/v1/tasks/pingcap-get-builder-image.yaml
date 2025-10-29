@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: pingcap-get-builder-image
@@ -36,7 +37,7 @@ spec:
       default: ""
   steps:
     - name: get
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       script: |
         if [ -n "$(params.force-builder-image)" ]; then
           echo "use force builder image: $(params.force-builder-image)"

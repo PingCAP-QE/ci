@@ -35,7 +35,7 @@ spec:
       description: Product is http://tiup.pingcap.net:8987, Staging is http://tiup.pingcap.net:8988,
       default: http://tiup.pingcap.net:8988
   stepTemplate:
-    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
     env:
       - name: OUT_SCRIPT
         value: /workspace/compose-offline-packages-artifacts.sh

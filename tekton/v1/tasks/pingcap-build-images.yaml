@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: pingcap-build-images
@@ -47,7 +48,7 @@ spec:
       default: hub.pingcap.net
   steps:
     - name: generate
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       results:
         - name: generated
           type: string
@@ -94,7 +95,7 @@ spec:
         # To Support GAR for kaniko: the service account should add a secret named `image-release-cred` with key `gsa.json` included
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /tekton/creds-secrets/image-release-cred/gsa.json
-      resources:
+      computeResources:
         requests:
           cpu: "4"
           memory: 8Gi
@@ -111,7 +112,7 @@ spec:
           "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path)
         fi
     - name: add-more-tags
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in
@@ -121,7 +122,7 @@ spec:
         oras version
         "$script" -P -t -o $(results.pushed.path) # -P means disable build and push the image.
     - name: collect-multi-arch
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.8.17-13-ga5750d9
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in

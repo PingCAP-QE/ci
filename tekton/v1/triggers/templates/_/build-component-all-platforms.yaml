@@ -35,7 +35,7 @@ spec:
     - name: force-builder-image
       default: ""
   resourcetemplates:
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-linux-amd64-
@@ -71,24 +71,27 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
-        podTemplate:
-          nodeSelector:
-            kubernetes.io/arch: amd64
+        taskRunTemplate:
+          podTemplate:
+            nodeSelector:
+              kubernetes.io/arch: amd64
         taskRunSpecs:
           - pipelineTaskName: checkout
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: checkout-ext
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
-            taskServiceAccountName: image-releaser
-            stepOverrides:
+            serviceAccountName: image-releaser
+            stepSpecs:
               - name: build
-                resources:
+                computeResources:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
-            taskServiceAccountName: image-releaser
+            serviceAccountName: image-releaser
+          - pipelineTaskName: deliver-images
+            serviceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:
@@ -110,7 +113,7 @@ spec:
           # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-linux-arm64-
@@ -146,24 +149,27 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
-        podTemplate:
-          nodeSelector:
-            kubernetes.io/arch: arm64
+        taskRunTemplate:
+          podTemplate:
+            nodeSelector:
+              kubernetes.io/arch: arm64
         taskRunSpecs:
           - pipelineTaskName: checkout
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: checkout-ext
-            taskServiceAccountName: github-bot
+            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
-            taskServiceAccountName: image-releaser
-            stepOverrides:
+            serviceAccountName: image-releaser
+            stepSpecs:
               - name: build
-                resources:
+                computeResources:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
-            taskServiceAccountName: image-releaser
+            serviceAccountName: image-releaser
+          - pipelineTaskName: deliver-images
+            serviceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:
@@ -185,7 +191,7 @@ spec:
           # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-darwin-amd64-
@@ -241,7 +247,7 @@ spec:
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: bp-$(tt.params.component)-$(tt.params.profile)-darwin-arm64-

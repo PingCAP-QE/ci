@@ -128,6 +128,7 @@ Examples:
         "html",
         "json",
         "email-to",
+        "email-cc",
         "email-from",
         "email-subject",
       ],
@@ -142,7 +143,7 @@ Examples:
         html: "flaky-report.html",
         "email-subject": "Flaky Report",
         "dry-run": false,
-        "verbose": false,
+        verbose: false,
       },
     });
 
@@ -155,9 +156,9 @@ Examples:
       dbHost: flags["db-host"] ?? Deno.env.get("DB_HOST"),
       dbPort: flags["db-port"]
         ? parseInt(String(flags["db-port"]))
-        : (Deno.env.get("DB_PORT")
+        : Deno.env.get("DB_PORT")
           ? parseInt(String(Deno.env.get("DB_PORT")))
-          : undefined),
+          : undefined,
       dbUser: flags["db-user"] ?? Deno.env.get("DB_USER"),
       dbPass: flags["db-pass"] ?? Deno.env.get("DB_PASSWORD"),
       dbName: flags["db-name"] ?? Deno.env.get("DB_NAME"),
@@ -168,12 +169,16 @@ Examples:
       htmlPath: flags["html"],
       jsonPath: flags["json"],
       emailTo: flags["email-to"]
-        ? String(flags["email-to"]).split(",").map((s: string) => s.trim())
-          .filter(Boolean)
+        ? String(flags["email-to"])
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter(Boolean)
         : undefined,
       emailCc: flags["email-cc"]
-        ? String(flags["email-cc"]).split(",").map((s: string) => s.trim())
-          .filter(Boolean)
+        ? String(flags["email-cc"])
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter(Boolean)
         : undefined,
       emailFrom: flags["email-from"],
       emailSubject: flags["email-subject"],
