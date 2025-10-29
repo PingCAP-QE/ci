@@ -10,8 +10,9 @@ final GIT_FULL_REPO_NAME = "${REFS.org}/${REFS.repo}"
 final MAIN_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/main-pod.yaml"
 final TEST_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/test-pod.yaml"
 
-final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
-final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
+final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
+final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master")
 final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
 
 prow.setPRDescription(REFS)
@@ -92,8 +93,8 @@ pipeline {
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
                                 \${script} \
-                                    --pd=${TARGET_BRANCH_PD}-next-gen \
-                                    --tidb=${TARGET_BRANCH_TIDB}-next-gen \
+                                    --pd=${OCI_TAG_PD} \
+                                    --tidb=${OCI_TAG_TIDB} \
                                     --minio=${MINIO_VERSION}
                             """
                             sh """#!/usr/bin/env bash

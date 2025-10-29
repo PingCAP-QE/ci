@@ -9,8 +9,8 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
-final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -55,9 +55,9 @@ pipeline {
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
                                 \${script} \
-                                    --pd=${TARGET_BRANCH_PD}-next-gen \
-                                    --tikv=${TARGET_BRANCH_TIKV}-next-gen \
-                                    --tikv-worker=${TARGET_BRANCH_TIKV}-next-gen \
+                                    --pd=${OCI_TAG_PD} \
+                                    --tikv=${OCI_TAG_TIKV} \
+                                    --tikv-worker=${OCI_TAG_TIKV} \
                                     --minio=RELEASE.2025-07-23T15-54-02Z
                             """
                         }
