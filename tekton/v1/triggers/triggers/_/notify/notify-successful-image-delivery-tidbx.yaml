@@ -1,0 +1,20 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: notify-successful-image-delivery-tidbx
+  labels:
+    type: ce-notify
+spec:
+  interceptors:
+    - name: filter on repo
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.images.exists(img, img.contains('nextgen') || img.contains('next-gen'))
+
+  bindings:
+    - { name: ce-context, value: $(extensions.ce-context) } # from event-listener
+    - { name: data, value: $(body) }
+  template:
+    ref: notify-successful-image-delivery-tidbx
