@@ -29,28 +29,49 @@ spec:
     - name: retries
       description: Number of retries for image delivery step
       default: "3"
+    - name: notify-webhook-url
+      description: URL of the webhook for notification
+      default: "http://el-notify.ee-cd.svc:8080"
   steps:
-    - name: gen-commands
+    - name: generate
       image: docker.io/denoland/deno:alpine-2.0.6 # it has `wget` tool.
+      results:
+        - name: generated
+          type: string
+        - name: target
+          type: string
       script: |
         #!/bin/sh
         set -e
 
         wget -O delivery.yaml $(params.delivery-config-url)
+        script="/workspace/delivery.sh"
+        targetsInfo="/workspace/delivery-targets.yaml"
         img_src="$(params.src)"
         if [ "$(params.src-type)" = "image-url" ]; then
           deno run --allow-read --allow-write "$(params.generator-script-url)" \
             --image_url="$img_src" \
             --yaml_file=delivery.yaml \
-            --outfile=/workspace/delivery.sh
+            --outfile=$script \
+            --images_outfile=$targetsInfo
         elif [ "$(params.src-type)" = "images-info" ]; then
           echo "$img_src" > /workspace/src.txt
           deno run --allow-read --allow-write "$(params.generator-script-url)" \
             --images_file="/workspace/src.txt" \
-            --yaml_file=delivery.yaml \
-            --outfile=/workspace/delivery.sh
+            --outfile=$script \
+            --images_outfile=$targetsInfo
         fi
-    - name: run-commands
+
+        if [ -f "$script" ]; then
+          echo -n "true" > $(step.results.generated.path)
+        else
+          echo -n "false" > $(step.results.generated.path)
+        fi
+    - name: run
+      when:
+        - input: "$(steps.generate.results.generated)"
+          operator: in
+          values: ["true"]
       image: gcr.io/go-containerregistry/crane/debug:latest
       computeResources:
         requests:
@@ -61,11 +82,6 @@ spec:
         set -e
 
         script="/workspace/delivery.sh"
-        if [ ! -f "$script" ]; then
-          echo "No build script, skip it."
-          exit 0
-        fi
-
         chmod +x $script
         tries=0
         max_retries=$(params.retries)
@@ -78,3 +94,28 @@ spec:
           echo "Script '$script' failed. Retrying in 10 seconds... ($tries/$max_retries)"
           sleep 10
         done
+    - name: post-notify
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+      when:
+        - input: "$(steps.generate.results.generated)"
+          operator: in
+          values: ["true"]
+        - input: "$(params.notify-webhook-url)"
+          operator: notIn
+          values: ["false", ""]
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        # prepare event data
+        targetsInfo="/workspace/delivery-targets.yaml" # output from the previous steps
+        yq --output-format json . "$targetsInfo" | tee event.json
+
+        # send cloud-events to tekton event listener
+        curl -X POST "$(params.notify-webhook-url)" \
+        -H "Content-Type: application/cloudevents+json" \
+        -H "ce-specversion: 1.0" \
+        -H "ce-id: $(uuidgen)" \
+        -H "ce-type: net.pingcap.tibuild.notify.delivery.images.success" \
+        -H "ce-source: tekton/taskRun/$(context.taskRun.name)" \
+        --data-binary @event.json
