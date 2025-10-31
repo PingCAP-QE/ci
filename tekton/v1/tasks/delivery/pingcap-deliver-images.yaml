@@ -58,6 +58,7 @@ spec:
           echo "$img_src" > /workspace/src.txt
           deno run --allow-read --allow-write "$(params.generator-script-url)" \
             --images_file="/workspace/src.txt" \
+            --yaml_file=delivery.yaml \
             --outfile=$script \
             --images_outfile=$targetsInfo
         fi
