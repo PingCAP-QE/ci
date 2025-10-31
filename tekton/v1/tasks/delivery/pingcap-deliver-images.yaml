@@ -101,7 +101,7 @@ spec:
           operator: in
           values: ["true"]
         - input: "$(params.notify-webhook-url)"
-          operator: notIn
+          operator: notin
           values: ["false", ""]
       script: |
         #!/usr/bin/env bash

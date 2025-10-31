@@ -15,6 +15,6 @@ spec:
 
   bindings:
     - { name: ce-context, value: $(extensions.ce-context) } # from event-listener
-    - { name: data, value: $(body) }
+    - { name: data, value: $(body.marshalJSON()) }
   template:
     ref: notify-successful-image-delivery-tidbx
