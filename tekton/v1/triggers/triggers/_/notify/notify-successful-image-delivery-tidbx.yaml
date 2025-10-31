@@ -14,7 +14,7 @@ spec:
             body.images.exists(img, img.contains('nextgen') || img.contains('next-gen'))
 
   bindings:
-    - { name: ce-context, value: $(extensions.ce-context) } # from event-listener
-    - { name: data, value: $(body.marshalJSON()) }
+    # - { name: ce-context, value: $(extensions.ce-context) }
+    - { name: data, value: $(extensions.ce-data) } # from event-listener
   template:
     ref: notify-successful-image-delivery-tidbx

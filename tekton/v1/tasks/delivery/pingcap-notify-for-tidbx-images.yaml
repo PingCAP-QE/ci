@@ -31,7 +31,9 @@ spec:
         #!/usr/bin/env bash
         set -e
 
-        echo "$(params.src)" > images.yaml
+        cat > images.yaml <<'EOF'
+        $(params.src)
+        EOF
 
         for stage in dev prod; do
           github_issue_url="$(cat $(workspaces.notify-config.path)/${stage}_github_issue_url)"
