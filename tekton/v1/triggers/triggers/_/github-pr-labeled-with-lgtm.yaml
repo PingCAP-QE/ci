@@ -50,15 +50,14 @@ spec:
                   description: pull request number
               steps:
                 - name: edit-pull-request
-                  image: alpine:3.21.3
+                  image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
                   script: |
-                    #!/usr/bin/env sh
+                    #!/usr/bin/env bash
+                    set -eo pipefail
 
-                    # install `gh` tool
-                    apk add github-cli
-
-                    gh auth login --with-token < $(workspaces.github.path)/token
+                    export GH_TOKEN="$(cat $(workspaces.github.path)/token)"
                     pr_url="https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
+
                     # TODO: Judge if we can add approved label by the comments from prow approve plugin
                     # Add label only if there are sufficient approvals from trusted users
                     gh pr edit --add-label approved "$pr_url"
