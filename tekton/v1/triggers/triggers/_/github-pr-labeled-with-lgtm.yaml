@@ -11,11 +11,20 @@ spec:
       params:
         - name: filter
           value: >-
-            body.action == 'labeled'
+            (
+              (body.action == 'labeled' && body.label.name in ['lgtm'])
+              ||
+              (body.action == 'unlabeled' && body.label.name in ['approved'])
+            )
             &&
-            body.label.name in ['lgtm']
-            &&
-            body.repository.full_name in [ 'pingcap/tidb', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/ticdc', 'tikv/tikv', 'tikv/pd' ]
+            body.repository.full_name in [
+              'pingcap/tidb',
+              'pingcap/tiflash',
+              'pingcap/tiflow',
+              'pingcap/ticdc',
+              'tikv/tikv',
+              'tikv/pd',
+            ]
             &&
             body.pull_request.base.ref.startsWith('feature/')
   bindings:
@@ -50,7 +59,7 @@ spec:
                   description: pull request number
               steps:
                 - name: edit-pull-request
-                  image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+                  image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
                   script: |
                     #!/usr/bin/env bash
                     set -eo pipefail
@@ -58,9 +67,14 @@ spec:
                     export GH_TOKEN="$(cat $(workspaces.github.path)/token)"
                     pr_url="https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
 
-                    # TODO: Judge if we can add approved label by the comments from prow approve plugin
-                    # Add label only if there are sufficient approvals from trusted users
-                    gh pr edit --add-label approved "$pr_url"
+                    if gh pr view "$pr_url" --json labels --jq '.labels | map(.name)' | grep -E '^lgtm$'; then
+                      # TODO: Judge if we can add approved label by the comments from prow approve plugin
+                      # Add label only if there are sufficient approvals from trusted users
+                      gh pr edit --add-label approved "$pr_url"
+                    else
+                      echo "🚫 there is no 'lgtm' label on the PR."
+                    fi
+
               workspaces:
                 - name: github
                   description: Must includes a key `token`
