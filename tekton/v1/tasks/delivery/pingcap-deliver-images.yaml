@@ -104,7 +104,7 @@ spec:
           operator: notIn
           values: ["false", ""]
       script: |
-        #!/busybox/sh
+        #!/usr/bin/env bash
         set -e
 
         # prepare event data
@@ -112,7 +112,7 @@ spec:
         yq --output-format json . "$targetsInfo" | tee event.json
 
         # send cloud-events to tekton event listener
-        curl -v "$(params.notify-webhook-url)" \
+        curl -X POST "$(params.notify-webhook-url)" \
         -H "Content-Type: application/cloudevents+json" \
         -H "ce-specversion: 1.0" \
         -H "ce-id: $(uuidgen)" \
