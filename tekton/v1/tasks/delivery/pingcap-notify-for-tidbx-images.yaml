@@ -31,7 +31,7 @@ spec:
         #!/usr/bin/env bash
         set -e
 
-        cat > images.yaml <<'EOF'
+        cat > /workspace/images.yaml <<'EOF'
         $(params.src)
         EOF
 
@@ -42,18 +42,12 @@ spec:
           echo "🚀 Notifiy to sync images to $stage ..."
           {
             echo "/fid env=$stage"
-            yq .images[] images.yaml
+            yq .images[] /workspace/images.yaml
           } | gh issue comment "$github_issue_url" --body-file - | tee /workspace/notify-results.${stage}.txt
 
           rm -f /workspace/notify.txt
           echo "✅ Notified to sync images to $stage"
         done
-    - name: notify-to-update-ops-config
-      script: |
-        #!/usr/bin/env bash
-        set -e
-
-        echo "🚧 WIP"
 
     - name: notify-in-lark-channel
       script: |
@@ -62,22 +56,46 @@ spec:
 
         for stage in prod; do
           lark_webhook_url="$(cat $(workspaces.notify-config.path)/${stage}_lark_webhook)"
-          # TODO: send lark message to the webhook URL
-          body_file=/workspace/lark-notify.json
 
           # Prepare the full text content for the notification.
-          # Using a variable and then passing it to yq ensures proper escaping.
-          cat <<EOF > content.txt
-          images to be delivered to $stage:
-          $(yq .images[] images.yaml)
+          echo "images to be delivered to $stage:" > content.txt
+          yq .images[] /workspace/images.yaml >> content.txt
+          echo "" >> content.txt
+          echo "image delivery is triggered to $stage" >> content.txt
+          cat /workspace/notify-results.${stage}.txt >> content.txt
 
-          image delivery is triggered to $stage
-          $(cat /workspace/notify-results.${stage}.txt)
-          EOF
-
-          yq -n '.msg_type = "text"' > $body_file
+          body_file=/workspace/lark-notify.json
+          yq -n --output-format json '.msg_type = "text"' > $body_file
           yq --output-format json -i '.content.text = load_str("content.txt")' $body_file
           curl --fail -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
 
           rm -f content.txt $body_file
         done
+    - name: notify-to-update-ops-config
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        # 🚧 WIP, now it just is a notification placeholder
+
+        yq '.images | filter(test ":v[0-9]+[.][0-9]+[.][0-9]+-(nextgen.[0-9]+.[0-9]+|release.[0-9]+-next-gen|next-gen)$")' /workspace/images.yaml | \
+          tee /workspace/images-to-bump-on-ops.yaml
+
+        # if none image matches `v1.2.3-nextgen.20230101.1` naming style then exit with 0.
+        if yq -e 'length == 0' /workspace/images-to-bump-on-ops.yaml; then
+          echo "🚫 No image matches for production delivery"
+          exit 0
+        fi
+
+        stage="prod"
+        lark_webhook_url="$(cat $(workspaces.notify-config.path)/${stage}_lark_webhook)"
+
+        # Prepare the full text content for the notification.
+        echo "⚙️ Images should be bumped in $stage stage:" > content.txt
+        yq .[] /workspace/images-to-bump-on-ops.yaml >> content.txt
+        echo "" >> content.txt
+
+        body_file=/workspace/lark-notify.json
+        yq -n --output-format json '.msg_type = "text"' > $body_file
+        yq --output-format json -i '.content.text = load_str("content.txt")' $body_file
+        curl --fail -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
