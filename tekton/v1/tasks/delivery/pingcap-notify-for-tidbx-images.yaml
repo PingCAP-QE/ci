@@ -43,7 +43,7 @@ spec:
           {
             echo "/fid env=$stage"
             yq .images[] images.yaml
-          } | gh issue comment "$github_issue_url" --body-file -
+          } | gh issue comment "$github_issue_url" --body-file - | tee /workspace/notify-results.${stage}.txt
 
           rm -f /workspace/notify.txt
           echo "✅ Notified to sync images to $stage"
@@ -60,4 +60,24 @@ spec:
         #!/usr/bin/env bash
         set -e
 
-        echo "🚧 WIP"
+        for stage in prod; do
+          lark_webhook_url="$(cat $(workspaces.notify-config.path)/${stage}_lark_webhook)"
+          # TODO: send lark message to the webhook URL
+          body_file=/workspace/lark-notify.json
+
+          # Prepare the full text content for the notification.
+          # Using a variable and then passing it to yq ensures proper escaping.
+          cat <<EOF > content.txt
+          images to be delivered to $stage:
+          $(yq .images[] images.yaml)
+
+          image delivery is triggered to $stage
+          $(cat /workspace/notify-results.${stage}.txt)
+          EOF
+
+          yq -n '.msg_type = "text"' > $body_file
+          yq --output-format json -i '.content.text = load_str("content.txt")' $body_file
+          curl --fail -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
+
+          rm -f content.txt $body_file
+        done
