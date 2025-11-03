@@ -64,17 +64,20 @@ spec:
           lark_webhook_url="$(cat $(workspaces.notify-config.path)/${stage}_lark_webhook)"
           # TODO: send lark message to the webhook URL
           body_file=/workspace/lark-notify.json
-          cat <<EOF > $body_file
-          {
-            "msg_type": "text",
-            "content": {
-              "text": "image delivered to $stage:\n$(params.src)"
-            }
-          }
+
+          # Prepare the full text content for the notification.
+          # Using a variable and then passing it to yq ensures proper escaping.
+          cat <<EOF > content.txt
+          images to be delivered to $stage:
+          $(yq .images[] images.yaml)
+
+          image delivery is triggered to $stage
+          $(cat /workspace/notify-results.${stage}.txt)
           EOF
 
-          # use jq modify the content text with content loaded from file /workspace/notify-results.${stage}.txt
-          yq -i '.content.text += "\n\nimage delivery is triggered to $stage\n" + (readfile "/workspace/notify-results.${stage}.txt")' $body_file
-
+          yq -n '.msg_type = "text"' > $body_file
+          yq --output-format json -i '.content.text = load_str("content.txt")' $body_file
           curl -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
+
+          rm -f content.txt $body_file
         done
