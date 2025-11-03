@@ -77,7 +77,7 @@ spec:
 
           yq -n '.msg_type = "text"' > $body_file
           yq --output-format json -i '.content.text = load_str("content.txt")' $body_file
-          curl -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
+          curl --fail -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
 
           rm -f content.txt $body_file
         done
