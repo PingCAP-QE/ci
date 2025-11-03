@@ -1,5 +1,5 @@
 import * as lark from "npm:@larksuiteoapi/node-sdk@1.19.0";
-import * as flags from "https://deno.land/std@0.194.0/flags/mod.ts";
+import { parseArgs } from "jsr:@std/cli@1.0.23/parse-args";
 
 type richContentSection =
   | richContentSectionText
@@ -108,7 +108,7 @@ async function main({
  * --links.href link url
  * --to_emails receive email
  */
-const args = flags.parse<cliArgs>(Deno.args, {
+const args = parseArgs<cliArgs>(Deno.args, {
   collect: ["links", "to_emails"] as never[],
 });
 
