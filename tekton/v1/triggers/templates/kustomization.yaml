@@ -5,7 +5,6 @@ resources:
   - _/build-component-single-platform.yaml
   - _/build-component.yaml
   - _/ci-helper-for-pr.yaml
-  - _/notify-successful-image-delivery-tidbx.yaml
   - pingcap/bump-placeholder-version-in-readme.yaml
   - pingcap/sync-owners-for-hotfix-branch.yaml
   - pingcap/tidb/update-gomod-fix-ladp-for-hotfix-branch.yaml

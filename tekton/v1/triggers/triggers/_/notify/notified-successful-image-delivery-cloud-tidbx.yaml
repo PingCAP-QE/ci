@@ -1,0 +1,46 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: notified-successful-image-delivery-cloud-tidbx
+  labels:
+    type: github-issue-comment
+spec:
+  interceptors:
+    - name: filter on github repo and comment content
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.comment.body.matches('[\s\S]*<!--\s*META={.+?-->[\s\S]*')
+        - name: overlays
+          value:
+            - key: data
+              expression: body.comment.body.replace('[\s\S]*<!--\s*META=', '').replace('-->[\s\S]*', '').parseJSON()
+  bindings:
+    - ref: github-issue-comment
+    - { name: images, value: $(extensions.data.images) }
+    - { name: stage, value: $(extensions.data.stage) }
+  template:
+    spec:
+      params:
+        - name: images
+          type: array
+        - name: stage
+          type: string
+      resourceTemplates:
+        - apiVersion: tekton.dev/v1
+          kind: TaskRun
+          metadata:
+            generateName: pingcap-notify-to-deliver-images-to-cloud-tidbx-
+          spec:
+            params:
+              - name: images
+                value: $(tt.params.images)
+              - name: stage
+                value: $(tt.params.stage)
+            taskRef:
+              name: pingcap-notify-to-deliver-images-to-cloud-tidbx
+            workspaces:
+              - name: notify-config
+                secret:
+                  secretName: image-delivery-notify-config-tidbx

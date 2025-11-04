@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: pingcap-notify-to-update-ops-tidbx
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: delivery
+    tekton.dev/tags: ops,cloud,tidbx
+    tekton.dev/displayName: "Notify to update ops config for TiDB-X"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  params:
+    - name: images
+      type: array
+      description: images list
+    - name: stage
+      type: string
+      description: stage name
+  workspaces:
+    - name: notify-config
+      description: |
+        Configuration for GitHub authentication and issue URLs.
+        Include files:
+        - GitHub token: <stage>_github_token
+        - GitHub issue URL: <stage>_github_issue_url
+      readOnly: true
+  stepTemplate:
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+  steps:
+    - name: notify-in-lark-channel
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        lark_webhook_url="$(cat $(workspaces.notify-config.path)/${stage}_lark_webhook)"
+        stage="$(params.stage)"
+
+        for image in $(params.images[*]); do
+          # prepare lark message.
+          echo "The Image is delivered to cloud registries of $stage env:" | tee content.txt
+          echo "  ${image}" | tee -a content.txt
+          body_file=/workspace/lark-notify.json
+          yq -n --output-format json '.msg_type = "text"' > $body_file
+          yq --output-format json -i '.content.text = load_str("content.txt")' $body_file
+
+          curl --fail -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
+          rm -f content.txt $body_file
+        done
+    - name: update-ops-config
+      when:
+        - input: "$(params.stage)"
+          operator: in
+          values: ["prod"]
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        stage="$(params.stage)"
+        for image in $(params.images[*]); do
+          # split image name and tag
+          image_repo=$(echo $image | cut -d':' -f1)
+          image_tag=$(echo $image | cut -d':' -f2)
+
+          # get the component name from image repo: the base name of the image repo
+          component=$(echo $image_repo | cut -d'/' -f2)
+
+          # get the component version from image tag(should return the vX.Y.Z part)
+          version=$(echo $image_tag | cut -d'-' -f1)
+
+          # 🚧 WIP
+          echo "🚧 WIP: Fake update component $component@$version in stage $stage with image: $image_repo:$image_tag"
+
+          # TODO: call Ops platform API with inputs, example:
+          # - component: tidb|tikv|pd|tiflash|....
+          # - version: v8.5.4
+          # - image_repo: registry.test.com/pingcap/tidb
+          # - image_tag: v8.5.4-nextgen.20230101.1
+        done
