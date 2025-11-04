@@ -1,0 +1,37 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: notified-successful-image-delivery-tidbx
+  labels:
+    type: ce-notify
+spec:
+  interceptors:
+    - name: filter on images
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.images.exists(img, img.contains('nextgen') || img.contains('next-gen'))
+
+  bindings:
+    # - { name: ce-context, value: $(extensions.ce-context) }
+    - { name: data, value: $(extensions.ce-data) } # from event-listener
+  template:
+    spec:
+      params:
+        - name: data
+      resourceTemplates:
+        - apiVersion: tekton.dev/v1
+          kind: TaskRun
+          metadata:
+            generateName: pingcap-notify-to-deliver-images-to-cloud-tidbx-
+          spec:
+            params:
+              - name: src
+                value: $(tt.params.data)
+            taskRef:
+              name: pingcap-notify-to-update-ops-tidbx
+            workspaces:
+              - name: notify-config
+                secret:
+                  secretName: image-delivery-notify-config-tidbx
