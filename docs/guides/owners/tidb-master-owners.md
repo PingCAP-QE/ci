@@ -1,12 +1,13 @@
 ---
 prompt: |
   parse the prow OWNERS and OWNERS_ALIASES file to generate report about the code owners (the approvers role).
+
   Goals:
 
-  1. the report should saved in markdown file
+  1. the report should saved in markdown file.
   2. the report should contain two tables, one is the SIGs, another is about the scops view.
-    - for the SIGs table: it should include sig name, sig member, scope(folders or files) they take effects on
-      - you should list the matched files for the non-default pattern in the filter mode OWNERS file
+    - for the SIGs table: it should include sig name, sig member, scope(folders or files) they take effects on.
+      - you should list the matched files for the non-default pattern in the filter mode OWNERS file.
       - do not list the detail member for community SIGs.
     - for the scopes view table: path(folder or file), who can approve(SIG list or standalone member).
   3. do not tell reader the filter pattern detail, such as "Matched file (filter):".
