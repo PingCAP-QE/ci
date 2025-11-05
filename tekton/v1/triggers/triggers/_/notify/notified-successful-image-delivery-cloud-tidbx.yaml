@@ -24,9 +24,7 @@ spec:
     spec:
       params:
         - name: images
-          type: array
         - name: stage
-          type: string
       resourceTemplates:
         - apiVersion: tekton.dev/v1
           kind: TaskRun
