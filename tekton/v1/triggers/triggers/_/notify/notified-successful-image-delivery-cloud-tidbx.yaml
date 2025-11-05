@@ -39,7 +39,7 @@ spec:
               - name: stage
                 value: $(tt.params.stage)
             taskRef:
-              name: pingcap-notify-to-deliver-images-to-cloud-tidbx
+              name: pingcap-notify-to-update-ops-tidbx
             workspaces:
               - name: notify-config
                 secret:

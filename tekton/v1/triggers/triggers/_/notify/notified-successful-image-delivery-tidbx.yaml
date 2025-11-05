@@ -30,7 +30,7 @@ spec:
               - name: src
                 value: $(tt.params.data)
             taskRef:
-              name: pingcap-notify-to-update-ops-tidbx
+              name: pingcap-notify-to-deliver-images-to-cloud-tidbx
             workspaces:
               - name: notify-config
                 secret:
