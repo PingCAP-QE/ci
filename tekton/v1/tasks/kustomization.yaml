@@ -1,15 +1,14 @@
+# yaml-language-server: $schema=https://www.schemastore.org/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - delivery/pingcap-deliver-images.yaml
   - delivery/pingcap-notify-to-deliver-images-to-cloud-tidbx.yaml
+  - delivery/pingcap-notify-to-update-ops-tidbx.yaml
   - git-clone.yaml
   - github-set-status.yaml
   - golang-build.yaml
   - golang-test.yaml
-  - https://raw.githubusercontent.com/tektoncd/catalog/main/task/kaniko/0.6/kaniko.yaml # kaniko task
-  - https://raw.githubusercontent.com/tektoncd/catalog/main/task/ko/0.1/ko.yaml # ko task
-  - https://raw.githubusercontent.com/tektoncd/catalog/main/task/tkn/0.4/tkn.yaml # tkn task
   - multi-arch-image-push.yaml
   - pingcap-build-binaries-darwin.yaml
   - pingcap-build-binaries-linux.yaml
