@@ -5,7 +5,7 @@ prompt: |
   Goals:
 
   1. the report should saved in markdown file.
-  2. the report should contain two tables, one is the SIGs, another is about the scops view.
+  2. the report should contain two tables, one is the SIGs, another is about the scopes view.
     - for the SIGs table: it should include sig name, sig member, scope(folders or files) they take effects on.
       - you should list the matched files for the non-default pattern in the filter mode OWNERS file.
       - do not list the detail member for community SIGs.
