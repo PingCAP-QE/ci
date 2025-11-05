@@ -10,8 +10,8 @@ presubmits:
   pingcap/ticdc:
     - name: pingcap/ticdc/pull_cdc_mysql_integration_light_next_gen
       agent: jenkins
-      # skip_if_only_changed: *skip_if_only_changed
-      # run_before_merge: true
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       context: pull-cdc-mysql-integration-light-next-gen
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light-next-gen"
@@ -86,7 +86,7 @@ presubmits:
 
     - name: pull-unit-test-next-gen
       decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^master$
       spec:
@@ -105,17 +105,11 @@ presubmits:
                 memory: 24Gi
                 cpu: "12"
       optional: true
-      # run_before_merge: true
-      trigger: "(?m)^/test (?:.*? )?(pull-unit-test-next-gen|all)(?: .*?)?$"
-      rerun_command: "/test pull-unit-test-next-gen"
 
     - name: pull-build-next-gen
       decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
-      # run_before_merge: true
-      trigger: "(?m)^/test (?:.*? )?(pull-build-next-gen|all)(?: .*?)?$"
-      rerun_command: "/test pull-build-next-gen"
       branches:
         - ^master$
       spec:
