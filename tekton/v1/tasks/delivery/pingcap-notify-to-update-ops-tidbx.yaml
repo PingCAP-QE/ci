@@ -31,14 +31,16 @@ spec:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
   steps:
     - name: notify-in-lark-channel
+      args: ["$(params.stage)", "$(params.images[*])"]
       script: |
         #!/usr/bin/env bash
         set -e
 
-        lark_webhook_url="$(cat $(workspaces.notify-config.path)/${stage}_lark_webhook)"
-        stage="$(params.stage)"
+        function notify_image_in_lark_channel() {
+          local stage="$1"
+          local image="$2"
+          local lark_webhook_url="$3"
 
-        for image in $(params.images[*]); do
           # prepare lark message.
           echo "The Image is delivered to cloud registries of $stage env:" | tee content.txt
           echo "  ${image}" | tee -a content.txt
@@ -46,20 +48,32 @@ spec:
           yq -n --output-format json '.msg_type = "text"' > $body_file
           yq --output-format json -i '.content.text = load_str("content.txt")' $body_file
 
+          # send lark message.
           curl --fail -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
           rm -f content.txt $body_file
+        }
+
+        stage="$1"
+        shift
+        lark_webhook_url="$(cat $(workspaces.notify-config.path)/${stage}_lark_webhook)"
+
+        for image in "$@"; do
+          notify_image_in_lark_channel "$stage" "$image" "$lark_webhook_url"
         done
     - name: update-ops-config
       when:
         - input: "$(params.stage)"
           operator: in
           values: ["prod"]
+      args: ["$(params.stage)", "$(params.images[*])"]
       script: |
         #!/usr/bin/env bash
         set -e
 
-        stage="$(params.stage)"
-        for image in $(params.images[*]); do
+        function update_ops_config_for_image() {
+          stage="$1"
+          image="$2"
+
           # split image name and tag
           image_repo=$(echo $image | cut -d':' -f1)
           image_tag=$(echo $image | cut -d':' -f2)
@@ -78,4 +92,10 @@ spec:
           # - version: v8.5.4
           # - image_repo: registry.test.com/pingcap/tidb
           # - image_tag: v8.5.4-nextgen.20230101.1
+        }
+
+        stage="$1"
+        shift
+        for image in "$@"; do
+          update_ops_config_for_image "$stage" "$image"
         done
