@@ -33,7 +33,7 @@ branch: master
 | sig-approvers-planner | AilinKid, 0xPoe, elsa0520, fixdb, hawkingrei, qw4990, time-and-fate, winoros, terry1purcell, ghazalfamilyusa, henrybw, wddevries, King-Dylan | `pkg/planner/**`, `pkg/bindinfo/**` |
 | sig-approvers-metrics | XuHuaiyu, zimulala, yibin87, nolouch | pkg/metrics/** |
 | sig-approvers-br | BornChanger, 3pointer, YuJuncen, Leavrth | `br/**`, `br/pkg/storage/**` |
-| sig-approvers-lightning | Benjamin2037, D3Hunter, gmhdbjd, OliverS929 | `lightning/**` (except where filtered), `lightning/cmd/tidb-lightning/**`, `lightning/cmd/tidb-lightning-ctl/**`, `br/pkg/storage/**` |
+| sig-approvers-lightning | Benjamin2037, D3Hunter, gmhdbjd, OliverS929 | `lightning/**` (except where filtered), `lightning/cmd/tidb-lightning/**`, `lightning/cmd/tidb-lightning-ctl/**`, `br/pkg/storage/**`, `pkg/lightning/**` |
 | sig-critical-approvers-tidb-lightning | yudongusa, BenMeadowcroft | `lightning/tidb-lightning.toml`, `pkg/lightning/config/**` |
 | sig-approvers-dumpling | Benjamin2037, gmhdbjd, D3Hunter | dumpling/** |
 | sig-approvers-executor | windtalker, XuHuaiyu, zanmato1984 | pkg/executor/** |
