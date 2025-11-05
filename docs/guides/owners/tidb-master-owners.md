@@ -1,6 +1,6 @@
 ---
 prompt: |
-  parse the prow OWNERS and OWNERS_ALIASES file in the `pingcap/tidb` GitHub repo default branch to generate report about the code owners (the approvers role).
+  parse the prow OWNERS and OWNERS_ALIASES file to generate report about the code owners (the approvers role).
   Goals:
 
   1. the report should saved in markdown file
@@ -11,15 +11,16 @@ prompt: |
     - for the scopes view table: path(folder or file), who can approve(SIG list or standalone member).
   3. do not tell reader the filter pattern detail, such as "Matched file (filter):".
   4. you should ensure the content in markdown table cell display well, for example: do not use list items and '|' characters.
+repo: pingcap/tidb
+branch: master
 ---
 # TiDB OWNERS report (approvers only)
 
-Source: OWNERS and OWNERS_ALIASES in `pingcap/tidb` repository.
-Branch: master
-Notes:
-- Directory scopes are recursive unless otherwise noted.
-- For filter-based OWNERS, specific matched files are listed for non-default patterns.
-- Community SIG membership is managed in pingcap/community and not expanded here.
+- Source: OWNERS and OWNERS_ALIASES in repository.
+- Notes:
+  - Directory scopes are recursive unless otherwise noted.
+  - For filter-based OWNERS, specific matched files are listed for non-default patterns.
+  - Community SIG membership is managed in pingcap/community and not expanded here.
 
 ## SIGs view
 
