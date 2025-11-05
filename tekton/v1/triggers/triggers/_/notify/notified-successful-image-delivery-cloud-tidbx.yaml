@@ -11,15 +11,17 @@ spec:
       params:
         - name: filter
           value: >-
-            body.comment.body.matches('[\s\S]*<!--\s*META={.+?-->[\s\S]*')
+            body.comment.body.matches('<!--\\s*META={.+?\\s*-->')
         - name: overlays
           value:
-            - key: data
-              expression: body.comment.body.replace('[\s\S]*<!--\s*META=', '').replace('-->[\s\S]*', '').parseJSON()
+            - key: images
+              expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images.marshalJSON()
+            - key: stage
+              expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().stage
   bindings:
     - ref: github-issue-comment
-    - { name: images, value: $(extensions.data.images) }
-    - { name: stage, value: $(extensions.data.stage) }
+    - { name: images, value: $(extensions.images) }
+    - { name: stage, value: $(extensions.stage) }
   template:
     spec:
       params:

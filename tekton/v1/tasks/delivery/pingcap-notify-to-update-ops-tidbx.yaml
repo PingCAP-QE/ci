@@ -14,7 +14,7 @@ metadata:
 spec:
   params:
     - name: images
-      type: array
+      type: string
       description: images list
     - name: stage
       type: string
@@ -31,7 +31,7 @@ spec:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
   steps:
     - name: notify-in-lark-channel
-      args: ["$(params.stage)", "$(params.images[*])"]
+      args: ["$(params.stage)", "$(params.images)"]
       script: |
         #!/usr/bin/env bash
         set -e
@@ -54,10 +54,10 @@ spec:
         }
 
         stage="$1"
-        shift
+        images="$(echo "$2" | jq -r '.[]')"
         lark_webhook_url="$(cat $(workspaces.notify-config.path)/${stage}_lark_webhook)"
 
-        for image in "$@"; do
+        for image in $images; do
           notify_image_in_lark_channel "$stage" "$image" "$lark_webhook_url"
         done
     - name: update-ops-config
@@ -65,7 +65,7 @@ spec:
         - input: "$(params.stage)"
           operator: in
           values: ["prod"]
-      args: ["$(params.stage)", "$(params.images[*])"]
+      args: ["$(params.stage)", "$(params.images)"]
       script: |
         #!/usr/bin/env bash
         set -e
@@ -79,7 +79,7 @@ spec:
           image_tag=$(echo $image | cut -d':' -f2)
 
           # get the component name from image repo: the base name of the image repo
-          component=$(echo $image_repo | cut -d'/' -f2)
+          component="${image_repo##*/}"
 
           # get the component version from image tag(should return the vX.Y.Z part)
           version=$(echo $image_tag | cut -d'-' -f1)
@@ -95,7 +95,7 @@ spec:
         }
 
         stage="$1"
-        shift
-        for image in "$@"; do
+        images="$(echo "$2" | jq -r '.[]')"
+        for image in $images; do
           update_ops_config_for_image "$stage" "$image"
         done
