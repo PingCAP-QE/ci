@@ -222,7 +222,7 @@ presubmits:
                   exit 0
                 fi
                 wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
-                go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
+                go run github.com/PingCAP-QE/ci/tools/error-log-review@eb8212b575c315a2d127ec71cc5a653bc4cba54f \
                   -config /tmp/config.yaml \
                   -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
             env:
