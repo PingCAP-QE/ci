@@ -18,7 +18,10 @@ const (
 	TiChiBotUserBold = "ti-chi-bot[bot]"
 
 	// Approval notification pattern
-	ApprovalNotificationPrefix = "[APPROVALNOTIFIER] This PR is **APPROVED**"
+	// Both APPROVED and NOT APPROVED are included in the approval notification
+	// [APPROVALNOTIFIER] This PR is **APPROVED**
+	// [APPROVALNOTIFIER] This PR is **NOT APPROVED**
+	ApprovalNotificationPrefix = "[APPROVALNOTIFIER]"
 	ApprovalDetailsPrefix      = "This pull-request has been approved by:"
 )
 
