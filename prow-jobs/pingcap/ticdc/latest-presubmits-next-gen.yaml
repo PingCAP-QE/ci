@@ -10,7 +10,7 @@ presubmits:
   pingcap/ticdc:
     - name: pingcap/ticdc/pull_cdc_mysql_integration_light_next_gen
       agent: jenkins
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light-next-gen
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|next-gen)(?: .*?)?$"
