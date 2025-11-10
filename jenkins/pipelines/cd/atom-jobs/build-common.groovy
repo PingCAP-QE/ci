@@ -911,7 +911,7 @@ def run_with_arm_go_pod(Closure body) {
             break
     }
     if (PRODUCT == "tikv"){
-        arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v20230804"
+        arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v2025.11.7"
     }
     run_with_pod(arm_go_pod_image, body)
 }
