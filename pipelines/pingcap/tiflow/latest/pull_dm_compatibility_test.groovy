@@ -82,7 +82,7 @@ pipeline {
         }
         stage("prepare") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 25, unit: 'MINUTES') }
+            options { timeout(time: 35, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
                     script {
