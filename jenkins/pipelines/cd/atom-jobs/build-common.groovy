@@ -673,7 +673,7 @@ fi
 rm -rf ${TARGET}/build-release || true
 """
 
-buildsh["tikv"] = """
+buildsh["tikv"] = """#!/usr/bin/env bash
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 if [ ${RELEASE_TAG}x != ''x ];then
     for a in \$(git tag --contains ${GIT_HASH}); do echo \$a && git tag -d \$a;done
@@ -911,7 +911,7 @@ def run_with_arm_go_pod(Closure body) {
             break
     }
     if (PRODUCT == "tikv"){
-        arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v20230804"
+        arm_go_pod_image="hub.pingcap.net/ee/ci/release-build-base-tikv:v2025.11.7"
     }
     run_with_pod(arm_go_pod_image, body)
 }
@@ -957,7 +957,6 @@ def run_with_pod(String builder, Closure body) {
             ],
             volumes: [
                     emptyDirVolume(mountPath: '/tmp', memory: false),
-                    emptyDirVolume(mountPath: '/home/jenkins', memory: false),
                     persistentVolumeClaim(mountPath:'/var/cache/cargohome', claimName: cargo_pvc)
                     ],
     ) {
