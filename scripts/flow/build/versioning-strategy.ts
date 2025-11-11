@@ -58,17 +58,11 @@ export function compute(
     return { releaseVersion: "v" + semver.format(rv) };
   }
 
-  // Check if the current branch is a release branch.
-  if (!commitInBranches.some(isReleaseBranch)) {
-    console.info("Current commit is not contained in any release branches.");
-    return { releaseVersion: "v" + semver.format(rv) };
-  }
-
   // Check for feature branch
   const featureBranch = commitInBranches.find((b) =>
     /\bfeature\/[\w.-]+$/.test(b)
   );
-  if (featureBranch) {
+  if (featureBranch && !commitInBranches.some(isReleaseBranch)) {
     console.info("Current commit is in a feature branch.");
     // Extract feature name, replace '/' with '.' for version/tag
     const suffix = featureBranch
@@ -80,6 +74,12 @@ export function compute(
       releaseVersion: featureVersion,
       newGitTag: featureVersion,
     };
+  }
+
+  // Check if the current branch is a release branch.
+  if (!commitInBranches.some(isReleaseBranch)) {
+    console.info("Current commit is not contained in any release branches.");
+    return { releaseVersion: "v" + semver.format(rv) };
   }
 
   const preRelease = (rv.prerelease || []).join(".");
