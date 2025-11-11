@@ -52,6 +52,18 @@ export function compute(
 ): builtControl {
   const rv = semver.parse(rawVersion.trim());
 
+  // If it's a GA version, return it directly
+  if (isGaVer(rv)) {
+    console.info("it's a normal GA version.");
+    return { releaseVersion: "v" + semver.format(rv) };
+  }
+
+  // Check if the current branch is a release branch.
+  if (!commitInBranches.some(isReleaseBranch)) {
+    console.info("Current commit is not contained in any release branches.");
+    return { releaseVersion: "v" + semver.format(rv) };
+  }
+
   // Check for feature branch
   const featureBranch = commitInBranches.find((b) =>
     /\bfeature\/[\w.-]+$/.test(b)
@@ -62,24 +74,12 @@ export function compute(
     const suffix = featureBranch
       .replace(/.*\bfeature\//, "feature/")
       .replaceAll("/", ".")
-      .replaceAll("-", "_");
+      .replaceAll("-", ".");
     const featureVersion = `v${rv.major}.${rv.minor}.${rv.patch}-${suffix}`;
     return {
       releaseVersion: featureVersion,
       newGitTag: featureVersion,
     };
-  }
-
-  // Check if the current branch is a release branch.
-  if (!commitInBranches.some(isReleaseBranch)) {
-    console.info("Current commit is not contained in any release branches.");
-    return { releaseVersion: "v" + semver.format(rv) };
-  }
-
-  // If it's a GA version, return it directly
-  if (isGaVer(rv)) {
-    console.info("it's a normal GA version.");
-    return { releaseVersion: "v" + semver.format(rv) };
   }
 
   const preRelease = (rv.prerelease || []).join(".");
