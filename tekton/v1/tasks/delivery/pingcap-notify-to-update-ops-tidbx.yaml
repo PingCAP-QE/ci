@@ -99,7 +99,7 @@ spec:
 
             echo "🚀 Request to update the image for component $component@$version in stage $stage with: $image_repo:$image_tag"
             curl -f \
-              --method POST \
+              --request POST \
               --location "$api_url" \
               --header "x-api-key: $api_key" \
               --header "Content-Type: application/json" \
