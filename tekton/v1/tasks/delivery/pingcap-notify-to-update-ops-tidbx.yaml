@@ -76,17 +76,48 @@ spec:
         #!/usr/bin/env bash
         set -euo pipefail
 
+
+        function make_ops_api_call() {
+            local component="$1"
+            local component_version="$2"
+            local cluster_type="$3"
+            local image_repo="$4"
+            local image_tag="$5"
+            local api_base_url="$6"
+            local api_key="$7"
+
+            local api_url="$api_base_url/$component"
+
+            # prepare payload file
+            local payload_file="/tmp/$component-$version.json"
+            jq -n \
+              --arg cluster_type "$cluster_type" \
+              --arg version "$component_version" \
+              --arg base_image "$image_repo" \
+              --arg tag "$image_tag" \
+              '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag}' > $payload_file
+
+            echo "🚀 Request to update the image for component $component@$version in stage $stage with: $image_repo:$image_tag"
+            curl -f \
+              --method POST \
+              --location "$api_url" \
+              --header "x-api-key: $api_key" \
+              --header "Content-Type: application/json" \
+              --data "@$payload_file"
+            echo "✅ Requested image updating successfully"
+        }
+
+
         function update_ops_config_for_image() {
           local stage="$1"
           local image="$2"
           local stage_config_file="$3"
-
           local api_base_url="$(jq -r '.api_base_url' $stage_config_file)"
           local api_key="$(jq -r '.api_key' $stage_config_file)"
 
           # split image name and tag
-          local image_repo=$(echo $image | cut -d':' -f1)
-          local image_tag=$(echo $image | cut -d':' -f2)
+          local image_repo=${image%:*}
+          local image_tag=${image##*:}
 
           # get the component name from image repo: the base name of the image repo
           local components=$(jq -r --arg img "$image_repo" '.components | to_entries | map(select(.value.base_image==$img) | .key) | join(",")' $stage_config_file)
@@ -103,13 +134,7 @@ spec:
           IFS=',' read -ra components_array <<< "$components"
           for component in "${components_array[@]}"; do
             cluster_type="$(jq -r ".components.${component}.cluster_type" $stage_config_file)"
-            echo "🚀 Request to update the image for component $component@$version in stage $stage with: $image_repo:$image_tag"
-            curl -f \
-              --location "$api_base_url/$component" \
-              --header "x-api-key: $api_key" \
-              --header "Content-Type: application/json" \
-              --data "{\"cluster_type\": \"$cluster_type\", \"version\": \"$version\", \"base_image\": \"$image_repo\", \"tag\": \"$image_tag\"}"
-            echo "✅ Requested image updating successfully"
+            make_ops_api_call "$component" "$version" "$cluster_type" "$image_repo" "$image_tag" "$api_base_url" "$api_key"
           done
         }
 
