@@ -27,6 +27,12 @@ spec:
         - GitHub token: <stage>_github_token
         - GitHub issue URL: <stage>_github_issue_url
       readOnly: true
+    - name: ops-config
+      description: |
+        Configuration to call Ops platform APIs.
+        Include files:
+        - <stage>.json
+      readOnly: true
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
   steps:
@@ -68,34 +74,50 @@ spec:
       args: ["$(params.stage)", "$(params.images)"]
       script: |
         #!/usr/bin/env bash
-        set -e
+        set -euo pipefail
 
         function update_ops_config_for_image() {
-          stage="$1"
-          image="$2"
+          local stage="$1"
+          local image="$2"
+          local stage_config_file="$3"
+
+          local api_base_url="$(jq -r '.api_base_url' $stage_config_file)"
+          local api_key="$(jq -r '.api_key' $stage_config_file)"
 
           # split image name and tag
-          image_repo=$(echo $image | cut -d':' -f1)
-          image_tag=$(echo $image | cut -d':' -f2)
+          local image_repo=$(echo $image | cut -d':' -f1)
+          local image_tag=$(echo $image | cut -d':' -f2)
 
           # get the component name from image repo: the base name of the image repo
-          component="${image_repo##*/}"
+          local components=$(jq -r --arg img "$image_repo" '.components | to_entries | map(select(.value.base_image==$img) | .key) | join(",")' $stage_config_file)
+          if [ -z "$components" ]; then
+            echo "🤷 No component matched to bump on the Ops platform, skip."
+            return 0
+          fi
+
 
           # get the component version from image tag(should return the vX.Y.Z part)
-          version=$(echo $image_tag | cut -d'-' -f1)
+          local version=$(echo $image_tag | cut -d'-' -f1)
 
-          # 🚧 WIP
-          echo "🚧 WIP: Fake update component $component@$version in stage $stage with image: $image_repo:$image_tag"
-
-          # TODO: call Ops platform API with inputs, example:
-          # - component: tidb|tikv|pd|tiflash|....
-          # - version: v8.5.4
-          # - image_repo: registry.test.com/pingcap/tidb
-          # - image_tag: v8.5.4-nextgen.20230101.1
+          # loop the components
+          IFS=',' read -ra components_array <<< "$components"
+          for component in "${components_array[@]}"; do
+            cluster_type="$(jq -r ".components.${component}.cluster_type" $stage_config_file)"
+            echo "🚀 Request to update the image for component $component@$version in stage $stage with: $image_repo:$image_tag"
+            curl -f \
+              --location "$api_base_url/$component" \
+              --header "x-api-key: $api_key" \
+              --header "Content-Type: application/json" \
+              --data "{\"cluster_type\": \"$cluster_type\", \"version\": \"$version\", \"base_image\": \"$image_repo\", \"tag\": \"$image_tag\"}"
+            echo "✅ Requested image updating successfully"
+          done
         }
 
         stage="$1"
+        stage_config_file=$(workspaces.ops-config.path)/${stage}.json
         images="$(echo "$2" | jq -r '.[]')"
         for image in $images; do
-          update_ops_config_for_image "$stage" "$image"
+          update_ops_config_for_image "$stage" "$image" "$stage_config_file"
         done
+
+        echo "🎉 Done!"

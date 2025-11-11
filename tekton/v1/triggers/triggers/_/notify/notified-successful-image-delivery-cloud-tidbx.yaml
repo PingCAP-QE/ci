@@ -44,3 +44,6 @@ spec:
               - name: notify-config
                 secret:
                   secretName: image-delivery-notify-config-tidbx
+              - name: ops-config
+                secret:
+                  secretName: image-delivery-ops-config-tidbx
