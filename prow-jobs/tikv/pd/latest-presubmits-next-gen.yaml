@@ -80,8 +80,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: tikv/pd/pull_integration_realcluster_test_next_gen
-      # skip_if_only_changed: *skip_if_only_changed # uncomment it when it's stable
-      always_run: false # delete this line when it's stable
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: true # delete this line when it's stable
       optional: true # delete this line when it's stable
       context: pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
