@@ -5,7 +5,8 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check2.yaml'
+final BRANCH_ALIAS = 'latest'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 prow.setPRDescription(REFS)
@@ -17,28 +18,14 @@ pipeline {
             defaultContainer 'golang'
         }
     }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
     options {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir('tidb') {
@@ -118,7 +105,7 @@ pipeline {
                         }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
@@ -134,13 +121,30 @@ pipeline {
                         }
                         post {
                             always {
-                                dir('tidb') {
+                                dir(REFS.repo) {
                                     // archive test report to Jenkins.
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                                 }
+                                script {
+                                    if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
+                                        sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
+                                        sh label: 'Send event to cloudevents server', script: """timeout 10 \
+                                            curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
+                                            --header "ce-id: \$(uuidgen)" \
+                                            --header "ce-source: \${JENKINS_URL}" \
+                                            --header 'ce-type: test-case-run-report' \
+                                            --header 'ce-repo: ${REFS.org}/${REFS.repo}' \
+                                            --header 'ce-branch: ${REFS.base_ref}' \
+                                            --header "ce-buildurl: \${BUILD_URL}" \
+                                            --header 'ce-specversion: 1.0' \
+                                            --header 'content-type: application/json; charset=UTF-8' \
+                                            --data @bazel-go-test-problem-cases.json || true
+                                        """
+                                    }
+                                }
                             }
                             unsuccessful {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     sh label: "archive log", script: """
                                     str="$SCRIPT_AND_ARGS"
                                     logs_dir="logs_\${str// /_}"
@@ -152,9 +156,21 @@ pipeline {
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
+                                script {
+                                    if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
+                                        sh """
+                                            logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
+                                            mkdir -p \$logs_dir
+                                            mv tidb/bazel-test.log \$logs_dir 2>/dev/null || true
+                                            mv bazel-*.log \$logs_dir 2>/dev/null || true
+                                            mv bazel-*.json \$logs_dir 2>/dev/null || true
+                                        """
+                                        archiveArtifacts(artifacts: '*/bazel-*.log,*/bazel-*.json', fingerprint: false, allowEmptyArchive: true)
+                                    }
+                                }
                             }
                             success {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     script {
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                                     }
