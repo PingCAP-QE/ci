@@ -89,6 +89,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^master$
+        - ^release-nextgen-\d+$
       spec:
         containers:
           - name: check
@@ -112,6 +113,7 @@ presubmits:
       optional: true
       branches:
         - ^master$
+        - ^release-nextgen-\d+$
       spec:
         containers:
           - name: build
