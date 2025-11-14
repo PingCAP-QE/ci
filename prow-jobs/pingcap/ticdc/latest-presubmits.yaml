@@ -84,6 +84,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^master$
+        - ^release-8\.5$
       spec:
         containers:
           - name: check
@@ -105,6 +106,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^master$
+        - ^release-8\.5$
       spec:
         containers:
           - name: build
@@ -126,6 +128,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       branches:
         - ^master$
+        - ^release-8\.5$
       spec:
         containers:
           - name: check
@@ -139,6 +142,7 @@ presubmits:
     - name: pull-error-log-review
       branches:
         - ^master$
+        - ^release-8\.5$
       decorate: true
       decoration_config:
         timeout: 20m
