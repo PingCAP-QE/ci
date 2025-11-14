@@ -67,7 +67,7 @@ spec:
                     export GH_TOKEN="$(cat $(workspaces.github.path)/token)"
                     pr_url="https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
 
-                    if gh pr view "$pr_url" --json labels --jq '.labels | map(.name)' | grep -E '^lgtm$'; then
+                    if gh pr view "$pr_url" --json labels --jq '.labels[].name' | grep -E '^lgtm$'; then
                       # TODO: Judge if we can add approved label by the comments from prow approve plugin
                       # Add label only if there are sufficient approvals from trusted users
                       gh pr edit --add-label approved "$pr_url"
