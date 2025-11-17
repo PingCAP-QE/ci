@@ -44,7 +44,7 @@ Minimal scaffold:
       bindings:
         - { name: someParam, value: $(extensions.someKey) }
       template: ...
-      
+
 
 Event payload is exposed as a dynamic object under `body` (e.g., `body.comment.body` for a GitHub issue_comment event).
 
