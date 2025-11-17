@@ -98,56 +98,7 @@ Rationale: only pass if the comment contains an HTML comment with a META JSON ob
 Note the double escaping of `\` for YAML strings and the `(?s)` flag for multi-line comments.
 
 
-## 5) Extracting data with overlays (parse once, reuse)
-
-Avoid repeating expensive string splits and `parseJSON()` calls. Compute once in `overlays` and reuse in both the `filter` and subsequent overlays via `extensions`.
-
-Pattern: parse an embedded JSON block from a comment
-
-    params:
-      - name: filter
-        value: >-
-          body.action == 'created' &&
-          body.comment.body != null &&
-          body.comment.body.matches('(?s)<!--\\s*META\\s*=\\s*\\{.*?\\}\\s*-->') &&
-          size(
-            body.comment.body.split('<!--')[1]
-              .split('-->')[0]
-              .replace('META', '')
-              .replace('=', '')
-              .trim()
-              .parseJSON()
-              .images
-          ) > 0
-      - name: overlays
-        value:
-          - key: meta
-            expression: >-
-              body.comment.body.split('<!--')[1]
-                .split('-->')[0]
-                .replace('META', '')
-                .replace('=', '')
-                .trim()
-                .parseJSON()
-          - key: images
-            expression: extensions.meta.images.marshalJSON()
-          - key: stage
-            expression: extensions.meta.stage
-
-Then in bindings:
-
-    bindings:
-      - ref: github-issue-comment
-      - { name: images, value: $(extensions.images) }
-      - { name: stage,  value: $(extensions.stage) }
-
-Notes:
-- We normalize around `META=` by removing `META` and `=` explicitly, then `trim()` before `parseJSON()`.
-- We use `size(list) > 0` instead of `.length`.
-- We use `marshalJSON()` for lists/maps when the Task param expects a JSON string.
-
-
-## 6) Safer JSON handling
+## 5) Safer JSON handling
 
 - Always guard `parseJSON()` with a preceding `matches()` to ensure the string you parse looks like JSON.
 - Check keys exist before indexing:
@@ -157,14 +108,14 @@ Notes:
 - Avoid chaining deep property access without guards. Break into smaller overlays or use membership checks.
 
 
-## 7) YAML and escaping tips
+## 6) YAML and escaping tips
 
 - Use `value: >-` folded scalars for multi-line CEL. This keeps YAML readable and avoids excessive quoting.
 - Inside CEL regex strings, escape backslashes for YAML: to get `\s` into the regex, write `\\s` in YAML.
 - Prefer a single place for complex regex. If multiple conditions share the same pattern, consider moving the expensive `parseJSON()` to an overlay and make the `filter` simple.
 
 
-## 8) Common pitfalls (and fixes)
+## 7) Common pitfalls (and fixes)
 
 - Using `.length` on lists: CEL uses `size(list)`, not `.length`.
 - Over-parsing: avoid repeating `split(...).parseJSON()` in several places; compute once in an overlay.
@@ -175,7 +126,7 @@ Notes:
 - Case sensitivity: normalize with `lowerAscii()` before checking commands or keywords.
 
 
-## 9) End-to-end example trigger (GitHub issue_comment)
+## 8) End-to-end example trigger (GitHub issue_comment)
 
 This example triggers a TaskRun only when an issue comment is created in selected repos and contains a META JSON block with a non-empty `images` list. It parses the JSON once and passes `images` and `stage` to the Task.
 
@@ -250,7 +201,7 @@ This example triggers a TaskRun only when an issue comment is created in selecte
                       secretName: image-delivery-ops-config-tidbx
 
 
-## 10) Validation and troubleshooting
+## 9) Validation and troubleshooting
 
 - Add temporary overlays to debug computed values (e.g., `- key: debug_body; expression: body.comment.body`), then echo them in your Task to inspect runtime values.
 - Start with a permissive `filter`, deploy, capture sample events, then tighten conditions step by step.
@@ -264,7 +215,7 @@ Local testing strategies:
 - Log `$(extensions.*)` in a dummy Task to verify overlay extraction logic.
 
 
-## 11) Quick reference (cheat sheet)
+## 10) Quick reference (cheat sheet)
 
 - Make it pass
   - Only on creation: `body.action == 'created'`
@@ -287,7 +238,7 @@ Local testing strategies:
 Keep expressions small and readable. Prefer overlays for complex transformations.
 
 
-## 12) Review checklist
+## 11) Review checklist
 
 Before submitting a Trigger with CEL:
 
@@ -300,7 +251,7 @@ Before submitting a Trigger with CEL:
 - [ ] Names and comments explain intent (why), not just what
 
 
-## 13) Further reading
+## 12) Further reading
 
 - Tekton Triggers: Interceptors and CEL
 - CEL Language (cel.dev): syntax, standard functions

@@ -59,27 +59,28 @@ spec:
         }
 
         function make_ops_api_call() {
-            local component="$1"
-            local component_version="$2"
-            local cluster_type="$3"
-            local image_repo="$4"
-            local image_tag="$5"
-            local api_base_url="$6"
-            local api_key="$7"
-            local save_file="$8"
+            local stage="$1"
+            local component="$2"
+            local component_version="$3"
+            local cluster_type="$4"
+            local image_repo="$5"
+            local image_tag="$6"
+            local api_base_url="$7"
+            local api_key="$8"
+            local save_file="$9"
 
             local api_url="$api_base_url/$component"
 
             # prepare payload file
-            local payload_file="/tmp/$component-$version.json"
+            local payload_file="/tmp/$component-$component_version.json"
             jq -n \
               --arg cluster_type "$cluster_type" \
               --arg version "$component_version" \
               --arg base_image "$image_repo" \
               --arg tag "$image_tag" \
-              '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag, "policy": "immediate"}' > $payload_file
+              '{"cluster_type": $cluster_type, "version": $component_version, "base_image": $base_image, "tag": $tag, "policy": "immediate"}' > $payload_file
 
-            echo "🚀 Request to update the image for component $component@$version in stage $stage with: $image_repo:$image_tag"
+            echo "🚀 Request to update the image for component $component@$component_version in stage $stage with: $image_repo:$image_tag"
             local response_file="/tmp/${component}-${component_version}-response.json"
             curl -f \
               --request POST \
@@ -90,7 +91,7 @@ spec:
               --output "$response_file"
             ops_instance_id=$(jq -r .instance_id $response_file)
             ops_ticket_url="$(get_ops_instance_url $stage $ops_instance_id)"
-            echo "✅ Requested image updating successfully for component $component@$version in stage $stage with: $image_repo:$image_tag, the Ops ticket URL is: $ops_ticket_url"
+            echo "✅ Requested image updating successfully for component $component@$component_version in stage $stage with: $image_repo:$image_tag, the Ops ticket URL is: $ops_ticket_url"
 
             echo "$ops_ticket_url" >> "$save_file"
         }
@@ -114,15 +115,14 @@ spec:
             return 0
           fi
 
-
           # get the component version from image tag(should return the vX.Y.Z part)
-          local version=$(echo $image_tag | cut -d'-' -f1)
+          local component_version=$(echo $image_tag | cut -d'-' -f1)
 
           # loop the components
           IFS=',' read -ra components_array <<< "$components"
           for component in "${components_array[@]}"; do
             cluster_type="$(jq -r ".components.${component}.cluster_type" $stage_config_file)"
-            make_ops_api_call "$component" "$version" "$cluster_type" "$image_repo" "$image_tag" "$api_base_url" "$api_key"
+            make_ops_api_call "$stage" "$component" "$component_version" "$cluster_type" "$image_repo" "$image_tag" "$api_base_url" "$api_key"
           done
         }
 
