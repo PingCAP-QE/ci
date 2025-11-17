@@ -78,7 +78,7 @@ spec:
               --arg version "$component_version" \
               --arg base_image "$image_repo" \
               --arg tag "$image_tag" \
-              '{"cluster_type": $cluster_type, "version": $component_version, "base_image": $base_image, "tag": $tag, "policy": "immediate"}' > $payload_file
+              '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag, "policy": "immediate"}' > $payload_file
 
             echo "🚀 Request to update the image for component $component@$component_version in stage $stage with: $image_repo:$image_tag"
             local response_file="/tmp/${component}-${component_version}-response.json"
