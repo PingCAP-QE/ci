@@ -12,6 +12,8 @@ spec:
         - name: filter
           value: >-
             body.comment.body.matches('<!--\\s*META={.+?\\s*-->')
+            &&
+            size(body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images) > 0
         - name: overlays
           value:
             - key: images

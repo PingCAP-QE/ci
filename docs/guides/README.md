@@ -8,6 +8,7 @@ Welcome to the guides section of our CI repository. This directory contains docu
 
 - [CI](./CI.md) - Comprehensive guide to PingCAP's CI system, including how to locate pipelines for specific repositories, modify and test pipelines, and the workflow for deploying changes from staging to production environments
 - [Docker Build](./docker-build.md) - Instructions for building Docker images for PingCAP components from source code, with references to Dockerfile locations for different repositories
+- [Tekton Trigger CEL](./tekton/trigger-CEL.md) - Guide for writing safe, maintainable Common Expression Language (CEL) expressions in Tekton Trigger interceptors (filters and overlays), including regex patterns, JSON parsing, extraction, and validation best practices
 
 ### Development Workflow
 
