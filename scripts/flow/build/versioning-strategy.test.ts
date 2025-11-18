@@ -57,7 +57,8 @@ Deno.test("compute", () => {
       gitVer: "v8.5.4-release.1",
       branches: ["release-8.5"],
       expect: {
-        version: "v8.5.4-release.1",
+        version: "v8.5.4-pre", // will publish packages/images with v8.5.4-pre version.
+        newBuildTag: "v8.5.4", // `cdc version` will show v8.5.4 for version value.
       },
     },
     {
@@ -66,7 +67,17 @@ Deno.test("compute", () => {
       gitVer: "v8.5.4-release.1",
       branches: ["master", "release-8.5"],
       expect: {
-        version: "v8.5.4-release.1",
+        version: "v8.5.4-pre",
+        newBuildTag: "v8.5.4",
+      },
+    },
+    {
+      description: "CDC parent commits has EA tagged commit",
+      gitVer: "v8.5.4-release.1-1-g1234567",
+      branches: ["release-8.5", "master"],
+      expect: {
+        version: "v8.5.4-pre", // will publish packages/images with v8.5.4-pre version.
+        newBuildTag: "v8.5.4", // `cdc version` will show v8.5.4 for version value.
       },
     },
     {

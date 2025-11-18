@@ -132,7 +132,8 @@ export function compute(
   } else if (preRelease.startsWith("nextgen")) {
     console.info("I will do nothing for this nextgen version:", rawVersion);
   } else if (preRelease.startsWith("release")) {
-    console.info("I will do nothing for this release version:", rawVersion);
+    newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}`;
+    rv.prerelease = ["pre"];
   } else if (preRelease.startsWith("pre")) {
     newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}`;
     rv.prerelease = ["pre"];
