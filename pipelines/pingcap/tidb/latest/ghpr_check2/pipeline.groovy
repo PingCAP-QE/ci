@@ -127,7 +127,7 @@ pipeline {
                                 }
                                 script {
                                     if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
-                                        sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
+                                        sh label: "Parse flaky test case results", script: "./scripts/plugins/analyze-go-test-from-bazel-output.sh ${REFS.repo}/bazel-test.log || true"
                                         sh label: 'Send event to cloudevents server', script: """timeout 10 \
                                             curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
                                             --header "ce-id: \$(uuidgen)" \
@@ -161,7 +161,7 @@ pipeline {
                                         sh """
                                             logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
                                             mkdir -p \$logs_dir
-                                            mv tidb/bazel-test.log \$logs_dir 2>/dev/null || true
+                                            mv ${REFS.repo}/bazel-test.log \$logs_dir 2>/dev/null || true
                                             mv bazel-*.log \$logs_dir 2>/dev/null || true
                                             mv bazel-*.json \$logs_dir 2>/dev/null || true
                                         """
