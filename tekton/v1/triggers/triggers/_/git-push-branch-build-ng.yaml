@@ -13,17 +13,13 @@ spec:
         - name: filter
           value: >-
             (
-              body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflash', 'tikv/pd']
+              body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflash', 'pingcap/ticdc', 'tikv/pd']
               &&
               body.ref.matches('^refs/heads/(master|release-nextgen-[0-9]+)$')
             ) || (
               body.repository.full_name in ['tidbcloud/cloud-storage-engine']
               &&
               body.ref.matches('^refs/heads/(dedicated|release-nextgen-[0-9]+)$')
-            ) || (
-              body.repository.full_name in ['pingcap/ticdc']
-              &&
-              body.ref.matches('^refs/heads/(master|release-8[.]5|release-nextgen-[0-9]+)$')
             )
         - name: overlays
           value:
