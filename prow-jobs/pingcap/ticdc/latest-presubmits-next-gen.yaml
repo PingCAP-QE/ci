@@ -3,7 +3,7 @@ global_definitions:
     - ^master$
     - ^release-nextgen-\d+$
     - ^feature/.+
-  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -13,7 +13,7 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|next-gen|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light-next-gen"
       branches: *branches
       optional: true
