@@ -1,7 +1,7 @@
 global_definitions:
   branches: &branches
-    - ^feature/v2$
     - ^release-2[.][0-9]+$
+    - ^main$
   skip_if_only_changed: &skip_if_only_changed
     "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|OWNERS|OWNERS_ALIASES)$"
   decoration_config: &decoration_config
