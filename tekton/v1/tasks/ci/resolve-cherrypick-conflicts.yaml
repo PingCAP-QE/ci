@@ -14,6 +14,8 @@ metadata:
 spec:
   params:
     - name: pr-url
+  workspaces:
+    - name: openai # include files: api_base_url and api_key
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
   steps:
@@ -57,7 +59,17 @@ spec:
         #!/usr/bin/env bash
         set -euo pipefail
 
-        echo "🚧 WIP"
+        export OPENAI_API_KEY="$(cat $(workspaces.openai.path)/api_key)"
+        export OPENAI_API_BASE="$(cat $(workspaces.openai.path)/api_base_url)"
+
+        # download the program script.
+
+        # resolve the conflict files one by one.
+        for cf in $(cat /workspace/conflicted_files.txt); do
+          python <script>.py $cf # TODO: should be replaced with actual script name
+        done
+
+        echo "🎉 All file resolved."
     - name: push
       when:
         - input: "$(steps.detect.results.conflicted)"
