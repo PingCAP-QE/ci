@@ -16,6 +16,7 @@ spec:
     - name: pr-url
   workspaces:
     - name: openai # include files: api_base_url and api_key
+    - name: github # include files: token
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
   steps:
@@ -24,29 +25,34 @@ spec:
         #!/usr/bin/env bash
         set -euo pipefail
 
+        PR_URL="$(params.pr-url)"
+
         # get the full repo clone url and clone it
         repo=$(echo $PR_URL | cut -d '/' -f 5)
         repo_url=$(echo $PR_URL | cut -d '/' -f -5)
-        git clone ${repo_url}.git
+        git clone ${repo_url}.git /workspace/source
 
         # get pr number
         pr_number=$(echo $PR_URL | cut -d '/' -f 7)
-        # checkout the head of the PR
 
-        git fetch origin pull/$pr_number/head:pr-$pr_number
-        git checkout pr-$pr_number
+        # checkout the head of the PR
+        cd /workspace/source
+        git config --global --add safe.directory .
+        export GH_TOKEN=$(cat /workspace/github/token)
+        gh pr checkout $pr_number
+
     - name: detect
       results:
         - name: conflicted
           type: string
+      workingDir: /workspace/source
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
-
-        if grep -rlE '^(<<<<<<<|>>>>>>>|=======)\s*\b' > /workspace/conflicted_files.txt; then
-          printf "%f" "true" > $(step.results.conflicted.path)
+        if grep -rlE '^(<<<<<<<|>>>>>>>|=======)\s*\b' . > /workspace/conflicted_files.txt; then
+          printf "%s" "true" > $(step.results.conflicted.path)
         else
-          printf "%f" "false" > $(step.results.conflicted.path)
+          printf "%s" "false" > $(step.results.conflicted.path)
         fi
 
     - name: resolve-conflicts
@@ -55,6 +61,10 @@ spec:
         - input: "$(steps.detect.results.conflicted)"
           operator: in
           values: ["true"]
+      env:
+        - name: SCRIPT_URL
+          value: https://github.com/lybcodes/ci/raw/refs/heads/feature/merge-conflict-resolution/scripts/plugins/resolve_pr_conflicts.py
+      workingDir: /workspace/source
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -63,10 +73,17 @@ spec:
         export OPENAI_API_BASE="$(cat $(workspaces.openai.path)/api_base_url)"
 
         # download the program script.
+        wget -O /workspace/resolve.py "$SCRIPT_URL"
+        # install required packages
+        pip install requests openai
 
         # resolve the conflict files one by one.
         for cf in $(cat /workspace/conflicted_files.txt); do
-          python <script>.py $cf # TODO: should be replaced with actual script name
+          if ! python /workspace/resolve.py "$cf"; then
+            echo "☹️ Failed to resolve file: $cf"
+            exit 1
+          fi
+          echo "✅ Resolved file: $cf"
         done
 
         echo "🎉 All file resolved."
@@ -75,10 +92,15 @@ spec:
         - input: "$(steps.detect.results.conflicted)"
           operator: in
           values: ["true"]
+      workingDir: /workspace/source
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
 
+        git config --global --add safe.directory .
+        git config --global user.email "ti-community-prow-bot@tidb.io"
+        git config --global user.name  "ti-chi-bot"
+
         git add .
         git commit -m "resolve conflicts by bot"
-        git push origin HEAD
+        git push
