@@ -51,7 +51,7 @@ def _patched_get_client(config=None):
     """Modified function that does not append /v1 for JieKou.AI"""
     import os
     from openai import OpenAI
-    
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError(
@@ -62,12 +62,12 @@ def _patched_get_client(config=None):
             "   export OPENAI_API_KEY='your-api-key-here'\n\n"
             "Alternatively, you can use the --dry-run flag to see conflicts without AI resolution."
         )
-    
+
     if config and config.get('api_base_url'):
         api_base_url = config['api_base_url']
     else:
         api_base_url = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
-    
+
     # For JieKou.AI, do not append /v1
     if 'jiekou.ai' in api_base_url:
         pass
@@ -77,7 +77,7 @@ def _patched_get_client(config=None):
                 api_base_url = api_base_url + 'v1'
             else:
                 api_base_url = api_base_url + '/v1'
-    
+
     return OpenAI(api_key=api_key, base_url=api_base_url)
 
 reconcile._get_openai_client = _patched_get_client
@@ -95,10 +95,10 @@ def parse_conflicts_smart(content):
     current_conflict = None
     start_marker_count = 0  # Track the number of start markers in the current conflict block
     end_marker_count = 0    # Track the number of end markers in the current conflict block
-    
+
     for i, line in enumerate(lines):
         stripped = line.strip()
-        
+
         if stripped.startswith('<<<<<<<'):
             if depth == 0:
                 # Start a new outermost conflict
@@ -118,27 +118,27 @@ def parse_conflicts_smart(content):
                     current_conflict['start_markers'] += 1
                     start_marker_count += 1
             depth += 1
-        
+
         elif stripped.startswith('======='):
             if current_conflict:
                 current_conflict['lines'].append(line)
                 # Only mark the outermost separator (depth == 1 means just entered the outermost conflict)
                 if depth == 1:
                     current_conflict['has_separator'] = True
-        
+
         elif stripped.startswith('>>>>>>>'):
             if current_conflict:
                 current_conflict['lines'].append(line)
                 current_conflict['end_markers'] += 1
                 end_marker_count += 1
             depth -= 1
-            
+
             # If back to the outermost level (depth == 0), a complete conflict block is found
             if depth == 0 and current_conflict:
                 # Verify that the conflict block is complete:
                 # 1. Must have a separator
                 # 2. The number of start and end markers should match (ensure it's a complete conflict block)
-                if (current_conflict.get('has_separator') and 
+                if (current_conflict.get('has_separator') and
                     current_conflict.get('start_markers', 0) == current_conflict.get('end_markers', 0) and
                     current_conflict.get('start_markers', 0) > 0):
                     conflict_text = '\n'.join(current_conflict['lines'])
@@ -146,12 +146,12 @@ def parse_conflicts_smart(content):
                 current_conflict = None
                 start_marker_count = 0
                 end_marker_count = 0
-        
+
         else:
             # Regular content line
             if current_conflict:
                 current_conflict['lines'].append(line)
-    
+
     return conflicts
 
 
@@ -162,7 +162,7 @@ def clean_ai_response(resolved_text):
     """
     if not resolved_text:
         return None
-    
+
     # Check if it contains error messages or invalid content
     error_indicators = [
         "It seems",
@@ -175,11 +175,11 @@ def clean_ai_response(resolved_text):
         "cannot resolve",
         "unable to resolve"
     ]
-    
+
     for indicator in error_indicators:
         if indicator.lower() in resolved_text.lower():
             return None
-    
+
     # Remove markdown code block markers
     code_block_pattern = r'```(?:\w+)?\s*\n(.*?)\n```'
     matches = re.findall(code_block_pattern, resolved_text, re.DOTALL)
@@ -193,7 +193,7 @@ def clean_ai_response(resolved_text):
                 potential_code = re.sub(r'^\w+\s*\n', '', potential_code)
                 if potential_code.strip():
                     resolved_text = potential_code
-    
+
     # Remove common explanatory text
     explanation_patterns = [
         r'^Explanation:.*?\n',
@@ -203,15 +203,15 @@ def clean_ai_response(resolved_text):
         r'^---.*?\n',
         r'^\*\*RESOLUTION.*?\*\*.*?\n',
     ]
-    
+
     for pattern in explanation_patterns:
         resolved_text = re.sub(pattern, '', resolved_text, flags=re.MULTILINE | re.IGNORECASE)
-    
+
     # Remove markdown format markers at the beginning of lines
     lines = resolved_text.split('\n')
     cleaned_lines = []
     skip_until_code = False
-    
+
     for line in lines:
         if line.strip().startswith('**') and line.strip().endswith('**'):
             continue
@@ -224,11 +224,11 @@ def clean_ai_response(resolved_text):
             if line.strip().startswith('```'):
                 skip_until_code = False
             continue
-        
+
         cleaned_lines.append(line)
-    
+
     resolved_text = '\n'.join(cleaned_lines).strip()
-    
+
     # Ensure there are no conflict markers
     if '<<<<<<< HEAD' in resolved_text or '=======' in resolved_text or '>>>>>>>' in resolved_text:
         code_blocks = re.findall(r'```(?:\w+)?\s*\n(.*?)\n```', resolved_text, re.DOTALL)
@@ -238,15 +238,15 @@ def clean_ai_response(resolved_text):
         lines = resolved_text.split('\n')
         cleaned_lines = []
         for line in lines:
-            if not (line.strip().startswith('<<<<<<<') or 
-                    line.strip().startswith('=======') or 
+            if not (line.strip().startswith('<<<<<<<') or
+                    line.strip().startswith('=======') or
                     line.strip().startswith('>>>>>>>')):
                 cleaned_lines.append(line)
         resolved_text = '\n'.join(cleaned_lines)
-    
+
     if not resolved_text.strip():
         return None
-    
+
     return resolved_text
 
 
@@ -257,11 +257,11 @@ def validate_resolution(original_section, resolved_text):
     """
     if not resolved_text:
         return False
-    
+
     # Check for conflict markers
     if check_conflict_markers(resolved_text):
         return False
-    
+
     # Check for error messages
     error_indicators = [
         "It seems",
@@ -274,11 +274,11 @@ def validate_resolution(original_section, resolved_text):
         "cannot resolve",
         "unable to resolve"
     ]
-    
+
     for indicator in error_indicators:
         if indicator.lower() in resolved_text.lower():
             return False
-    
+
     return True
 
 
@@ -287,7 +287,7 @@ def check_conflict_markers(content):
     has_start = bool(re.search(r'^<<<<<<<', content, re.MULTILINE))
     has_separator = bool(re.search(r'^=======', content, re.MULTILINE))
     has_end = bool(re.search(r'^>>>>>>>', content, re.MULTILINE))
-    
+
     return has_start or has_separator or has_end
 
 
@@ -301,7 +301,7 @@ def is_complete_conflict(section):
     start_count = 0
     separator_count = 0
     end_count = 0
-    
+
     for line in lines:
         stripped = line.strip()
         if stripped.startswith('<<<<<<<'):
@@ -310,14 +310,14 @@ def is_complete_conflict(section):
             separator_count += 1
         elif stripped.startswith('>>>>>>>'):
             end_count += 1
-    
+
     # A complete conflict block should have:
     # - At least one start marker (outermost)
     # - At least one separator (outermost)
     # - At least one end marker (outermost)
     # - The number of start and end markers should match (ensure it's a complete conflict block)
-    return (start_count >= 1 and 
-            separator_count >= 1 and 
+    return (start_count >= 1 and
+            separator_count >= 1 and
             end_count >= 1 and
             start_count == end_count)
 
@@ -329,13 +329,13 @@ def extract_conflict_core(conflict_section):
     """
     lines = conflict_section.split('\n')
     core_lines = []
-    
+
     for line in lines:
         stripped = line.strip()
         if stripped.startswith('<<<<<<<') or stripped.startswith('=======') or stripped.startswith('>>>>>>>'):
             continue
         core_lines.append(line)
-    
+
     return '\n'.join(core_lines).strip()
 
 
@@ -345,7 +345,7 @@ def extract_indent_from_conflict(conflict_section):
     Returns: indentation string (spaces or tab)
     """
     lines = conflict_section.split('\n')
-    
+
     for line in lines:
         stripped = line.strip()
         # Skip conflict marker lines
@@ -356,7 +356,7 @@ def extract_indent_from_conflict(conflict_section):
             # Extract leading whitespace
             indent = line[:len(line) - len(line.lstrip())]
             return indent
-    
+
     # If no code line is found, return empty string
     return ""
 
@@ -369,7 +369,7 @@ def check_conflict_lines_same_indent_level(conflict_section):
     lines = conflict_section.split('\n')
     code_indents = []
     first_indent = None
-    
+
     for line in lines:
         stripped = line.strip()
         # Skip conflict marker lines
@@ -378,20 +378,20 @@ def check_conflict_lines_same_indent_level(conflict_section):
         # Skip empty lines
         if not stripped:
             continue
-        
+
         # Extract indentation
         indent = line[:len(line) - len(line.lstrip())]
         code_indents.append(indent)
-        
+
         if first_indent is None:
             first_indent = indent
-    
+
     if not code_indents or first_indent is None:
         return True, first_indent or ""
-    
+
     # Check if all lines have the same indentation
     all_same = all(indent == first_indent for indent in code_indents)
-    
+
     return all_same, first_indent
 
 
@@ -402,7 +402,7 @@ def extract_conflict_line_indents(conflict_section):
     """
     lines = conflict_section.split('\n')
     line_indents = []
-    
+
     for idx, line in enumerate(lines):
         stripped = line.strip()
         # Skip conflict marker lines
@@ -411,11 +411,11 @@ def extract_conflict_line_indents(conflict_section):
         # Skip empty lines
         if not stripped:
             continue
-        
+
         # Extract indentation
         indent = line[:len(line) - len(line.lstrip())]
         line_indents.append((idx, indent))
-    
+
     return line_indents
 
 
@@ -427,7 +427,7 @@ def extract_indent_from_context(original_content, conflict_start, conflict_end):
     lines = original_content.split('\n')
     conflict_start_line = original_content[:conflict_start].count('\n')
     conflict_end_line = original_content[:conflict_end].count('\n')
-    
+
     # Look for code lines before the conflict (look back at most 10 lines)
     base_indent = ""
     for i in range(max(0, conflict_start_line - 1), max(0, conflict_start_line - 10), -1):
@@ -437,7 +437,7 @@ def extract_indent_from_context(original_content, conflict_start, conflict_end):
             # Found a code line before the conflict
             base_indent = line[:len(line) - len(line.lstrip())]
             break
-    
+
     # If not found, look for code lines after the conflict
     if not base_indent:
         for i in range(conflict_end_line, min(len(lines), conflict_end_line + 10)):
@@ -446,11 +446,11 @@ def extract_indent_from_context(original_content, conflict_start, conflict_end):
             if stripped and not stripped.startswith('<<<<<<<') and not stripped.startswith('=======') and not stripped.startswith('>>>>>>>'):
                 base_indent = line[:len(line) - len(line.lstrip())]
                 break
-    
+
     # Extract indentation from inside the conflict block as fallback
     if not base_indent:
         base_indent = extract_indent_from_conflict(original_content[conflict_start:conflict_end])
-    
+
     # Determine indentation unit (usually 2 or 4 spaces, or 1 tab)
     if base_indent:
         if base_indent.startswith('\t'):
@@ -471,7 +471,7 @@ def extract_indent_from_context(original_content, conflict_start, conflict_end):
     else:
         indent_unit = ' ' * 4  # Default 4 spaces
         indent_size = 4
-    
+
     return base_indent, indent_unit, indent_size
 
 
@@ -484,17 +484,17 @@ def normalize_indent_to_target(resolved_code, target_indent, indent_unit, indent
     """
     if not resolved_code:
         return resolved_code
-    
+
     lines = resolved_code.split('\n')
     if not lines:
         return resolved_code
-    
+
     # If no target indentation, use default (4 spaces)
     if not target_indent:
         target_indent = '    '  # 4 spaces
         indent_unit = '    '
         indent_size = 4
-    
+
     # If relative indentation should not be preserved, all lines use target indentation
     if not preserve_relative_indent:
         adjusted_lines = []
@@ -506,12 +506,12 @@ def normalize_indent_to_target(resolved_code, target_indent, indent_unit, indent
                 # All lines use target indentation
                 adjusted_lines.append(target_indent + line.lstrip())
         return '\n'.join(adjusted_lines)
-    
+
     # If original conflict block indentation information is provided, use it for adjustment
     if conflict_line_indents and len(conflict_line_indents) > 0:
         # Find the first line's indentation as baseline
         first_conflict_indent = conflict_line_indents[0][1]
-        
+
         # Calculate the first line's indentation level relative to target indentation
         # Convert first line indentation to indentation level (relative to indentation unit)
         # Note: need to convert to the same unit to calculate relative indentation
@@ -523,17 +523,17 @@ def normalize_indent_to_target(resolved_code, target_indent, indent_unit, indent
         else:
             # Target indentation is spaces, calculate directly
             first_level = len(first_conflict_indent) // indent_size if indent_size > 0 else 0
-        
+
         # Calculate target indentation level
         if indent_unit == '\t':
             target_level = target_indent.count('\t')
             target_level += len(target_indent.replace('\t', '')) // indent_size if indent_size > 0 else 0
         else:
             target_level = len(target_indent) // indent_size if indent_size > 0 else 0
-        
+
         # Calculate offset
         offset = target_level - first_level
-        
+
         # Adjust indentation of all lines
         adjusted_lines = []
         code_line_idx = 0
@@ -542,11 +542,11 @@ def normalize_indent_to_target(resolved_code, target_indent, indent_unit, indent
                 # Empty lines remain unchanged
                 adjusted_lines.append(line)
                 continue
-            
+
             # Get the corresponding original conflict block line's indentation
             if code_line_idx < len(conflict_line_indents):
                 conflict_indent = conflict_line_indents[code_line_idx][1]
-                
+
                 # Calculate original conflict block line's indentation level (relative to first line)
                 if indent_unit == '\t':
                     # Target indentation is tab, need to convert original conflict block's space indentation to tab level
@@ -555,14 +555,14 @@ def normalize_indent_to_target(resolved_code, target_indent, indent_unit, indent
                 else:
                     # Target indentation is spaces, calculate directly
                     conflict_level = len(conflict_indent) // indent_size if indent_size > 0 else 0
-                
+
                 # Calculate indentation level difference relative to first line
                 relative_level = conflict_level - first_level
-                
+
                 # Calculate new indentation level = target level + relative level
                 new_level = target_level + relative_level
                 new_level = max(0, new_level)
-                
+
                 # Generate new indentation
                 new_indent = indent_unit * new_level
             else:
@@ -580,33 +580,33 @@ def normalize_indent_to_target(resolved_code, target_indent, indent_unit, indent
                     new_indent = indent_unit * new_level
                 else:
                     new_indent = target_indent
-            
+
             adjusted_lines.append(new_indent + line.lstrip())
             code_line_idx += 1
-        
+
         return '\n'.join(adjusted_lines)
-    
+
     # Otherwise, use the original logic: find minimum indentation of all code lines (as normalization baseline)
     min_indent = None
     code_line_indents = []
-    
+
     for line in lines:
         if not line.strip():
             # Skip empty lines
             code_line_indents.append(None)
             continue
-        
+
         current_indent = line[:len(line) - len(line.lstrip())]
         code_line_indents.append(current_indent)
-        
+
         # Update minimum indentation
         if min_indent is None or len(current_indent) < len(min_indent):
             min_indent = current_indent
-    
+
     # If no code lines found, return directly
     if min_indent is None:
         return resolved_code
-    
+
     # Adjust indentation of all lines
     adjusted_lines = []
     for idx, line in enumerate(lines):
@@ -614,10 +614,10 @@ def normalize_indent_to_target(resolved_code, target_indent, indent_unit, indent
             # Empty lines remain unchanged
             adjusted_lines.append(line)
             continue
-        
+
         # Get current line's original indentation
         original_indent = code_line_indents[idx]
-        
+
         # Calculate relative indentation (current line's offset relative to minimum indentation)
         # If current line indentation length >= minimum indentation length, calculate difference
         if len(original_indent) >= len(min_indent):
@@ -625,13 +625,13 @@ def normalize_indent_to_target(resolved_code, target_indent, indent_unit, indent
         else:
             # If current line indentation < minimum indentation (should not happen, but as protection)
             relative_indent = ""
-        
+
         # New indentation = target indentation (first code line's indentation inside conflict block) + relative indentation
         new_indent = target_indent + relative_indent
-        
+
         # Combine new line
         adjusted_lines.append(new_indent + line.lstrip())
-    
+
     return '\n'.join(adjusted_lines)
 
 
@@ -642,12 +642,12 @@ def resolve_conflict_with_indent_preservation(section, model="gpt-4o", config=No
     from reconcile import _get_openai_client
     import time
     import logging
-    
+
     logger = logging.getLogger('reconcile')
-    
+
     # Extract indentation information from conflict block
     conflict_indent = extract_indent_from_conflict(section)
-    
+
     # Build enhanced prompt that explicitly requires preserving indentation
     prompt = f"""Please resolve this Git merge conflict by providing clean, working code without any conflict markers.
 
@@ -659,7 +659,7 @@ CRITICAL REQUIREMENTS:
 5. Return ONLY the resolved code, no explanations, comments, markdown, lists, or bullet points
 
 The conflict shows two different versions of the code:
-- The HEAD version (current branch)  
+- The HEAD version (current branch)
 - The feature branch version
 
 Please analyze both versions and provide the best merged result that:
@@ -678,7 +678,7 @@ Please respond with ONLY the resolved code, no explanations or markdown formatti
 
     try:
         client = _get_openai_client(config)
-        
+
         start_time = time.time()
         response = client.chat.completions.create(
             model=model,
@@ -688,15 +688,15 @@ Please respond with ONLY the resolved code, no explanations or markdown formatti
             ],
             temperature=0
         )
-        
+
         latency = time.time() - start_time
         resolved = response.choices[0].message.content.strip()
-        
+
         logger.info(
             f"Resolved conflict section in {latency:.2f}s",
             extra={'latency': latency, 'model': model}
         )
-        
+
         return resolved
     except Exception as e:
         logger.error(
@@ -713,27 +713,27 @@ def resolve_conflicts_batch_with_indent_preservation(sections, model="gpt-4o", m
     from reconcile import _get_openai_client
     import time
     import logging
-    
+
     logger = logging.getLogger('reconcile')
-    
+
     if not sections:
         return []
-    
+
     all_resolutions = []
-    
+
     # Extract indentation information for each conflict
     indent_info = []
     for section in sections:
         indent = extract_indent_from_conflict(section)
         indent_info.append(indent)
-    
+
     # Process batches
     for i in range(0, len(sections), max_batch_size):
         batch = sections[i:i + max_batch_size]
         batch_indents = indent_info[i:i + max_batch_size]
         batch_num = (i // max_batch_size) + 1
         total_batches = (len(sections) + max_batch_size - 1) // max_batch_size
-        
+
         logger.info(
             f"Processing batch {batch_num}/{total_batches} ({len(batch)} conflicts)",
             extra={
@@ -742,7 +742,7 @@ def resolve_conflicts_batch_with_indent_preservation(sections, model="gpt-4o", m
                 'batch_size': len(batch)
             }
         )
-        
+
         # Build batch prompt
         batch_prompt = """Please resolve these Git merge conflicts by providing clean, working code without any conflict markers.
 
@@ -773,13 +773,13 @@ And so on...
 Here are the conflicts to resolve:
 
 """
-        
+
         for j, section in enumerate(batch, 1):
             batch_prompt += f"\n=== CONFLICT {j} ===\n{section}\n"
-        
+
         try:
             client = _get_openai_client(config)
-            
+
             start_time = time.time()
             response = client.chat.completions.create(
                 model=model,
@@ -789,19 +789,19 @@ Here are the conflicts to resolve:
                 ],
                 temperature=0
             )
-            
+
             latency = time.time() - start_time
             resolved_text = response.choices[0].message.content.strip()
-            
+
             logger.info(
                 f"Resolved batch {batch_num} in {latency:.2f}s",
                 extra={'batch_number': batch_num, 'latency': latency, 'model': model}
             )
-            
+
             # Parse batch response
             batch_resolutions = []
             parts = re.split(r'RESOLUTION\s+\d+:', resolved_text, flags=re.IGNORECASE)
-            
+
             for part in parts[1:]:  # Skip the first empty part
                 cleaned = part.strip()
                 # Remove possible markdown code block markers
@@ -812,7 +812,7 @@ Here are the conflicts to resolve:
                     if cleaned.endswith('```'):
                         cleaned = cleaned[:-3].rstrip()
                 batch_resolutions.append(cleaned)
-            
+
             # If parsing fails, try other methods
             if len(batch_resolutions) != len(batch):
                 # Try splitting by conflict count
@@ -821,9 +821,9 @@ Here are the conflicts to resolve:
                 else:
                     # Simple split (may not be accurate, but as fallback)
                     batch_resolutions = [resolved_text] * len(batch)
-            
+
             all_resolutions.extend(batch_resolutions)
-            
+
         except Exception as e:
             logger.error(
                 f"Batch resolution failed: {e}",
@@ -836,7 +836,7 @@ Here are the conflicts to resolve:
                     all_resolutions.append(resolved)
                 except Exception:
                     all_resolutions.append(section)
-    
+
     return all_resolutions
 
 
@@ -849,11 +849,11 @@ def remove_duplicate_lines(content, context_lines=3):
     lines = content.split('\n')
     cleaned_lines = []
     i = 0
-    
+
     while i < len(lines):
         line = lines[i]
         cleaned_lines.append(line)
-        
+
         # For curly braces, be very conservative: only delete duplicates that exceed 5 consecutive
         if line.strip() in ['{', '}']:
             j = i + 1
@@ -861,7 +861,7 @@ def remove_duplicate_lines(content, context_lines=3):
             while j < len(lines) and lines[j].strip() == line.strip():
                 duplicate_count += 1
                 j += 1
-            
+
             # Only delete excess if more than 5 consecutive curly braces
             if duplicate_count > 5:
                 # Keep the first one, skip the rest
@@ -869,14 +869,14 @@ def remove_duplicate_lines(content, context_lines=3):
             else:
                 i += 1
             continue
-        
+
         # For other lines, check for duplicates
         j = i + 1
         duplicate_count = 0
-        
+
         while j < len(lines) and j < i + context_lines + 1:
             current_line = lines[j]
-            
+
             if current_line.strip() == line.strip() and line.strip():
                 # Skip comment lines
                 if line.strip().startswith('//') or line.strip().startswith('#'):
@@ -885,13 +885,13 @@ def remove_duplicate_lines(content, context_lines=3):
                 j += 1
             else:
                 break
-        
+
         if duplicate_count > 0:
             # Skip duplicate lines
             i = j
         else:
             i += 1
-    
+
     return '\n'.join(cleaned_lines)
 
 
@@ -903,21 +903,21 @@ def detect_duplicate_code(content):
     """
     lines = content.split('\n')
     duplicates = []
-    
+
     i = 0
     while i < len(lines) - 1:
         line_stripped = lines[i].strip()
-        
+
         # Ignore curly brace duplicates (this is normal code structure)
         if line_stripped in ['{', '}']:
             i += 1
             continue
-        
+
         # Ignore empty lines
         if not line_stripped:
             i += 1
             continue
-        
+
         if line_stripped == lines[i + 1].strip():
             dup_start = i
             dup_line = line_stripped
@@ -934,7 +934,7 @@ def detect_duplicate_code(content):
             i = j
         else:
             i += 1
-    
+
     return duplicates
 
 
@@ -944,13 +944,13 @@ def format_conflict_preview(conflict_section, max_lines=5):
     """
     if not is_complete_conflict(conflict_section):
         return f"  ⚠️  Incomplete conflict block (missing markers)\n  {conflict_section[:100]}..."
-    
+
     lines = conflict_section.split('\n')
     preview_lines = []
     in_head = False
     in_merge = False
     content_lines_shown = 0
-    
+
     for line in lines:
         stripped = line.strip()
         if stripped.startswith('<<<<<<<'):
@@ -971,7 +971,7 @@ def format_conflict_preview(conflict_section, max_lines=5):
             if content_lines_shown < max_lines:
                 preview_lines.append(f'    {line[:60]}')
                 content_lines_shown += 1
-    
+
     return '\n'.join(preview_lines)
 
 
@@ -981,11 +981,11 @@ def parse_pr_url(pr_url):
         url = urlparse(pr_url)
         if url.hostname != "github.com":
             raise ValueError("Only GitHub PR URLs are supported")
-        
+
         path_parts = url.path.strip("/").split("/")
         if len(path_parts) < 4 or path_parts[2] != "pull":
             raise ValueError("Invalid PR URL format")
-        
+
         owner = path_parts[0]
         repo = path_parts[1]
         pr_number = int(path_parts[3])
@@ -1004,10 +1004,10 @@ def get_pr_info(owner, repo, pr_number, token):
     """Get PR information from GitHub API"""
     url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
     headers = {"Authorization": f"token {token}"}
-    
+
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    
+
     pr_data = response.json()
     return {
         "head_ref": pr_data["head"]["ref"],
@@ -1035,19 +1035,19 @@ def test_api_connection(api_key, api_base, model=None):
     """Test API connection"""
     try:
         from openai import OpenAI
-        
+
         test_model = model or os.getenv("RECONCILE_MODEL") or "gpt-4o"
-        
+
         if api_base:
             test_base = api_base
         else:
             test_base = "https://api.openai.com/v1"
-        
+
         print(f"   Testing model: {test_model}")
         print(f"   API address: {test_base}")
-        
+
         client = OpenAI(api_key=api_key, base_url=test_base)
-        
+
         response = client.chat.completions.create(
             model=test_model,
             messages=[{"role": "user", "content": "test"}],
@@ -1065,9 +1065,9 @@ def test_api_connection(api_key, api_base, model=None):
 def clone_repo_optimized(repo_url, repo_path, head_ref, base_ref, token):
     """Optimized repository cloning - using shallow clone and single branch"""
     print("📥 Cloning repository (optimized mode)...")
-    
+
     repo_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     clone_cmd = [
         "git", "clone",
         "--depth", "1",
@@ -1076,14 +1076,14 @@ def clone_repo_optimized(repo_url, repo_path, head_ref, base_ref, token):
         repo_url,
         str(repo_path)
     ]
-    
+
     result = subprocess.run(
         clone_cmd,
         cwd=str(repo_path.parent),
         capture_output=True,
         text=True
     )
-    
+
     if result.returncode != 0:
         print(f"⚠️  Cannot directly clone {head_ref} branch, trying to clone {base_ref}...")
         clone_cmd_base = [
@@ -1094,18 +1094,18 @@ def clone_repo_optimized(repo_url, repo_path, head_ref, base_ref, token):
             repo_url,
             str(repo_path)
         ]
-        
+
         result = subprocess.run(
             clone_cmd_base,
             cwd=str(repo_path.parent),
             capture_output=True,
             text=True
         )
-        
+
         if result.returncode != 0:
             print(f"❌ Clone failed: {result.stderr}")
             return False
-        
+
         print(f"🔀 Switching to PR branch: {head_ref}")
         stdout, stderr, code = run_git_cmd(repo_path, ["fetch", "origin", f"{head_ref}:{head_ref}", "--depth", "1"])
         if code != 0:
@@ -1113,14 +1113,14 @@ def clone_repo_optimized(repo_url, repo_path, head_ref, base_ref, token):
             if code != 0:
                 print(f"⚠️  Failed to fetch PR branch: {stderr}")
                 return False
-        
+
         stdout, stderr, code = run_git_cmd(repo_path, ["checkout", head_ref])
         if code != 0:
             print(f"❌ Failed to switch branch: {stderr}")
             return False
-    
+
     print(f"📥 Fetching target branch: {base_ref}")
-    
+
     stdout, stderr, code = run_git_cmd(repo_path, ["fetch", "origin", f"{base_ref}:origin/{base_ref}", "--depth", "10"])
     if code != 0:
         print(f"⚠️  Shallow clone fetch target branch failed, trying to increase depth...")
@@ -1131,7 +1131,7 @@ def clone_repo_optimized(repo_url, repo_path, head_ref, base_ref, token):
             if code != 0:
                 print(f"❌ Failed to fetch target branch: {stderr}")
                 return False
-    
+
     return True
 
 
@@ -1145,48 +1145,48 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
     """
     updated = original_content
     replaced_count = 0
-    
+
     # Clean and validate all resolutions
     cleaned_resolved_map = {}
     for section, resolved in resolved_map.items():
         if resolved is None:
             print(f"   ⚠️  Resolution invalid, skipping this conflict (keeping original conflict markers)")
             continue
-            
+
         cleaned = clean_ai_response(resolved)
-        
+
         if cleaned is None:
             print(f"   ⚠️  Resolution contains error messages, skipping this conflict (keeping original conflict markers)")
             continue
-        
+
         if not validate_resolution(section, cleaned):
             print(f"   ⚠️  Resolution validation failed, skipping this conflict (keeping original conflict markers)")
             continue
-        
+
         if check_conflict_markers(cleaned):
             print(f"   ⚠️  Warning: Cleaned resolution still contains conflict markers, trying further cleanup...")
             lines = cleaned.split('\n')
             cleaned_lines = []
             for line in lines:
-                if not (line.strip().startswith('<<<<<<<') or 
-                        line.strip().startswith('=======') or 
+                if not (line.strip().startswith('<<<<<<<') or
+                        line.strip().startswith('=======') or
                         line.strip().startswith('>>>>>>>')):
                     cleaned_lines.append(line)
             cleaned = '\n'.join(cleaned_lines)
-            
+
             if check_conflict_markers(cleaned):
                 print(f"   ⚠️  Cannot clean conflict markers, skipping this conflict (keeping original conflict markers)")
                 continue
-        
+
         cleaned_resolved_map[section] = cleaned
-    
+
     if not cleaned_resolved_map:
         print(f"   ⚠️  All resolutions are invalid, keeping original conflict markers")
         return updated, 0
-    
+
     # Use smart parsing to find all complete conflict blocks (including nested)
     all_conflicts = parse_conflicts_smart(updated)
-    
+
     # Process from back to front to avoid position offset
     for conflict_text in reversed(all_conflicts):
         # Find conflict position in file (using exact match)
@@ -1203,28 +1203,28 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
                 conflict_text = match.group(0)
             else:
                 continue
-        
+
         conflict_end = conflict_start + len(conflict_text)
-        
+
         # Find corresponding resolution
         resolved = None
         for original_section, cleaned_resolved in cleaned_resolved_map.items():
             # Extract core content for matching
             original_core = extract_conflict_core(original_section)
             current_core = extract_conflict_core(conflict_text)
-            
+
             # Exact match core content
             if original_core.strip() == current_core.strip():
                 resolved = cleaned_resolved
                 break
-        
+
         # If exact match not found, try content matching
         if resolved is None:
             conflict_lines = conflict_text.split('\n')
             conflict_head = []
             conflict_merge = []
             in_head = True
-            
+
             for line in conflict_lines:
                 stripped = line.strip()
                 if stripped.startswith('<<<<<<<'):
@@ -1238,13 +1238,13 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
                     conflict_head.append(line.strip())
                 else:
                     conflict_merge.append(line.strip())
-            
+
             for original_section, cleaned_resolved in cleaned_resolved_map.items():
                 original_lines = original_section.split('\n')
                 orig_head = []
                 orig_merge = []
                 in_head = True
-                
+
                 for line in original_lines:
                     stripped = line.strip()
                     if stripped.startswith('<<<<<<<'):
@@ -1258,20 +1258,20 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
                         orig_head.append(line.strip())
                     else:
                         orig_merge.append(line.strip())
-                
+
                 # Compare first few lines of key content
                 head_match = False
                 if orig_head and conflict_head:
                     head_match = any(h.strip() in ' '.join(conflict_head[:10]) for h in orig_head[:5] if h.strip())
-                
+
                 merge_match = False
                 if orig_merge and conflict_merge:
                     merge_match = any(m.strip() in ' '.join(conflict_merge[:10]) for m in orig_merge[:5] if m.strip())
-                
+
                 if head_match or merge_match:
                     resolved = cleaned_resolved
                     break
-        
+
         if resolved:
             # Print AI-returned original code (after cleaning)
             print(f"\n   📝 AI-returned code (after cleaning, before indentation adjustment):")
@@ -1281,10 +1281,10 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
                 display_line = line.replace(' ', '·').replace('\t', '→')
                 print(f"   {i:3d}: {display_line}")
             print("   " + "=" * 60)
-            
+
             # Prioritize extracting indentation from inside conflict block (more reliable)
             conflict_indent = extract_indent_from_conflict(conflict_text)
-            
+
             # If no indentation inside conflict block, extract from context
             if not conflict_indent:
                 base_indent, indent_unit, indent_size = extract_indent_from_context(
@@ -1313,36 +1313,36 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
                         indent_unit = ' ' * 4
                         indent_size = 4
                 target_indent = conflict_indent
-            
+
             # Ensure target_indent is not empty
             if not target_indent:
                 target_indent = '    '  # Default 4 spaces
                 indent_unit = '    '
                 indent_size = 4
-            
+
             # Check if all code lines in original conflict block have the same indentation level
             same_indent_level, conflict_first_indent = check_conflict_lines_same_indent_level(conflict_text)
-            
+
             # Extract indentation of all code lines from original conflict block
             conflict_line_indents = extract_conflict_line_indents(conflict_text)
-            
+
             print(f"   🔍 Target indentation: {repr(target_indent)} (length: {len(target_indent)})")
             print(f"   🔍 All lines in original conflict block same level: {same_indent_level}")
             if conflict_line_indents:
                 print(f"   🔍 Original conflict block indentation levels: {[repr(indent) for _, indent in conflict_line_indents]}")
-            
+
             # Adjust AI-returned code indentation to match target indentation
             # If all lines in original conflict block are same level, don't preserve relative indentation
             # Otherwise, use original conflict block's indentation levels for adjustment
             resolved = normalize_indent_to_target(
-                resolved, 
-                target_indent, 
-                indent_unit, 
-                indent_size, 
+                resolved,
+                target_indent,
+                indent_unit,
+                indent_size,
                 preserve_relative_indent=not same_indent_level,
                 conflict_line_indents=conflict_line_indents if not same_indent_level else None
             )
-            
+
             # Print code after indentation adjustment
             print(f"\n   📝 AI-returned code (after indentation adjustment):")
             print("   " + "=" * 60)
@@ -1351,21 +1351,21 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
                 display_line = line.replace(' ', '·').replace('\t', '→')
                 print(f"   {i:3d}: {display_line}")
             print("   " + "=" * 60)
-            
+
             # Replace conflict markers
             updated = updated[:conflict_start] + resolved + updated[conflict_end:]
             replaced_count += 1
-    
+
     # Thoroughly clean all remaining conflict markers
     # 1. Clean isolated conflict marker lines
     lines = updated.split('\n')
     cleaned_lines = []
     i = 0
-    
+
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
-        
+
         if stripped.startswith('<<<<<<<') or stripped.startswith('=======') or stripped.startswith('>>>>>>>'):
             # Check if there's a complete conflict marker structure before and after
             has_start = False
@@ -1373,23 +1373,23 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
                 if lines[j].strip().startswith('<<<<<<<'):
                     has_start = True
                     break
-            
+
             has_end = False
             for j in range(i + 1, min(len(lines), i + 50)):
                 if lines[j].strip().startswith('>>>>>>>'):
                     has_end = True
                     break
-            
+
             if not (has_start and has_end):
                 print(f"   🔧 Cleaning isolated conflict marker: line {i+1} ({stripped[:50]})")
                 i += 1
                 continue
-        
+
         cleaned_lines.append(line)
         i += 1
-    
+
     updated = '\n'.join(cleaned_lines)
-    
+
     # 2. Use regex to thoroughly clean all remaining conflict markers
     max_cleanup_iterations = 5
     for _ in range(max_cleanup_iterations):
@@ -1399,29 +1399,29 @@ def apply_resolutions_safe(file_path, original_content, resolved_map):
         updated = re.sub(r'^>>>>>>>[^\n]*\n', '', updated, flags=re.MULTILINE)
         if before == updated:
             break
-    
+
     # 3. Final verification: ensure no remaining conflict markers
     if check_conflict_markers(updated):
         lines = updated.split('\n')
         final_cleaned = []
         for line in lines:
             stripped = line.strip()
-            if not (stripped.startswith('<<<<<<<') or 
-                    stripped.startswith('=======') or 
+            if not (stripped.startswith('<<<<<<<') or
+                    stripped.startswith('=======') or
                     stripped.startswith('>>>>>>>')):
                 final_cleaned.append(line)
         updated = '\n'.join(final_cleaned)
-    
+
     # 4. Remove duplicate code lines (avoid accidentally deleting curly braces)
     updated = remove_duplicate_lines(updated)
-    
+
     # 5. Clean excessive empty lines
     updated = re.sub(r'\n{3,}', '\n\n', updated)
-    
+
     # Write to file
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(updated)
-    
+
     return updated, replaced_count
 
 
@@ -1431,31 +1431,31 @@ def check_conflicts_in_branch(repo_path, branch_ref):
     Returns a list of files containing conflict markers
     """
     conflicts = {}
-    
+
     # Switch to specified branch
     stdout, stderr, code = run_git_cmd(repo_path, ["checkout", branch_ref])
     if code != 0:
         return conflicts
-    
+
     # Get all files
     stdout, stderr, code = run_git_cmd(repo_path, ["ls-files"])
     if code != 0:
         return conflicts
-    
+
     files = stdout.split('\n')
-    
+
     for file_path in files:
         if not file_path.strip():
             continue
-        
+
         full_path = repo_path / file_path
         if not full_path.exists():
             continue
-        
+
         try:
             with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
-            
+
             # Check if it contains conflict markers
             if '<<<<<<< HEAD' in content or '<<<<<<<' in content:
                 sections = parse_conflicts_smart(content)
@@ -1463,7 +1463,7 @@ def check_conflicts_in_branch(repo_path, branch_ref):
                     conflicts[file_path] = sections
         except Exception:
             continue
-    
+
     return conflicts
 
 def main():
@@ -1476,24 +1476,24 @@ def main():
         print("  python resolve_pr_conflicts.py <owner/repo> <PR_NUMBER>")
         print("  Example: python resolve_pr_conflicts.py owner/repo 123")
         sys.exit(1)
-    
+
     # Get GitHub Token
     token = os.getenv("GITHUB_TOKEN")
     if not token:
         print("❌ Error: GITHUB_TOKEN environment variable must be set")
         sys.exit(1)
-    
+
     # Check OpenAI API configuration
     api_key = os.getenv("OPENAI_API_KEY")
     api_base = os.getenv("OPENAI_API_BASE")
-    
+
     if not api_key:
         print("❌ Error: OPENAI_API_KEY environment variable must be set")
         sys.exit(1)
-    
+
     # Get model
     model = os.getenv("RECONCILE_MODEL") or "gpt-4o"
-    
+
     # Handle API base URL
     if api_base:
         print(f"ℹ️  Using custom API address: {api_base}")
@@ -1501,7 +1501,7 @@ def main():
         print(f"   Actual API address: {api_base}")
     else:
         print("ℹ️  Using default OpenAI API address: https://api.openai.com/v1")
-    
+
     # Test API connection
     print("🧪 Testing API connection...")
     api_ok, api_error = test_api_connection(api_key, api_base, model=model)
@@ -1514,53 +1514,53 @@ def main():
             print("   3. Whether the account has balance")
         sys.exit(1)
     print("✅ API connection normal")
-    
+
     # Parse PR information
     try:
         owner, repo_name, pr_number = parse_pr_url(sys.argv[1])
     except Exception as e:
         print(f"❌ Failed to parse PR information: {e}")
         sys.exit(1)
-    
+
     print(f"🔍 Getting PR information: {owner}/{repo_name}#{pr_number}")
-    
+
     # Get PR details
     try:
         pr_info = get_pr_info(owner, repo_name, pr_number, token)
     except Exception as e:
         print(f"❌ Failed to get PR information: {e}")
         sys.exit(1)
-    
+
     print(f"📋 PR information:")
     print(f"  Title: {pr_info['title']}")
     print(f"  Source branch: {pr_info['head_ref']}")
     print(f"  Target branch: {pr_info['base_ref']}")
-    
+
     if pr_info['merged']:
         print("ℹ️  PR is already merged, no need to resolve conflicts")
         sys.exit(0)
-    
+
     if pr_info['mergeable'] is False:
         print("⚠️  PR marked as not mergeable, may already have conflicts")
     elif pr_info['mergeable'] is True:
         print("ℹ️  PR marked as mergeable, may have no conflicts")
     else:
         print("ℹ️  PR merge status unknown, continuing to try...")
-    
+
     print(f"   Merge status: {pr_info['mergeable_state']}")
-    
+
     # Create temporary directory
     temp_dir = tempfile.mkdtemp()
     repo_path = Path(temp_dir)
     print(f"📁 Temporary directory: {temp_dir}")
-    
+
     try:
         # Optimized cloning method
         repo_url = f"https://{token}@github.com/{owner}/{repo_name}.git"
         if not clone_repo_optimized(repo_url, repo_path, pr_info['head_ref'], pr_info['base_ref'], token):
             print("❌ Failed to clone repository")
             sys.exit(1)
-        
+
         # Configure Git
         run_git_cmd(repo_path, ["config", "user.name", "reconcile-demo"])
         run_git_cmd(repo_path, ["config", "user.email", "reconcile-demo@example.com"])
@@ -1568,32 +1568,32 @@ def main():
         # Improvement: First check if source branch already contains conflict markers
         print(f"🔍 Checking if source branch {pr_info['head_ref']} already contains conflict markers...")
         existing_conflicts = check_conflicts_in_branch(repo_path, pr_info['head_ref'])
-        
+
         # Ensure environment variables are set
         if api_base:
             os.environ['OPENAI_API_BASE'] = api_base
-        
+
         # Use reconcile-ai to detect conflicts (check conflict markers in files even if merge succeeds)
         logger = setup_logging(verbose=True, json_logging=False)
-        
+
         # Load configuration
         config = load_config(str(repo_path))
-        
+
         # Set api_base_url in config
         if api_base:
             config['api_base_url'] = api_base
-        
+
         # Use model
         final_model = os.getenv("RECONCILE_MODEL") or config.get('model', model)
         max_batch_size = config.get('max_batch_size', 5)
-        
+
         print(f"🤖 Using model: {final_model}, batch size: {max_batch_size}")
         if api_base:
             print(f"🌐 API address: {api_base}")
-        
+
         merge_result = None
         conflicts = {}
-        
+
         if existing_conflicts:
             print(f"✅ Found {sum(len(s) for s in existing_conflicts.values())} conflict markers in source branch")
             print("   Using existing conflict markers in source branch, skipping git merge")
@@ -1607,11 +1607,11 @@ def main():
                 capture_output=True,
                 text=True
             )
-            
+
             # Key modification: Check conflict markers in files regardless of whether merge succeeds
             print("🔍 Scanning files for conflict markers...")
             blobs = detect_conflicts(str(repo_path))
-            
+
             if not blobs:
                 if merge_result.returncode == 0:
                     print("✅ PR has no conflicts, no need to resolve")
@@ -1632,7 +1632,7 @@ def main():
                         print("⚠️  Git reports conflicts, but no conflict markers found in files")
                         print("   Conflict markers may be in non-standard format, or partially resolved")
                         sys.exit(1)
-            
+
             # Key improvement: Use smart parsing function to re-parse conflicts
             for path in blobs:
                 full_path = repo_path / path if not Path(path).is_absolute() else Path(path)
@@ -1645,12 +1645,12 @@ def main():
                         conflicts[path] = sections
                 except Exception as e:
                     print(f"⚠️  Failed to parse file {path}: {e}")
-        
+
         git_repo = Repo(str(repo_path))
-        
+
         total_conflicts = sum(len(sections) for sections in conflicts.values())
         print(f"📝 Found {total_conflicts} conflicts in {len(conflicts)} file(s)")
-        
+
         # New: Display conflict details for each file
         print("\n📋 Conflict details:")
         for path, sections in conflicts.items():
@@ -1659,7 +1659,7 @@ def main():
                 print(f"   Conflict {i}:")
                 preview = format_conflict_preview(section, max_lines=3)
                 print(preview)
-        
+
         if total_conflicts == 0:
             if merge_result is None or merge_result.returncode == 0:
                 print("ℹ️  Files may contain conflict markers, but no valid conflicts found after parsing")
@@ -1668,30 +1668,30 @@ def main():
             else:
                 print("ℹ️  No conflict content found")
                 sys.exit(0)
-        
+
         if merge_result is not None and merge_result.returncode == 0:
             print("\n⚠️  Detected conflict markers in files, but Git merge succeeded")
             print("   This may be conflict markers left from previous merge, will automatically clean...")
-        
+
         print("\n⚠️  Starting conflict resolution...")
         print("💡 Resolution strategy: Keep code from one branch, or merge code from both branches")
         print("   If unable to resolve, will keep original conflict markers")
-        
+
         resolved_count = 0
         failed_files = []
         skipped_count = 0
-        
+
         # Resolve conflicts for each file
         for path, sections in conflicts.items():
             full_path = repo_path / path if not Path(path).is_absolute() else Path(path)
-            
+
             print(f"\n🤖 Using AI to resolve conflicts: {path}")
-            
+
             with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
-            
+
             original_conflict_count = content.count("<<<<<<< HEAD")
-            
+
             # Filter out incomplete conflict blocks
             complete_sections = []
             for section in sections:
@@ -1700,12 +1700,12 @@ def main():
                 else:
                     print(f"   ⚠️  Skipping incomplete conflict block (missing necessary markers)")
                     skipped_count += 1
-            
+
             if not complete_sections:
                 print(f"   ⚠️  No complete conflict blocks to resolve, keeping original conflict markers")
                 failed_files.append(path)
                 continue
-            
+
             # Batch resolve conflicts (using indentation-preserving version)
             try:
                 resolved_sections = resolve_conflicts_batch_with_indent_preservation(
@@ -1722,7 +1722,7 @@ def main():
                         cleaned_sections.append(None)
                     else:
                         cleaned_sections.append(cleaned)
-                
+
                 resolved_map = {}
                 for section, cleaned in zip(complete_sections, cleaned_sections):
                     if cleaned is not None:
@@ -1732,14 +1732,14 @@ def main():
             except Exception as e:
                 error_msg = str(e)
                 print(f"⚠️  Batch resolution failed, using individual resolution: {error_msg}")
-                
+
                 if "401" in error_msg or "invalid_api_key" in error_msg.lower():
                     print("❌ API key validation failed")
                     print("💡 Please check:")
                     print("   1. Whether API key is correct (use key provided by JieKou.AI platform)")
                     print("   2. Whether API key is activated")
                     print("   3. Whether account has balance")
-                
+
                 resolved_map = {}
                 for sec in complete_sections:
                     try:
@@ -1758,16 +1758,16 @@ def main():
                             break
                         skipped_count += 1
                         continue
-                
+
                 if not resolved_map:
                     failed_files.append(path)
                     continue
-            
+
             if not resolved_map:
                 print(f"   ⚠️  No valid resolutions, keeping original conflict markers")
                 failed_files.append(path)
                 continue
-            
+
             # Apply resolutions
             try:
                 final_content, replaced_count = apply_resolutions_safe(str(full_path), content, resolved_map)
@@ -1785,7 +1785,7 @@ def main():
                         cleaned = clean_ai_response(v)
                         if cleaned is not None and validate_resolution(k, cleaned):
                             cleaned_resolved_map[k] = cleaned
-                    
+
                     if cleaned_resolved_map:
                         apply_resolutions(str(full_path), content, cleaned_resolved_map)
                         with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -1801,7 +1801,7 @@ def main():
                     print(f"❌ Failed to apply resolutions: {e2}")
                     failed_files.append(path)
                     continue
-            
+
             # Verify: Check if there are still conflict markers
             remaining_conflicts = final_content.count("<<<<<<< HEAD")
             if remaining_conflicts > 0:
@@ -1811,7 +1811,7 @@ def main():
                     print(f"   ⚠️  All conflicts unresolved, keeping original conflict markers")
                     failed_files.append(path)
                     continue
-            
+
             # Detect duplicate code lines
             duplicates = detect_duplicate_code(final_content)
             if duplicates:
@@ -1820,7 +1820,7 @@ def main():
                     print(f"      Line {dup['line']}: {dup['content'][:60]} (repeated {dup['count']} times)")
                 if len(duplicates) > 3:
                     print(f"      ... {len(duplicates) - 3} more duplicates")
-                
+
                 print(f"   🔧 Trying to clean duplicate code lines...")
                 cleaned_content = remove_duplicate_lines(final_content)
                 if cleaned_content != final_content:
@@ -1828,7 +1828,7 @@ def main():
                     final_content = cleaned_content
                     with open(full_path, 'w', encoding='utf-8') as f:
                         f.write(final_content)
-            
+
             # Final verification: Ensure resolved conflicts have no remaining markers
             if check_conflict_markers(final_content):
                 current_conflict_count = final_content.count("<<<<<<< HEAD")
@@ -1841,7 +1841,7 @@ def main():
                     for i, line in enumerate(lines, 1):
                         if re.match(r'^<<<<<<<', line) or re.match(r'^=======', line) or re.match(r'^>>>>>>>', line):
                             conflict_lines.append(f"  Line {i}: {line[:80]}")
-                    
+
                     if conflict_lines:
                         print(f"   Conflict marker locations:")
                         for line_info in conflict_lines[:5]:
@@ -1849,7 +1849,7 @@ def main():
                         if len(conflict_lines) > 5:
                             print(f"   ... {len(conflict_lines) - 5} more conflict markers")
                     print(f"   ⚠️  Keeping all conflict markers (including unresolved conflicts)")
-            
+
             # Use git add command to mark conflicts as resolved
             stdout, stderr, code = run_git_cmd(repo_path, ["add", path])
             if code != 0:
@@ -1858,13 +1858,13 @@ def main():
                     print(f"   ℹ️  File still has unresolved conflicts, this is normal (original conflict markers kept)")
                 failed_files.append(path)
                 continue
-            
+
             resolved_count += 1
             print(f"✅ Successfully resolved: {path}")
-        
+
         if skipped_count > 0:
             print(f"\nℹ️  Skipped {skipped_count} unresolvable conflicts (original conflict markers kept)")
-        
+
         if failed_files:
             print(f"\n⚠️  The following files failed to resolve: {', '.join(failed_files)}")
             print("💡 Tips:")
@@ -1872,17 +1872,17 @@ def main():
             print("   2. Unresolved conflicts have kept original conflict markers")
             print("   3. You can check files in the temporary directory for manual fixes")
             print(f"   4. Temporary directory: {temp_dir}")
-        
+
         if resolved_count == 0:
             print("\n❌ Failed to resolve any conflicts")
             if skipped_count > 0:
                 print(f"   Skipped {skipped_count} conflicts (AI cannot provide valid resolutions, original conflict markers kept)")
             sys.exit(1)
-        
+
         print(f"\n✅ Successfully resolved conflicts in {resolved_count}/{len(conflicts)} file(s)")
         if skipped_count > 0:
             print(f"   Skipped {skipped_count} conflicts (original conflict markers kept)")
-        
+
         # Check Git status
         stdout, stderr, code = run_git_cmd(repo_path, ["status", "--porcelain"])
         unmerged = [line for line in stdout.split('\n') if line.startswith('UU') or line.startswith('AA')]
@@ -1892,16 +1892,16 @@ def main():
             for path in failed_files:
                 print(f"   Trying to force add: {path}")
                 run_git_cmd(repo_path, ["add", "--force", path])
-        
+
         stdout2, stderr2, code2 = run_git_cmd(repo_path, ["status", "--porcelain"])
         remaining_unmerged = [line for line in stdout2.split('\n') if line.startswith('UU') or line.startswith('AA')]
-        
+
         # Commit changes
         print("\n💾 Committing changes...")
         commit_message = "chore: resolve merge conflicts using AI"
         if merge_result is None or (merge_result and merge_result.returncode == 0):
             commit_message = "chore: clean up conflict markers using AI"
-        
+
         stdout, stderr, code = run_git_cmd(repo_path, ["commit", "-m", commit_message])
         if code != 0:
             stdout3, stderr3, code3 = run_git_cmd(repo_path, ["status", "--porcelain"])
@@ -1915,14 +1915,14 @@ def main():
                 stdout4, stderr4, code4 = run_git_cmd(repo_path, ["status"])
                 print(f"📋 Git status:\n{stdout4}")
                 print("⚠️  Continuing to try pushing resolved files...")
-        
+
         # Push to remote
         print("\n🚀 Pushing to remote repository...")
         push_url = f"https://{token}@github.com/{owner}/{repo_name}.git"
         stdout, stderr, code = run_git_cmd(repo_path, ["remote", "set-url", "origin", push_url])
         if code != 0:
             print(f"⚠️  Failed to set remote URL: {stderr}")
-        
+
         stdout, stderr, code = run_git_cmd(repo_path, ["push", "origin", pr_info['head_ref']])
         if code != 0:
             print(f"❌ Push failed: {stderr}")
@@ -1931,7 +1931,7 @@ def main():
                 print(f"   Unmerged files: {remaining_unmerged}")
                 print(f"   ℹ️  Unresolved conflicts have kept original conflict markers")
             sys.exit(1)
-        
+
         if failed_files:
             print("\n⚠️  Some files failed to resolve, but pushed resolved files")
             print(f"   Failed files: {', '.join(failed_files)}")
@@ -1939,9 +1939,9 @@ def main():
             print(f"   Please manually check and fix these files")
         else:
             print("\n🎉 Done! All conflicts resolved and pushed to PR branch")
-        
+
         print(f"\nPR: https://github.com/{owner}/{repo_name}/pull/{pr_number}")
-        
+
     finally:
         pass
 
