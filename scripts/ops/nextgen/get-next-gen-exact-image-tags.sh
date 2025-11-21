@@ -109,14 +109,6 @@ fetch_all() {
     fetch_next_gen_exact_tags "$img_repo" "${trunk_branch}-next-gen"
     fetch_next_gen_exact_tags "$img_repo" "$release_branch"
 
-    # pingcap/ticdc repo
-    echo "🚀 Fetch images built from pingcap/ticdc..."
-    trunk_branch=dedicated
-    release_branch=release-nextgen-20251011
-    img_repo="gcr.io/pingcap-public/dbaas/ticdc"
-    fetch_next_gen_exact_tags "$img_repo" "${trunk_branch}-next-gen"
-    fetch_next_gen_exact_tags "$img_repo" "$release_branch"
-
     echo "🎉🎉🎉 All gotten"
 }
 
