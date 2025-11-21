@@ -43,17 +43,16 @@ fetch_all() {
     # pingcap/ticdc repo
     echo "🚀 Fetch images built from pingcap/ticdc..."
     trunk_branch=master
-    release_branch=release-8.5
+    release_branch=release-nextgen-20251011
     img_repo="gcr.io/pingcap-public/dbaas/ticdc"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
-    fetch_next_gen_exact_tags $img_repo "${release_branch}-next-gen"
+    fetch_next_gen_exact_tags $img_repo "${release_branch}"
 
     # pingcap/tidb repo
     echo "🚀 Fetch images built from pingcap/tidb..."
     trunk_branch=master
     release_branch=release-nextgen-20251011
-
     img_repo="gcr.io/pingcap-public/dbaas/tidb"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
@@ -79,6 +78,7 @@ fetch_all() {
     trunk_branch=master
     release_branch=release-nextgen-20251011
     img_repo="gcr.io/pingcap-public/dbaas/tiflash"
+    echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
@@ -87,6 +87,7 @@ fetch_all() {
     trunk_branch=main
     release_branch=release-nextgen-20251023
     img_repo="gcr.io/pingcap-public/dbaas/tiproxy"
+    echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "$trunk_branch"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
@@ -95,6 +96,7 @@ fetch_all() {
     trunk_branch=dedicated
     release_branch=release-nextgen-20251011
     img_repo=gcr.io/pingcap-public/dbaas/tikv
+    echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
@@ -103,6 +105,7 @@ fetch_all() {
     trunk_branch=master
     release_branch=release-nextgen-20251011
     img_repo="gcr.io/pingcap-public/dbaas/pd"
+    echo "💿 $img_repo"
     fetch_next_gen_exact_tags "$img_repo" "${trunk_branch}-next-gen"
     fetch_next_gen_exact_tags "$img_repo" "$release_branch"
 
