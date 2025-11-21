@@ -47,7 +47,7 @@ fetch_all() {
     img_repo="gcr.io/pingcap-public/dbaas/ticdc"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
-    fetch_next_gen_exact_tags $img_repo "${release_branch}-next-gen"
+    fetch_next_gen_exact_tags $img_repo "${release_branch}"
 
     # pingcap/tidb repo
     echo "🚀 Fetch images built from pingcap/tidb..."
