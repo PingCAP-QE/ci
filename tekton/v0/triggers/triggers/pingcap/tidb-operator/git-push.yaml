@@ -15,7 +15,7 @@ spec:
           value: >-
             body.repository.full_name == 'pingcap/tidb-operator'
             &&
-            body.ref.matches('^refs/heads/(master|release-.*|feature/v2)$')
+            body.ref.matches('^refs/heads/(main|release-.*)$')
   bindings:
     - ref: github-branch-push
     - { name: component, value: $(body.repository.name) }
