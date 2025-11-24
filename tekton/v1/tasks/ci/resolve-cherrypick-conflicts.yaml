@@ -63,7 +63,7 @@ spec:
           values: ["true"]
       env:
         - name: SCRIPT_URL
-          value: https://github.com/lybcodes/ci/raw/refs/heads/feature/merge-conflict-resolution/scripts/plugins/resolve_pr_conflicts.py
+          value: https://github.com/lybcodes/ci/raw/refs/heads/main/scripts/plugins/resolve_pr_conflicts.py
       workingDir: /workspace/source
       script: |
         #!/usr/bin/env bash
