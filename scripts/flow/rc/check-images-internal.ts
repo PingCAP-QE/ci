@@ -156,7 +156,7 @@ async function checkImages(
       continue;
     }
     // ticdc is initilized since v9.0.0
-    if (version <= "v9.0.0" && gitRepo === "pingcap/ticdc") {
+    if (version <= "v8.5.3" && gitRepo === "pingcap/ticdc") {
       continue;
     }
 
@@ -164,6 +164,9 @@ async function checkImages(
     const gitSha = await gatheringGithubGitSha(ghClient, gitRepo, branch);
 
     for (const src of map) {
+      if (version >= "v8.5.4" && src === "pingcap/tiflow/images/cdc") {
+        continue;
+      }
       const imageUrl = `${oci_registry}/${src}:${version}`;
       const infos = await getMultiArchImageInfo(imageUrl);
       const info = {
