@@ -1,0 +1,10 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: github-branch-create
+spec:
+  params:
+    - name: git-url
+      value: $(body.repository.clone_url)
+    - name: git-ref
+      value: $(body.ref)

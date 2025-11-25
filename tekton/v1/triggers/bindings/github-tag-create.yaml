@@ -1,0 +1,12 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: github-tag-create
+spec:
+  params:
+    - name: git-url
+      value: "$(body.repository.clone_url)"
+    - name: git-ref
+      value: "$(body.ref)"
+    - name: git-revision
+      value: "$(body.ref)"

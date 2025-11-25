@@ -1,0 +1,16 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: github-issue-comment
+spec:
+  params:
+    - name: action
+      value: $(body.action)
+    - name: url
+      value: $(body.comment.html_url)
+    - name: id
+      value: "$(body.comment.id)"
+    - name: author
+      value: "$(body.comment.user.login)"
+    - name: body
+      value: $(body.comment.body)
