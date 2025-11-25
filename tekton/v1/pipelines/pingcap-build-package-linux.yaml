@@ -20,12 +20,16 @@ spec:
       type: string
       description: |
         compoent name, supports:
-        - tidb
-        - tikv
+        - advanced-statefulset
         - pd
+        - ticdc
+        - tidb
+        - tidb-operator
         - tiflash
         - tiflow
-        - advanced-statefulset
+        - tikv
+        - tiproxy
+        - tici
 
         May be it is an idea to judge it by git-url, but it maybe
         not a generic way for forked repositories with custom names.
