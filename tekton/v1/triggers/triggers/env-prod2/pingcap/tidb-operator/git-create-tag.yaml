@@ -5,7 +5,7 @@ metadata:
   labels:
     type: github-tag-create
     github-owner: pingcap
-    github-repo: operator
+    github-repo: tidb-operator
 spec:
   interceptors:
     - name: filter on repo owner and name and tags
