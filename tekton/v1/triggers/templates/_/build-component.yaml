@@ -96,7 +96,7 @@ spec:
           - name: source
             volumeClaimTemplate:
               spec:
-                storageClassName: hyperdisk-rwo
+                storageClassName: ${STORAGE_CLASSNAME_RWO}
                 accessModes:
                   - ReadWriteOnce
                 resources:
@@ -172,7 +172,7 @@ spec:
           - name: source
             volumeClaimTemplate:
               spec:
-                storageClassName: hyperdisk-rwo
+                storageClassName: ${STORAGE_CLASSNAME_RWO}
                 accessModes:
                   - ReadWriteOnce
                 resources:
