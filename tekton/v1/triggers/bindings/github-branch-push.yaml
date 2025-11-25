@@ -1,0 +1,14 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: github-branch-push
+spec:
+  params:
+    - name: git-url
+      value: $(body.repository.clone_url)
+    - name: git-refspec
+      value: "+$(body.ref):$(body.ref)"
+    - name: git-revision
+      value: $(body.after)
+    - name: git-ref
+      value: $(extensions.short-ref)

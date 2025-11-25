@@ -1,0 +1,42 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: github-pr
+spec:
+  params:
+    - name: git-url
+      value: $(body.repository.clone_url)
+    - name: git-refspec
+      value: "refs/pull/$(body.pull_request.number)/head:pull/$(body.pull_request.number)"
+    - name: git-revision
+      value: $(body.pull_request.head.sha)
+    - name: git-ref
+      value: $(body.pull_request.base.ref)
+    - name: pr-number
+      value: "$(body.pull_request.number)"
+    # - name: pr-head-ref
+    #   value: $(body.pull_request.head.ref)
+    # - name: pr-base-ref
+    #   value: $(body.pull_request.base.ref)
+    # - name: pr-title
+    #   value: $(body.pull_request.title)
+    # - name: pr-body
+    #   value: $(body.pull_request.body)
+    # - name: pr-author
+    #   value: $(body.pull_request.user.login)
+    - name: pr-owner
+      value: $(body.repository.owner.login)
+    - name: pr-repo
+      value: $(body.repository.name)
+    - name: pr-full-repo
+      value: $(body.repository.full_name)
+    # - name: pr-head-owner
+    #   value: $(body.pull_request.head.user.login)
+    # - name: pr-head-repo
+    #   value: $(body.pull_request.head.repo.name)
+    # - name: pr-base-owner
+    #   value: $(body.pull_request.base.user.login)
+    # - name: pr-base-repo
+    #   value: $(body.pull_request.base.repo.name)
+    # - name: pr-base-sha
+    #   value: $(body.pull_request.base.sha)
