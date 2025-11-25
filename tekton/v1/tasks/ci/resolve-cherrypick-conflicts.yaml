@@ -1,0 +1,106 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: resolve-cherrypick-conflicts
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: ai,merge-conflicts
+    tekton.dev/tags: ai,conflicts,pr
+    tekton.dev/displayName: "resolve conflicts for cherrypick pull request"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  params:
+    - name: pr-url
+  workspaces:
+    - name: openai # include files: api_base_url and api_key
+    - name: github # include files: token
+  stepTemplate:
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+  steps:
+    - name: checkout
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        PR_URL="$(params.pr-url)"
+
+        # get the full repo clone url and clone it
+        repo=$(echo $PR_URL | cut -d '/' -f 5)
+        repo_url=$(echo $PR_URL | cut -d '/' -f -5)
+        git clone ${repo_url}.git /workspace/source
+
+        # get pr number
+        pr_number=$(echo $PR_URL | cut -d '/' -f 7)
+
+        # checkout the head of the PR
+        cd /workspace/source
+        git config --global --add safe.directory .
+        export GH_TOKEN=$(cat /workspace/github/token)
+        gh pr checkout $pr_number
+
+    - name: detect
+      results:
+        - name: conflicted
+          type: string
+      workingDir: /workspace/source
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        if grep -rlE '^(<<<<<<<|>>>>>>>|=======)\s*\b' . > /workspace/conflicted_files.txt; then
+          printf "%s" "true" > $(step.results.conflicted.path)
+        else
+          printf "%s" "false" > $(step.results.conflicted.path)
+        fi
+
+    - name: resolve-conflicts
+      image: python:3.14
+      when:
+        - input: "$(steps.detect.results.conflicted)"
+          operator: in
+          values: ["true"]
+      env:
+        - name: SCRIPT_URL
+          value: https://github.com/lybcodes/ci/raw/refs/heads/main/scripts/plugins/resolve_pr_conflicts.py
+      workingDir: /workspace/source
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        export OPENAI_API_KEY="$(cat $(workspaces.openai.path)/api_key)"
+        export OPENAI_API_BASE="$(cat $(workspaces.openai.path)/api_base_url)"
+
+        # download the program script.
+        wget -O /workspace/resolve.py "$SCRIPT_URL"
+        # install required packages
+        pip install requests openai
+
+        # resolve the conflict files one by one.
+        for cf in $(cat /workspace/conflicted_files.txt); do
+          if ! python /workspace/resolve.py "$cf"; then
+            echo "☹️ Failed to resolve file: $cf"
+            exit 1
+          fi
+          echo "✅ Resolved file: $cf"
+        done
+
+        echo "🎉 All file resolved."
+    - name: push
+      when:
+        - input: "$(steps.detect.results.conflicted)"
+          operator: in
+          values: ["true"]
+      workingDir: /workspace/source
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        git config --global --add safe.directory .
+        git config --global user.email "ti-community-prow-bot@tidb.io"
+        git config --global user.name  "ti-chi-bot"
+
+        git add .
+        git commit -m "resolve conflicts by bot"
+        git push
