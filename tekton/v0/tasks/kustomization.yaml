@@ -20,7 +20,6 @@ resources:
   - https://raw.githubusercontent.com/tektoncd/catalog/main/task/ko/0.1/ko.yaml # ko task
   - https://raw.githubusercontent.com/tektoncd/catalog/main/task/tkn/0.4/tkn.yaml # tkn task
   - ko-prow.yaml
-  - ks3utils.yaml # from and hacked: https://hub.tekton.dev/tekton/task/aws-cli
   - kubernetes-actions.yaml
   - multi-arch-image-collect.yaml
   - multi-arch-image-push.yaml

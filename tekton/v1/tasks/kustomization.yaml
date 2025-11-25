@@ -10,6 +10,7 @@ resources:
   - github-set-status.yaml
   - golang-build.yaml
   - golang-test.yaml
+  - ks3utils.yaml
   - multi-arch-image-push.yaml
   - pingcap-build-binaries-darwin.yaml
   - pingcap-build-binaries-linux.yaml

@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: ks3utils
@@ -32,7 +33,7 @@ spec:
       default: ["help"]
   steps:
     - name: ks3util
-      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v20231216-31-g613ba06
+      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v2025.10.26-7-geb77a69
       script: |
         $(workspaces.secrets.bound) && cp $(workspaces.secrets.path)/.ks3utilconfig /root/.ks3utilconfig
 
