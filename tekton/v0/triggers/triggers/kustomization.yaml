@@ -35,5 +35,3 @@ resources:
   - pingcap/tiproxy/git-push.yaml
   - pingcap-inc/tici/git-create-tag.yaml
   - pingcap-inc/tici/git-push.yaml
-  - tikv/tikv/git-create-branch.yaml
-  - tikv/tikv/git-create-tag.yaml

@@ -1,0 +1,32 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-push-pingcap-tidb-operator
+  labels:
+    type: github-branch-push
+    github-owner: pingcap
+    github-repo: tidb-operator
+spec:
+  interceptors:
+    - name: filter on repo and branches
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name == 'pingcap/tidb-operator'
+            &&
+            body.ref.matches('^refs/heads/(main|release-.*)$')
+
+  bindings:
+    - ref: github-branch-push
+    - { name: builder-resources-memory, value: 8Gi }
+    - { name: builder-resources-cpu, value: "2" }
+    - { name: component, value: $(body.repository.name) }
+    - { name: os, value: linux }
+    - { name: profile, value: release }
+    - { name: registry, value: hub.pingcap.net }
+    - { name: source-ws-size, value: 10Gi }
+    - { name: timeout, value: 30m }
+
+  template:
+    ref: build-component
