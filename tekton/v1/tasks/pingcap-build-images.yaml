@@ -103,8 +103,6 @@ spec:
           memory: 8Gi
       script: |
         # Prepare credentials
-        ls -laR "$CREDS_DIR" # list the credential files
-
         DOCKER_CONFIG_JSON="$(find "$CREDS_DIR" \( -name 'docker.json' -o -name '.dockerconfigjson' \) | head -1)"
         if [ -n "$DOCKER_CONFIG_JSON" ]; then
           if [ -z "$DOCKER_CONFIG" ]; then
