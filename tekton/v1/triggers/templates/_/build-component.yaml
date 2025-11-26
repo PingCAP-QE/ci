@@ -96,7 +96,7 @@ spec:
           - name: source
             volumeClaimTemplate:
               spec:
-                storageClassName: ${STORAGE_CLASSNAME_RWO}
+                storageClassName: ${STORAGE_CLASSNAME_RWO_AMD64}
                 accessModes:
                   - ReadWriteOnce
                 resources:
@@ -172,7 +172,7 @@ spec:
           - name: source
             volumeClaimTemplate:
               spec:
-                storageClassName: ${STORAGE_CLASSNAME_RWO}
+                storageClassName: ${STORAGE_CLASSNAME_RWO_ARM64}
                 accessModes:
                   - ReadWriteOnce
                 resources:
