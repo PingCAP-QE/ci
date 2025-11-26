@@ -80,7 +80,7 @@ pipeline {
 
                             dst="\${TENCENTCLOUD_RCLONE_CONN}:\${TENCENTCLOUD_BUCKET_ID}/pdf"
                             case "${REFS.base_ref}" in
-                                "master")
+                                "main")
                                     version="dev"
                                     ;;
                                 "release-1.6")

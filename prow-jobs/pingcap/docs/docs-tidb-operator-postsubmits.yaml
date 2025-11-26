@@ -8,6 +8,6 @@ postsubmits:
       max_concurrency: 5
       skip_report: false
       branches:
-        - ^master$
+        - ^main$
         - ^release-1\.[3-6]$
         - ^release-2\.[0-9]+$
