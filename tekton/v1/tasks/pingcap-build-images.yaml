@@ -119,7 +119,8 @@ spec:
         fi
 
         if [ -z "$DOCKER_CONFIG_JSON" ] && [ -z "$GSA_JSON" ]; then
-          echo "⚠️ Warning: No Docker config JSON or Google Service Account JSON found in $CREDS_DIR"
+          echo "❌ Error: No Docker config JSON or Google Service Account JSON found in $CREDS_DIR"
+          exit 1
         fi
 
         # Building
