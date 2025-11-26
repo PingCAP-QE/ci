@@ -79,8 +79,18 @@ class RepoOwnersParser {
   }
 
   async OwnersAliases() {
-    const content = await this.getFileContent("OWNERS_ALIASES");
-    return yaml.parse(content) as { aliases: ProwOwnersAliases };
+    try {
+      const content = await this.getFileContent("OWNERS_ALIASES");
+      return yaml.parse(content) as { aliases: ProwOwnersAliases };
+    } catch (e) {
+      // If file not found, return empty aliases
+      if (
+        e && typeof e === "object" && "status" in e && (e as any).status === 404
+      ) {
+        return { aliases: {} as ProwOwnersAliases };
+      }
+      throw e;
+    }
   }
 
   async All() {

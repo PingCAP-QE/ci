@@ -284,10 +284,10 @@ class RepoUpdater {
 
     if (mergedRepoProwOwners.owners["/"]) {
       const rootIsSame = sameObjects(
-        mergedRepoProwOwners.owners["/"],
+        curRepoProwOwners.owners["/"],
         newRepoProwOwners.owners["/"],
       ) && sameObjects(
-        mergedRepoProwOwners.aliases,
+        curRepoProwOwners.aliases,
         newRepoProwOwners.aliases,
       );
 
