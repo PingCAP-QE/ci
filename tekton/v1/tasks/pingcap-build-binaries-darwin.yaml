@@ -81,7 +81,7 @@ spec:
         else
           echo -n "false" > $(step.results.generated.path)
           echo "🤷 no output script generated!"
-          printf '"{}"' > $(task.results.pushed.path)
+          printf '"{}"' > $(results.pushed.path)
         fi
     - name: prepare-remote-env-file
       image: "$(params.builder-image)"
