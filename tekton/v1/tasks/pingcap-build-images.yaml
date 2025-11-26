@@ -105,22 +105,27 @@ spec:
         # Prepare credentials
         ls -laR "$CREDS_DIR" # list the credential files
 
-        DOCKER_CONFIG_JSON="$(find $CREDS_DIR \( -name 'docker.json' -o -name '.dockerconfigjson' \) | head -1)"
+        DOCKER_CONFIG_JSON="$(find "$CREDS_DIR" \( -name 'docker.json' -o -name '.dockerconfigjson' \) | head -1)"
         if [ -n "$DOCKER_CONFIG_JSON" ]; then
           if [ -z "$DOCKER_CONFIG" ]; then
             export DOCKER_CONFIG=/kaniko/.docker
           fi
           # copy content to $DOCKER_CONFIG/config.json.
+          mkdir -p "$DOCKER_CONFIG"
           cat "$DOCKER_CONFIG_JSON" > "$DOCKER_CONFIG/config.json"
         fi
 
-        GSA_JSON="$(find $CREDS_DIR -name 'gsa.json' | head -1)"
+        GSA_JSON="$(find "$CREDS_DIR" -name 'gsa.json' | head -1)"
         if [ -n "$GSA_JSON" ]; then
           export GOOGLE_APPLICATION_CREDENTIALS="$GSA_JSON"
         fi
 
-        script="/workspace/build-package-images.sh"
+        if [ -z "$DOCKER_CONFIG_JSON" ] && [ -z "$GSA_JSON" ]; then
+          echo "⚠️ Warning: No Docker config JSON or Google Service Account JSON found in $CREDS_DIR"
+        fi
 
+        # Building
+        script="/workspace/build-package-images.sh"
         if [ "$(params.build)" = "true" ]; then
           # try 2 times.
           "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path) -b || \
