@@ -15,7 +15,7 @@ spec:
             (
               body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflash', 'pingcap/ticdc', 'tikv/pd']
               &&
-              body.ref.matches('^refs/heads/(master|release-nextgen-[0-9]+)$')
+              body.ref.matches('^refs/heads/(master|release-nextgen-[0-9]+|feature/fts)$')
             ) || (
               body.repository.full_name in ['tidbcloud/cloud-storage-engine']
               &&
