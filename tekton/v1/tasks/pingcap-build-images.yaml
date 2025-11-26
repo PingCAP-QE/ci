@@ -46,9 +46,10 @@ spec:
       description: Does it need to build the binaries before packing the images?
     - name: registry
       default: hub.pingcap.net
+  stepTemplate:
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
   steps:
     - name: generate
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       results:
         - name: generated
           type: string
@@ -94,14 +95,30 @@ spec:
       env:
         - name: KANIKO_EXECUTOR
           value: /kaniko/executor
-        # To Support GAR for kaniko: the service account should add a secret named `image-release-cred` with key `gsa.json` included
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: /tekton/creds-secrets/image-release-cred/gsa.json
+        - name: CREDS_DIR
+          value: /tekton/creds-secrets
       computeResources:
         requests:
           cpu: "4"
           memory: 8Gi
       script: |
+        # Prepare credentials
+        ls -laR "$CREDS_DIR" # list the credential files
+
+        DOCKER_CONFIG_JSON="$(find $CREDS_DIR \( -name 'docker.json' -o -name '.dockerconfigjson' \) | head -1)"
+        if [ -n "$DOCKER_CONFIG_JSON" ]; then
+          if [ -z "$DOCKER_CONFIG" ]; then
+            export DOCKER_CONFIG=/kaniko/.docker
+          fi
+          # copy content to $DOCKER_CONFIG/config.json.
+          cat "$DOCKER_CONFIG_JSON" > "$DOCKER_CONFIG/config.json"
+        fi
+
+        GSA_JSON="$(find $CREDS_DIR -name 'gsa.json' | head -1)"
+        if [ -n "$GSA_JSON" ]; then
+          export GOOGLE_APPLICATION_CREDENTIALS="$GSA_JSON"
+        fi
+
         script="/workspace/build-package-images.sh"
 
         if [ "$(params.build)" = "true" ]; then
@@ -114,7 +131,6 @@ spec:
           "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path)
         fi
     - name: add-more-tags
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in
@@ -124,7 +140,6 @@ spec:
         oras version
         "$script" -P -t -o $(results.pushed.path) # -P means disable build and push the image.
     - name: collect-multi-arch
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in
