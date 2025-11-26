@@ -54,7 +54,9 @@ spec:
       results:
         - name: generated
           type: string
+      args: ["$(results.pushed.path)"]
       script: |
+        pushed_result_path="$1"
         git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
 
         git_ref="$(params.git-ref)"
@@ -83,7 +85,7 @@ spec:
         else
           echo -n "false" > $(step.results.generated.path)
           echo "🤷 no output script generated!"
-          printf '"{}"' > $(results.pushed.path)
+          printf '"{}"' > "$pushed_result_path"
         fi
     - name: build
       image: "$(params.builder-image)"
