@@ -17,20 +17,22 @@ def parse_release_version(branch):
     prefix = "release-"
     if not branch.startswith(prefix):
         return None
-    return branch[len(prefix):].split("-", 1)[0]
+    version_part = branch[len(prefix):].split("-", 1)[0]
+    try:
+        return tuple(int(part) for part in version_part.split("."))
+    except ValueError:
+        return None
 
 
 def is_branch_before_release(branch, target_version):
-    version_str = parse_release_version(branch)
-    if version_str is None:
+    version = parse_release_version(branch)
+    if version is None:
         return False
 
-    target_version_str = ".".join(map(str, target_version))
-    try:
-        from packaging.version import parse, InvalidVersion
-        return parse(version_str) < parse(target_version_str)
-    except (ImportError, InvalidVersion):
-        return False
+    max_len = max(len(version), len(target_version))
+    padded_version = version + (0,) * (max_len - len(version))
+    padded_target = target_version + (0,) * (max_len - len(target_version))
+    return padded_version < padded_target
 
 
 def get_latest_commit_hash(repo, branch):
