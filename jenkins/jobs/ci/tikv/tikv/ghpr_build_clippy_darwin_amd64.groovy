@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tikv-ghpr-clippy-darwin-amd64') {
+    disabled(true)
     logRotator {
         daysToKeep(90)
         numToKeep(1000)
