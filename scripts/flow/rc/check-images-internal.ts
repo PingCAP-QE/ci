@@ -155,7 +155,7 @@ async function checkImages(
     if (version >= "v8.4.0" && gitRepo === "pingcap/tidb-binlog") {
       continue;
     }
-    // ticdc is initilized since v9.0.0
+    // ticdc is initilized since v8.5.4
     if (version <= "v8.5.3" && gitRepo === "pingcap/ticdc") {
       continue;
     }

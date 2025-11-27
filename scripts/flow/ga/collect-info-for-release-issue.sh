@@ -1,8 +1,8 @@
 #! /usr/bin/env bash
 # This script collects information about the current release and generates markdown for release issues.
 
-previous_release="v8.5.1" # comment it when current release is not a patch release.
-current_release="v8.5.2"
+previous_release="v8.5.3" # comment it when current release is not a patch release.
+current_release="v8.5.4"
 
 ### !!! Please update the list of repositories before running this script.
 repos=(
@@ -15,7 +15,7 @@ repos=(
     pingcap/ng-monitoring
     pingcap/tidb-dashboard
 
-    pingcap/ticdc # started since v9.0.0
+    pingcap/ticdc # started since v8.5.4
     pingcap/tidb-tools # migrated to pingcap/tiflow since v9.0.0
     pingcap/tidb-binlog # deprecated since v8.3.0
 )

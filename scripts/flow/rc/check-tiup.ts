@@ -220,8 +220,8 @@ async function main(
     if (version >= "v8.4.0" && ociRepo === "pingcap/tidb-binlog/package") {
       continue;
     }
-    // ticdc is initilized since v9.0.0
-    if (version <= "v9.0.0" && ociRepo === "pingcap/ticdc/package") {
+    // ticdc is initilized since v8.5.4
+    if (version <= "v8.5.4" && ociRepo === "pingcap/ticdc/package") {
       continue;
     }
 

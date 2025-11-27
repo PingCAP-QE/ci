@@ -51,8 +51,8 @@ function tag_oci_artifact_repos() {
       "pingcap/tidb-binlog/package"
     )
   fi
-  # pingcap/ticdc/package published since v9.0.0
-  if [[ "$(printf '%s\n' "v9.0.0" "$ga_ver" | sort -V | head -n1)" == "v9.0.0" ]]; then
+  # pingcap/ticdc/package published since v8.5.4
+  if [[ "$(printf '%s\n' "v8.5.4" "$ga_ver" | sort -V | head -n1)" == "v8.5.4" ]]; then
     repos+=(
       "pingcap/ticdc/package"
     )
@@ -115,8 +115,8 @@ function tag_oci_image_repos() {
       "pingcap/tidb-binlog/image"
     )
   fi
-  # ticdc will publish from ticdc repo since v9.0.0
-  if [[ "$(printf '%s\n' "v9.0.0" "$ga_ver" | sort -V | head -n1)" == "v9.0.0" ]]; then
+  # ticdc will publish from ticdc repo since v8.5.4
+  if [[ "$(printf '%s\n' "v8.5.4" "$ga_ver" | sort -V | head -n1)" == "v8.5.4" ]]; then
     # remove "pingcap/tiflow/images/cdc":
     images=("${images[@]/pingcap\/tiflow\/images\/cdc/}")
     # Filter out empty elements that might result from the removal
