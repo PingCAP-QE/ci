@@ -66,6 +66,11 @@ function gather_results() {
         tiup_pkgs+=(
             sync-diff-inspector
         )
+    fi
+
+    # if VERSION is greater then 8.5.4, then we:
+    # - add oci repo for new cdc
+    if [[ "$(printf '%s\n' "v8.5.4" "$VERSION" | sort -V | head -n1)" == "v8.5.4" ]]; then
         source_oci_pkg_repos+=(
             pingcap/ticdc/package
         )

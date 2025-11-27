@@ -220,9 +220,16 @@ async function main(
     if (version >= "v8.4.0" && ociRepo === "pingcap/tidb-binlog/package") {
       continue;
     }
-    // ticdc is initilized since v8.5.4
+    // ticdc is initilized since v8.5.4, cdc will published from this repo
     if (version < "v8.5.4" && ociRepo === "pingcap/ticdc/package") {
       continue;
+    }
+    if (version >= "v8.5.4" && ociRepo === "pingcap/tiflow/package") {
+      // delete cdc from `pkgs`
+      const idx = pkgs.indexOf("cdc");
+      if (idx !== -1) {
+        pkgs.splice(idx, 1);
+      }
     }
 
     console.group(ociRepo);
