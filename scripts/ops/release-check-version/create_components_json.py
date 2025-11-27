@@ -45,9 +45,8 @@ def get_latest_commit_hash(repo, branch):
 
 
 def main(branch, version):
-    ticdc_repo = "pingcap/ticdc"
-    if is_branch_before_release(branch, (8, 5)):
-        ticdc_repo = "pingcap/tiflow"
+    TICDC_REPO_CHANGE_VERSION = (8, 5)
+    ticdc_repo = "pingcap/tiflow" if is_branch_before_release(branch, TICDC_REPO_CHANGE_VERSION) else "pingcap/ticdc"
 
     repos = {
         "binlog": "pingcap/tidb-binlog",
