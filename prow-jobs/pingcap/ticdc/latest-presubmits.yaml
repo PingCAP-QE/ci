@@ -4,7 +4,7 @@ global_definitions:
     - ^release-nextgen-\d+$
     - ^release-8\.5$
     - ^feature/.+
-  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json|toml)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
