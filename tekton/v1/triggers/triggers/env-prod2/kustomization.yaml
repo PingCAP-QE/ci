@@ -4,3 +4,5 @@ resources:
   - PingCAP-QE/artifacts/git-push.yaml
   - pingcap/tidb-operator/git-create-tag.yaml
   - pingcap/tidb-operator/git-push.yaml
+  - pingcap/tiflow-operator/git-create-tag.yaml
+  - pingcap/tiflow-operator/git-push.yaml
