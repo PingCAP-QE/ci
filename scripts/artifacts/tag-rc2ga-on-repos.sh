@@ -52,7 +52,7 @@ function tag_oci_artifact_repos() {
     )
   fi
   # pingcap/ticdc/package published since v8.5.4
-  if [[ "$(printf '%s\n' "v8.5.4" "$ga_ver" | sort -V | head -n1)" == "v8.5.4" ]]; then
+  if [[ "$(printf '%s\n' "v8.5.4" "$ga_ver" | sort -V | tail -n1)" == "$ga_ver" ]]; then
     repos+=(
       "pingcap/ticdc/package"
     )
