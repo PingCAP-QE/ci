@@ -4,6 +4,7 @@ resources:
   - PingCAP-QE/artifacts/git-push.yaml
   - pingcap/advanced-statefulset/git-create-tag.yaml
   - pingcap/advanced-statefulset/git-push.yaml
+  - pingcap/tidb/git-push-branch-build.yaml
   - pingcap/tidb-operator/git-create-tag.yaml
   - pingcap/tidb-operator/git-push.yaml
   - pingcap/tiflow-operator/git-create-tag.yaml
