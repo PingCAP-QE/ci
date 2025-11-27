@@ -221,7 +221,7 @@ async function main(
       continue;
     }
     // ticdc is initilized since v8.5.4
-    if (version <= "v8.5.4" && ociRepo === "pingcap/ticdc/package") {
+    if (version < "v8.5.4" && ociRepo === "pingcap/ticdc/package") {
       continue;
     }
 
