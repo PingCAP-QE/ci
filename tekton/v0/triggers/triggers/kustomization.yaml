@@ -18,8 +18,6 @@ resources:
   - pingcap/_/git-create-branch-gomod-update.yaml
   - pingcap/_/git-create-branch.yaml
   - pingcap/_/git-create-tag.yaml
-  - pingcap/advanced-statefulset/git-create-tag.yaml
-  - pingcap/advanced-statefulset/git-push.yaml
   - pingcap/ticdc/git-create-tag.yaml
   - pingcap/tidb/git-push-branch-build.yaml
   - pingcap/tidb-binlog/git-push.yaml
