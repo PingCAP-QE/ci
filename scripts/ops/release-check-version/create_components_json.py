@@ -13,6 +13,27 @@ if not token:
 headers = {"Authorization": f"token {token}"} if token else {}
 
 
+def parse_release_version(branch):
+    prefix = "release-"
+    if not branch.startswith(prefix):
+        return None
+    version_part = branch[len(prefix):].split("-", 1)[0]
+    try:
+        return tuple(int(part) for part in version_part.split("."))
+    except ValueError:
+        return None
+
+
+def is_branch_before_release(branch, target_version):
+    version = parse_release_version(branch)
+    if version is None:
+        return False
+    max_len = max(len(version), len(target_version))
+    padded_version = version + (0,) * (max_len - len(version))
+    padded_target = target_version + (0,) * (max_len - len(target_version))
+    return padded_version < padded_target
+
+
 def get_latest_commit_hash(repo, branch):
     url = f"https://api.github.com/repos/{repo}/commits/{branch}"
     response = requests.get(url, headers=headers)
@@ -24,6 +45,10 @@ def get_latest_commit_hash(repo, branch):
 
 
 def main(branch, version):
+    ticdc_repo = "pingcap/ticdc"
+    if is_branch_before_release(branch, (8, 5)):
+        ticdc_repo = "pingcap/tiflow"
+
     repos = {
         "binlog": "pingcap/tidb-binlog",
         "br": "pingcap/tidb",
@@ -31,7 +56,7 @@ def main(branch, version):
         "tikv": "tikv/tikv",
         "pd": "tikv/pd",
         "tiflash": "pingcap/tiflash",
-        "ticdc": "pingcap/tiflow",
+        "ticdc": ticdc_repo,
         "dm": "pingcap/tiflow",
         "dumpling": "pingcap/tidb",
         "tidb-dashboard": "pingcap/tidb-dashboard",
