@@ -1,6 +1,6 @@
 Amazon Redshift cluster audit logging,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks if your Amazon Redshift clusters have database audit logging turned on. Amazon Redshift logs information about connections and user activities in your database. 
+"Description: Checks if your Amazon Redshift clusters have database audit logging turned on. Amazon Redshift logs information about connections and user activities in your database.
 
 For more information, see Database audit logging
 
@@ -280,7 +280,7 @@ Recommended Action
 Add or update name server records with your registrar or with the current DNS service for your domain to include all four of the name servers in your Route 53 delegation set. To find these values, see Getting the Name Servers for a Hosted Zone. For information about adding or updating name server records, see Creating and Migrating Domains and Subdomains to Amazon Route&nbsp;53.
 
 Additional Resources
-Working with Hosted Zones 
+Working with Hosted Zones
 ",,,,
 Status: warning,,,,
 Summary,,,,
@@ -686,7 +686,7 @@ AWS Site-to-Site VPN has at least one Tunnel in DOWN Status,,,,
 AWS Account ID: 385595570414,,,,
 "Description: Checks the number of tunnels that are active for each of your AWS Site-to-Site VPNs.
 
-A VPN should have two tunnels configured at all times. This provides redundancy in case of outage or planned maintenance of the devices at the AWS endpoint. For some hardware, only one tunnel is active at a time. If a VPN has no active tunnels, charges for the VPN might still apply. 
+A VPN should have two tunnels configured at all times. This provides redundancy in case of outage or planned maintenance of the devices at the AWS endpoint. For some hardware, only one tunnel is active at a time. If a VPN has no active tunnels, charges for the VPN might still apply.
 
 For more information, see  What is AWS Site-to-Site VPN?
 
@@ -1073,7 +1073,7 @@ AWS Account ID: 385595570414,,,,
 
 For each resource, Trusted Advisor shows only the top recommended action from Cost Optimization Hub.
 
-To use this check, you opt in to Cost Optimization Hub (COH) and Compute Optimizer. 
+To use this check, you opt in to Cost Optimization Hub (COH) and Compute Optimizer.
 
 Source
 AWS Cost Optimization Hub
@@ -1204,10 +1204,10 @@ us-west-2,RDS,Subnets per subnet group,20,9,Green
 
 ELB Listener Security,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks for load balancers with listeners that do not use recommended security configurations for encrypted communication. AWS recommends using a secure protocol (HTTPS or SSL), up-to-date security policies, as well as ciphers and protocols that are secure. When you use a secure protocol for a front-end connection (client to load balancer), the requests are encrypted between your clients and the load balancer, which create a more secure environment. Elastic Load Balancing provides predefined security policies  with ciphers and protocols that adhere to AWS security best practices. New versions of predefined policies are released as new configurations become available. 
+"Description: Checks for load balancers with listeners that do not use recommended security configurations for encrypted communication. AWS recommends using a secure protocol (HTTPS or SSL), up-to-date security policies, as well as ciphers and protocols that are secure. When you use a secure protocol for a front-end connection (client to load balancer), the requests are encrypted between your clients and the load balancer, which create a more secure environment. Elastic Load Balancing provides predefined security policies  with ciphers and protocols that adhere to AWS security best practices. New versions of predefined policies are released as new configurations become available.
 
 Alert Criteria
-Red: A load balancer has no listeners configured with a secure protocol (HTTPS). 
+Red: A load balancer has no listeners configured with a secure protocol (HTTPS).
 Yellow: A load balancer HTTPS listener is configured with a Security Policy that contains a weak cipher.
 Yellow: A load balancer HTTPS listener is not configured with the recommended Security Policy.
 Green: A load balancer has at least one HTTPS listener AND all HTTPS listeners are configured with the recommended policy.
@@ -1259,7 +1259,7 @@ us-west-2,a727976db4efb4b5b9d5437a7b0d7561,-,Red,No listener uses a secure proto
 
 AWS CloudFormation Stack Notification,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks if all of your AWS CloudFormation stacks use Amazon SNS to receive notifications when an event occurs. 
+"Description: Checks if all of your AWS CloudFormation stacks use Amazon SNS to receive notifications when an event occurs.
 You can configure this check to look for specific SNS Topic ARN using parameters in your AWS Config rules.
 For more information, see Setting AWS CloudFormation stack options for more information about AWS CloudFormation Stack Notification.
 
@@ -1322,7 +1322,7 @@ Summary,,,,
 
 Amazon S3 Bucket Versioning,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks for Amazon Simple Storage Service buckets that do not have versioning enabled, or have versioning suspended. When versioning is enabled, you can easily recover from both unintended user actions and application failures. Versioning allows you to preserve, retrieve, and restore any version of any object stored in a bucket. You can use lifecycle rules to manage all versions of your objects as well as their associated costs by automatically archiving objects to the Glacier storage class or removing them after a specified time period. You can also choose to require multi-factor authentication (MFA) for any object deletions or configuration changes to your buckets. 
+"Description: Checks for Amazon Simple Storage Service buckets that do not have versioning enabled, or have versioning suspended. When versioning is enabled, you can easily recover from both unintended user actions and application failures. Versioning allows you to preserve, retrieve, and restore any version of any object stored in a bucket. You can use lifecycle rules to manage all versions of your objects as well as their associated costs by automatically archiving objects to the Glacier storage class or removing them after a specified time period. You can also choose to require multi-factor authentication (MFA) for any object deletions or configuration changes to your buckets.
 
 Versioning cannot be disabled after it has been enabled, but it can be suspended, which prevents new versions of objects from being created. Using versioning can increase your costs for Amazon S3, because you pay for storage of multiple versions of an object.
 
@@ -1332,11 +1332,11 @@ Yellow: Versioning is not enabled for the bucket.
 Yellow: Versioning is suspended for the bucket.
 
 Recommended Action
-Enable bucket versioning on most buckets to prevent accidental deletion or overwriting. See Using Versioning and Enabling Versioning Programmatically. 
+Enable bucket versioning on most buckets to prevent accidental deletion or overwriting. See Using Versioning and Enabling Versioning Programmatically.
 
 If bucket versioning is suspended, consider reenabling versioning. For information on working with objects in a versioning-suspended bucket, see Managing Objects in a Versioning-Suspended Bucket.
 
-When versioning is enabled or suspended, you can define lifecycle configuration rules to mark certain object versions as expired or to permanently remove unneeded object versions. For more information, see Object Lifecycle Management. 
+When versioning is enabled or suspended, you can define lifecycle configuration rules to mark certain object versions as expired or to permanently remove unneeded object versions. For more information, see Object Lifecycle Management.
 
 MFA Delete requires additional authentication when the versioning status of the bucket is changed or when versions of an object are deleted. It requires the user to enter credentials and a code from an approved authentication device. For more information, see MFA Delete.
 
@@ -2561,7 +2561,7 @@ Amazon S3 Bucket Replication Not Enabled,,,,
 AWS Account ID: 385595570414,,,,
 "Description: Checks if your Amazon S3 buckets have replication rules enabled for Cross-Region Replication, Same-Region Replication, or both.
 
-Replication is the automatic, asynchronous copying of objects across buckets in the same or different AWS Regions. Replication copies newly created objects and object updates from a source bucket to a destination bucket or buckets. 
+Replication is the automatic, asynchronous copying of objects across buckets in the same or different AWS Regions. Replication copies newly created objects and object updates from a source bucket to a destination bucket or buckets.
 
 Using S3 bucket replication can help improve the resilience, and compliance of your applications and data storage.
 You can specify your desired replication type in the ""ReplicationType"" parameters of your AWS Config rules.
@@ -2653,7 +2653,7 @@ AWS Account ID: 385595570414,,,,
 
 To reduce the risk of deployment failures of your Lambda functions in CodeDeploy, it's a best practice to use the canary or linear deployment configuration instead of the default option where all traffic is shifted from the original Lambda function to the updated function at once.
 
-For more information, see Lambda function versions and Deployment configuration 
+For more information, see Lambda function versions and Deployment configuration
 
 Source
 AWS Config Managed Rule: codedeploy-lambda-allatonce-traffic-shift-disabled
@@ -2820,7 +2820,7 @@ Summary,,,,
 
 Amazon S3 Bucket Lifecycle Policy Configured,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks if an Amazon S3 bucket has a lifecycle policy configured. 
+"Description: Checks if an Amazon S3 bucket has a lifecycle policy configured.
 
 An Amazon S3 lifecycle policy ensures that S3 objects inside the bucket are stored cost-effectively throughout their lifecycle. This is important for meeting regulatory requirements for data retention and storage. The policy configuration is a set of rules that define actions applied by the Amazon S3 service to a group of objects. A lifecycle policy allows you to automate transitioning objects to lower-cost storage classes or deleting them as they age. For example, you can transition an object to Amazon S3 Standard-IA storage 30 days after creation, or to Amazon S3 Glacier after 1 year.
 
@@ -2859,7 +2859,7 @@ Source
 AWS Config Managed Rule: autoscaling-multiple-az
 
 Alert Criteria
-Red: The Amazon EC2 group doesn't have multiple AZs configured, or does not meet the minimum number of AZs specified. 
+Red: The Amazon EC2 group doesn't have multiple AZs configured, or does not meet the minimum number of AZs specified.
 
 Recommended Action
 Make sure that your Amazon EC2 Auto Scaling group is configured with multiple AZs. Deploy EC2 instances in multiple Availability Zones to ensure high availability.
@@ -2903,7 +2903,7 @@ Summary,,,,
 
 IAM SAML 2.0 Identity Provider,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks if the AWS account is configured for access via an identity provider (IdP) that supports SAML 2.0. We recommend you follow best practice of centralizing identities and configuring users in an external identity provider or AWS IAM Identity Center. 
+"Description: Checks if the AWS account is configured for access via an identity provider (IdP) that supports SAML 2.0. We recommend you follow best practice of centralizing identities and configuring users in an external identity provider or AWS IAM Identity Center.
 Alert CriteriaYellow: This account is not configured for access via an identity provider (IdP) that supports SAML 2.0.
 Green: This account is configured for access via an identity provider (IdP) that supports SAML 2.0.Recommended ActionEnable AWS IAM Identity Center for the account. See Enabling IAM Identity Center. Once enabled, perform the common tasks of creating a permission set and assigning access for Identity Center groups. See the user guide Common tasks.While we strongly recommend managing human users in IAM Identity Center, you can enable federated user access with IAM for human users in short-term, small scale deployments For more information see SAML 2.0 federation.
 Additional Resources
@@ -3025,7 +3025,7 @@ Recommended Action
 Ensure that your Amazon DynamoDB tables are part of an AWS Backup plan.
 
 Additional Resources
-Creating Scheduled Backup 
+Creating Scheduled Backup
 What is AWS Backup
 Creating AWS Backup plan",,,,
 Status: not_available,,,,
@@ -3065,7 +3065,7 @@ Summary,,,,
 
 Network Load Balancers Cross Load Balancing,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks if cross-zone load balancing is enabled on Network Load Balancers (NLBs) 
+"Description: Checks if cross-zone load balancing is enabled on Network Load Balancers (NLBs)
 
 Cross-zone load balancing ensures even distribution of incoming traffic across instances in different Availability Zones. This prevents the load balancer from routing all traffic to instances in the same availability zone, which can cause uneven traffic distribution and potential overloading. The feature also application reliability by automatically routing traffic to healthy instances in other availability zones in the event of a single availability zone failure.
 
@@ -3138,7 +3138,7 @@ Summary,,,,
 
 Amazon EC2 Auto Scaling Group has Capacity Rebalancing Enabled,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks if Capacity Rebalancing is enabled for Amazon EC2 Auto Scaling groups that use multiple instance types. 
+"Description: Checks if Capacity Rebalancing is enabled for Amazon EC2 Auto Scaling groups that use multiple instance types.
 
 Configuring EC2 Auto Scaling group with capacity rebalancing helps ensure that EC2 instances are evenly distributed across the Availability Zones, regardless of instance types and purchasing options. It uses a target tracking policy associated with the group, such as CPU utilization or network traffic.
 
@@ -3151,7 +3151,7 @@ Alert Criteria
 Yellow: Amazon EC2 Auto Scaling Group capacity rebalancing is not enabled
 
 Recommended Action
-Ensure that capacity rebalancing is enabled for your Amazon EC2 Auto Scaling groups that use multiple instance types. 
+Ensure that capacity rebalancing is enabled for your Amazon EC2 Auto Scaling groups that use multiple instance types.
 
 Configuring your EC2 Auto Scaling group with capacity rebalancing helps ensure that the capacity of your EC2 instances are evenly distributed across the Availability Zones, regardless of your instance types and purchasing options. It uses a target tracking policy associated with the group, such as CPU utilization or network traffic.
 
@@ -4625,12 +4625,12 @@ Green: The instance has automated backup enabled in RDS.
 Green: The instance has continuous backup enabled in AWS Backup.
 
 Recommended Action
-Ensure RDS instance has automated backup configured either by setting a retention period greater than 0 in RDS or by creating a continuous backup plan using AWS Backup. 
+Ensure RDS instance has automated backup configured either by setting a retention period greater than 0 in RDS or by creating a continuous backup plan using AWS Backup.
 Additional Resources
 Getting Started with Amazon RDS
 Perform Data Backup Automatically
 Working with Backups
-Restoring to a specified time using Point-In-Time Recovery (PITR) 
+Restoring to a specified time using Point-In-Time Recovery (PITR)
 Recovery (PITR)
  AWS Backup Supported Features",,,,,,,
 Status: error,,,,,,,
@@ -8574,13 +8574,13 @@ us-west-2,EBS,Provisioned IOPS (SSD) storage (TiB),50,0.000,Green
 Amazon RDS Idle DB Instances,,,,,,
 AWS Account ID: 385595570414,,,,,,
 "Description: Checks the configuration of your Amazon Relational Database Service (Amazon RDS) for any DB instances that appear to be idle. If a DB instance has not had a connection for a prolonged period of time, you can delete the instance to reduce costs. If persistent storage is needed for data on the instance, you can use lower-cost options such as taking and retaining a DB snapshot. Manually created DB snapshots are retained until you delete them.
- 
+
  Alert Criteria
  Yellow: An active DB instance has not had a connection in the last 7 days.
- 
+
  Recommended Action
  Consider taking a snapshot of the idle DB instance and then either stopping it or deleting it. Stopping the DB instance removes some of the costs for it, but does not remove storage costs. A stopped instance keeps all automated backups based upon the configured retention period. Stopping a DB instance usually incurs additional costs when compared to deleting the instance and then retaining only the final snapshot. See Stopping an Amazon RDS DB Instance Temporarily and Deleting a DB Instance with a Final Snapshot.
- 
+
  Additional Resources
  Back Up and Restore",,,,,,
 Status: warning,,,,,,
@@ -8618,15 +8618,15 @@ Summary,,,,
 
 CloudFront Content Delivery Optimization,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks for cases where data transfer from Amazon Simple Storage Service (Amazon S3) buckets could be accelerated by using Amazon CloudFront, the AWS global content delivery service. When you configure CloudFront to deliver your content, requests for your content are automatically routed to the nearest edge location where content is cached, so it can be delivered to your users with the best possible performance. A high ratio of data transferred out to the data stored in the bucket indicates that you could benefit from using Amazon CloudFront to deliver the data. 
-To estimate the retrieval activity of users, only data transferred by using a GET request is counted for this check. In addition, the transfer activity from the last 24 hours is not included. 
+"Description: Checks for cases where data transfer from Amazon Simple Storage Service (Amazon S3) buckets could be accelerated by using Amazon CloudFront, the AWS global content delivery service. When you configure CloudFront to deliver your content, requests for your content are automatically routed to the nearest edge location where content is cached, so it can be delivered to your users with the best possible performance. A high ratio of data transferred out to the data stored in the bucket indicates that you could benefit from using Amazon CloudFront to deliver the data.
+To estimate the retrieval activity of users, only data transferred by using a GET request is counted for this check. In addition, the transfer activity from the last 24 hours is not included.
 
 Alert Criteria
 Yellow: The amount of data transferred out of the bucket to your users by GET requests in the 30 days preceding the check is at least 25 times greater than the average amount of data stored in the bucket.
 Red: The amount of data transferred out of the bucket to your users by GET requests in the 30 days preceding the check is at least 10 TB and at least 25 times greater than the average amount of data stored in the bucket.
 
 Recommended Action
-Consider using CloudFront for better performance; see Amazon CloudFront Product Details. 
+Consider using CloudFront for better performance; see Amazon CloudFront Product Details.
 If the data transferred is 10 TB per month or more, see Amazon CloudFront Pricing to explore possible cost savings.
 
 Additional Resources
@@ -8834,7 +8834,7 @@ Low Utilization Amazon EC2 Instances,,,,,,,,,,,,,,,,,,,,,
 AWS Account ID: 385595570414,,,,,,,,,,,,,,,,,,,,,
 "Description: Checks the Amazon Elastic Compute Cloud (Amazon EC2) instances that were running at any time during the last 14 days and alerts you if the daily CPU utilization was 10% or less and network I/O was 5 MB or less on 4 or more days. Running instances generate hourly usage charges. Although some scenarios can result in low utilization by design, you can often lower your costs by managing the number and size of your instances.
 
-Estimated monthly savings are calculated by using the current usage rate for On-Demand Instances and the estimated number of days the instance might be underutilized. Actual savings will vary if you are using Reserved Instances or Spot Instances, or if the instance is not running for a full day. To get daily utilization data, download the report for this check. 
+Estimated monthly savings are calculated by using the current usage rate for On-Demand Instances and the estimated number of days the instance might be underutilized. Actual savings will vary if you are using Reserved Instances or Spot Instances, or if the instance is not running for a full day. To get daily utilization data, download the report for this check.
 
 Alert Criteria
 Yellow: An instance had 10% or less daily average CPU utilization and 5 MB or less network I/O on at least 4 of the previous 14 days.
@@ -8959,7 +8959,7 @@ Summary,,,,
 
 CloudFront SSL Certificate on the Origin Server,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks your origin server for SSL certificates that are expired, about to expire, missing, or that use outdated encryption. If a certificate is expired, CloudFront responds to requests for your content with HTTP status code 502, Bad Gateway. Certificates that were encrypted by using the SHA-1 hashing algorithm are being deprecated by web browsers such as Chrome and Firefox. Depending on the number of SSL certificates that you have associated with your CloudFront distributions, this check might add a few cents per month to your bill with your web hosting provider, for example, AWS if you're using EC2 or ELB as the origin for your CloudFront distribution. This check does not validate your origin certificate chain or certificate authorities; you can check these in your CloudFront configuration. 
+"Description: Checks your origin server for SSL certificates that are expired, about to expire, missing, or that use outdated encryption. If a certificate is expired, CloudFront responds to requests for your content with HTTP status code 502, Bad Gateway. Certificates that were encrypted by using the SHA-1 hashing algorithm are being deprecated by web browsers such as Chrome and Firefox. Depending on the number of SSL certificates that you have associated with your CloudFront distributions, this check might add a few cents per month to your bill with your web hosting provider, for example, AWS if you're using EC2 or ELB as the origin for your CloudFront distribution. This check does not validate your origin certificate chain or certificate authorities; you can check these in your CloudFront configuration.
 
 Alert Criteria
 Red: An SSL certificate on your origin has expired or is missing.
@@ -9489,7 +9489,7 @@ Yellow: Account has a cost savings action identified by Cost Optimization Hub fo
 Recommended Action
 Consider implementing the recommendation. For more information on implementing these recommendations, see the AWS Cloud Financial Management Service Cost Optimization Playbook.
 
-Additional ResourcesReserved nodes 
+Additional ResourcesReserved nodes
 Accessing reservation recommendations
 Purchasing a reserved node",,,,
 Status: ok,,,,
@@ -9550,7 +9550,7 @@ Yellow: ALB is in a single AZ
 Green: Green: ALB has two or more AZs
 
 Recommended Action
-Ensure that your load balancer is configured with at least two Availability Zones. For more information, see Availability Zones for your Application Load Balancer 
+Ensure that your load balancer is configured with at least two Availability Zones. For more information, see Availability Zones for your Application Load Balancer
 
 Additional Resources
 For more information, please refer to the AWS Public documentation on: Availability Zones and load balancer nodesRegions and Availability Zones",,,,
@@ -9694,7 +9694,7 @@ Yellow: NLB is in a single AZ
 Green: NLB has two or more AZs
 
 Recommended Action
-Ensure that your load balancer are created with at least two Availability Zones. 
+Ensure that your load balancer are created with at least two Availability Zones.
 
 Additional Resources
 For more information, please refer to the AWS Public documentation on: NLB - Availability ZonesAWS Well-Architected - Deploy the workload to multiple locationsRegions and Availability Zones",,,,,
@@ -10183,7 +10183,7 @@ Yellow: VPC endpoint it in a single AZ
 Green: VPC endpoint is in at least two AZs
 
 Recommended Action
-Ensure that your VPC interface endpoint is configured with at least two Availability Zones. 
+Ensure that your VPC interface endpoint is configured with at least two Availability Zones.
 
 Additional Resources
 For more information, please refer to the AWS Public documentation on: Create an interface endpointCreating highly-available endpoint servicesAWS PrivateLink conceptsAWS Well-Architected - Deploy the workload to multiple locationsRegions and Availability Zones",,,,
@@ -11969,7 +11969,7 @@ Yellow,us-west-2,ffeeabf20397761b,vol-0b2f821b56221ef39,arn:aws:ec2:us-west-2:38
 
 Amazon OpenSearch Service Reserved Instance purchase recommendations,,,,,,,,,,,,,,
 AWS Account ID: 385595570414,,,,,,,,,,,,,,
-"Description: Checks your Amazon OpenSearch Service usage patterns and provides recommendations for potential cost savings through Reserved Instance (RI) purchases. 
+"Description: Checks your Amazon OpenSearch Service usage patterns and provides recommendations for potential cost savings through Reserved Instance (RI) purchases.
 
 This check generates recommendations at payer scope for the payer account and at linked scope for a linked account.
 
@@ -12044,7 +12044,7 @@ AWS Account ID: 385595570414,,,,
 "Description: Checks whether Amazon RDS instance or Amazon Aurora DB instance has the required system capacity to operate.
 
 Alert Criteria
-Yellow: 
+Yellow:
 
 Out-of-memory kills: When a process on the database host is stopped because of memory reduction at the OS level, the Out Of Memory (OOM) kills counter increases.
 
@@ -12054,7 +12054,7 @@ Recommended Action
 We recommend that you tune your queries to use less memory or use a DB instance type with higher allocated memory. When the instance is running low on memory, this impacts the database performance.
 
 Additional Resources
-Out-of-memory kills were detected:Linux kernel invokes the Out of Memory (OOM) Killer when the processes running on the host require more than the memory physically available from the operating system. In this case, the OOM Killer reviews all the running processes, and stops one or more processes, in order to free up system memory and keep the system running.Swapping is detected:When the memory isn't sufficient on the database host, the operating system sends a few minimum used pages to the disk in the swap space. This offloading process impacts the database performance.For more information, see Amazon RDS Instance Types and Scaling your Amazon RDS instance   
+Out-of-memory kills were detected:Linux kernel invokes the Out of Memory (OOM) Killer when the processes running on the host require more than the memory physically available from the operating system. In this case, the OOM Killer reviews all the running processes, and stops one or more processes, in order to free up system memory and keep the system running.Swapping is detected:When the memory isn't sufficient on the database host, the operating system sends a few minimum used pages to the disk in the swap space. This offloading process impacts the database performance.For more information, see Amazon RDS Instance Types and Scaling your Amazon RDS instance
 ",,,,
 Status: ok,,,,
 Summary,,,,
@@ -12068,7 +12068,7 @@ AWS Account ID: 385595570414,,,,
 "Description: Checks whether Amazon Aurora DB cluster has the resources to support a read workload.
 
 Alert Criteria
-Yellow: 
+Yellow:
 
 Increased database reads: The database load was high and the database was reading more rows than writing or updating the rows.
 
@@ -12076,7 +12076,7 @@ Recommended Action
 We recommend that you tune your queries to decrease the database load or add a reader DB instance to your DB cluster with the same instance class and size as the writer DB instance in the cluster. The current configuration has at least one DB instance with a continuously high database load caused mostly by read operations. Distribute these operations by adding another DB instance to the cluster and directing the read workload to the DB cluster read-only endpoint.
 
 Additional Resources
-An Aurora DB cluster has one reader endpoint for read-only connections. This endpoint uses load balancing to manage the queries contributing the most to database load in your DB cluster. The reader endpoint directs these statements to the Aurora Read Replicas and reduces the load on the primary instance. The reader endpoint also scales the capacity to handle concurrent SELECT queries with the number of Aurora Read Replicas in the cluster.For more information, see Adding Aurora Replicas to a DB Cluster and Managing performance and scaling for Aurora DB clusters   
+An Aurora DB cluster has one reader endpoint for read-only connections. This endpoint uses load balancing to manage the queries contributing the most to database load in your DB cluster. The reader endpoint directs these statements to the Aurora Read Replicas and reduces the load on the primary instance. The reader endpoint also scales the capacity to handle concurrent SELECT queries with the number of Aurora Read Replicas in the cluster.For more information, see Adding Aurora Replicas to a DB Cluster and Managing performance and scaling for Aurora DB clusters
 ",,,,
 Status: ok,,,,
 Summary,,,,
@@ -12318,7 +12318,7 @@ Summary,,,,
 
 IAM Password Policy,,,,,,
 AWS Account ID: 385595570414,,,,,,
-"Description: Checks the password policy for your account and warns when a password policy is not enabled, or if password content requirements have not been enabled. Password content requirements increase the overall security of your AWS environment by enforcing the creation of strong user passwords. When you create or change a password policy, the change is enforced immediately for new users but does not require existing users to change their passwords. 
+"Description: Checks the password policy for your account and warns when a password policy is not enabled, or if password content requirements have not been enabled. Password content requirements increase the overall security of your AWS environment by enforcing the creation of strong user passwords. When you create or change a password policy, the change is enforced immediately for new users but does not require existing users to change their passwords.
 
 Alert Criteria
 Green: A password policy is enabled with recommended content requirement enabled.
@@ -12327,7 +12327,7 @@ Yellow: A password policy is enabled, but at least one content requirement is no
 Recommended Action
 If some content requirements are not enabled, consider enabling them. If no password policy is enabled, create and configure one. See Setting an Account Password Policy for IAM Users.
 To access the AWS Management Console, IAM users need passwords. As a best practice, AWS highly recommends that instead of creating IAM users, you use federation. Federation allows users to use their existing corporate credentials to log into the AWS Management Console. Use AWS IAM Identity Center to create or federate the user, and then assume an IAM role into an account.
-To learn more about identity providers and federation, see Identity providers and federation in the IAM User Guide. To learn more about IAM Identity Center, see the AWS IAM Identity Center User Guide. 
+To learn more about identity providers and federation, see Identity providers and federation in the IAM User Guide. To learn more about IAM Identity Center, see the AWS IAM Identity Center User Guide.
 
 Additional Resources
 Managing Passwords",,,,,,
@@ -12489,7 +12489,7 @@ Summary,,,,
 Amazon RDS track_counts parameter is turned off,,,,
 AWS Account ID: 385595570414,,,,
 "Description: When the track_counts parameter is turned off, the database doesn't collect the database activity statistics. Autovacuum requires these statistics to work correctly.
- 
+
 We recommend that you set track_counts parameter to 1
 
 Alert Criteria
@@ -12537,19 +12537,19 @@ Summary,,,,
 
 Classic Load Balancer Security Groups,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks for classic load balancers configured with a security group that allows access to ports that are not configured for the load balancer. If a security group associated with a load balancer is deleted, the load balancer does not work as expected. If a security group allows access to ports that are not configured for the load balancer, the risk of loss of data or malicious attacks increases. 
+"Description: Checks for classic load balancers configured with a security group that allows access to ports that are not configured for the load balancer. If a security group associated with a load balancer is deleted, the load balancer does not work as expected. If a security group allows access to ports that are not configured for the load balancer, the risk of loss of data or malicious attacks increases.
 
 Alert Criteria
-Yellow: The inbound rules of an Amazon VPC security group associated with a load balancer allow access to ports that are not defined in the load balancer's listener configuration. 
+Yellow: The inbound rules of an Amazon VPC security group associated with a load balancer allow access to ports that are not defined in the load balancer's listener configuration.
 Green: The inbound rules of an Amazon VPC security group associated with a load balancer do not allow access to ports that are not defined in the load balancers listener configuration.
 
 Recommended Action
 Consider migrating to an Application or Network load balancers depending your application needs. For information about the different features of each load balancer type, see Comparison of Elastic Load Balancing products
 .Configure the security group rules to restrict access to only those ports and protocols that are defined in the load balancer listener configuration, plus the ICMP protocol to support Path MTU Discovery. See Listeners for Your Classic Load Balancer and Security Groups for Load Balancers in a VPC.
-If a security group is missing, apply a new security group to the load balancer. Create security group rules that restrict access to only those ports and protocols that are defined in the load balancer listener configuration. See Security Groups for Load Balancers in a VPC. 
+If a security group is missing, apply a new security group to the load balancer. Create security group rules that restrict access to only those ports and protocols that are defined in the load balancer listener configuration. See Security Groups for Load Balancers in a VPC.
 
 Additional Resources
-Elastic Load Balancing User Guide 
+Elastic Load Balancing User Guide
 Migrate your Classic Load Balancer
 Configure Your Classic Load Balancer",,,,
 Status: ok,,,,
@@ -19159,7 +19159,7 @@ us-west-2,RDS,Storage quota (GB),100000,820,Green
 
 Exposed Access Keys,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks popular code repositories for access keys that have been exposed to the public and for irregular Amazon Elastic Compute Cloud (Amazon EC2) usage that could be the result of a compromised access key. An access key consists of an access key ID and the corresponding secret access key. Exposed access keys pose a security risk to your account and other users, could lead to excessive charges from unauthorized activity or abuse, and violate the AWS Customer Agreement. If your access key is exposed, take immediate action to secure your account. To protect your account from excessive charges, AWS temporarily limits your ability to create certain AWS resources when exposed access keys are identified. This does not make your account secure; it only partially limits the unauthorized usage for which you could be charged. Note: This check does not guarantee the identification of exposed access keys or compromised EC2 instances. You are ultimately responsible for the safety and security of your access keys and AWS resources.   
+"Description: Checks popular code repositories for access keys that have been exposed to the public and for irregular Amazon Elastic Compute Cloud (Amazon EC2) usage that could be the result of a compromised access key. An access key consists of an access key ID and the corresponding secret access key. Exposed access keys pose a security risk to your account and other users, could lead to excessive charges from unauthorized activity or abuse, and violate the AWS Customer Agreement. If your access key is exposed, take immediate action to secure your account. To protect your account from excessive charges, AWS temporarily limits your ability to create certain AWS resources when exposed access keys are identified. This does not make your account secure; it only partially limits the unauthorized usage for which you could be charged. Note: This check does not guarantee the identification of exposed access keys or compromised EC2 instances. You are ultimately responsible for the safety and security of your access keys and AWS resources.
 
 If a deadline is shown for an access key, AWS may suspend your AWS account if the unauthorized usage is not stopped by that date. If you believe an alert is in error, contact AWS Support.
 
@@ -19187,8 +19187,8 @@ Summary,,,,
 
 Auto Scaling Group Resources,,,,,,,,
 AWS Account ID: 385595570414,,,,,,,,
-"Description: Checks the availability of resources associated with your launch configurations, launch templates and your Auto Scaling groups. 
- Auto Scaling groups that point to unavailable resources cannot launch new Amazon Elastic Compute Cloud (Amazon EC2) instances. When properly configured, Auto Scaling causes the number of Amazon EC2 instances to increase seamlessly during demand spikes, and decrease automatically during demand lulls. Auto Scaling groups and launch configurations/launch templates that point to unavailable resources do not operate as intended. 
+"Description: Checks the availability of resources associated with your launch configurations, launch templates and your Auto Scaling groups.
+ Auto Scaling groups that point to unavailable resources cannot launch new Amazon Elastic Compute Cloud (Amazon EC2) instances. When properly configured, Auto Scaling causes the number of Amazon EC2 instances to increase seamlessly during demand spikes, and decrease automatically during demand lulls. Auto Scaling groups and launch configurations/launch templates that point to unavailable resources do not operate as intended.
 
 Alert Criteria
 Red: An Auto Scaling group is associated with a deleted load balancer.
@@ -20528,14 +20528,14 @@ Yellow: One or more NFS clients for your Amazon EFS file system are not using th
 Green: All NFS clients for your Amazon EFS file system are using the recommended mount settings that provide data-in-transit encryption.
 
 Recommended Action
-To take advantage of data-in-transit encryption feature on Amazon EFS, we recommend that you remount your file system using the EFS mount helper and the recommended mount settings. Note: Some distributions of Linux don't include a version of stunnel that supports TLS features by default. If you are using an unsupported Linux distribution (see supported distributions here), we recommend upgrading it prior to remounting with the recommended mount setting. 
+To take advantage of data-in-transit encryption feature on Amazon EFS, we recommend that you remount your file system using the EFS mount helper and the recommended mount settings. Note: Some distributions of Linux don't include a version of stunnel that supports TLS features by default. If you are using an unsupported Linux distribution (see supported distributions here), we recommend upgrading it prior to remounting with the recommended mount setting.
 
 Additional Resources
 
 
 
 
-For more information, please refer to the AWS Public documentation on: 
+For more information, please refer to the AWS Public documentation on:
 To learn more, see EFS documentation.",,,,
 Status: ok,,,,
 Summary,,,,
@@ -34532,7 +34532,7 @@ Alert Criteria
 Red: Amazon ElastiCache Redis clusters do not have automatic backup turned on.
 
 Recommended Action
-Ensure Amazon ElastiCache Redis clusters have automatic backup turned on. Automatic backups can help guard against data loss. In the event of a failure, you can create a new cluster, restoring your data from the most recent backup. 
+Ensure Amazon ElastiCache Redis clusters have automatic backup turned on. Automatic backups can help guard against data loss. In the event of a failure, you can create a new cluster, restoring your data from the most recent backup.
 
 For more information, see Scheduling automatic backups.
 
@@ -34870,7 +34870,7 @@ Yellow,us-west-2,arn:aws:cloudtrail:us-west-2:385595570414:trail/dev-us-east-1-f
 
 CloudFront distributions should encrypt traffic to custom origins,,,,
 AWS Account ID: 385595570414,,,,
-"Description: Checks if CloudFront distributions are encrypting traffic to custom origins. This check fails for a CloudFront distribution whose origin protocol policy allows 'http-only' or if it is 'match-viewer' and the viewer protocol policy is 'allow-all'. 
+"Description: Checks if CloudFront distributions are encrypting traffic to custom origins. This check fails for a CloudFront distribution whose origin protocol policy allows 'http-only' or if it is 'match-viewer' and the viewer protocol policy is 'allow-all'.
 
 Source
 AWS Security Hub
@@ -35858,7 +35858,7 @@ Source
 AWS Config Managed Rule: rds-cluster-deletion-protection-enabled
 
 Alert Criteria
-Yellow: RDS DB Cluster has not enable deletion protection. 
+Yellow: RDS DB Cluster has not enable deletion protection.
 
 Recommended Action
 Turn on deletion protection when you create an RDS DB cluster.
@@ -38269,7 +38269,7 @@ AWS Account ID: 385595570414,,,,
 Amazon RDS enhanced monitoring provides metrics in real time for the operating system (OS) that your DB instance runs on. All system metrics and process information for your RDS DB instances can be view on the RDS console. And, you can customize the dashboard. With Enhanced Monitoring, you have visibility of your RDS instance operation status in near real time, allowing you to respond to operational issues faster.
 You can specify your desired monitoring interval using the ""monitoringInterval"" parameters of your AWS Config rules.
 
-For more information, see Overview of Enhanced Monitoring and OS metrics in Enhanced Monitoring. 
+For more information, see Overview of Enhanced Monitoring and OS metrics in Enhanced Monitoring.
 
 Source
 AWS Config Managed Rule: rds-enhanced-monitoring-enabled

@@ -31,7 +31,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Checkout') {
             steps {
                 dir("tikv") {
@@ -40,12 +40,12 @@ pipeline {
                             returnStatus: true,
                             script: '[ -d .git ] && git rev-parse --git-dir > /dev/null 2>&1'
                         )
-                        
+
                         if (gitExists != 0) {
                             echo "No valid git repo found, clean checkout"
                             deleteDir()
                         }
-                        
+
                         retry(2) {
                             checkout([
                                 $class: 'GitSCM',
@@ -62,7 +62,7 @@ pipeline {
                                 ]]
                             ])
                         }
-                        
+
                         sh """
                             git checkout -f ${REFS.pulls[0].sha}
                             git branch
@@ -72,7 +72,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Run Clippy') {
             steps {
                 dir("tikv") {
@@ -81,7 +81,7 @@ pipeline {
                             which rustc
                             rustc --version
                             cargo --version
-                            
+
                             make clippy
                         """
                     }
@@ -89,7 +89,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             echo "Build finished with result: ${currentBuild.result}"
