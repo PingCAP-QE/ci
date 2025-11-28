@@ -40,8 +40,6 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       always_run: false
       optional: true # update here after test passed
-      trigger: "(?m)^/test (?:.*? )?pull-clippy-linux-arm64(?: .*?)?$"
-      rerun_command: "/test pull-clippy-linux-arm64"
       spec:
         containers:
           - name: build

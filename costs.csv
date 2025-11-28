@@ -1,0 +1,696 @@
+﻿Run make clippy
+fatal: No names found, cannot describe anything.
+fatal: No names found, cannot describe anything.
+info: component 'clippy' for target 'x86_64-apple-darwin' is up to date
+fatal: No names found, cannot describe anything.
+Security check passed.
+Log style check passed.
+./metrics/grafana/tikv_details.json: OK
+Dashboards check passed.
+Docker build check passed.
+License check passed.
+cargo-deny 0.18.2
+warning[advisory-not-detected]: advisory was not encountered
+   ┌─ /Users/runner/work/tikv/tikv/deny.toml:61:6
+   │
+61 │     "RUSTSEC-2023-0072",
+   │      ━━━━━━━━━━━━━━━━━ no crate matched advisory criteria
+
+warning[advisory-not-detected]: advisory was not encountered
+   ┌─ /Users/runner/work/tikv/tikv/deny.toml:66:6
+   │
+66 │     "RUSTSEC-2024-0357",
+   │      ━━━━━━━━━━━━━━━━━ no crate matched advisory criteria
+
+warning[advisory-not-detected]: advisory was not encountered
+   ┌─ /Users/runner/work/tikv/tikv/deny.toml:80:6
+   │
+80 │     "RUSTSEC-2025-0004",
+   │      ━━━━━━━━━━━━━━━━━ no crate matched advisory criteria
+
+warning[advisory-not-detected]: advisory was not encountered
+   ┌─ /Users/runner/work/tikv/tikv/deny.toml:87:6
+   │
+87 │     "RUSTSEC-2025-0022",
+   │      ━━━━━━━━━━━━━━━━━ no crate matched advisory criteria
+
+ advisories ok: 0 errors, 4 warnings, 8 notes
+       bans ok: 0 errors, 0 warnings, 13 notes
+   licenses ok: 0 errors, 0 warnings, 627 notes
+    sources ok: 0 errors, 0 warnings, 22 notes
+   Compiling libc v0.2.176
+   Compiling proc-macro2 v1.0.95
+   Compiling unicode-ident v1.0.5
+    Checking cfg-if v1.0.0
+   Compiling autocfg v1.1.0
+   Compiling shlex v1.3.0
+   Compiling version_check v0.9.4
+   Compiling serde v1.0.194
+    Checking memchr v2.7.1
+   Compiling quote v1.0.37
+   Compiling syn v2.0.101
+   Compiling syn v1.0.103
+    Checking once_cell v1.19.0
+    Checking smallvec v1.13.2
+    Checking pin-project-lite v0.2.15
+    Checking bytes v1.7.2
+   Compiling jobserver v0.1.32
+   Compiling cc v1.2.18
+    Checking num_cpus v1.16.0
+    Checking futures-core v0.3.31
+    Checking itoa v1.0.1
+    Checking scopeguard v1.1.0
+    Checking lock_api v0.4.6
+   Compiling pkg-config v0.3.16
+    Checking lazy_static v1.4.0
+    Checking futures-io v0.3.31
+   Compiling ahash v0.8.11
+    Checking allocator-api2 v0.2.14
+    Checking log v0.4.20
+    Checking futures v0.1.31
+    Checking pin-utils v0.1.0
+    Checking zerocopy v0.7.32
+    Checking equivalent v1.0.1
+    Checking slab v0.4.11
+    Checking futures-sink v0.3.31
+    Checking futures-channel v0.3.31
+    Checking hashbrown v0.14.0
+    Checking futures-task v0.3.31
+    Checking ryu v1.0.17
+   Compiling libm v0.2.8
+   Compiling num-traits v0.2.17
+   Compiling parking_lot_core v0.9.1
+    Checking fnv v1.0.6
+    Checking parking_lot v0.12.1
+   Compiling thiserror v1.0.40
+    Checking signal-hook-registry v1.4.0
+    Checking socket2 v0.5.7
+    Checking getrandom v0.2.11
+    Checking mio v0.8.11
+   Compiling vcpkg v0.2.11
+    Checking core-foundation-sys v0.8.7
+   Compiling synstructure v0.13.1
+    Checking tracing-core v0.1.34
+   Compiling serde_derive v1.0.194
+   Compiling futures-macro v0.3.31
+   Compiling thiserror-impl v1.0.40
+   Compiling tokio-macros v2.3.0
+    Checking tokio v1.38.2
+    Checking futures-util v0.3.31
+   Compiling crossbeam-utils v0.8.20
+    Checking stable_deref_trait v1.2.0
+    Checking http v0.2.12
+   Compiling atomic v0.5.0
+   Compiling zerofrom-derive v0.1.5
+   Compiling tracing-attributes v0.1.30
+    Checking zerofrom v0.1.5
+   Compiling yoke-derive v0.7.5
+    Checking tracing v0.1.41
+   Compiling num-integer v0.1.45
+   Compiling zerovec-derive v0.10.3
+   Compiling openssl-src v300.5.2+3.5.2
+    Checking bitflags v1.3.2
+   Compiling httparse v1.8.0
+   Compiling openssl-sys v0.9.109
+    Checking yoke v0.7.5
+    Checking tokio-util v0.7.12
+    Checking indexmap v2.0.1
+    Checking zerovec v0.10.4
+   Compiling aho-corasick v1.1.2
+   Compiling displaydoc v0.2.5
+   Compiling regex-syntax v0.8.2
+    Checking try-lock v0.2.2
+    Checking h2 v0.3.26
+    Checking want v0.3.0
+    Checking http-body v0.4.5
+    Checking httpdate v1.0.0
+    Checking tower-service v0.3.2
+    Checking tinystr v0.7.6
+    Checking percent-encoding v2.3.1
+    Checking writeable v0.5.5
+    Checking litemap v0.7.4
+    Checking icu_locid v1.5.0
+   Compiling regex-automata v0.4.3
+   Compiling icu_provider_macros v1.5.0
+    Checking icu_provider v1.5.0
+    Checking hyper v0.14.28
+    Checking icu_locid_transform_data v1.5.0
+   Compiling unicode-segmentation v1.3.0
+   Compiling rustix v0.38.3
+   Compiling heck v0.3.1
+    Checking icu_locid_transform v1.5.0
+    Checking icu_collections v1.5.0
+    Checking icu_properties_data v1.5.0
+   Compiling serde_json v1.0.109
+   Compiling regex v1.10.2
+    Checking bitflags v2.4.1
+    Checking icu_properties v1.5.1
+    Checking form_urlencoded v1.2.1
+    Checking write16 v1.0.0
+    Checking icu_normalizer_data v1.5.0
+    Checking fastrand v2.0.1
+    Checking utf8_iter v1.0.4
+    Checking either v1.6.1
+    Checking utf16_iter v1.0.5
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling proc-macro-error v1.0.4
+    Checking ppv-lite86 v0.2.10
+   Compiling cmake v0.1.54 (https://github.com/rust-lang/cmake-rs#fd56c5a6)
+    Checking rand_core v0.6.4
+    Checking errno v0.3.14
+    Checking byteorder v1.4.3
+   Compiling protobuf v2.8.0 (https://github.com/pingcap/rust-protobuf?branch=v2.8#de31a47f)
+    Checking crossbeam-epoch v0.9.18
+    Checking icu_normalizer v1.5.0
+   Compiling libz-sys v1.1.22
+   Compiling autotools v0.2.6
+    Checking idna_adapter v1.2.0
+    Checking idna v1.0.3
+   Compiling hex v0.3.2
+    Checking url v2.5.4
+   Compiling fs_extra v1.1.0
+   Compiling tikv-jemalloc-sys v0.5.0+5.3.0
+    Checking tempfile v3.8.0
+   Compiling protobuf-src v1.1.0+21.5
+    Checking futures-executor v0.3.15
+   Compiling paste v1.0.4
+    Checking rand_chacha v0.3.0
+    Checking instant v0.1.12
+    Checking parking_lot_core v0.8.3
+    Checking rand v0.8.5
+   Compiling protobuf-codegen v2.8.0 (https://github.com/pingcap/rust-protobuf?branch=v2.8#de31a47f)
+   Compiling grpcio-compiler v0.10.4
+   Compiling slog v2.5.2
+    Checking parking_lot v0.11.1
+    Checking futures v0.3.15
+    Checking core-foundation v0.9.1
+    Checking iana-time-zone v0.1.60
+    Checking time v0.1.43
+    Checking chrono v0.4.22
+    Checking security-framework-sys v2.2.0
+   Compiling native-tls v0.2.14
+    Checking security-framework v2.2.0
+   Compiling same-file v1.0.5
+   Compiling system-configuration-sys v0.5.0
+   Compiling walkdir v2.3.1
+    Checking fxhash v0.2.1
+    Checking serde_urlencoded v0.7.1
+    Checking tokio-native-tls v0.3.0
+   Compiling grpcio-sys v0.10.3+1.44.0-patched
+    Checking atty v0.2.13
+    Checking system-configuration v0.5.1
+    Checking hyper-tls v0.5.0
+    Checking encoding_rs v0.8.33
+    Checking ipnet v2.3.0
+    Checking base64 v0.21.7
+    Checking mime v0.3.16
+    Checking reqwest v0.11.23
+    Checking crossbeam-skiplist v0.1.3
+   Compiling pin-project-internal v1.0.11
+    Checking thread_local v1.1.4
+    Checking hex v0.4.3
+    Checking pin-project v1.0.11
+    Checking crossbeam-deque v0.8.3
+    Checking crossbeam-channel v0.5.15
+    Checking static_assertions v1.1.0
+   Compiling rayon-core v1.9.3
+    Checking crossbeam-skiplist v0.1.3 (/Users/runner/work/tikv/tikv/components/crossbeam-skiplist)
+   Compiling rayon v1.5.3
+   Compiling getset v0.1.1
+   Compiling prometheus v0.13.0
+    Checking dirs-sys-next v0.1.2
+   Compiling crossbeam-queue v0.3.5
+    Checking dirs-next v2.0.0
+   Compiling online_config_derive v0.1.0 (/Users/runner/work/tikv/tikv/components/online_config/online_config_derive)
+   Compiling miniz_oxide v0.4.4
+    Checking term v0.7.0
+    Checking fail v0.5.1
+    Checking toml v0.5.7
+   Compiling backtrace v0.3.61
+   Compiling memoffset v0.6.4
+    Checking rustc-demangle v0.1.23
+    Checking gimli v0.25.0
+    Checking adler v1.0.2
+    Checking arc-swap v0.4.8
+    Checking slog-global v0.1.0 (https://github.com/tikv/slog-global.git?rev=d592f88e4dbba5eb439998463054f1a44fbf17b9#d592f88e)
+    Checking addr2line v0.16.0
+    Checking crossbeam v0.8.2
+    Checking slog-term v2.8.1
+    Checking online_config v0.1.0 (/Users/runner/work/tikv/tikv/components/online_config)
+   Compiling prometheus-static-metric v0.5.1
+    Checking dashmap v5.2.0
+    Checking fs2 v0.4.3 (https://github.com/tikv/fs2-rs?branch=tikv#cd503764)
+    Checking object v0.26.2
+    Checking tikv-jemalloc-ctl v0.5.0
+    Checking tikv-jemallocator v0.5.0
+    Checking tikv_alloc v0.1.0 (/Users/runner/work/tikv/tikv/components/tikv_alloc)
+   Compiling strum_macros v0.20.1
+    Checking tokio-executor v0.1.9 (https://github.com/tikv/tokio?branch=tokio-timer-hotfix#4394380f)
+    Checking take_mut v0.2.2
+    Checking futures-timer v3.0.2
+    Checking async-speed-limit v0.4.2
+    Checking slog-async v2.6.0
+    Checking tokio-timer v0.2.13 (https://github.com/tikv/tokio?branch=tokio-timer-hotfix#4394380f)
+    Checking strum v0.20.0
+    Checking nix v0.24.1
+    Checking collections v0.1.0 (/Users/runner/work/tikv/tikv/components/collections)
+    Checking log_wrappers v0.0.1 (/Users/runner/work/tikv/tikv/components/log_wrappers)
+    Checking yatp v0.0.1 (https://github.com/tikv/yatp.git?branch=master#793be4d7)
+    Checking sysinfo v0.26.9 (https://github.com/tikv/sysinfo?branch=0.26-fix-cpu#5a1bcf08)
+    Checking slog-json v2.3.0
+   Compiling derive_more v0.99.3
+    Checking cpu-time v1.0.0
+   Compiling async-trait v0.1.69
+   Compiling crc32fast v1.4.0
+   Compiling openssl v0.10.73
+    Checking foreign-types-shared v0.1.1
+    Checking foreign-types v0.3.2
+   Compiling openssl-macros v0.1.1
+    Checking uuid v0.8.2
+   Compiling crypto v0.0.1 (/Users/runner/work/tikv/tikv/components/crypto)
+    Checking farmhash v1.1.5
+   Compiling anyhow v1.0.75
+   Compiling semver v1.0.4
+    Checking powerfmt v0.2.0
+   Compiling time-core v0.1.4
+   Compiling num-conv v0.1.0
+   Compiling time-macros v0.2.22
+    Checking deranged v0.4.0
+    Checking num_threads v0.1.6
+    Checking time v0.3.41
+   Compiling rustc_version v0.4.0
+    Checking base64 v0.13.0
+   Compiling typenum v1.16.0
+    Checking uuid v1.7.0
+   Compiling generic-array v0.14.4
+    Checking http v1.1.0
+    Checking minimal-lexical v0.2.1
+    Checking nom v7.1.3
+    Checking http-body v1.0.0
+    Checking vsimd v0.8.0
+    Checking outref v0.5.1
+    Checking base64-simd v0.8.0
+    Checking http-body-util v0.1.1
+    Checking bytes-utils v0.1.4
+    Checking crypto-common v0.1.6
+    Checking block-buffer v0.10.4
+    Checking cfg-if v0.1.10
+    Checking subtle v2.5.0
+    Checking aws-smithy-types v1.2.7
+    Checking digest v0.10.7
+    Checking half v2.4.1
+    Checking aws-smithy-async v1.2.1
+    Checking ciborium-io v0.2.2
+    Checking cpufeatures v0.2.12
+   Compiling getrandom v0.1.12
+    Checking zeroize v1.7.0
+    Checking ciborium-ll v0.2.2
+    Checking aws-smithy-runtime-api v1.7.2
+    Checking ciborium v0.2.2
+    Checking sha2 v0.10.8
+    Checking parking v2.1.0
+    Checking rand_core v0.5.1
+    Checking c2-chacha v0.2.2
+   Compiling zstd-sys v2.0.13+zstd.1.5.6
+   Compiling num-bigint v0.4.4
+    Checking data-encoding v2.5.0
+    Checking rand_chacha v0.2.1
+    Checking aws-smithy-eventstream v0.60.5
+   Compiling num-rational v0.4.1
+    Checking cache-padded v1.1.1
+    Checking concurrent-queue v1.2.2
+    Checking aws-smithy-http v0.60.11
+    Checking rand v0.7.3
+   Compiling match-template v0.0.1
+    Checking fastrand v1.9.0
+    Checking event-listener v2.5.1
+    Checking waker-fn v1.1.0
+   Compiling http-types v2.12.0
+    Checking xmlparser v0.13.6
+    Checking semver-parser v0.7.0
+    Checking futures-lite v1.13.0
+    Checking async-channel v1.6.1
+    Checking aws-credential-types v1.2.1
+   Compiling aws-types v1.3.3
+   Compiling azure_core v0.18.0
+    Checking matchers v0.2.0
+   Compiling extend v0.1.2
+    Checking serde_qs v0.8.5
+    Checking tracing-serde v0.2.0
+    Checking tracing-log v0.2.0
+    Checking sharded-slab v0.1.7
+    Checking infer v0.2.3
+    Checking separator v0.4.1
+    Checking yansi v0.5.1
+    Checking nu-ansi-term v0.50.1
+    Checking bs58 v0.5.1
+    Checking diff v0.1.13
+    Checking tracing-subscriber v0.3.20
+    Checking pretty_assertions v1.4.0
+    Checking cbor-diag v0.1.12
+    Checking assert-json-diff v1.1.0
+    Checking roxmltree v0.14.1
+    Checking hmac v0.12.1
+   Compiling crc32c v0.6.8
+    Checking quick-xml v0.31.0
+    Checking concurrent-queue v2.5.0
+    Checking dyn-clone v1.0.4
+    Checking regex-lite v0.1.5
+    Checking aws-smithy-protocol-test v0.63.0
+    Checking event-listener v5.4.1
+    Checking aws-sigv4 v1.2.4
+    Checking regex-automata v0.1.8
+    Checking aws-runtime v1.4.0
+    Checking bstr v0.2.8
+    Checking event-listener-strategy v0.5.4
+    Checking aws-smithy-runtime v1.7.2
+    Checking aws-smithy-json v0.60.7
+   Compiling lz4-sys v1.9.5
+   Compiling const_fn v0.4.11
+    Checking async-lock v3.4.1
+    Checking semver v0.10.0
+    Checking aws-smithy-xml v0.60.8
+   Compiling num-derive v0.4.2
+    Checking urlencoding v2.1.3
+    Checking foldhash v0.1.3
+    Checking hashbrown v0.15.1
+    Checking aws-smithy-query v0.60.7
+    Checking sha1 v0.10.6
+    Checking md-5 v0.10.6
+    Checking serde_path_to_error v0.1.5
+    Checking RustyXML v0.3.0
+   Compiling glob v0.3.0
+    Checking oauth2 v4.4.2
+   Compiling clang-sys v1.1.1
+    Checking tz-rs v0.6.14
+    Checking aws-smithy-checksums v0.60.12
+    Checking aws-sdk-sts v1.37.0
+    Checking lru v0.12.5
+    Checking twox-hash v1.6.3
+    Checking itertools v0.10.0
+   Compiling prettyplease v0.2.6
+    Checking aws-config v1.5.5
+    Checking aws-sdk-s3 v1.40.0
+    Checking aws-sdk-kms v1.40.0
+    Checking tame-gcs v0.10.0
+   Compiling snappy-sys v0.1.0 (https://github.com/tikv/rust-snappy.git?branch=static-link#8c12738b)
+   Compiling bzip2-sys v0.1.11+1.0.8
+    Checking md5 v0.7.0
+   Compiling libloading v0.7.0
+   Compiling bindgen v0.65.1
+   Compiling rustc-hash v1.0.1
+   Compiling cexpr v0.6.0
+   Compiling libtitan_sys v0.0.1 (https://github.com/tikv/rust-rocksdb.git#a6b0bb04)
+   Compiling parse-zoneinfo v0.3.0
+   Compiling num-iter v0.1.43
+   Compiling num-rational v0.3.0
+   Compiling lazycell v1.3.0
+   Compiling peeking_take_while v0.1.2
+    Checking bytemuck v1.16.3
+   Compiling chrono-tz v0.5.3
+    Checking ordered-float v2.10.0
+   Compiling encoding_rs v0.8.29 (https://github.com/tikv/encoding_rs.git?rev=68e0bc5a72a37a78228d80cd98047326559cf43c#68e0bc5a)
+   Compiling librocksdb_sys v0.1.0 (https://github.com/tikv/rust-rocksdb.git#a6b0bb04)
+    Checking num-complex v0.3.0
+    Checking num v0.3.0
+    Checking boolinator v2.4.0
+    Checking bitfield v0.13.2
+   Compiling zstd-safe v7.2.1
+   Compiling slog_derive v0.2.0
+    Checking zstd v0.13.2
+    Checking async-compression v0.4.27
+    Checking predicates-core v1.0.9
+   Compiling mockall_derive v0.13.1
+    Checking anstyle v1.0.10
+    Checking termtree v0.5.1
+    Checking predicates-tree v1.0.12
+    Checking predicates v3.1.3
+    Checking downcast v0.11.0
+    Checking fragile v2.0.0
+    Checking mockall v0.13.1
+    Checking pdqselect v0.1.0
+   Compiling enum_dispatch v0.3.8
+   Compiling ahash v0.7.8
+    Checking itoa v0.4.4
+   Compiling unicode-xid v0.2.4
+   Compiling derive_more-impl v2.0.1
+   Compiling serde_with_macros v1.1.0
+   Compiling memoffset v0.7.1
+    Checking serde_with v1.4.0
+    Checking derive_more v2.0.1
+   Compiling memory_trace_macros v0.1.0 (/Users/runner/work/tikv/tikv/components/memory_trace_macros)
+    Checking memmap2 v0.9.3
+   Compiling rustversion v1.0.4
+   Compiling smartstring v1.0.1
+    Checking nix v0.26.2
+   Compiling heck v0.5.0
+   Compiling strum_macros v0.26.4
+   Compiling rhai_codegen v1.4.1
+   Compiling indexmap v1.6.2
+   Compiling ident_case v1.0.1
+   Compiling strsim v0.9.2
+   Compiling darling_core v0.10.1
+    Checking rhai v1.7.0
+    Checking strum v0.26.3
+   Compiling serde_repr v0.1.9
+    Checking if_chain v1.0.2
+    Checking hashbrown v0.9.1
+    Checking unicode-width v0.1.6
+    Checking textwrap v0.11.0
+   Compiling darling_macro v0.10.1
+    Checking raft-engine v0.4.2 (https://github.com/tikv/raft-engine.git#03f77d90)
+    Checking strsim v0.8.0
+    Checking ansi_term v0.11.0
+    Checking vec_map v0.8.1
+    Checking clap v2.33.0
+   Compiling ucd-trie v0.1.3
+   Compiling pest v2.1.3
+   Compiling protobuf v3.7.2
+   Compiling semver-parser v0.10.2
+   Compiling semver v0.11.0
+   Compiling protobuf-support v3.7.2
+   Compiling darling v0.10.1
+   Compiling which v4.2.4
+   Compiling tidb_query_codegen v0.0.1 (/Users/runner/work/tikv/tikv/components/tidb_query_codegen)
+   Compiling rustc_version v0.3.3
+    Checking flate2 v1.0.11
+   Compiling arrayvec v0.4.11
+   Compiling coprocessor_plugin_api v0.1.0 (/Users/runner/work/tikv/tikv/components/coprocessor_plugin_api)
+    Checking nodrop v0.1.13
+    Checking debugid v0.8.0
+    Checking tokio-stream v0.1.11
+   Compiling equator-macro v0.2.1
+   Compiling findshlibs v0.10.1
+   Compiling thiserror v2.0.12
+   Compiling symbolic-demangle v12.8.0
+    Checking equator v0.2.2
+    Checking symbolic-common v12.8.0
+    Checking num-format v0.4.0
+    Checking rgb v0.8.50
+   Compiling thiserror-impl v2.0.12
+   Compiling protobuf-parse v3.7.2
+   Compiling protobuf-codegen v3.7.2
+    Checking coarsetime v0.1.33
+    Checking quick-xml v0.22.0
+    Checking str_stack v0.1.0
+   Compiling version_check v0.1.5
+    Checking indextree v4.6.0
+    Checking tracing-active-tree v0.1.0 (https://github.com/tikv/tracing-active-tree.git?rev=a71f8f8148f88ab759deb6d3e1d62d07ab218347#a71f8f81)
+   Compiling nom v5.1.0
+   Compiling pprof v0.15.0
+    Checking inferno v0.11.3
+    Checking aligned-vec v0.6.1
+    Checking spin v0.10.0
+    Checking fsevent-sys v2.0.1
+    Checking crc64fast v0.1.0
+    Checking fsevent v0.4.0
+    Checking ipnetwork v0.15.1
+   Compiling async-stream-impl v0.2.0
+    Checking pnet_sys v0.25.0
+    Checking filetime v0.2.14
+    Checking pnet_base v0.22.0
+    Checking pnet_datalink v0.23.1
+    Checking notify v4.0.17
+    Checking async-stream v0.2.0
+    Checking keyed_priority_queue v0.4.1
+    Checking serde_ignored v0.1.2
+    Checking sync_wrapper v0.1.1
+    Checking rev_lines v0.2.1
+    Checking more-asserts v0.2.1
+    Checking mur3 v0.1.0
+    Checking seahash v4.1.0
+    Checking rand_isaac v0.3.0
+   Compiling signal-hook v0.3.14
+    Checking plotters-backend v0.3.0
+    Checking tinytemplate v1.2.0
+    Checking plotters-svg v0.3.0
+    Checking oorandom v11.1.3
+    Checking csv-core v0.1.6
+    Checking plotters v0.3.1
+    Checking half v1.8.2
+    Checking cast v0.2.2
+    Checking criterion-plot v0.4.4
+    Checking serde_cbor v0.11.1
+    Checking azure_storage v0.18.0
+    Checking azure_svc_blobstorage v0.18.0
+    Checking azure_storage_blobs v0.18.0
+    Checking azure_identity v0.18.1
+    Checking azure_security_keyvault v0.18.0
+    Checking tame-oauth v0.9.6 (https://github.com/tikv/tame-oauth?branch=fips-0.9#487e287c)
+    Checking tokio-openssl v0.6.1
+    Checking csv v1.1.6
+    Checking criterion v0.3.5
+    Checking rand_xorshift v0.3.0
+    Checking panic_hook v0.0.1 (/Users/runner/work/tikv/tikv/components/panic_hook)
+    Checking termcolor v1.1.3
+   Compiling heck v0.4.1
+   Compiling clap_derive v3.1.4
+    Checking profiler v0.0.1 (/Users/runner/work/tikv/tikv/components/profiler)
+   Compiling structopt-derive v0.4.13
+    Checking os_str_bytes v6.0.0
+    Checking strsim v0.10.0
+    Checking textwrap v0.15.0
+    Checking clap v3.1.6
+    Checking structopt v0.3.20
+    Checking criterion-cpu-time v0.1.0
+   Compiling test_raftstore_macro v0.0.1 (/Users/runner/work/tikv/tikv/components/test_raftstore_macro)
+   Compiling io-lifetimes v1.0.4
+   Compiling rustix v0.36.7
+   Compiling zstd-safe v5.0.2+zstd.1.5.2
+    Checking errno v0.2.8
+    Checking wait-timeout v0.2.0
+    Checking rand v0.4.6
+    Checking quick-error v1.2.3
+    Checking cast v0.3.0
+    Checking bit-vec v0.6.3
+    Checking remove_dir_all v0.5.3
+    Checking tempdir v0.3.7
+    Checking bit-set v0.5.3
+    Checking criterion-plot v0.5.0
+    Checking rusty-fork v0.3.0
+    Checking filedescriptor v0.8.1
+    Checking multimap v0.8.0
+    Checking unarray v0.1.4
+    Checking anes v0.1.6
+    Checking criterion v0.4.0
+    Checking proptest v1.4.0
+    Checking rust-ini v0.14.0
+    Checking gag v1.0.0
+    Checking zstd v0.11.2+zstd.1.5.2
+    Checking is-terminal v0.4.2
+    Checking humantime v2.1.0
+    Checking env_logger v0.10.0
+   Compiling tikv-ctl v0.0.1 (/Users/runner/work/tikv/tikv/cmd/tikv-ctl)
+   Compiling tikv-server v0.0.1 (/Users/runner/work/tikv/tikv/cmd/tikv-server)
+    Checking semver v0.9.0
+    Checking linked-hash-map v0.5.4
+   Compiling hyper-openssl v0.9.1
+    Checking linked_hash_set v0.1.4
+    Checking cargo_metadata v0.9.1
+    Checking raft-engine-ctl v0.4.2 (https://github.com/tikv/raft-engine.git#03f77d90)
+    Checking tower-layer v0.3.1
+    Checking matches v0.1.8
+    Checking example_coprocessor_plugin v0.1.0 (/Users/runner/work/tikv/tikv/components/test_coprocessor_plugin/example_plugin)
+    Checking zipf v6.1.0
+    Checking fuzz v0.0.1 (/Users/runner/work/tikv/tikv/fuzz)
+   Compiling protobuf-build v0.15.1
+   Compiling raft-proto v0.7.0 (https://github.com/tikv/raft-rs?branch=master#1fd05e00)
+   Compiling kvproto v0.0.2 (https://github.com/pingcap/kvproto.git#29105467)
+    Checking raft v0.7.0 (https://github.com/tikv/raft-rs?branch=master#1fd05e00)
+   Compiling tipb v0.0.1 (https://github.com/pingcap/tipb.git#85a019a5)
+    Checking grpcio v0.10.4
+    Checking grpcio-health v0.10.4
+    Checking error_code v0.0.1 (/Users/runner/work/tikv/tikv/components/error_code)
+    Checking tracker v0.0.1 (/Users/runner/work/tikv/tikv/components/tracker)
+    Checking codec v0.0.1 (/Users/runner/work/tikv/tikv/components/codec)
+    Checking tikv_util v0.1.0 (/Users/runner/work/tikv/tikv/components/tikv_util)
+warning: use of deprecated function `libc::mach_host_self`: Use the `mach2` crate instead
+   --> components/tikv_util/src/sys/cpu_time.rs:145:17
+    |
+145 |                 mach_host_self(),
+    |                 ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated static `libc::mach_task_self_`: Use the `mach2` crate instead
+   --> components/tikv_util/src/sys/cpu_time.rs:175:27
+    |
+175 |             vm_deallocate(mach_task_self_, cpu_info as vm_address_t, msg_type as usize);
+    |                           ^^^^^^^^^^^^^^^
+
+warning: use of deprecated static `libc::mach_task_self_`: Use the `mach2` crate instead
+   --> components/tikv_util/src/sys/thread.rs:233:18
+    |
+233 |         unsafe { mach_task_self_ }
+    |                  ^^^^^^^^^^^^^^^
+
+warning: use of deprecated function `libc::mach_thread_self`: Use the `mach2` crate instead
+   --> components/tikv_util/src/sys/thread.rs:239:18
+    |
+239 |         unsafe { mach_thread_self() }
+    |                  ^^^^^^^^^^^^^^^^
+
+warning: `tikv_util` (lib) generated 4 warnings
+    Checking cloud v0.0.1 (/Users/runner/work/tikv/tikv/components/cloud)
+    Checking file_system v0.1.0 (/Users/runner/work/tikv/tikv/components/file_system)
+    Checking txn_types v0.1.0 (/Users/runner/work/tikv/tikv/components/txn_types)
+    Checking encryption v0.0.1 (/Users/runner/work/tikv/tikv/components/encryption)
+    Checking keys v0.1.0 (/Users/runner/work/tikv/tikv/components/keys)
+    Checking azure v0.0.1 (/Users/runner/work/tikv/tikv/components/cloud/azure)
+    Checking aws v0.0.1 (/Users/runner/work/tikv/tikv/components/cloud/aws)
+    Checking engine_traits v0.0.1 (/Users/runner/work/tikv/tikv/components/engine_traits)
+warning: `tikv_util` (lib test) generated 4 warnings (4 duplicates)
+    Checking security v0.0.1 (/Users/runner/work/tikv/tikv/components/security)
+    Checking gcp v0.0.1 (/Users/runner/work/tikv/tikv/components/cloud/gcp)
+    Checking pd_client v0.1.0 (/Users/runner/work/tikv/tikv/components/pd_client)
+    Checking api_version v0.1.0 (/Users/runner/work/tikv/tikv/components/api_version)
+    Checking tidb_query_common v0.0.1 (/Users/runner/work/tikv/tikv/components/tidb_query_common)
+    Checking encryption_export v0.0.1 (/Users/runner/work/tikv/tikv/components/encryption/export)
+    Checking tidb_query_datatype v0.0.1 (/Users/runner/work/tikv/tikv/components/tidb_query_datatype)
+    Checking external_storage v0.0.1 (/Users/runner/work/tikv/tikv/components/external_storage)
+    Checking resource_metering v0.0.1 (/Users/runner/work/tikv/tikv/components/resource_metering)
+    Checking resource_control v0.0.1 (/Users/runner/work/tikv/tikv/components/resource_control)
+    Checking test_pd_client v0.0.1 (/Users/runner/work/tikv/tikv/components/test_pd_client)
+    Checking batch-system v0.1.0 (/Users/runner/work/tikv/tikv/components/batch-system)
+    Checking concurrency_manager v0.0.1 (/Users/runner/work/tikv/tikv/components/concurrency_manager)
+    Checking causal_ts v0.0.1 (/Users/runner/work/tikv/tikv/components/causal_ts)
+    Checking into_other v0.0.1 (/Users/runner/work/tikv/tikv/components/into_other)
+    Checking health_controller v0.1.0 (/Users/runner/work/tikv/tikv/components/health_controller)
+    Checking service v0.0.1 (/Users/runner/work/tikv/tikv/components/service)
+    Checking engine_panic v0.0.1 (/Users/runner/work/tikv/tikv/components/engine_panic)
+    Checking raft_log_engine v0.0.1 (/Users/runner/work/tikv/tikv/components/raft_log_engine)
+    Checking test_util v0.0.1 (/Users/runner/work/tikv/tikv/components/test_util)
+    Checking test_pd v0.0.1 (/Users/runner/work/tikv/tikv/components/test_pd)
+    Checking tidb_query_expr v0.0.1 (/Users/runner/work/tikv/tikv/components/tidb_query_expr)
+    Checking tipb_helper v0.0.1 (/Users/runner/work/tikv/tikv/components/tipb_helper)
+    Checking tidb_query_aggr v0.0.1 (/Users/runner/work/tikv/tikv/components/tidb_query_aggr)
+    Checking tidb_query_executors v0.0.1 (/Users/runner/work/tikv/tikv/components/tidb_query_executors)
+    Checking rocksdb v0.3.0 (https://github.com/tikv/rust-rocksdb.git#a6b0bb04)
+    Checking engine_rocks v0.0.1 (/Users/runner/work/tikv/tikv/components/engine_rocks)
+    Checking sst_importer v0.1.0 (/Users/runner/work/tikv/tikv/components/sst_importer)
+    Checking engine_test v0.0.1 (/Users/runner/work/tikv/tikv/components/engine_test)
+    Checking test_sst_importer v0.1.0 (/Users/runner/work/tikv/tikv/components/test_sst_importer)
+    Checking compact-log-backup v0.1.0 (/Users/runner/work/tikv/tikv/components/compact-log-backup)
+    Checking engine_traits_tests v0.0.1 (/Users/runner/work/tikv/tikv/components/engine_traits_tests)
+    Checking raftstore v0.0.1 (/Users/runner/work/tikv/tikv/components/raftstore)
+    Checking in_memory_engine v0.0.1 (/Users/runner/work/tikv/tikv/components/in_memory_engine)
+    Checking raftstore-v2 v0.1.0 (/Users/runner/work/tikv/tikv/components/raftstore-v2)
+    Checking tikv_kv v0.1.0 (/Users/runner/work/tikv/tikv/components/tikv_kv)
+    Checking engine_rocks_helper v0.1.0 (/Users/runner/work/tikv/tikv/components/engine_rocks_helper)
+    Checking hybrid_engine v0.0.1 (/Users/runner/work/tikv/tikv/components/hybrid_engine)
+    Checking tikv v9.0.0-beta.2 (/Users/runner/work/tikv/tikv)
+    Checking resolved_ts v0.0.1 (/Users/runner/work/tikv/tikv/components/resolved_ts)
+    Checking snap_recovery v0.1.0 (/Users/runner/work/tikv/tikv/components/snap_recovery)
+    Checking backup v0.0.1 (/Users/runner/work/tikv/tikv/components/backup)
+    Checking cdc v0.0.1 (/Users/runner/work/tikv/tikv/components/cdc)
+    Checking backup-stream v0.1.0 (/Users/runner/work/tikv/tikv/components/backup-stream)
+    Checking server v0.0.1 (/Users/runner/work/tikv/tikv/components/server)
+    Checking test_raftstore v0.0.1 (/Users/runner/work/tikv/tikv/components/test_raftstore)
+    Checking test_storage v0.0.1 (/Users/runner/work/tikv/tikv/components/test_storage)
+    Checking test_backup v0.0.1 (/Users/runner/work/tikv/tikv/components/test_backup)
+    Checking test_raftstore-v2 v0.0.1 (/Users/runner/work/tikv/tikv/components/test_raftstore-v2)
+    Checking test_coprocessor v0.0.1 (/Users/runner/work/tikv/tikv/components/test_coprocessor)
+    Checking tests v0.0.1 (/Users/runner/work/tikv/tikv/tests)
+    Finished `dev` profile [unoptimized] target(s) in 28m 07s
+warning: the following packages contain code that will be rejected by a future version of Rust: criterion v0.3.5, fs_extra v1.1.0, nom v5.1.0, quick-xml v0.22.0
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
