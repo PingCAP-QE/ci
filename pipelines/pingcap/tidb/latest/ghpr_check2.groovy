@@ -97,6 +97,7 @@ pipeline {
                             'run_real_tikv_tests.sh bazel_pipelineddmltest',
                             'run_real_tikv_tests.sh bazel_flashbacktest',
                             'run_real_tikv_tests.sh bazel_ddltest',
+                            'run_real_tikv_tests.sh bazel_pushdowntest',
                         )
                     }
                 }
