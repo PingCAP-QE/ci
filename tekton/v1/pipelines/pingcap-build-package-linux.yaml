@@ -205,6 +205,20 @@ spec:
       workspaces:
         - name: source
           workspace: source
+    - name: deliver-binaries
+      when:
+        - input: $(tasks.build-binaries.results.pushed)
+          operator: notin
+          values: ["{}"]
+      taskRef:
+        name: pingcap-deliver-binaries
+      runAfter:
+        - build-binaries
+      params:
+        - name: src
+          value: $(tasks.build-binaries.results.pushed)
+        - name: src-type
+          value: oci-info
     - name: deliver-images
       when:
         - input: $(tasks.build-images.results.pushed)

@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: pingcap-deliver-binaries
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: delivery
+    tekton.dev/tags: binaries,delivery,oci
+    tekton.dev/displayName: "PingCAP product binaries delivery"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  params:
+    - name: src
+    - name: src-type
+      description: Type of the binaries parameter
+      default: oci-url
+      enum:
+        - oci-url # oci url
+        - oci-info # yaml/json content that stored oci information return by binaries build task
+    - name: delivery-config-url
+      description: URL of the delivery configuration file
+      default: https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/packages/delivery.yaml
+    - name: generator-script-url
+      description: URL of the generator script
+      default: https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/packages/scripts/gen-delivery-binaries-commands.ts
+  steps:
+    - name: generate
+      image: docker.io/denoland/deno:alpine-2.0.6 # it has `wget` tool.
+      results:
+        - name: generated
+          type: string
+        - name: target
+          type: string
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "🚧 WIP"
+        exit 0
+
+        wget -O delivery.yaml $(params.delivery-config-url)
+        script="/workspace/delivery.sh"
+        targetsInfo="/workspace/delivery-targets.yaml"
+        img_src="$(params.src)"
+        if [ "$(params.src-type)" = "oci-url" ]; then
+          deno run --allow-read --allow-write "$(params.generator-script-url)" \
+            --oci_url="$img_src" \
+            --yaml_file=delivery.yaml \
+            --outfile=$script \
+            --packages_outfile=$targetsInfo
+        elif [ "$(params.src-type)" = "oci-info" ]; then
+          echo "$img_src" > /workspace/src.txt
+          deno run --allow-read --allow-write "$(params.generator-script-url)" \
+            --oci_file="/workspace/src.txt" \
+            --yaml_file=delivery.yaml \
+            --outfile=$script \
+            --packages_outfile=$targetsInfo
+        fi
+
+        if [ -f "$script" ]; then
+          echo -n "true" > $(step.results.generated.path)
+        else
+          echo -n "false" > $(step.results.generated.path)
+        fi
+    - name: run
+      when:
+        - input: "$(steps.generate.results.generated)"
+          operator: in
+          values: ["true"]
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+      computeResources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      script: |
+        echo "🚧 WIP"
+        exit 0
