@@ -37,7 +37,7 @@ presubmits:
       name: pull-clippy-linux-arm64
       agent: kubernetes
       decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed
       always_run: true
       optional: true # update here after test passed
       spec:
@@ -80,7 +80,7 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-error-log-review(?: .*?)?$"
       rerun_command: "/test pull-error-log-review"
       optional: true
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed # TODO: add this after test is checked and stable.
       spec:
         containers:
           - name: check
