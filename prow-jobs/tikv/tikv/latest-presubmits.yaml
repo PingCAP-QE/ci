@@ -38,7 +38,6 @@ presubmits:
       agent: kubernetes
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      always_run: true
       optional: false # update here after test passed
       spec:
         containers:
