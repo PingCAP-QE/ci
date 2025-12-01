@@ -38,7 +38,6 @@ presubmits:
       agent: kubernetes
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      optional: false
       spec:
         containers:
           - name: build
