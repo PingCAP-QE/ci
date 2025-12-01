@@ -14,8 +14,8 @@ spec:
         The full url of the pushed image, contain the tag part.
         It will parse the repo from it.
     - name: publisher-url
-      description: Staging is http://publisher-staging-mirror.apps.svc, product is http://publisher-prod-mirror.apps.svc.
-      default: http://publisher-staging-mirror.apps.svc
+      description: Staging is https://publisher-staging.pingcap.net, product is https://publisher.pingcap.net.
+      default: https://publisher-staging.pingcap.net
   results:
     - name: request-ids
       type: array

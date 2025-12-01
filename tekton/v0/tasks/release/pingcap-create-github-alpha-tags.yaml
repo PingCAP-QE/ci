@@ -24,6 +24,6 @@ spec:
       command:
         - /app/publisher-cli
       args:
-        - --url=http://publisher-prod-mirror.apps.svc
+        - --url=https://publisher.pingcap.net
         - tiup
         - reset-rate-limit
