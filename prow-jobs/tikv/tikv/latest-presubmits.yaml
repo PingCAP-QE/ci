@@ -37,9 +37,9 @@ presubmits:
       name: pull-clippy-linux-arm64
       agent: kubernetes
       decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
-      always_run: false
-      optional: true # update here after test passed
+      skip_if_only_changed: *skip_if_only_changed
+      always_run: true
+      optional: false # update here after test passed
       spec:
         containers:
           - name: build
