@@ -28,7 +28,7 @@ pipeline {
         NEXT_GEN = 1
     }
     options {
-        timeout(time: 80, unit: 'MINUTES')
+        timeout(time: 100, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
     }
     stages {
@@ -135,7 +135,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 60, unit: 'MINUTES') }
+                        options { timeout(time: 80, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
