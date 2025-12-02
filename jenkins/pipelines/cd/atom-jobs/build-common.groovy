@@ -971,26 +971,28 @@ def run_with_pod(String builder, Closure body) {
 
 try {
     stage("Build ${PRODUCT}") {
-        if (!ifFileCacheExists()) {
-            if (params.BUILDER_IMG && params.OS=="linux"){
-                run_with_pod(params.BUILDER_IMG,{
+        timeout(time: 180, unit: 'MINUTES') {
+            if (!ifFileCacheExists()) {
+                if (params.BUILDER_IMG && params.OS=="linux"){
+                    run_with_pod(params.BUILDER_IMG,{
+                            dir("go/src/github.com/pingcap/${PRODUCT}") {
+                            deleteDir()
+                            release(PRODUCT, 'builder')
+                        }
+                    })
+                }else if (useArmPodTemplate) {
+                    run_with_arm_go_pod{
                         dir("go/src/github.com/pingcap/${PRODUCT}") {
-                        deleteDir()
-                        release(PRODUCT, 'builder')
+                            deleteDir()
+                            release(PRODUCT, 'builder')
+                        }
                     }
-                })
-            }else if (useArmPodTemplate) {
-                run_with_arm_go_pod{
-                    dir("go/src/github.com/pingcap/${PRODUCT}") {
-                        deleteDir()
-                        release(PRODUCT, 'builder')
-                    }
-                }
-            } else {
-                node(nodeLabel) {
-                    dir("go/src/github.com/pingcap/${PRODUCT}") {
-                        deleteDir()
-                        release(PRODUCT, containerLabel)
+                } else {
+                    node(nodeLabel) {
+                        dir("go/src/github.com/pingcap/${PRODUCT}") {
+                            deleteDir()
+                            release(PRODUCT, containerLabel)
+                        }
                     }
                 }
             }
