@@ -76,7 +76,7 @@ spec:
     - { name: component, value: $(extensions.component) }
     - { name: os, value: linux }
     - { name: profile, value: next-gen }
-    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/hub }
+    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/tidbx }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
     - { name: timeout, value: $(extensions.timeout) }
 

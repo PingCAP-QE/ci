@@ -12,6 +12,7 @@ spec:
         - name: filter
           value: >-
             body.repository.full_name in [
+              'pingcap-inc/tici',
               'pingcap/ng-monitoring',
               'pingcap/ticdc',
               'pingcap/tidb',
@@ -55,6 +56,7 @@ spec:
                 'tidbcloud/tiflash-cse': '2h',
                 'tikv/pd': '40m',
                 'tikv/tikv': '2h30m',
+                'pingcap-inc/tici': '2h',
                 }[body.repository.full_name]
             - key: source-ws-size
               expression: >-
@@ -73,6 +75,7 @@ spec:
                 'tidbcloud/tiflash-cse': '100Gi',
                 'tikv/pd': '50Gi',
                 'tikv/tikv': '100Gi',
+                'pingcap-inc/tici': '50Gi',
                 }[body.repository.full_name]
             - key: builder-resources-cpu
               expression: >-
@@ -91,6 +94,7 @@ spec:
                 'tidbcloud/tiflash-cse': '16',
                 'tikv/pd': '8',
                 'tikv/tikv': '16',
+                'pingcap-inc/tici': '8',
                 }[body.repository.full_name]
             - key: builder-resources-memory
               expression: >-
@@ -109,6 +113,7 @@ spec:
                 'tidbcloud/tiflash-cse': '64Gi',
                 'tikv/pd': '32Gi',
                 'tikv/tikv': '64Gi',
+                'pingcap-inc/tici': '32Gi',
                 }[body.repository.full_name]
             - key: custom-params
               expression: >-

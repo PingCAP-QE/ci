@@ -100,8 +100,7 @@ publish_and_wait() {
 }
 
 # Example:
-#   # 1. export the publisher service to local
-#   kubectl port-forward -n apps svc/publisher-staging-mirror 8080:80
-#   # 2. run the script to publish tiup packages from oci artifact
-#   ./scripts/flow/rc/refresh-tiup.sh http://localhost:8080 <git-branch-name>
+#   # run the script to publish tiup packages from oci artifact
+#   # for staging:
+#   ./scripts/flow/rc/refresh-tiup.sh https://publisher-staging.pingcap.net <git-branch-name>
 main "$@"
