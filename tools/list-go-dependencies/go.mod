@@ -2,7 +2,7 @@ module github.com/PingCAP-QE/ci/tools/list-go-dependencies
 
 go 1.23.0
 
-toolchain go1.25.3
+toolchain go1.25.5
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.3
