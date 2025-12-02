@@ -161,7 +161,7 @@ def get_dockerfile_url={arch ->
 pipeline{
     agent none
     options {
-        timeout(time: 120, unit: 'MINUTES')
+        timeout(time: 200, unit: 'MINUTES')
     }
     stages{
         stage('prepare'){
