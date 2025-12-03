@@ -4,6 +4,12 @@ function main() {
     local test_suite="$1"
     local timeout="$2"
 
+    # fast exit when no target existing
+    if !make -n ${test_suite} 1>/dev/null; then
+        echo "⚠️🏃Skip for non-existing target..."
+        exit 0
+    fi
+
     # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
     cat <<EOF > tikv.toml
 [pessimistic-txn]

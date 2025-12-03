@@ -126,6 +126,12 @@ pipeline {
                         yamlFile TEST_POD_TEMPLATE_FILE
                     }
                 }
+                when {
+                    expression {
+                        // Skip bazel_pushdowntest when base_ref is release-nextgen-20251011
+                        return !(REFS.base_ref == 'release-nextgen-20251011' && "${SCRIPT_AND_ARGS}".contains(' bazel_pushdowntest'))
+                    }
+                }
                 stages {
                     stage('Test')  {
                         environment {
