@@ -5,7 +5,7 @@ global_definitions:
       - ^release-nextgen-\d+$
       - ^feature/next[-]gen.*
       - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
-      - ^feature/release-8\.5(.\d+)?-.+$
+      - ^feature/release-8\.5(\.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   jenkins_job: &jenkins_job
     agent: jenkins
