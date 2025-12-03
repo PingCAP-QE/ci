@@ -1,28 +1,29 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-inc-tici
+  name: tag-create-pingcap-inc-tici
   labels:
-    type: github-branch-push
+    type: github-tag-create
     github-owner: pingcap-inc
     github-repo: tici
 spec:
   interceptors:
-    - name: filter on repo owner and name and branches
-      ref: { name: cel }
+    - name: filter on repo owner and name and tags
+      ref:
+        name: cel
       params:
         - name: filter
           value: >-
             body.repository.full_name == 'pingcap-inc/tici'
             &&
-            body.ref.matches('^refs/heads/master$')
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+$')
   bindings:
-    - ref: github-branch-push
+    - ref: github-tag-create
+    - { name: builder-resources-cpu, value: "8" }
+    - { name: builder-resources-memory, value: 32Gi }
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
-    - { name: timeout, value: 2h }
     - { name: source-ws-size, value: 50Gi }
-    - { name: builder-resources-memory, value: 32Gi }
-    - { name: builder-resources-cpu, value: "8" }
+    - { name: timeout, value: 2h }
   template:
     ref: build-component-all-platforms
