@@ -9,3 +9,5 @@ resources:
   - pingcap/tidb-operator/git-push.yaml
   - pingcap/tiflow-operator/git-create-tag.yaml
   - pingcap/tiflow-operator/git-push.yaml
+  - pingcap-inc/tici/git-create-tag.yaml
+  - pingcap-inc/tici/git-push.yaml
