@@ -24,7 +24,7 @@ repositories:
       - "xuhuaiyu"
       - "YuJuncen"
 
-  - name: "pingcap/pd"
+  - name: "tikv/pd"
     patterns:
       - name: "string_literals"
         description: "Pattern for string literals"
