@@ -45,7 +45,7 @@ presubmits:
                 memory: 12Gi
 
     - <<: [*brancher, *kubernetes_job]
-      name: pull-unit-test-next-gen(1,2,3)
+      name: pull-unit-test-next-gen-1
       skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
@@ -79,7 +79,7 @@ presubmits:
         affinity: *affinity
 
     - <<: [*brancher, *kubernetes_job]
-      name: pull-unit-test-next-gen(4,5,6)
+      name: pull-unit-test-next-gen-2
       skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
@@ -113,7 +113,7 @@ presubmits:
         affinity: *affinity
 
     - <<: [*brancher, *kubernetes_job]
-      name: pull-unit-test-next-gen(7,8,9,10)
+      name: pull-unit-test-next-gen-3
       skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
