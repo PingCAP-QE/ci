@@ -5,7 +5,9 @@ function main() {
     local timeout="$2"
 
     # fast exit when no target existing
-    if !make -n ${test_suite} 1>/dev/null; then
+    if make -n ${test_suite} 1>/dev/null; then
+        echo "$test_suite make target exists, I will run it"
+    else
         echo "⚠️🏃Skip for non-existing target..."
         exit 0
     fi
