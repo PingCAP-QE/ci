@@ -59,8 +59,11 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     script {
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
+                        def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
+                        def artifactVerify = !isFeatureBranch
+
+                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
+                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
