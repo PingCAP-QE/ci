@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
-  name: pingcap-get-set-release-version-v2
+  name: pingcap-get-set-release-version
 spec:
   params:
     - name: git-ref

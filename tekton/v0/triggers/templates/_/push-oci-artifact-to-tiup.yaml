@@ -17,7 +17,7 @@ spec:
           server: staging
       spec:
         taskRef:
-          name: publish-tiup-from-oci-artifact-v2
+          name: publish-tiup-from-oci-artifact
         params:
           - name: artifact-url
             value: "$(tt.params.image_url)"
@@ -31,7 +31,7 @@ spec:
           server: prod
       spec:
         taskRef:
-          name: publish-tiup-from-oci-artifact-v2
+          name: publish-tiup-from-oci-artifact
         timeout: 1h
         params:
           - name: artifact-url
@@ -58,7 +58,7 @@ spec:
           server: staging
       spec:
         taskRef:
-          name: publish-tiup-from-oci-artifact-v2
+          name: publish-tiup-from-oci-artifact
         params:
           - name: artifact-url
             value: "$(tt.params.image_url)"

@@ -14,26 +14,25 @@ spec:
         The full url of the pushed image, contain the tag part.
         It will parse the repo from it.
     - name: publisher-url
-      description: Staging is https://publisher-staging.pingcap.net, product is https://publisher.pingcap.net.
-      default: https://publisher-staging.pingcap.net
+      default: https://publisher.pingcap.net
   results:
     - name: request-ids
       type: array
   steps:
     - name: request-and-wait
-      image: ghcr.io/pingcap-qe/ee-apps/publisher:v2025.1.30-22-g04a67a4
+      image: ghcr.io/pingcap-qe/ee-apps/publisher-cli:v2025.11.30-17-gbeadfd1
       script: |
         #!/usr/bin/env bash
         set -eo pipefail
 
         # send event
-        /app/publisher-cli --url $(params.publisher-url) fileserver request-to-publish --body '{ "artifact_url": "$(params.artifact-url)" }' | jq '. // []' | tee $(results.request-ids.path)
+        /ko-app/publisher-cli --url $(params.publisher-url) fileserver request-to-publish --body '{ "artifact_url": "$(params.artifact-url)" }' | jq '. // []' | tee $(results.request-ids.path)
 
         # wait for request statuses
         for request_id in $(jq -r '.[]' $(results.request-ids.path)); do
           echo "🔍 query for request id: ${request_id} ..."
           while true; do
-            status=$(/app/publisher-cli --url $(params.publisher-url) fileserver query-publishing-status --request-id "$request_id" | jq -r .)
+            status=$(/ko-app/publisher-cli --url $(params.publisher-url) fileserver query-publishing-status --request-id "$request_id" | jq -r .)
             case "${status}" in
               "failed")
                 echo "❌ Publishing failed"

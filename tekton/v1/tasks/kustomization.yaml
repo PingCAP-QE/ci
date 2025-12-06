@@ -16,6 +16,6 @@ resources:
   - pingcap-build-binaries-linux.yaml
   - pingcap-build-images.yaml
   - pingcap-get-builder-image.yaml
-  - pingcap-get-set-release-version-v2.yaml
+  - pingcap-get-set-release-version.yaml
   - pingcap-git-clone-ext.yaml
   - release/create-pr-to-add-release-anchor-commit.yaml

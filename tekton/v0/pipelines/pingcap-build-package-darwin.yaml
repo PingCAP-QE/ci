@@ -111,7 +111,7 @@ spec:
       runAfter:
         - checkout
       taskRef:
-        name: pingcap-get-set-release-version-v2
+        name: pingcap-get-set-release-version
       params:
         - name: git-ref
           value: $(params.git-ref)
