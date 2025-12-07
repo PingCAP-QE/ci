@@ -1,15 +1,26 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1beta1_Task.json
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: pingcap-get-set-release-version
 spec:
-  results:
-    - description: The release version of the git repo
-      name: version
+  params:
+    - name: git-ref
       type: string
+      default: ""
+    - name: git-refspec
+      type: string
+      default: ""
+  results:
+    - name: version
+      description: The release version of the git repo
+    - name: build-ref
+      description: The git-ref to use for build-bin, used to set the artifact tags.
+  workspaces:
+    - name: source
   steps:
-    - image: alpine/git:v2.47.2
-      name: git-describe
+    - name: cleanup-tags
+      image: alpine/git:v2.49.1
       workingDir: $(workspaces.source.path)
       resources:
         requests:
@@ -20,47 +31,68 @@ spec:
         set -e
 
         echo "Delete the none-standard tags"
-        if git tag | grep -E "v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|fips))?$" > /dev/null; then
+        # keep these the tags matched these styles:
+        # - v1.2.3-alpha
+        # - v1.2.3-beta
+        # - v1.2.3-beta.4
+        # - v1.2.3-rc
+        # - v1.2.3-rc.4
+        # - v1.2.3-release.1
+        # - v1.2.3-nextgen.202510.1
+        # - v1.2.3
+        # - v1.2.3-(fips|cse|...), but currently we only allow "fips" and "cse" for the range in `()`.
+        if git tag | grep -E "v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|rc|release|nextgen|fips|cse)([.0-9]+)?)?$" > /dev/null; then
           # Only delete the none-standard tags when the repo has standard semver tags.
-          git tag | grep -vE "^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|fips|202[1-9][0-1][0-9][0-3][0-9]-[0-9a-f]{7,10}))?$" | xargs git tag -d || true
+          git tag | grep -vE "^v[0-9]+[.][0-9]+[.][0-9]+(-(((alpha|beta|rc|release|nextgen)([.].+)?)|fips|cse|202[1-9][0-1][0-9][0-3][0-9]-[0-9a-f]{7,10}))?$" | xargs git tag -d || true
         fi
 
-        RESULT_VERSION="$(git describe --tags --always --dirty --exclude 'v20[0-9][0-9].[0-1][0-9].[0-3][0-9]*')"
-        echo "Draft version got with git: $RESULT_VERSION"
-        version_part=$(echo "$RESULT_VERSION" | cut -d '-' -f 1)
-        major=$(echo "$version_part" | cut -d '.' -f 1)
-        minor=$(echo "$version_part" | cut -d '.' -f 2)
-        patch=$(echo "$version_part" | cut -d '.' -f 3)
+        # delete the date tags
+        echo "Deleting date style tags ..."
+        git tag | grep -E "^v20[0-9][0-9].[0-1]{1,2}.[0-3][0-9]" | xargs git tag -d || true
 
-        if git branch --contains | grep -E "\brelease-[0-9]+[.][0-9]+"; then
-          if [[ "$RESULT_VERSION" =~ "-[0-9]+-g[0-9a-f]{7,10}(-dirty)?$" ]]; then
-            git_tag="$major.$minor.$patch"
+        # Get raw version and save to file for next step
+        git describe --tags --always --dirty > /workspace/raw-version.txt
 
-            # Check if "-alpha-" is included in the version string
-            if [[ "$RESULT_VERSION" == *"-alpha-"* ]]; then
-              echo "First patch version detected. Skipping patch increment."
-            else
-              # Increment the patch version.
-              echo "The code is checkouted on branch, I will increase the patch version."
-              git_tag="$major.$minor.$((patch + 1))"
-            fi
+        # Get the branches which contained the commits
+        git branch --contains > /workspace/branches.txt
+    - name: compute-version
+      image: denoland/deno:2.5.6
+      command:
+        - deno
+        - run
+        - --allow-read
+        - --allow-write
+        - https://github.com/PingCAP-QE/ci/raw/refs/heads/main/scripts/flow/build/versioning-strategy.ts
+      args:
+        - --git_version_file=/workspace/raw-version.txt
+        - --contain_branches_file=/workspace/branches.txt
+        - --save_build_git_tag_file=/workspace/new-tag
+        - --save_release_version_file=$(results.version.path)
+    - name: apply-tags
+      image: alpine/git:v2.49.1
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -e
 
-            echo "Force add a local tag ${git_tag} for build when on current release branch."
-            git tag --contains | xargs git tag -d
-            git tag -f ${git_tag}
-            RESULT_VERSION="${git_tag}-pre"
-          elif [[ "$RESULT_VERSION" =~ "v[0-9]+[.][0-9]+[.][0-9]+(-alpha)$" ]]; then
-            git_tag="$major.$minor.$patch"
-            echo "Force add a local tag ${git_tag} for build when on current release branch."
-            git tag --contains | xargs git tag -d
-            git tag -f ${git_tag}
-            RESULT_VERSION="${git_tag}-pre"
-          fi
+        if [ -f "/workspace/new-tag" ]; then
+          NEW_TAG=$(cat /workspace/new-tag)
+          echo "Applying new tag: ${NEW_TAG}"
+          git tag --contains | xargs git tag -d
+          git tag -f "${NEW_TAG}"
         else
-          echo "Skipping tagging when not building on release branches."
+          echo "No new tag needs to be applied."
         fi
+    - name: set-ref
+      image: alpine/git:v2.49.1
+      script: |
+        #!/bin/sh
+        set -e
 
-        printf "%s" "${RESULT_VERSION}" | tee $(results.version.path)
-
-  workspaces:
-    - name: source
+        if echo "$(params.git-refspec)" | grep -E '^refs/pull/[0-9]+/head:pull/[0-9]+$'; then
+          # Extract the part after the colon
+          ref=$(echo "$(params.git-refspec)" | awk -F: '{print $2}')
+          echo -n "$ref" > $(results.build-ref.path)
+        else
+          echo -n "$(params.git-ref)" > $(results.build-ref.path)
+        fi

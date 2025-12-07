@@ -13,94 +13,52 @@ spec:
       description: |
         The full url of the pushed image, contain the tag part.
         It will parse the repo from it.
-    - name: nightly
-      description: publish as nightly version.
-      default: "false"
+    - name: tiup_mirror
+      description: |
+        The mirror name you want to publish to: staging|prod
+      default: staging
     - name: force-version
       description: >
         Force set the version.
         Default is the artifact version read from `org.opencontainers.image.version` of the manifest config.
       default: ""
-    - name: tiup-mirror
-      description: Staging is http://tiup.pingcap.net:8988, product is http://tiup.pingcap.net:8987.
-      default: http://tiup.pingcap.net:8988
+    - name: publisher-url
+      default: https://publisher.pingcap.net
+  results:
+    - name: request-ids
+      type: array
   steps:
-    - name: analyse
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
-      workingDir: /workspace
-      env:
-        - name: CACHE_READ_SERVER_BASE_URL
-          value: "http://fileserver.pingcap.net/download"
+    - name: request-and-wait
+      image: ghcr.io/pingcap-qe/ee-apps/publisher-cli:v2025.11.30-17-gbeadfd1
       script: |
         #!/usr/bin/env bash
-        set -exo pipefail
+        set -eo pipefail
 
-        # limit the nightly publish
-        if [ "$(workspaces.lock-tiup.bound)" == "true" ] ; then
-          if [ "$(params.nightly)" == "true" ]; then
-            if [ "$(params.tiup-mirror)" == "http://tiup.pingcap.net:8987" ]; then
-              to_match_record="$(params.artifact-url) => $(date +%Y%m%d)"
-              if grep "$to_match_record" $(workspaces.lock-tiup.path)/nigtly-records; then
-                echo "nightly have published today, skip the rest publish today to save cash."
-                exit 0
-              fi
-            fi
-          fi
-        fi
+        # send event
+        /ko-app/publisher-cli --url $(params.publisher-url) tiup request-to-publish --body '{ "artifact_url": "$(params.artifact-url)", "tiup_mirror": "$(params.tiup_mirror)" }' | jq '. // []' | tee $(results.request-ids.path)
 
-        gen_script_github_raw_path_url="PingCAP-QE/artifacts/main/packages/scripts/gen-delivery-tiup-script.sh"
-        gen_script_url="https://raw.githubusercontent.com/$gen_script_github_raw_path_url"
-        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$gen_script_github_raw_path_url"; then
-          gen_script_url="$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$gen_script_github_raw_path_url"
-        fi
-        wget -O gen.sh "$gen_script_url" && chmod +x gen.sh
-        ./gen.sh $(params.artifact-url) $(params.nightly) publish.sh $(params.force-version)
-
-        if [ ! -f publish.sh ]; then
-          exit 0
-        fi
-
-        # download the artifact
-        oras pull --concurrency 1 $(params.artifact-url)
-
-        echo "✅ Done, the generated script content:"
-        cat publish.sh
-    - name: publish
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
-      workingDir: /workspace
-      script: |
-        #! /usr/bin/env bash
-        set -exo pipefail
-
-        if [ ! -f  /workspace/publish.sh ]; then
-          echo "No tiup packages are need to published."
-          exit 0
-        fi
-
-        # set publish credentials
-        TIUP_HOME=~/.tiup
-        mkdir -vp $TIUP_HOME/{keys,bin}
-        cp $(workspaces.tiup-keys.path)/private.json $TIUP_HOME/keys/
-
-        # set mirror.
-        tiup mirror set $(params.tiup-mirror) && tiup -v
-
-        # publish the tiup packages
-        chmod +x publish.sh && ./publish.sh
-
-        # add the nightly published record.
-        if [ "$(workspaces.lock-tiup.bound)" == "true" ] ; then
-          if [ "$(params.nightly)" == "true" ]; then
-            record="$(params.artifact-url) => $(date +%Y%m%d)"
-            echo "$record" >> $(workspaces.lock-tiup.path)/nigtly-records
-          fi
-        fi
-  workspaces:
-    - description: Includes a TiUP private key `private.json`
-      name: tiup-keys
-    - name: dockerconfig
-      description: Includes a docker `config.json`
-      mountPath: /root/.docker
-      optional: true
-    - name: lock-tiup
-      optional: true
+        # wait for request statuses
+        for request_id in $(jq -r '.[]' $(results.request-ids.path)); do
+          echo "🔍 query for request id: ${request_id} ..."
+          while true; do
+            status=$(/ko-app/publisher-cli --url $(params.publisher-url) tiup query-publishing-status --request-id "$request_id" | jq -r .)
+            case "${status}" in
+              "failed")
+                echo "❌ Publishing failed"
+                exit 1
+                ;;
+              "success")
+                echo "✅ Publishing successful"
+                break
+                ;;
+              "canceled")
+                echo "💤 Publishing canceled"
+                break
+                ;;
+              *)
+                echo "⌛️ Status: ${status}"
+                sleep 10
+                ;;
+            esac
+          done
+        done
