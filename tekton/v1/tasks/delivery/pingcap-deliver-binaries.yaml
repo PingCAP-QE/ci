@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: pingcap-deliver-binaries
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: delivery
+    tekton.dev/tags: binaries,delivery,oci
+    tekton.dev/displayName: "PingCAP product binaries delivery"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  params:
+    - name: src
+    - name: src-type
+      description: Type of the binaries parameter
+      default: oci-url
+      enum:
+        - oci-url # oci url
+        - oci-info # yaml/json content that stored oci information return by binaries build task
+    - name: publisher-url
+      description: URL of the publisher service
+      default: https://publisher.pingcap.net
+  steps:
+    - name: run
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
+      computeResources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        targetsInfo="/workspace/delivery-targets.yaml"
+        oci_src="$(params.src)"
+        publisher_url="$(params.publisher-url)/tiup/delivery-by-rules"
+
+        deliver() {
+          local artifact_url="$1"
+          echo "Delivering artifact_url: $artifact_url"
+          response=$(curl -s -X POST "$publisher_url" \
+            -H "Content-Type: application/json" \
+            -d "{\"artifact_url\":\"$artifact_url\"}")
+          echo "Response: $response"
+        }
+
+        if [ "$(params.src-type)" = "oci-url" ]; then
+          deliver "$oci_src"
+        elif [ "$(params.src-type)" = "oci-info" ]; then
+          echo "$oci_src" > /workspace/src.txt
+          repo="$(yq .oci.repo /workspace/src.txt)"
+          # loop tags in .oci.tags
+          for tag in $(yq -r .oci.tags[] /workspace/src.txt); do
+            deliver "$repo:$tag"
+          done
+        fi
