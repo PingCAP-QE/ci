@@ -38,6 +38,8 @@ spec:
       default: "{}"
     - name: force-builder-image
       default: ""
+    - name: tiup_mirror
+      default: "https://publisher.pingcap.net"
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
