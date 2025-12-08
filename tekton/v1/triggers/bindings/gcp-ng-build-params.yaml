@@ -1,0 +1,12 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: gcp-ng-build-params # only use in GCP clusters for nextgen builds
+spec:
+  params:
+    - name: profile
+      value: next-gen
+    - name: registry
+      value: us-docker.pkg.dev/pingcap-testing-account/tidbx
+    - name: publisher-url
+      value: "https://do2.pingcap.net/publisher"
