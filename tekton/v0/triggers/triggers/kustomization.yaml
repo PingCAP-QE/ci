@@ -22,3 +22,5 @@ resources:
   - pingcap/tidb-tools/git-push.yaml
   - pingcap/tiproxy/git-create-tag.yaml
   - pingcap/tiproxy/git-push.yaml
+  - pingcap-inc/tici/git-create-tag.yaml
+  - pingcap-inc/tici/git-push.yaml

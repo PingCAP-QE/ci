@@ -18,11 +18,11 @@ spec:
             body.ref.matches('^refs/heads/master$')
   bindings:
     - ref: github-branch-push
-    - { name: builder-resources-cpu, value: "8" }
-    - { name: builder-resources-memory, value: 32Gi }
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
-    - { name: source-ws-size, value: 50Gi }
     - { name: timeout, value: 2h }
+    - { name: source-ws-size, value: 50Gi }
+    - { name: builder-resources-memory, value: 32Gi }
+    - { name: builder-resources-cpu, value: "8" }
   template:
-    ref: build-component
+    ref: build-component-darwin

@@ -4,6 +4,7 @@ resources:
   - _/build-component-all-platforms.yaml
   - _/build-component-single-platform.yaml
   - _/build-component.yaml
+  - _/build-component-darwin.yaml
   - _/ci-helper-for-pr.yaml
   - _/ctl/build-component-single-platform.yaml
   - _/image-push.yaml
