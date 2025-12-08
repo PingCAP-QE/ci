@@ -79,7 +79,7 @@ spec:
     - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/tidbx }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
     - { name: timeout, value: $(extensions.timeout) }
-    - { name: tiup_mirror, value: "http://publisher" }
+    - { name: publisher-url, value: "http://publisher" }
 
   template:
     ref: build-component

@@ -38,7 +38,7 @@ spec:
       default: "{}"
     - name: force-builder-image
       default: ""
-    - name: tiup_mirror
+    - name: publisher-url
       default: "https://publisher.pingcap.net"
   resourcetemplates:
     - apiVersion: tekton.dev/v1
@@ -79,6 +79,8 @@ spec:
             value: $(tt.params.force-builder-image)
           - name: boskos-server-url # for darwin platforms
             value: http://boskos.apps.svc
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
         taskRunTemplate:
           podTemplate:
             nodeSelector:

@@ -34,7 +34,7 @@ spec:
       default: "{}"
     - name: force-builder-image
       default: ""
-    - name: tiup_mirror
+    - name: publisher-url
       default: "https://publisher.pingcap.net"
   resourcetemplates:
     - apiVersion: tekton.dev/v1
@@ -73,6 +73,8 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -151,6 +153,8 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -231,6 +235,8 @@ spec:
             value: $(tt.params.force-builder-image)
           - name: boskos-server-url
             value: http://boskos.apps.svc
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:
@@ -287,6 +293,8 @@ spec:
             value: $(tt.params.force-builder-image)
           - name: boskos-server-url
             value: http://boskos.apps.svc
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:
