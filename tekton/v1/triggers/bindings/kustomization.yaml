@@ -6,3 +6,4 @@ resources:
   - github-pr.yaml
   - github-tag-create.yaml
   - github-issue-comment.yaml
+  - gcp-ng-build-params.yaml
