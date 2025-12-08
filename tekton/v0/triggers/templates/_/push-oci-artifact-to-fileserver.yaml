@@ -18,4 +18,4 @@ spec:
           - name: artifact-url
             value: "$(tt.params.image_url)"
           - name: publisher-url
-            value: https://publisher-staging.pingcap.net
+            value: https://publisher.pingcap.net
