@@ -50,6 +50,9 @@ spec:
         Default the task will complete one from config in artifacts.git repo.
       type: string
       default: ""
+    - name: publisher-url
+      description: The URL of the running publisher server
+      default: https://publisher.pingcap.net
   results:
     - name: pushed-binaries
       description: pushed binaries.
@@ -215,10 +218,12 @@ spec:
       runAfter:
         - build-binaries
       params:
-        - name: src
-          value: $(tasks.build-binaries.results.pushed)
         - name: src-type
           value: oci-info
+        - name: src
+          value: $(tasks.build-binaries.results.pushed)
+        - name: publisher-url
+          value: "$(params.publisher-url)"
     - name: deliver-images
       when:
         - input: $(tasks.build-images.results.pushed)

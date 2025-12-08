@@ -51,6 +51,9 @@ spec:
     - name: boskos-server-url
       description: The URL of the running boskos server
       default: http://boskos.apps.svc
+    - name: publisher-url
+      description: The URL of the running publisher server
+      default: https://publisher.pingcap.net
   results:
     - name: pushed-binaries
       description: pushed binaries.
@@ -161,6 +164,8 @@ spec:
           value: "$(params.registry)"
         - name: boskos-server-url
           value: $(params.boskos-server-url)
+        - name: publisher-url
+          value: "$(params.publisher-url)"
       workspaces:
         - name: source
           workspace: source
@@ -186,7 +191,9 @@ spec:
       runAfter:
         - build-binaries
       params:
-        - name: src
-          value: $(tasks.build-binaries.results.pushed)
         - name: src-type
           value: oci-info
+        - name: src
+          value: $(tasks.build-binaries.results.pushed)
+        - name: publisher-url
+          value: "$(params.publisher-url)"
