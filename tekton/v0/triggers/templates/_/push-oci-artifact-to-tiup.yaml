@@ -22,7 +22,9 @@ spec:
           - name: artifact-url
             value: "$(tt.params.image_url)"
           - name: publisher-url
-            value: https://publisher-staging.pingcap.net
+            value: https://publisher.pingcap.net
+          - name: tiup_mirror
+            value: staging
     - apiVersion: tekton.dev/v1beta1
       kind: TaskRun
       metadata:
@@ -38,6 +40,8 @@ spec:
             value: "$(tt.params.image_url)"
           - name: publisher-url
             value: https://publisher.pingcap.net
+          - name: tiup_mirror
+            value: prod
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
@@ -63,4 +67,6 @@ spec:
           - name: artifact-url
             value: "$(tt.params.image_url)"
           - name: publisher-url
-            value: https://publisher-staging.pingcap.net
+            value: https://publisher.pingcap.net
+          - name: tiup_mirror
+            value: staging
