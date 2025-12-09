@@ -6,6 +6,7 @@ resources:
   - _/git-create-branch.yaml
   - _/git-create-tag-build-ng.yaml
   - _/git-create-tag.yaml
+  - _/git-push-branch-build-community.yaml
   - _/git-push-branch-build-ng.yaml
   - _/github-pr-labeled-with-lgtm.yaml
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
