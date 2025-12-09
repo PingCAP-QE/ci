@@ -11,5 +11,7 @@ resources:
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
   - _/notify/notified-successful-image-delivery-cloud-tidbx.yaml
   - _/notify/notified-successful-image-delivery-tidbx.yaml
+  - pingcap-inc/tici/git-create-tag.yaml
+  - pingcap-inc/tici/git-push.yaml
   - tikv/tikv/git-create-branch.yaml
   - tikv/tikv/git-create-tag.yaml
