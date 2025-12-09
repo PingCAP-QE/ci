@@ -73,12 +73,10 @@ pipeline {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'make'
                         retry(2) {
-                            sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/* bin/
-                                ls -alh bin/
-                            """
+                            script {
+	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master")
+	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master")
+                            }
                             sh label: "check binary", script: """
                                 ls bin/tidb-server && ./bin/tidb-server -V
                                 ls bin/pd-server && ./bin/pd-server -V
