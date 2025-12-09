@@ -92,6 +92,9 @@ spec:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
+                  limits:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
             serviceAccountName: image-releaser
           - pipelineTaskName: deliver-images
@@ -170,6 +173,9 @@ spec:
               - name: build
                 computeResources:
                   requests:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
+                  limits:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images

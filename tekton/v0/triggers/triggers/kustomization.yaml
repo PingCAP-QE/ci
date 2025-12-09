@@ -9,9 +9,6 @@ resources:
   - _/fake-github/fake-github-tag-create-single-platform.yaml
   - _/fake-github/fake-github-tag-create.yaml
   - _/git-push-branch-build-community.yaml
-  - _/git-push-branch-build-enterprise.yaml
-  - _/git-push-branch-build-failpoint.yaml
-  - _/git-push-on-fips-branches.yaml
   - _/harbor/artifact-push-on-harbor.yaml
   - _/harbor/image-push-on-harbor.yaml
   - pingcap/ticdc/git-create-tag.yaml

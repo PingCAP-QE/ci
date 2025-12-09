@@ -56,14 +56,14 @@ spec:
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push
-    - { name: component, value: $(body.repository.name) }
-    - { name: profile, value: enterprise }
-    - { name: timeout, value: $(extensions.timeout) }
-    - { name: source-ws-size, value: $(extensions.source-ws-size) }
     - name: builder-resources-cpu
       value: $(extensions.builder-resources-cpu)
     - name: builder-resources-memory
       value: $(extensions.builder-resources-memory)
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: enterprise }
+    - { name: timeout, value: $(extensions.timeout) }
+    - { name: source-ws-size, value: $(extensions.source-ws-size) }
 
   template:
     ref: build-component
