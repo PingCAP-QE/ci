@@ -74,9 +74,9 @@ pipeline {
                                         export JEMALLOC_SYS_WITH_LG_PAGE=16
                                     fi
 
-                                    make release
+                                    make build
                                     mkdir bin
-                                    mv -v target/release/{tikv-server,cse-ctl,tikv-worker} bin/
+                                    mv -v target/debug/{tikv-server,cse-ctl,tikv-worker} bin/
                                 fi
 
                                 bin/tikv-server -V | grep -E "^Edition:.*Cloud Storage Engine"
