@@ -6,10 +6,13 @@ resources:
   - _/git-create-branch.yaml
   - _/git-create-tag-build-ng.yaml
   - _/git-create-tag.yaml
+  - _/git-push-branch-build-community.yaml
   - _/git-push-branch-build-ng.yaml
   - _/github-pr-labeled-with-lgtm.yaml
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
   - _/notify/notified-successful-image-delivery-cloud-tidbx.yaml
   - _/notify/notified-successful-image-delivery-tidbx.yaml
+  - pingcap-inc/tici/git-create-tag.yaml
+  - pingcap-inc/tici/git-push.yaml
   - tikv/tikv/git-create-branch.yaml
   - tikv/tikv/git-create-tag.yaml

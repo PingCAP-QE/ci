@@ -18,6 +18,7 @@ spec:
             body.ref.matches('^refs/heads/master$')
   bindings:
     - ref: github-branch-push
+    - ref: gcp-classic-build-params
     - { name: builder-resources-cpu, value: "8" }
     - { name: builder-resources-memory, value: 32Gi }
     - { name: component, value: $(body.repository.name) }
