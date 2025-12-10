@@ -22,6 +22,7 @@
 
 import { ConfigLoader } from "./core/ConfigLoader.ts";
 import { Database } from "./core/Database.ts";
+import { TimeWindow } from "./core/types.ts";
 import { OwnerResolver } from "./core/OwnerResolver.ts";
 import { FlakyReporter } from "./core/FlakyReporter.ts";
 import { HtmlRenderer } from "./render/HtmlRenderer.ts";
@@ -101,12 +102,29 @@ export async function main(args: string[]): Promise<number> {
   }
 
   let runs: ProblemCaseRunRow[] = [];
+  let previousWeekRuns: ProblemCaseRunRow[] = [];
   try {
     runs = await db.fetchRuns(window);
   } catch (e: unknown) {
     await db.close();
     console.error(
       `Failed to query runs: ${e instanceof Error ? e.message : String(e)}`,
+    );
+    return 3;
+  }
+
+  try {
+    const previousWeekTimeWindow = {
+      from: new Date(window.from.getTime() - 7 * 24 * 60 * 60 * 1000),
+      to: window.from,
+    };
+    previousWeekRuns = await db.fetchRuns(previousWeekTimeWindow);
+  } catch (e: unknown) {
+    await db.close();
+    console.error(
+      `Failed to query previous week runs: ${
+        e instanceof Error ? e.message : String(e)
+      }`,
     );
     return 3;
   }
@@ -125,7 +143,7 @@ export async function main(args: string[]): Promise<number> {
     topFlakyCases: CaseAgg[];
   try {
     ({ byCase, bySuite, byTeam, topFlakyCases } = await reporter
-      .buildAggregates(runs, cli.thresholdMs));
+      .buildAggregates(runs, cli.thresholdMs, previousWeekRuns));
   } catch (e: unknown) {
     await db.close();
     console.error(
