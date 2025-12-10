@@ -1,0 +1,10 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: ksy-classic-build-params # only use in KSY clusters for classic builds
+spec:
+  params:
+    - name: registry
+      value: hub-zot.pingcap.net/hub
+    - name: publisher-url
+      value: "https://publisher.pingcap.net"
