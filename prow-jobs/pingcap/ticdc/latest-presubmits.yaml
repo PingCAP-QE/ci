@@ -88,7 +88,7 @@ presubmits:
       spec:
         containers:
           - name: check
-            image: &image ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            image: &image ghcr.io/pingcap-qe/ci/jenkins:v2025.12.7-3-g1c0b8cf-go1.25
             command: [bash, -ce]
             args:
               - |

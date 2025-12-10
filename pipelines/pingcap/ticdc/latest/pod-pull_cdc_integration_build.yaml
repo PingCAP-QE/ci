@@ -5,9 +5,12 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "hub.pingcap.net/jenkins/rocky8_golang-1.25:latest"
       tty: true
       resources:
+        requests:
+          memory: 16Gi
+          cpu: "12"
         limits:
           memory: 16Gi
           cpu: "12"
