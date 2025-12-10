@@ -30,7 +30,7 @@ presubmits:
         affinity: *affinity
         containers:
           - name: build
-            image: ghcr.io/pingcap-qe/cd/builders/pd:v2025.5.11-8-g6a5de16-centos7-go1.23
+            image: ghcr.io/pingcap-qe/cd/builders/pd:v2025.12.7-3-g1c0b8cf-centos7-go1.25
             command: [bash, -ce]
             args:
               - |
@@ -50,7 +50,7 @@ presubmits:
       spec:
         containers:
           - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2025.6.8-1-g5c4ef89-go1.23
+            image: ghcr.io/pingcap-qe/ci/base:v2025.12.7-3-g1c0b8cf-go1.25
             command: [bash, -ce]
             env:
               - { name: NEXT_GEN, value: "1" }
@@ -84,7 +84,7 @@ presubmits:
       spec:
         containers:
           - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2025.6.8-1-g5c4ef89-go1.23
+            image: ghcr.io/pingcap-qe/ci/base:v2025.12.7-3-g1c0b8cf-go1.25
             command: [bash, -ce]
             env:
               - { name: NEXT_GEN, value: "1" }
@@ -118,7 +118,7 @@ presubmits:
       spec:
         containers:
           - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2025.6.8-1-g5c4ef89-go1.23
+            image: ghcr.io/pingcap-qe/ci/base:v2025.12.7-3-g1c0b8cf-go1.25
             command: [bash, -ce]
             env:
               - { name: NEXT_GEN, value: "1" }
