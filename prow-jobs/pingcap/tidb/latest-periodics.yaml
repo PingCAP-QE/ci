@@ -1,10 +1,10 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Periodic
 periodics:
   - name: periodic-daily-tidb-unit-test
-    cluster: gcp-prow-ksyun
     decorate: true # need add this.
-    cron: "0 22 * * *"
-    skip_report: true
+    cron: "0 0 1 * *" # monthly
+    agent: kubernetes
+    cluster: default
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
       - org: pingcap
         repo: tidb
@@ -14,7 +14,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+          image: ghcr.io/pingcap-qe/ci/base:v2025.11.30-5-gd8d742b-go1.25
           command: [bash, -ce]
           args:
             - |
@@ -63,39 +63,19 @@ periodics:
               make gotest_in_verify_ci
 
               # upload coverage report
-              wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
-              chmod +x codecov
-              ./codecov --flags unit --file test_coverage/tidb_cov.unit_test.out --sha ${COMMIT_SHA} --slug pingcap/tidb
-          env:
-            - name: GO_PROXY
-              value: http://goproxy.pingcap.net,direct
-            - name: CODECOV_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  key: tidb
-                  name: codecov-token
+              # wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+              # chmod +x codecov
+              # ./codecov --flags unit --file test_coverage/tidb_cov.unit_test.out --sha ${COMMIT_SHA} --slug pingcap/tidb
           resources:
             limits:
-              memory: 32Gi
-              cpu: "16"
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - amd64
-                  - key: ci-nvme-high-performance
-                    operator: In
-                    values:
-                      - "true"
+              memory: 24Gi
+              cpu: "12"
+
   - name: periodic-daily-tidb-long-unit-test
-    cluster: gcp-prow-ksyun
     decorate: true # need add this.
-    cron: "0 22 * * *"
-    skip_report: true
+    cron: "0 0 1 * *" # monthly
+    agent: kubernetes
+    cluster: default
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
       - org: pingcap
         repo: tidb
@@ -105,29 +85,13 @@ periodics:
     spec:
       containers:
         - name: check
-          image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+          image: ghcr.io/pingcap-qe/ci/base:v2025.11.30-5-gd8d742b-go1.25
           command: [bash, -ce]
           args:
             - |
               git log -1
               make ut-long
-          env:
-            - name: GO_PROXY
-              value: http://goproxy.pingcap.net,direct
           resources:
             limits:
-              memory: 16Gi
-              cpu: "8"
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - amd64
-                  - key: ci-nvme-high-performance
-                    operator: In
-                    values:
-                      - "true"
+              memory: 12Gi
+              cpu: "6"
