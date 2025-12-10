@@ -70,11 +70,11 @@ spec:
       name: kafka
       resources:
         requests:
-          cpu: 2000m
-          memory: 6Gi
+          cpu: 4000m
+          memory: 12Gi
         limits:
-          cpu: 2000m
-          memory: 6Gi
+          cpu: 4000m
+          memory: 12Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
