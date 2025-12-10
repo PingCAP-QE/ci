@@ -30,7 +30,7 @@ presubmits:
         affinity: *affinity
         containers:
           - name: build
-            image: ghcr.io/pingcap-qe/cd/builders/pd:v2025.12.7-3-g1c0b8cf-centos7-go1.25
+            image: ghcr.io/pingcap-qe/cd/builders/pd:v2025.11.30-5-gd8d742b-centos7-go1.25
             command: [bash, -ce]
             args:
               - |
