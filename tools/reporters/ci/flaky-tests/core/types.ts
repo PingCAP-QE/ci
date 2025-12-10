@@ -146,7 +146,6 @@ export interface CaseAgg {
   latestBuildUrl?: string;
   latestReportTime?: Date;
   previousWeekFlakyCount?: number;
-  previousWeekThresholdedCount?: number;
 }
 
 /**

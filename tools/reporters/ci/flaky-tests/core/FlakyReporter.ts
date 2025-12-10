@@ -193,19 +193,15 @@ export class FlakyReporter {
 
         if (previousWeekCase) {
           currentCase.previousWeekFlakyCount = previousWeekCase.flakyCount;
-          currentCase.previousWeekThresholdedCount =
-            previousWeekCase.thresholdedCount;
         } else {
           // No data from previous week, set to 0
           currentCase.previousWeekFlakyCount = 0;
-          currentCase.previousWeekThresholdedCount = 0;
         }
       }
     } else {
       // No previous week data available, set defaults
       for (const currentCase of byCase) {
         currentCase.previousWeekFlakyCount = 0;
-        currentCase.previousWeekThresholdedCount = 0;
       }
     }
 

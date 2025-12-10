@@ -506,9 +506,13 @@ ${rows}
     if (diff === 0) {
       return "0";
     } else if (diff > 0) {
-      return `⬆️${this.num(diff)}`;
+      if (previous === 0) {
+        return `🆕`;
+      } else {
+        return `⬆️${Math.round((diff / previous) * 100)}%`;
+      }
     } else {
-      return `⬇️${this.num(Math.abs(diff))}`;
+      return `⬇️${Math.round((Math.abs(diff) / previous) * 100)}%`;
     }
   }
 }
