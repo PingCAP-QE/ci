@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: hub.pingcap.net/jenkins/rocky8_golang-1.23:latest
+      image: hub.pingcap.net/jenkins/rocky8_golang-1.25:latest
       tty: true
       env:
         - name: GOPATH
