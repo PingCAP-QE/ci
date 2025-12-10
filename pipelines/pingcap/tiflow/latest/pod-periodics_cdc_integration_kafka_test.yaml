@@ -61,6 +61,8 @@ spec:
           value: SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092
         - name: KAFKA_SSL_TRUSTSTORE_LOCATION
           value: /tmp/kafka.server.truststore.jks
+        - name: KAFKA_LOG_DIRS
+          value: /kafka/kafka-logs
         - name: RACK_COMMAND
           value: curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks -o /tmp/kafka.server.keystore.jks && curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks -o /tmp/kafka.server.truststore.jks
       image: wurstmeister/kafka:2.12-2.4.1
@@ -68,11 +70,11 @@ spec:
       name: kafka
       resources:
         requests:
-          cpu: 4000m
-          memory: 6Gi
+          cpu: 8000m
+          memory: 12Gi
         limits:
-          cpu: 4000m
-          memory: 6Gi
+          cpu: 8000m
+          memory: 12Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
