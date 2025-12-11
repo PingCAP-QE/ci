@@ -25,9 +25,13 @@ spec:
           memory: 128Mi
           cpu: 100m
     - name: mysql
-      image: hub.pingcap.net/jenkins/mysql:5.7
+      image: "registry-mirror.pingcap.net/library/mysql:8.0.21"
       tty: true
-      args: ["--server-id=1", "--log-bin", "--binlog-format=ROW"]
+      args:
+        - "--server-id=1"
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--default-authentication-plugin=mysql_native_password"
       env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "1"
