@@ -36,7 +36,6 @@ resources:
   - publish-fileserver-from-oci-artifact.yaml
   - publish-tiup-from-oci-artifact.yaml
   - release/create-pr-to-add-release-anchor-commit.yaml
-  - release/create-pr-to-bump-tikv-version.yaml
   - release/pingcap-create-github-alpha-tags.yaml
   - release/pingcap-create-github-releases.yaml
   - release/pingcap-upload-hotfix-tarball-from-url.yaml
