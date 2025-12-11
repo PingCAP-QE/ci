@@ -54,4 +54,4 @@ spec:
     - { name: timeout, value: $(extensions.timeout) }
 
   template:
-    ref: build-component # build for linux platforms
+    ref: build-component-linux

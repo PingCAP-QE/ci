@@ -26,4 +26,4 @@ spec:
     - { name: source-ws-size, value: 50Gi }
     - { name: timeout, value: 2h }
   template:
-    ref: build-component
+    ref: build-component-linux

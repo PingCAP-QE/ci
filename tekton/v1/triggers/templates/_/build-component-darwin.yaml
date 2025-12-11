@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
-  name: build-component
+  name: build-component-darwin
 spec:
   params:
     - name: git-url
@@ -15,7 +15,7 @@ spec:
     - name: component
       description: component name, tidb|tikv|pd|tiflow|tiflash, etc...
     - name: os
-      default: linux
+      default: darwin
     - name: profile
       description: build target profile
       default: release
@@ -27,13 +27,14 @@ spec:
     - name: source-ws-size
       description: workspace size for source.
       default: 10Gi
-    - name: builder-resources-memory
-      default: 16Gi
-    - name: builder-resources-cpu
-      default: "4"
     - name: ce-context
       description: cloud event context.
       default: "{}"
+    - name: force-builder-image
+      description: force use the builder image to prepare container to build binaries.
+      default: ""
+    - name: boskos-server-url
+      default: "http://boskos"
     - name: publisher-url
       default: "https://publisher.pingcap.net"
   resourcetemplates:
@@ -51,7 +52,7 @@ spec:
           "tibuild.pingcap.net/platform": $(tt.params.os)/amd64
       spec:
         pipelineRef:
-          name: pingcap-build-package-linux
+          name: pingcap-build-package-$(tt.params.os)
         params:
           - name: git-url
             value: $(tt.params.git-url)
@@ -71,6 +72,10 @@ spec:
             value: amd64
           - name: registry
             value: $(tt.params.registry)
+          - name: force-builder-image
+            value: $(tt.params.force-builder-image)
+          - name: boskos-server-url
+            value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
         taskRunTemplate:
@@ -83,19 +88,6 @@ spec:
           - pipelineTaskName: checkout-ext
             serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
-            serviceAccountName: image-releaser
-            stepSpecs:
-              - name: build
-                computeResources:
-                  requests:
-                    memory: $(tt.params.builder-resources-memory)
-                    cpu: $(tt.params.builder-resources-cpu)
-                  limits:
-                    memory: $(tt.params.builder-resources-memory)
-                    cpu: $(tt.params.builder-resources-cpu)
-          - pipelineTaskName: build-images
-            serviceAccountName: image-releaser
-          - pipelineTaskName: deliver-images
             serviceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)
@@ -112,12 +104,9 @@ spec:
           # - name: git-basic-auth # fetch with git-cdn.
           #   secret:
           #     secretName: git-credentials-basic
-          # - name: cargo-home
-          #   persistentVolumeClaim:
-          #     claimName: cargo-home
-          # - name: cypress-cache
-          #   persistentVolumeClaim:
-          #     claimName: cypress-cache
+          - name: mac-ssh-credentials
+            secret:
+              secretName: mac-ssh-credentials
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
@@ -132,7 +121,7 @@ spec:
           "tibuild.pingcap.net/platform": $(tt.params.os)/arm64
       spec:
         pipelineRef:
-          name: pingcap-build-package-linux
+          name: pingcap-build-package-$(tt.params.os)
         params:
           - name: git-url
             value: $(tt.params.git-url)
@@ -152,12 +141,16 @@ spec:
             value: arm64
           - name: registry
             value: $(tt.params.registry)
+          - name: force-builder-image
+            value: $(tt.params.force-builder-image)
+          - name: boskos-server-url
+            value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
-              kubernetes.io/arch: arm64
+              kubernetes.io/arch: amd64 # just as a remtoe execute client.
         taskRunSpecs:
           - pipelineTaskName: checkout
             serviceAccountName: github-bot
@@ -165,34 +158,21 @@ spec:
             serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
             serviceAccountName: image-releaser
-            stepSpecs:
-              - name: build
-                computeResources:
-                  requests:
-                    memory: $(tt.params.builder-resources-memory)
-                    cpu: $(tt.params.builder-resources-cpu)
-                  limits:
-                    memory: $(tt.params.builder-resources-memory)
-                    cpu: $(tt.params.builder-resources-cpu)
-          - pipelineTaskName: build-images
-            serviceAccountName: image-releaser
-          - pipelineTaskName: deliver-images
-            serviceAccountName: image-releaser
         timeouts:
           pipeline: $(tt.params.timeout)
         workspaces:
           - name: source
             volumeClaimTemplate:
               spec:
-                storageClassName: ${STORAGE_CLASSNAME_RWO_ARM64}
+                storageClassName: ${STORAGE_CLASSNAME_RWO_AMD64}
                 accessModes:
                   - ReadWriteOnce
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
-          # - name: cargo-home
-          #   persistentVolumeClaim:
-          #     claimName: cargo-home
-          # - name: cypress-cache
-          #   persistentVolumeClaim:
-          #     claimName: cypress-cache
+          # - name: git-basic-auth # fetch with git-cdn.
+          #   secret:
+          #     secretName: git-credentials-basic
+          - name: mac-ssh-credentials
+            secret:
+              secretName: mac-ssh-credentials

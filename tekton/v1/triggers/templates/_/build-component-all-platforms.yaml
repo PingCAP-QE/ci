@@ -34,6 +34,8 @@ spec:
       default: "{}"
     - name: force-builder-image
       default: ""
+    - name: boskos-server-url
+      default: "http://boskos"
     - name: publisher-url
       default: "https://publisher.pingcap.net"
   resourcetemplates:
@@ -240,7 +242,7 @@ spec:
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
           - name: boskos-server-url
-            value: http://boskos.apps.svc
+            value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
         timeouts:
@@ -298,7 +300,7 @@ spec:
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
           - name: boskos-server-url
-            value: http://boskos.apps.svc
+            value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
         timeouts:

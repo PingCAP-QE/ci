@@ -67,4 +67,4 @@ spec:
       value: $(extensions.builder-resources-memory)
 
   template:
-    ref: build-component
+    ref: build-component-linux

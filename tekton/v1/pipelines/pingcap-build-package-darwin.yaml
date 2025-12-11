@@ -50,7 +50,7 @@ spec:
       default: ""
     - name: boskos-server-url
       description: The URL of the running boskos server
-      default: http://boskos.apps.svc
+      default: http://boskos
     - name: publisher-url
       description: The URL of the running publisher server
       default: https://publisher.pingcap.net
