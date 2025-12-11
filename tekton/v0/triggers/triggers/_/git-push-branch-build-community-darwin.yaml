@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: github-push-build-community
+  name: github-push-build-community-darwin
   labels:
     type: github-branch-push
     profile: community
@@ -91,7 +91,7 @@ spec:
       value: $(extensions.builder-resources-memory)
 
   template:
-    ref: build-component-all-platforms
+    ref: build-component-darwin
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
