@@ -66,4 +66,4 @@ spec:
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
 
   template:
-    ref: build-component
+    ref: build-component-linux

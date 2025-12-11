@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
-  name: build-component-single-platform
+  name: build-component-linux
 spec:
   params:
     - name: git-url
@@ -16,8 +16,6 @@ spec:
       description: component name, tidb|tikv|pd|tiflow|tiflash, etc...
     - name: os
       default: linux
-    - name: arch
-      default: amd64
     - name: profile
       description: build target profile
       default: release
@@ -37,16 +35,15 @@ spec:
       description: cloud event context.
       default: "{}"
     - name: force-builder-image
+      description: force use the builder image to prepare container to build binaries.
       default: ""
-    - name: boskos-server-url
-      default: "http://boskos"
     - name: publisher-url
       default: "https://publisher.pingcap.net"
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
-        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-$(tt.params.arch)-
+        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-amd64-
         annotations:
           "tekton.dev/ce-context": $(tt.params.ce-context)
           "tibuild.pingcap.net/git-repo": $(tt.params.git-url)
@@ -54,7 +51,7 @@ spec:
           "tibuild.pingcap.net/git-revision": $(tt.params.git-revision)
           "tibuild.pingcap.net/component": $(tt.params.component)
           "tibuild.pingcap.net/profile": $(tt.params.profile)
-          "tibuild.pingcap.net/platform": $(tt.params.os)/$(tt.params.arch)
+          "tibuild.pingcap.net/platform": $(tt.params.os)/amd64
       spec:
         pipelineRef:
           name: pingcap-build-package-$(tt.params.os)
@@ -74,19 +71,17 @@ spec:
           - name: os
             value: $(tt.params.os)
           - name: arch
-            value: $(tt.params.arch)
+            value: amd64
           - name: registry
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
-          - name: boskos-server-url # for darwin platforms
-            value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
-              kubernetes.io/arch: $(tt.params.arch)
+              kubernetes.io/arch: amd64
         taskRunSpecs:
           - pipelineTaskName: checkout
             serviceAccountName: github-bot
@@ -113,18 +108,98 @@ spec:
           - name: source
             volumeClaimTemplate:
               spec:
-                storageClassName: ${STORAGE_CLASSNAME_RWO}
+                storageClassName: ${STORAGE_CLASSNAME_RWO_AMD64}
                 accessModes:
                   - ReadWriteOnce
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
-          # - name: cargo-home # for linux platforms
+          # - name: git-basic-auth # fetch with git-cdn.
+          #   secret:
+          #     secretName: git-credentials-basic
+          # - name: cargo-home
           #   persistentVolumeClaim:
           #     claimName: cargo-home
-          # - name: cypress-cache # for linux platforms
+          # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-          - name: mac-ssh-credentials # for darwin platforms
-            secret:
-              secretName: mac-ssh-credentials
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-arm64-
+        annotations:
+          "tekton.dev/ce-context": $(tt.params.ce-context)
+          "tibuild.pingcap.net/git-repo": $(tt.params.git-url)
+          "tibuild.pingcap.net/git-ref": $(tt.params.git-ref)
+          "tibuild.pingcap.net/git-revision": $(tt.params.git-revision)
+          "tibuild.pingcap.net/component": $(tt.params.component)
+          "tibuild.pingcap.net/profile": $(tt.params.profile)
+          "tibuild.pingcap.net/platform": $(tt.params.os)/arm64
+      spec:
+        pipelineRef:
+          name: pingcap-build-package-$(tt.params.os)
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: git-refspec
+            value: $(tt.params.git-refspec)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: git-ref
+            value: $(tt.params.git-ref)
+          - name: component
+            value: $(tt.params.component)
+          - name: profile
+            value: $(tt.params.profile)
+          - name: os
+            value: $(tt.params.os)
+          - name: arch
+            value: arm64
+          - name: registry
+            value: $(tt.params.registry)
+          - name: force-builder-image
+            value: $(tt.params.force-builder-image)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
+        taskRunTemplate:
+          podTemplate:
+            nodeSelector:
+              kubernetes.io/arch: arm64
+        taskRunSpecs:
+          - pipelineTaskName: checkout
+            serviceAccountName: github-bot
+          - pipelineTaskName: checkout-ext
+            serviceAccountName: github-bot
+          - pipelineTaskName: build-binaries
+            serviceAccountName: image-releaser
+            stepSpecs:
+              - name: build
+                computeResources:
+                  requests:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
+                  limits:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
+          - pipelineTaskName: build-images
+            serviceAccountName: image-releaser
+          - pipelineTaskName: deliver-images
+            serviceAccountName: image-releaser
+        timeouts:
+          pipeline: $(tt.params.timeout)
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              spec:
+                storageClassName: ${STORAGE_CLASSNAME_RWO_ARM64}
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: $(tt.params.source-ws-size)
+          # - name: cargo-home
+          #   persistentVolumeClaim:
+          #     claimName: cargo-home
+          # - name: cypress-cache
+          #   persistentVolumeClaim:
+          #     claimName: cypress-cache

@@ -30,4 +30,4 @@ spec:
     - { name: builder-resources-memory, value: 32Gi }
     - { name: builder-resources-cpu, value: "8" }
   template:
-    ref: build-component
+    ref: build-component-linux

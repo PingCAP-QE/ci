@@ -29,4 +29,4 @@ spec:
     - { name: timeout, value: 30m }
 
   template:
-    ref: build-component
+    ref: build-component-linux
