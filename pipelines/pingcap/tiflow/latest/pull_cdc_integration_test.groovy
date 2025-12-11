@@ -23,7 +23,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 75, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -80,7 +80,7 @@ pipeline {
         }
         stage("prepare") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 20, unit: 'MINUTES') }
+            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     script {
