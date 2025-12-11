@@ -42,6 +42,7 @@ export class FlakyReporter {
   async buildAggregates(
     runs: ProblemCaseRunRow[],
     thresholdMs: number,
+    previousWeekRuns?: ProblemCaseRunRow[],
   ): Promise<{
     byCase: CaseAgg[];
     bySuite: SuiteAgg[];
@@ -112,6 +113,41 @@ export class FlakyReporter {
     }
 
     const byCase = Array.from(caseMap.values());
+
+    // Add week-on-week data if previous week's runs are provided
+    if (previousWeekRuns && previousWeekRuns.length > 0) {
+      const previousWeekCaseMap = new Map<CaseKey, number>();
+
+      // Count flaky occurrences for each case in previous week
+      for (const r of previousWeekRuns) {
+        if (r.flaky && Number(r.flaky) > 0) {
+          const key = OwnerResolver.key(
+            r.repo,
+            r.branch,
+            r.suite_name,
+            r.case_name,
+          );
+          const count = previousWeekCaseMap.get(key) || 0;
+          previousWeekCaseMap.set(key, count + 1);
+        }
+      }
+
+      // Add previous week data to current week's case aggregates
+      for (const currentCase of byCase) {
+        const key = OwnerResolver.key(
+          currentCase.repo,
+          currentCase.branch,
+          currentCase.suite_name,
+          currentCase.case_name,
+        );
+        currentCase.previousWeekFlakyCount = previousWeekCaseMap.get(key) || 0;
+      }
+    } else {
+      // No previous week data available, set defaults
+      for (const currentCase of byCase) {
+        currentCase.previousWeekFlakyCount = 0;
+      }
+    }
 
     // 2) Per-suite aggregation with suite owner resolution
     const suiteMap = new Map<SuiteKey, SuiteAgg>();

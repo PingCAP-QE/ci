@@ -291,6 +291,9 @@ ${rows}
   <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
   ${this.rankCell(r.flakyCount ?? 0, flakyPct, "flaky")}
+  <td>${
+        this.weekOnWeekDiff(r.flakyCount ?? 0, r.previousWeekFlakyCount ?? 0)
+      }</td>
   ${this.rankCell(r.thresholdedCount ?? 0, thPct, "th")}
   <td>${
         r.latestBuildUrl
@@ -320,6 +323,7 @@ ${rows}
       <th>Package</th>
       <th>Case</th>
       <th>Flaky Count</th>
+      <th>Flaky WoW</th>
       <th>Time Thresholded Count</th>
       <th>Latest Build</th>
       <th>Issue Search</th>
@@ -353,6 +357,9 @@ ${rows}
   <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
   ${this.rankCell(r.flakyCount ?? 0, flakyPct, "flaky")}
+  <td>${
+        this.weekOnWeekDiff(r.flakyCount ?? 0, r.previousWeekFlakyCount ?? 0)
+      }</td>
   ${this.rankCell(r.thresholdedCount ?? 0, thPct, "th")}
   <td>${
         r.latestBuildUrl
@@ -383,6 +390,7 @@ ${rows}
       <th>Package</th>
       <th>Case</th>
       <th>Flaky Count</th>
+      <th>Flaky WoW</th>
       <th>Time Thresholded Count</th>
       <th>Latest Build</th>
       <th>Issue Search</th>
@@ -488,6 +496,24 @@ ${rows}
       return pkg;
     }
     return s;
+  }
+
+  /**
+   * Calculate week-on-week difference and return formatted string with arrow indicator
+   */
+  private weekOnWeekDiff(current: number, previous: number): string {
+    const diff = current - previous;
+    if (diff === 0) {
+      return "0";
+    } else if (diff > 0) {
+      if (previous === 0) {
+        return `🆕`;
+      } else {
+        return `⬆️${Math.round((diff / previous) * 100)}%`;
+      }
+    } else {
+      return `⬇️${Math.round((Math.abs(diff) / previous) * 100)}%`;
+    }
   }
 }
 
