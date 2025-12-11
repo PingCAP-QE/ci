@@ -181,7 +181,7 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tidb_cdc_test/
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz /kafka/kafka-logs \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
                                     ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
