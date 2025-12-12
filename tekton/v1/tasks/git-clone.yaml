@@ -249,7 +249,6 @@ spec:
           -submodules="${PARAM_SUBMODULES}" \
           -depth="${PARAM_DEPTH}" \
           -sparseCheckoutDirectories="${PARAM_SPARSE_CHECKOUT_DIRECTORIES}"
-
         cd "${CHECKOUT_DIR}"
         RESULT_SHA="$(git rev-parse HEAD)"
         EXIT_CODE="$?"
