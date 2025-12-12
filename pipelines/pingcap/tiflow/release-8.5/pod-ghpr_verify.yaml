@@ -5,12 +5,12 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.25:latest"
       tty: true
       resources:
         requests:
-          memory: 12Gi
-          cpu: "4"
+          memory: 16Gi
+          cpu: "6"
         limits:
           memory: 16Gi
           cpu: "6"
