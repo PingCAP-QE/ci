@@ -71,12 +71,10 @@ pipeline {
                         sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
                         retry(3) {
                             script {
-                                script {
-	                                def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
-	                                def artifactVerify = !isFeatureBranch
-	                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
-	                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
-                                }
+                                def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
+	                            def artifactVerify = !isFeatureBranch
+	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
+	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
                             }
 
                         }
