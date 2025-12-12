@@ -69,17 +69,10 @@ pipeline {
                     container("golang") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                         retry(3) {
-                            sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/tikv-server bin/
-                                mv third_bin/pd-server bin/
-                                ls -alh bin/
-                                chmod +x bin/*
-                                ./bin/tidb-server -V
-                                ./bin/tikv-server -V
-                                ./bin/pd-server -V
-                            """
+                            script {
+	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master")
+	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master")
+                            }
                         }
                     }
                 }
