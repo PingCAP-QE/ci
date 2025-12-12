@@ -11,6 +11,35 @@ global_definitions:
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tidb-operator:
+    - name: auto-trigger-ready-for-review
+      decorate: true
+      always_run: false
+      decoration_config:
+        timeout: 45m
+        skip_cloning: true
+      skip_report: true
+      optional: true
+      branches: *branches
+      skip_submodules: true
+      max_concurrency: 3
+      trigger: "(?m)^/test (?:.*? )?ready-for-review(?: .*?)?$"
+      rerun_command: "/test ready-for-review"
+
+      spec:
+        containers:
+          - name: main
+            image: maniator/gh:v2.83.2
+            env:
+              - name: GH_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
+            command: [bash, -ce]
+            args:
+              - |
+                gh pr ready ${PULL_NUMBER}
+
     - name: pull-e2e
       decorate: true # need add this.
       decoration_config: *decoration_config
