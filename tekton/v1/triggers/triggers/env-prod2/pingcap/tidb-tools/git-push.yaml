@@ -1,11 +1,11 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-tidb-binlog
+  name: git-push-pingcap-tidb-tools
   labels:
     type: github-branch-push
     github-owner: pingcap
-    github-repo: tidb-binlog
+    github-repo: tidb-tools
 spec:
   interceptors:
     - name: filter on repo owner and name and branches
@@ -13,22 +13,21 @@ spec:
       params:
         - name: filter
           # support branches:
-          # > X, Y, Z, M, N are number chars but X < 9.
           # - master
-          # - release-X.Y
-          # - release-X.Y-beta.M
+          # - release-6.1, release-6.5, release-7.1, release-7.5
           value: >-
-            body.repository.full_name == 'pingcap/tidb-binlog'
+            body.repository.full_name == 'pingcap/tidb-tools'
             &&
-            body.ref.matches('^refs/heads/(master|release-[6-8][.][0-9]+(-beta[.][0-9]+)?)$')
+            body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+)$')
 
   bindings:
     - ref: github-branch-push
+    - ref: ksy-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
-    - { name: timeout, value: 2h }
-    - { name: source-ws-size, value: 100Gi }
-    - { name: builder-resources-memory, value: 32Gi }
-    - { name: builder-resources-cpu, value: "8" }
+    - { name: timeout, value: 1h }
+    - { name: source-ws-size, value: 10Gi }
+    - { name: builder-resources-memory, value: 16Gi }
+    - { name: builder-resources-cpu, value: "4" }
   template:
     ref: build-component-all-platforms

@@ -18,6 +18,7 @@ spec:
             body.ref.matches('^refs/heads/(master)$')
   bindings:
     - ref: github-branch-push
+    - ref: ksy-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: os, value: linux }
     - { name: profile, value: release }

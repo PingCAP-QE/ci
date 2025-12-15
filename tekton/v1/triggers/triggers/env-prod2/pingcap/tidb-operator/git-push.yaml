@@ -19,12 +19,12 @@ spec:
 
   bindings:
     - ref: github-branch-push
+    - ref: ksy-classic-build-params
     - { name: builder-resources-memory, value: 8Gi }
     - { name: builder-resources-cpu, value: "2" }
     - { name: component, value: $(body.repository.name) }
     - { name: os, value: linux }
     - { name: profile, value: release }
-    - { name: registry, value: hub.pingcap.net }
     - { name: source-ws-size, value: 10Gi }
     - { name: timeout, value: 30m }
 

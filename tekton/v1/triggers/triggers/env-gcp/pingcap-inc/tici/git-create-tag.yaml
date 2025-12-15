@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: tag-create-pingcap-inc-tici
+  name: tag-create-pingcap-inc-tici-linux
   labels:
     type: github-tag-create
     github-owner: pingcap-inc

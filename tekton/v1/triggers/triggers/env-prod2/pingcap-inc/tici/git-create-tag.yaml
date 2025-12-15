@@ -1,28 +1,30 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: tag-create-pingcap-tidb-tools
+  name: tag-create-pingcap-inc-tici-darwin
   labels:
     type: github-tag-create
-    github-owner: pingcap
-    github-repo: tidb-tools
+    github-owner: pingcap-inc
+    github-repo: tici
 spec:
   interceptors:
     - name: filter on repo owner and name and tags
-      ref: { name: cel }
+      ref:
+        name: cel
       params:
         - name: filter
           value: >-
-            body.repository.full_name == 'pingcap/tidb-tools'
+            body.repository.full_name == 'pingcap-inc/tici'
             &&
             body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+$')
   bindings:
     - ref: github-tag-create
+    - ref: ksy-classic-build-params
+    - { name: builder-resources-memory, value: 32Gi }
+    - { name: builder-resources-cpu, value: "8" }
+    - { name: timeout, value: 2h }
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
-    - { name: timeout, value: 1h }
-    - { name: source-ws-size, value: 10Gi }
-    - { name: builder-resources-memory, value: 16Gi }
-    - { name: builder-resources-cpu, value: "4" }
+    - { name: source-ws-size, value: 50Gi }
   template:
-    ref: build-component-all-platforms
+    ref: build-component-darwin

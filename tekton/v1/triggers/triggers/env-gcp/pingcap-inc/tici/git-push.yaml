@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-inc-tici
+  name: git-push-pingcap-inc-tici-linux
   labels:
     type: github-branch-push
     github-owner: pingcap-inc

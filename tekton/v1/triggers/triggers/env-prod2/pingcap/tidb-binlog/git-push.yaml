@@ -1,28 +1,35 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-inc-tici
+  name: git-push-pingcap-tidb-binlog
   labels:
     type: github-branch-push
-    github-owner: pingcap-inc
-    github-repo: tici
+    github-owner: pingcap
+    github-repo: tidb-binlog
 spec:
   interceptors:
     - name: filter on repo owner and name and branches
       ref: { name: cel }
       params:
         - name: filter
+          # support branches:
+          # > X, Y, Z, M, N are number chars but X < 9.
+          # - master
+          # - release-X.Y
+          # - release-X.Y-beta.M
           value: >-
-            body.repository.full_name == 'pingcap-inc/tici'
+            body.repository.full_name == 'pingcap/tidb-binlog'
             &&
-            body.ref.matches('^refs/heads/master$')
+            body.ref.matches('^refs/heads/(master|release-[6-8][.][0-9]+(-beta[.][0-9]+)?)$')
+
   bindings:
     - ref: github-branch-push
+    - ref: ksy-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: timeout, value: 2h }
-    - { name: source-ws-size, value: 50Gi }
+    - { name: source-ws-size, value: 100Gi }
     - { name: builder-resources-memory, value: 32Gi }
     - { name: builder-resources-cpu, value: "8" }
   template:
-    ref: build-component-darwin
+    ref: build-component-all-platforms

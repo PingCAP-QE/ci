@@ -1,34 +1,29 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-tidb-build-enterprise-without-plugins
+  name: git-push-pingcap-inc-tici-darwin
   labels:
     type: github-branch-push
-    github-owner: pingcap
-    github-repo: tidb
-    profile: enterprise-without-plugins
+    github-owner: pingcap-inc
+    github-repo: tici
 spec:
   interceptors:
     - name: filter on repo owner and name and branches
       ref: { name: cel }
       params:
         - name: filter
-          # support branches:
-          # - feature/release-X.Y-*
           value: >-
-            body.repository.full_name == 'pingcap/tidb'
+            body.repository.full_name == 'pingcap-inc/tici'
             &&
-            body.ref.matches('^refs/heads/(feature/release-[7-9]+[.][0-9]+-.*)$')
-
+            body.ref.matches('^refs/heads/master$')
   bindings:
     - ref: github-branch-push
     - ref: ksy-classic-build-params
     - { name: component, value: $(body.repository.name) }
-    - { name: os, value: linux }
-    - { name: profile, value: enterprise-without-plugins }
-    - { name: timeout, value: 45m }
+    - { name: profile, value: release }
+    - { name: timeout, value: 2h }
     - { name: source-ws-size, value: 50Gi }
     - { name: builder-resources-memory, value: 32Gi }
     - { name: builder-resources-cpu, value: "8" }
   template:
-    ref: build-component-linux
+    ref: build-component-darwin
