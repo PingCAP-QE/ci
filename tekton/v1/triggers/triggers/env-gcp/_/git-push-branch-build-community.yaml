@@ -20,8 +20,8 @@ spec:
             - key: timeout
               expression: >-
                 {
-                'pingcap/tidb': '1h',
-                'pingcap/tiflash': '3h',
+                'pingcap/tidb': '45m',
+                'pingcap/tiflash': '2h',
                 }[body.repository.full_name]
             - key: source-ws-size
               expression: >-
@@ -32,14 +32,14 @@ spec:
             - key: builder-resources-cpu
               expression: >-
                 {
-                'pingcap/tidb': '8',
-                'pingcap/tiflash': '16',
+                'pingcap/tidb': '6',
+                'pingcap/tiflash': '12',
                 }[body.repository.full_name]
             - key: builder-resources-memory
               expression: >-
                 {
-                'pingcap/tidb': '32Gi',
-                'pingcap/tiflash': '64Gi',
+                'pingcap/tidb': '24Gi',
+                'pingcap/tiflash': '48Gi',
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push
