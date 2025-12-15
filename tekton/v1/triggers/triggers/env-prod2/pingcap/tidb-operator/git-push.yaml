@@ -20,8 +20,8 @@ spec:
   bindings:
     - ref: github-branch-push
     - ref: ksy-classic-build-params
-    - { name: builder-resources-memory, value: 8Gi }
     - { name: builder-resources-cpu, value: "2" }
+    - { name: builder-resources-memory, value: 8Gi }
     - { name: component, value: $(body.repository.name) }
     - { name: os, value: linux }
     - { name: profile, value: release }
