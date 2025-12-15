@@ -7,6 +7,7 @@ resources:
   - delivery/pingcap-deliver-images.yaml
   - delivery/pingcap-notify-to-deliver-images-to-cloud-tidbx.yaml
   - delivery/pingcap-notify-to-update-ops-tidbx.yaml
+  - echo.yaml
   - git-clone.yaml
   - github-set-status.yaml
   - golang-build.yaml
