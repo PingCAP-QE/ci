@@ -1,27 +1,24 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-tidb-tools
+  name: tag-create-pingcap-tidb-tools
   labels:
-    type: github-branch-push
+    type: github-tag-create
     github-owner: pingcap
     github-repo: tidb-tools
 spec:
   interceptors:
-    - name: filter on repo owner and name and branches
+    - name: filter on repo owner and name and tags
       ref: { name: cel }
       params:
         - name: filter
-          # support branches:
-          # - master
-          # - release-6.1, release-6.5, release-7.1, release-7.5
           value: >-
             body.repository.full_name == 'pingcap/tidb-tools'
             &&
-            body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+)$')
-
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+$')
   bindings:
-    - ref: github-branch-push
+    - ref: github-tag-create
+    - ref: ksy-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: timeout, value: 1h }

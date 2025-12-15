@@ -7,10 +7,20 @@ resources:
   - _/git-push-branch-build-enterprise.yaml
   - _/git-push-branch-build-failpoint.yaml
   - _/git-push-on-fips-branches.yaml
+  - pingcap-inc/tici/git-create-tag.yaml
+  - pingcap-inc/tici/git-push.yaml
   - pingcap/advanced-statefulset/git-create-tag.yaml
   - pingcap/advanced-statefulset/git-push.yaml
-  - pingcap/tidb/git-push-branch-build.yaml
+  - pingcap/ticdc/git-create-tag.yaml
+  - pingcap/tidb-binlog/git-push.yaml
+  - pingcap/tidb-ctl/git-create-tag.yaml
+  - pingcap/tidb-ctl/git-push.yaml
   - pingcap/tidb-operator/git-create-tag.yaml
   - pingcap/tidb-operator/git-push.yaml
+  - pingcap/tidb-tools/git-create-tag.yaml
+  - pingcap/tidb-tools/git-push.yaml
+  - pingcap/tidb/git-push-branch-build.yaml
   - pingcap/tiflow-operator/git-create-tag.yaml
   - pingcap/tiflow-operator/git-push.yaml
+  - pingcap/tiproxy/git-create-tag.yaml
+  - pingcap/tiproxy/git-push.yaml

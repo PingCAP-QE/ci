@@ -1,11 +1,11 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: tag-create-pingcap-tiproxy
+  name: tag-create-pingcap-ticdc
   labels:
     type: github-tag-create
     github-owner: pingcap
-    github-repo: tiproxy
+    github-repo: ticdc
 spec:
   interceptors:
     - name: filter on repo owner and name and tags
@@ -13,16 +13,17 @@ spec:
       params:
         - name: filter
           value: >-
-            body.repository.full_name == 'pingcap/tiproxy'
+            body.repository.full_name == 'pingcap/ticdc'
             &&
-            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|nextgen)([.][0-9]+.*)?)?$')
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+-release[.][0-9]+$')
   bindings:
     - ref: github-tag-create
+    - ref: ksy-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
-    - { name: timeout, value: 30m }
-    - { name: source-ws-size, value: 10Gi }
-    - { name: builder-resources-memory, value: 32Gi }
-    - { name: builder-resources-cpu, value: "8" }
+    - { name: timeout, value: 60m }
+    - { name: source-ws-size, value: 50Gi }
+    - { name: builder-resources-memory, value: 16Gi }
+    - { name: builder-resources-cpu, value: "4" }
   template:
     ref: build-component-all-platforms
