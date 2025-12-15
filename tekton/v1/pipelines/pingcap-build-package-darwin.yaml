@@ -164,8 +164,6 @@ spec:
           value: "$(params.registry)"
         - name: boskos-server-url
           value: $(params.boskos-server-url)
-        - name: publisher-url
-          value: "$(params.publisher-url)"
       workspaces:
         - name: source
           workspace: source

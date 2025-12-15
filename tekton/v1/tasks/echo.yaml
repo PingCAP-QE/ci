@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: echo
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.29.0"
+    tekton.dev/categories: Git
+    tekton.dev/tags: git
+    tekton.dev/displayName: "git clone"
+    tekton.dev/platforms: "linux/amd64,linux/s390x,linux/ppc64le,linux/arm64"
+spec:
+  description: >-
+    task for simple demo
+  params:
+    - name: message
+      description: message to echo
+      type: string
+      default: hello
+  results:
+    - name: printed
+      description: The message printed.
+  steps:
+    - name: echo-message
+      image: "alpine:3.23"
+      env:
+        - name: MESSAGE
+          value: "$(params.message)"
+      script: |
+        #!/usr/bin/env sh
+
+        printf "%s" "${MESSAGE}"
+        printf "%s" "${MESSAGE}" > "$(results.printed.path)"
