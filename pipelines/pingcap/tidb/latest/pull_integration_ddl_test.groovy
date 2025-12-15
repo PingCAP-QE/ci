@@ -71,15 +71,10 @@ pipeline {
                         sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
                         retry(3) {
                             script {
-                                def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                sh label: 'download binary', script: """
-                                    chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${pdBranch} --tikv=${tikvBranch}
-                                    mv third_bin/tikv-server bin/
-                                    mv third_bin/pd-server bin/
-                                    ls -alh bin/
-                                """
+                                def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
+	                            def artifactVerify = !isFeatureBranch
+	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
+	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
                             }
 
                         }
