@@ -35,10 +35,11 @@ presubmits:
                   secretKeyRef:
                     key: token
                     name: github-token
-            command: [bash, -ce]
-            args:
-              - |
-                gh pr ready ${PULL_NUMBER}
+            command:
+            - gh
+            - pr
+            - ready
+            - $(PULL_NUMBER)
 
     - name: pull-e2e
       decorate: true # need add this.
