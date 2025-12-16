@@ -7,6 +7,7 @@ resources:
   - _/git-push-branch-build-enterprise.yaml
   - _/git-push-branch-build-failpoint.yaml
   - _/git-push-on-fips-branches.yaml
+  - ctl/artifact-push-on-harbor.yaml
   - pingcap-inc/tici/git-create-tag.yaml
   - pingcap-inc/tici/git-push.yaml
   - pingcap/advanced-statefulset/git-create-tag.yaml

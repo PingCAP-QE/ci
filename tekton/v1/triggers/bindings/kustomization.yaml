@@ -1,11 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - gcp-classic-build-params.yaml
+  - gcp-ng-build-params.yaml
   - github-branch-create.yaml
   - github-branch-push.yaml
+  - github-issue-comment.yaml
   - github-pr.yaml
   - github-tag-create.yaml
-  - github-issue-comment.yaml
-  - gcp-ng-build-params.yaml
-  - gcp-classic-build-params.yaml
   - ksy-classic-build-params.yaml

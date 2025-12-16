@@ -7,6 +7,7 @@ resources:
   - _/build-component-single-platform.yaml
   - _/ci-helper-for-pr.yaml
   - pingcap/bump-placeholder-version-in-readme.yaml
+  - pingcap/ctl/build-component-single-platform.yaml
   - pingcap/sync-owners-for-hotfix-branch.yaml
   - pingcap/tidb/update-gomod-fix-ladp-for-hotfix-branch.yaml
   - tikv/tikv/bump-tikv-cargo-pkg-version.yaml
