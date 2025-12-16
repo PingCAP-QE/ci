@@ -7,7 +7,7 @@ spec:
     - name: golang
       # TODO(wuhuizuo): using standard bazel build image to shrink the image size
       # and keep image simple,so no need to refresh image to update basic bazel out data.
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go12320241009"
+      image: "hub.pingcap.net/wangweizhen/tidb_image:go12520261210"
       securityContext:
         privileged: true
       tty: true
