@@ -183,7 +183,7 @@ spec:
       when:
         - input: $(tasks.build-binaries.results.pushed)
           operator: notin
-          values: ["{}"]
+          values: ["{}", '"{}"']
       taskRef:
         name: pingcap-deliver-binaries
       runAfter:
