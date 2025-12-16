@@ -39,7 +39,7 @@ presubmits:
             - gh
             - pr
             - ready
-            - ${PULL_NUMBER}
+            - $(PULL_NUMBER)
 
     - name: pull-e2e
       decorate: true # need add this.
