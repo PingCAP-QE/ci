@@ -1,0 +1,27 @@
+piVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: single-arch-image-push-on-harbor-for-pingkai
+  labels:
+    type: image-push
+spec:
+  interceptors:
+    - name: filter on image repo names
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            (
+            body.event_data.repository.repo_full_name.matches('^pingcap_enterprise/')
+            && !
+            body.event_data.repository.repo_full_name.matches('/(package|offline-package)(s)?')
+            )
+            &&
+            body.event_data.resources[0].tag.matches('[-_](amd64|arm64)$')
+            &&
+            body.event_data.resources[0].resource_url.startsWith('hub.pingcap.net/')
+  bindings:
+    - ref: harbor-image-push
+  template:
+    ref: collect-multi-arch-image
