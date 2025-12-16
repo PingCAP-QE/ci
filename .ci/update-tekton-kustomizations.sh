@@ -7,8 +7,7 @@ for kf in $(find tekton/v1 -name kustomization.yaml); do
     d=$(dirname $kf)
 
     pushd $d
-        for f in $(find . -name "*.yaml" -type f | sed 's|./||' | grep -v kustomization.yaml | LC_COLLATE=C sort); do
-            key=$(echo "$f" | sed 's|/|_|g')
+        find . -name "*.yaml" -type f -not -name "kustomization.yaml" -printf "%P\n" | LC_COLLATE=C sort | while IFS= read -r f; do
             yq -i ".resources += \"$f\"" kustomization.yaml
         done
     popd
