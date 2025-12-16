@@ -58,15 +58,26 @@ pipeline {
                 dir('pd') {
                     container("golang") {
                         sh label: 'pd-server', script: '[ -f bin/pd-server ] || WITH_RACE=1 RUN_CI=1 make pd-server-basic'
-                        sh label: 'other-server', script: """
-                        chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                        ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tidb=${REFS.base_ref} --tikv=${REFS.base_ref} --tiflash=${REFS.base_ref}
-                        rm -rf third_bin/bin && ls -alh third_bin/
-                        bin/pd-server -V
-                        third_bin/tikv-server -V
-                        third_bin/tidb-server -V
-                        third_bin/tiflash --version
-                        """
+                        script {
+                            def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
+                            def artifactVerify = !isFeatureBranch
+                            sh 'mkdir -p third_bin'
+                            retry(3) {
+                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
+                                sh 'mv bin/tidb-server third_bin/ || true'
+                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
+                                sh 'mv bin/tikv-server third_bin/ || true'
+                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tiflash', REFS.base_ref, REFS.pulls[0].title, 'centos7/tiflash.tar.gz', '', trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=true)
+                                sh '(mv tiflash/* third_bin/ && rm -rf tiflash) || true'
+                            }
+                            sh label: 'verify binaries', script: """
+                            ls -alh third_bin/
+                            bin/pd-server -V
+                            third_bin/tikv-server -V
+                            third_bin/tidb-server -V
+                            third_bin/tiflash --version
+                            """
+                        }
                     }
                 }
             }
