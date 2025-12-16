@@ -247,6 +247,13 @@ spec:
             value: $(tt.params.publisher-url)
         timeouts:
           pipeline: $(tt.params.timeout)
+        taskRunSpecs:
+          - pipelineTaskName: checkout
+            serviceAccountName: github-bot
+          - pipelineTaskName: checkout-ext
+            serviceAccountName: github-bot
+          - pipelineTaskName: build-binaries
+            serviceAccountName: image-releaser
         workspaces:
           - name: source
             volumeClaimTemplate:
@@ -305,6 +312,13 @@ spec:
             value: $(tt.params.publisher-url)
         timeouts:
           pipeline: $(tt.params.timeout)
+        taskRunSpecs:
+          - pipelineTaskName: checkout
+            serviceAccountName: github-bot
+          - pipelineTaskName: checkout-ext
+            serviceAccountName: github-bot
+          - pipelineTaskName: build-binaries
+            serviceAccountName: image-releaser
         workspaces:
           - name: source
             volumeClaimTemplate:
