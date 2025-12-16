@@ -40,6 +40,8 @@ presubmits:
             - pr
             - ready
             - $(PULL_NUMBER)
+            - --repo
+            - pingcap/tidb-operator
 
     - name: pull-e2e
       decorate: true # need add this.
