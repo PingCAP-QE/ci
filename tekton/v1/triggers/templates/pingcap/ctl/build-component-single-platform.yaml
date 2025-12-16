@@ -82,7 +82,7 @@ spec:
         taskRunTemplate:
           podTemplate:
             nodeSelector:
-              kubernetes.io/arch: $(tt.params.arch)
+              kubernetes.io/arch: amd64
         taskRunSpecs:
           - pipelineTaskName: build-binaries
             serviceAccountName: image-releaser
