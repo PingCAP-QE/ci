@@ -7,6 +7,6 @@ spec:
     - name: registry
       value: hub-zot.pingcap.net/hub
     - name: boskos-server-url
-      value: http://boskos.ee-ce.svc
+      value: http://boskos.ee-cd.svc
     - name: publisher-url
       value: https://publisher.pingcap.net
