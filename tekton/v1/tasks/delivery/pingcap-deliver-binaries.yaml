@@ -23,13 +23,17 @@ spec:
     - name: publisher-url
       description: URL of the publisher service
       default: https://publisher.pingcap.net
+    - name: notify-webhook-url
+      description: URL of the webhook for notification
+      default: "http://el-harbor:8080"
+  stepTemplate:
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
+    computeResources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
   steps:
-    - name: run
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
-      computeResources:
-        requests:
-          cpu: 50m
-          memory: 128Mi
+    - name: notify-tiup-publisher
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -57,3 +61,53 @@ spec:
             deliver "$repo:$tag"
           done
         fi
+    - name: notify-to-build-ctl-component
+      when:
+        - input: "$(params.src-type)"
+          operator: in
+          values: ["oci-info"]
+        - input: "$(params.notify-webhook-url)"
+          operator: notin
+          values: ["false", ""]
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        oci_src="$(params.src)"
+        notify_webhook_url="$(params.notify-webhook-url)"
+
+        # Write the OCI source to a file for processing
+        echo "$oci_src" > /workspace/src.txt
+
+        # Extract repository and tags
+        repo="$(yq .oci.repo /workspace/src.txt)"
+        resource_url="$(yq .oci.repo /workspace/src.txt)"
+
+        # Loop through each tag and send a notification
+        for tag in $(yq -r .oci.tags[] /workspace/src.txt); do
+          # Construct the event data
+          event_data=$(cat <<EOF
+          {
+            "type": "PUSH_ARTIFACT",
+            "event_data": {
+              "repository": {
+                "repo_full_name": "${repo#*/}"
+              },
+              "resources": [
+                {
+                  "tag": "$tag",
+                  "resource_url": "$resource_url"
+                }
+              ]
+            }
+          }
+        EOF
+          )
+
+          # Send the event to the webhook
+          echo "Sending event for tag: $tag"
+          response=$(curl -s -X POST "$notify_webhook_url" \
+            -H "Content-Type: application/json" \
+            -d "$event_data")
+          echo "Response: $response"
+        done
