@@ -106,6 +106,7 @@ spec:
 
           # Send the event to the webhook
           echo "Sending event for tag: $tag"
+          echo -e "event data:\n$event_data"
           response=$(curl -s -X POST "$notify_webhook_url" \
             -H "Content-Type: application/json" \
             -d "$event_data")
