@@ -15,6 +15,11 @@ spec:
       params:
         - name: filter
           value: >-
+            (
+              body.event_data.resources[0].resource_url.startsWith('hub.pingcap.net/')
+              ||
+              body.event_data.resources[0].resource_url.startsWith('hub-zot.pingcap.net/hub')
+            ) &&
             body.event_data.repository.repo_full_name in [
             'pingcap/tidb/package',
             'pingcap/tiflow/package',
