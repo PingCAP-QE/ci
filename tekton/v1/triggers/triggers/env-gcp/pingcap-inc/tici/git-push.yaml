@@ -19,8 +19,8 @@ spec:
   bindings:
     - ref: github-branch-push
     - ref: gcp-classic-build-params
-    - { name: builder-resources-cpu, value: "8" }
-    - { name: builder-resources-memory, value: 32Gi }
+    - { name: builder-resources-cpu, value: "6" }
+    - { name: builder-resources-memory, value: 24Gi }
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: source-ws-size, value: 50Gi }
