@@ -85,12 +85,12 @@ postsubmits:
                 echo "coverage for ${COMMIT_SHA} finished"
             env:
               - name: FILE_SERVER_URL
-                value: http://fileserver.pingcap.net   
+                value: http://fileserver.pingcap.net
               - name: CODECOV_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: codecov-token
-                    key: tikv-tikv   
+                    key: tikv-tikv
 
             resources:
               requests:
