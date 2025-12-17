@@ -25,7 +25,7 @@ spec:
     - { name: component, value: $(body.repository.name) }
     - { name: os, value: linux }
     - { name: profile, value: release }
-    - { name: source-ws-size, value: 10Gi }
+    - { name: source-ws-size, value: 20Gi }
     - { name: timeout, value: 30m }
 
   template:

@@ -23,7 +23,7 @@ spec:
     - { name: os, value: linux }
     - { name: profile, value: release }
     - { name: timeout, value: 15m }
-    - { name: source-ws-size, value: 10Gi }
+    - { name: source-ws-size, value: 20Gi }
     - { name: builder-resources-memory, value: 8Gi }
     - { name: builder-resources-cpu, value: "2" }
   template:
