@@ -1,25 +1,25 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-tidb-operator
+  name: tag-create-pingcap-tidb-operator
   labels:
-    type: github-branch-push
+    type: github-tag-create
     github-owner: pingcap
     github-repo: tidb-operator
 spec:
   interceptors:
-    - name: filter on repo and branches
+    - name: filter on repo owner and name and tags
       ref: { name: cel }
       params:
         - name: filter
           value: >-
             body.repository.full_name == 'pingcap/tidb-operator'
             &&
-            body.ref.matches('^refs/heads/(main|release-.*)$')
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$')
 
   bindings:
-    - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: github-tag-create
+    - ref: gcp-classic-build-params
     - { name: builder-resources-cpu, value: "2" }
     - { name: builder-resources-memory, value: 8Gi }
     - { name: component, value: $(body.repository.name) }
