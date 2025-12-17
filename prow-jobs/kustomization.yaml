@@ -148,4 +148,4 @@ configMapGenerator:
       - tikv_tikv_release-8.4-presubmits.yaml=tikv/tikv/release-8.4-presubmits.yaml
       - tikv_tikv_release-8.5-presubmits.yaml=tikv/tikv/release-8.5-presubmits.yaml
       - tikv_tikv_release-9.0-beta-presubmits.yaml=tikv/tikv/release-9.0-beta-presubmits.yaml
-      - tikv_tikv_latest_postsubmits-coverage.yaml=tikv/tikv/latest_postsubmits-coverage.yaml
+      - tikv_tikv_latest-postsubmits-coverage.yaml=tikv/tikv/latest-postsubmits-coverage.yaml
