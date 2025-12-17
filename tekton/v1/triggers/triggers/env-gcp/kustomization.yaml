@@ -14,5 +14,9 @@ resources:
   - _/notify/notified-successful-image-delivery-tidbx.yaml
   - pingcap-inc/tici/git-create-tag.yaml
   - pingcap-inc/tici/git-push.yaml
+  - pingcap/advanced-statefulset/git-create-tag.yaml
+  - pingcap/advanced-statefulset/git-push.yaml
+  - pingcap/tidb-operator/git-create-tag.yaml
+  - pingcap/tidb-operator/git-push.yaml
   - tikv/tikv/git-create-branch.yaml
   - tikv/tikv/git-create-tag.yaml
