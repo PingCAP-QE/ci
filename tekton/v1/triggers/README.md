@@ -6,24 +6,20 @@ This directory contains Tekton trigger configurations for various CI/CD workflow
 
 ```
 triggers/
-├── _/                          # Common triggers
-│   ├── fake-github/           # Test triggers simulating GitHub events from TiBuild.
-│   ├── harbor/                # Harbor registry related triggers
-├── PingCAP-QE/                # PingCAP-QE org specific triggers
-├── pingcap/                   # PingCAP ORG repositories triggers
-│   ├── _/                     # Common triggers for PingCAP ORG repos
-│   ├── ctl/                   # ctl TiUP PKG related triggers
-│   ├── advanced-statefulset/
-│   ├── tidb/
-│   ├── tidb-binlog/
-│   ├── tidb-ctl/
-│   ├── tidb-operator/
-│   ├── tidb-tools/
-│   ├── tiflow-operator/
-│   ├── tiproxy/
-├── tikv/                      # TiKV ORG repositories triggers
-│   ├── _/                     # Common triggers for TiKV ORG repos
-│   ├── tikv/                  # TiKV specific triggers
+├── bindings/                  # Trigger bindings
+├── templates/                 # Trigger templates
+├── triggers/                  # Trigger definitions
+│   ├── env-gcp/               # Triggers for GCP environment
+│   │   ├── _/                 # Common triggers for GCP
+│   │   ├── pingcap-inc/       # pingcap-inc org specific triggers
+│   │   ├── tikv/              # TiKV org specific triggers
+│   ├── env-prod2/             # Triggers for prod2 environment
+│   │   ├── _/                 # Common triggers for prod2
+│   │   ├── PingCAP-QE/        # PingCAP-QE org specific triggers
+│   │   ├── ctl/               # ctl TiUP PKG related triggers
+│   │   ├── harbor/            # OCI registry related triggers, currently support for Harbor events.
+│   │   ├── pingcap/           # PingCAP ORG repositories triggers
+│   │   ├── pingcap-inc/       # pingcap-inc org specific triggers
 ```
 
 ## How to test CEL interceptors
@@ -83,4 +79,5 @@ go install github.com/tektoncd/triggers/cmd/cel-eval@v0.20.2
 ## Resources
 
 - [Tekton Triggers Documentation](https://tekton.dev/docs/triggers/)
+- [Tekton CEL expression extensions](https://tekton.dev/docs/triggers/cel_expressions/)
 - [CEL Specification](https://github.com/google/cel-spec)
