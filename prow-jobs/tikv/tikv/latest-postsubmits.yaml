@@ -55,15 +55,10 @@ postsubmits:
                   --ignore "target/debug/*" \
                   -o lcov.info
 
-                set +e
-                ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B master
-                CODECOV_RC=$?
-                set -e
-
-                if [ ${CODECOV_RC} -ne 0 ]; then
-                  echo "Codecov upload failed (rc=${CODECOV_RC}), but continuing..."
-                else
+                if ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B "$PULL_BASE_REF"; then
                   echo "Coverage report uploaded successfully to codecov.io"
+                else
+                  echo "Codecov upload failed, but continuing..."
                 fi
 
                 echo "coverage for ${PULL_BASE_SHA} finished"
