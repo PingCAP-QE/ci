@@ -1,7 +1,7 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
 postsubmits:
   tikv/tikv:
-    - name: tikv-tikv-post-coverage
+    - name: unit-test-coverage
       cluster: default
       decorate: true
       branches:
