@@ -114,7 +114,7 @@ export interface OwnerEntry {
 export type OwnerResolutionLevel =
   | "case"
   | "suite"
-  | "parent-suite"
+  | "parent-suite" // Parent suite prefix match (e.g., "pkg" for "pkg/executor")
   | "repo-branch"
   | "repo"
   | "none";
