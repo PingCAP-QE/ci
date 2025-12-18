@@ -2,6 +2,7 @@
 postsubmits:
   tikv/tikv:
     - name: tikv-tikv-post-coverage
+      cluster: gcp-prow-ksyun
       decorate: true
       branches:
         - ^master$
@@ -9,30 +10,14 @@ postsubmits:
       spec:
         containers:
           - name: coverage
-            image: hub.pingcap.net/jenkins/tikv-cached-master:latest
+            image: ghcr.io/pingcap-qe/ci/base:v2025.12.7-10-gf44bb75-go1.25
             command: [bash, -ce]
             args:
               - |
+                #!/usr/bin/env bash
                 set -euo pipefail
 
-                REPO_ROOT="$(git rev-parse --show-toplevel)"
-                cd "${REPO_ROOT}"
-
                 COMMIT_SHA="$(git rev-parse HEAD)"
-
-                echo "job: ${JOB_NAME:-unknown}, sha: ${COMMIT_SHA}"
-                echo "repo root: ${REPO_ROOT}"
-
-                if git log -1 --pretty=%B | grep -q '\[ci skip\]'; then
-                  echo "found [ci skip] in last commit, skip coverage"
-                  exit 0
-                fi
-
-                if curl --output /dev/null --silent --head --fail \
-                  "${FILE_SERVER_URL}/download/coverage_check/${JOB_NAME}/${COMMIT_SHA}"; then
-                  echo "coverage already exists for ${COMMIT_SHA}, skip"
-                  exit 0
-                fi
 
                 rustup component add llvm-tools-preview
                 if ! command -v grcov >/dev/null 2>&1; then
@@ -53,12 +38,10 @@ postsubmits:
                 fi
 
                 set +e
-                env RUSTFLAGS="-C instrument-coverage" \
-                    LLVM_PROFILE_FILE="tikv-%p-%m.profraw" \
-                    FAIL_POINT=1 \
-                    RUST_TEST_THREADS=1 \
-                    EXTRA_CARGO_ARGS=--no-fail-fast \
-                    make test_with_nextest
+                LLVM_PROFILE_FILE="tikv-%p-%m.profraw" \
+                RUST_TEST_THREADS=1 \
+                EXTRA_CARGO_ARGS=--no-fail-fast \
+                make test_with_nextest
                 TEST_RC=$?
                 set -e
                 if [ ${TEST_RC} -ne 0 ]; then
@@ -71,31 +54,16 @@ postsubmits:
                   -t lcov \
                   --branch \
                   --ignore-not-existing \
-                  --ignore "/*" \
                   --ignore "target/debug/*" \
                   -o lcov.info
 
-                curl -OLs "${FILE_SERVER_URL}/download/cicd/ci-tools/codecov"
-                chmod +x codecov
                 ./codecov -f lcov.info -C "${COMMIT_SHA}" -B master
 
-                echo "done" > done
-                curl -F "coverage_check/${JOB_NAME}/${COMMIT_SHA}=@done" "${FILE_SERVER_URL}/upload"
-
                 echo "coverage for ${COMMIT_SHA} finished"
-            env:
-              - name: FILE_SERVER_URL
-                value: http://fileserver.pingcap.net
-              - name: CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-token
-                    key: tikv-tikv
-
             resources:
               requests:
-                cpu: "2"
+                cpu: "4"
                 memory: 8Gi
               limits:
-                cpu: "4"
+                cpu: "8"
                 memory: 16Gi

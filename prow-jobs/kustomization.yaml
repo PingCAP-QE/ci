@@ -137,7 +137,7 @@ configMapGenerator:
       - tikv_pd_release-9.0-beta-presubmits.yaml=tikv/pd/release-9.0-beta-presubmits.yaml
       - tikv_raft-engine_presubmits.yaml=tikv/raft-engine/presubmits.yaml
       - tikv_tikv_common-presubmits.yaml=tikv/tikv/common-presubmits.yaml
-      - tikv_tikv_latest-postsubmits-coverage.yaml=tikv/tikv/latest-postsubmits-coverage.yaml
+      - tikv_tikv_latest-postsubmits.yaml=tikv/tikv/latest-postsubmits.yaml
       - tikv_tikv_latest-presubmits.yaml=tikv/tikv/latest-presubmits.yaml
       - tikv_tikv_release-6.1-presubmits.yaml=tikv/tikv/release-6.1-presubmits.yaml
       - tikv_tikv_release-6.5-presubmits.yaml=tikv/tikv/release-6.5-presubmits.yaml
