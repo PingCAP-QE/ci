@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "jsr:@std/assert@1.0.11";
 import { OwnerResolver } from "./OwnerResolver.ts";
 import { type OwnerEntry, UNOWNED_OWNER } from "./types.ts";
 
@@ -255,6 +255,33 @@ Deno.test("OwnerResolver.resolveViaMap", async (t) => {
           case_name: "*",
           owner_team: "@parent-owner",
           priority: 0,
+        },
+        {
+          repo,
+          branch: "*",
+          suite_name: "pkg/executor/importer", // exact suite match
+          case_name: "*",
+          owner_team: "@exact-owner",
+          priority: 0,
+        },
+      ],
+      want: { owner: "@exact-owner", level: "suite" },
+    },
+    {
+      name:
+        "exact suite match takes precedence over parent suite match even with lower priority",
+      repo,
+      branch: "main",
+      suite: "pkg/executor/importer",
+      kase: "testCase",
+      ownerMap: [
+        {
+          repo,
+          branch: "*",
+          suite_name: "pkg/executor", // parent suite
+          case_name: "*",
+          owner_team: "@parent-owner",
+          priority: 10,
         },
         {
           repo,
