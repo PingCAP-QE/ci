@@ -72,7 +72,7 @@ postsubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-token
-                    key: tikv-tikv 
+                    key: tikv-tikv
             resources:
               requests:
                 cpu: "4"
