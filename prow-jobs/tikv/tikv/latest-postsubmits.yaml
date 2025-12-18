@@ -1,0 +1,75 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
+postsubmits:
+  tikv/tikv:
+    - name: unit-test-coverage
+      cluster: default
+      decorate: true
+      branches:
+        - ^master$
+      max_concurrency: 1
+      spec:
+        containers:
+          - name: coverage
+            image: ghcr.io/pingcap-qe/ci/base:v2025.12.7-10-gf44bb75-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -euo pipefail
+
+                rustup component add llvm-tools-preview
+                if ! command -v grcov >/dev/null 2>&1; then
+                  cargo install --locked grcov --git https://github.com/glorv/grcov --branch patched
+                fi
+                grcov --version
+
+                export FAIL_POINT=1
+                export ROCKSDB_SYS_SSE=1
+                export CARGO_INCREMENTAL=0
+                export RUSTFLAGS="-C instrument-coverage"
+                export NEXTEST_PROFILE=ci
+
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  echo "using devtoolset-8 (gcc 8)"
+                  # shellcheck disable=SC1091
+                  source /opt/rh/devtoolset-8/enable
+                fi
+
+                set +e
+                LLVM_PROFILE_FILE="tikv-%p-%m.profraw" \
+                RUST_TEST_THREADS=1 \
+                EXTRA_CARGO_ARGS=--no-fail-fast \
+                make test_with_nextest
+                TEST_RC=$?
+                set -e
+                if [ ${TEST_RC} -ne 0 ]; then
+                  echo "tests failed (rc=${TEST_RC}), continue to generate coverage anyway"
+                fi
+
+                grcov . \
+                  --binary-path ./target/debug/ \
+                  -s . \
+                  -t lcov \
+                  --branch \
+                  --ignore-not-existing \
+                  --ignore "target/debug/*" \
+                  -o lcov.info
+
+                if ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B "$PULL_BASE_REF"; then
+                  echo "Coverage report uploaded successfully to codecov.io"
+                else
+                  echo "Codecov upload failed, but continuing..."
+                fi
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: tikv-tikv
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "8"
+                memory: 16Gi
