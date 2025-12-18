@@ -117,6 +117,7 @@ export class OwnerResolver {
     const LEVEL_PRIORITY: Record<Level, number> = {
       none: 0,
       repo: 1,
+      "repo-branch": 1,
       "parent-suite": 2,
       suite: 3,
       case: 4,
