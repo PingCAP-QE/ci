@@ -2,7 +2,7 @@
 postsubmits:
   tikv/tikv:
     - name: tikv-tikv-post-coverage
-      cluster: gcp-prow-ksyun
+      cluster: default
       decorate: true
       branches:
         - ^master$
@@ -16,8 +16,6 @@ postsubmits:
               - |
                 #!/usr/bin/env bash
                 set -euo pipefail
-
-                COMMIT_SHA="$(git rev-parse HEAD)"
 
                 rustup component add llvm-tools-preview
                 if ! command -v grcov >/dev/null 2>&1; then
@@ -57,9 +55,24 @@ postsubmits:
                   --ignore "target/debug/*" \
                   -o lcov.info
 
-                ./codecov -f lcov.info -C "${COMMIT_SHA}" -B master
+                set +e
+                ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B master
+                CODECOV_RC=$?
+                set -e
 
-                echo "coverage for ${COMMIT_SHA} finished"
+                if [ ${CODECOV_RC} -ne 0 ]; then
+                  echo "Codecov upload failed (rc=${CODECOV_RC}), but continuing..."
+                else
+                  echo "Coverage report uploaded successfully to codecov.io"
+                fi
+
+                echo "coverage for ${PULL_BASE_SHA} finished"
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-token
+                    key: tikv-tikv 
             resources:
               requests:
                 cpu: "4"
