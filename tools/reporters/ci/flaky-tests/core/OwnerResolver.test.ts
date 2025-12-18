@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1.0.11";
+import { assertEquals } from "@std/assert";
 import { OwnerResolver } from "./OwnerResolver.ts";
 import { type OwnerEntry, UNOWNED_OWNER } from "./types.ts";
 
