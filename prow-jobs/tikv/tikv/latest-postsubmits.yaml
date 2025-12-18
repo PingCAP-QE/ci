@@ -64,7 +64,7 @@ postsubmits:
               - name: CODECOV_TOKEN
                 valueFrom:
                   secretKeyRef:
-                    name: codecov-token
+                    name: codecov-tokens
                     key: tikv-tikv
             resources:
               requests:
