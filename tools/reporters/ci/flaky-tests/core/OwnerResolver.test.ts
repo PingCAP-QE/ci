@@ -3,7 +3,10 @@ import { OwnerResolver } from "./OwnerResolver.ts";
 import { type OwnerEntry, UNOWNED_OWNER } from "./types.ts";
 
 Deno.test("OwnerResolver.resolveViaMap", async (t) => {
-  type Want = { owner: string; level: "case" | "suite" | "repo" | "none" };
+  type Want = {
+    owner: string;
+    level: "case" | "suite" | "parent-suite" | "repo" | "none";
+  };
   type TestCase = {
     name: string;
     repo: string;
@@ -218,7 +221,7 @@ Deno.test("OwnerResolver.resolveViaMap", async (t) => {
           owner_team: "@parent-suite",
         },
       ],
-      want: { owner: "@parent-suite", level: "suite" },
+      want: { owner: "@parent-suite", level: "parent-suite" },
     },
     {
       name:
@@ -237,6 +240,32 @@ Deno.test("OwnerResolver.resolveViaMap", async (t) => {
         },
       ],
       want: { owner: "@suite-owner", level: "suite" },
+    },
+    {
+      name: "exact suite match takes precedence over parent suite match",
+      repo,
+      branch: "main",
+      suite: "pkg/executor/importer",
+      kase: "testCase",
+      ownerMap: [
+        {
+          repo,
+          branch: "*",
+          suite_name: "pkg/executor", // parent suite
+          case_name: "*",
+          owner_team: "@parent-owner",
+          priority: 0,
+        },
+        {
+          repo,
+          branch: "*",
+          suite_name: "pkg/executor/importer", // exact suite match
+          case_name: "*",
+          owner_team: "@exact-owner",
+          priority: 0,
+        },
+      ],
+      want: { owner: "@exact-owner", level: "suite" },
     },
     {
       name: "empty owner map yields UNOWNED",

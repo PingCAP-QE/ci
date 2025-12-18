@@ -120,6 +120,8 @@ export class OwnerResolver {
           return 4;
         case "suite":
           return 3;
+        case "parent-suite":
+          return 2;
         case "repo":
           return 1;
         default:
@@ -149,8 +151,10 @@ export class OwnerResolver {
       let level: Exclude<Level, "none">;
       if ((suiteExact || suiteParent) && caseExact) {
         level = "case";
-      } else if ((suiteExact || suiteParent) && caseAny) {
+      } else if (suiteExact && caseAny) {
         level = "suite";
+      } else if (suiteParent && caseAny) {
+        level = "parent-suite";
       } else if (suiteAny && caseAny) {
         level = "repo";
       } else {

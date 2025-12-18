@@ -114,6 +114,7 @@ export interface OwnerEntry {
 export type OwnerResolutionLevel =
   | "case"
   | "suite"
+  | "parent-suite"
   | "repo-branch"
   | "repo"
   | "none";
