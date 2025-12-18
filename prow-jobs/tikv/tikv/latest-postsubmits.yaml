@@ -60,8 +60,6 @@ postsubmits:
                 else
                   echo "Codecov upload failed, but continuing..."
                 fi
-
-                echo "coverage for ${PULL_BASE_SHA} finished"
             env:
               - name: CODECOV_TOKEN
                 valueFrom:
