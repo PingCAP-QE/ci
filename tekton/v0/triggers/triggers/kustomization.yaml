@@ -2,15 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - _/fake-github/fake-github-branch-push-single-platform.yaml
-  - _/fake-github/fake-github-branch-push-single-platform.yaml
-  - _/fake-github/fake-github-branch-push.yaml
   - _/fake-github/fake-github-branch-push.yaml
   - _/fake-github/fake-github-pr-single-platform.yaml
-  - _/fake-github/fake-github-pr-single-platform.yaml
-  - _/fake-github/fake-github-pr.yaml
   - _/fake-github/fake-github-pr.yaml
   - _/fake-github/fake-github-tag-create-single-platform.yaml
-  - _/fake-github/fake-github-tag-create-single-platform.yaml
-  - _/fake-github/fake-github-tag-create.yaml
   - _/fake-github/fake-github-tag-create.yaml
   - _/harbor/image-push-on-harbor-for-pingkai.yaml
