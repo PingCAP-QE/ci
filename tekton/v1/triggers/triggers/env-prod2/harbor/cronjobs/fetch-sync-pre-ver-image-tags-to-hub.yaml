@@ -73,9 +73,9 @@ spec:
                       # if the tag in DEST is older than the tag in SRC, then we copy the tag from SRC to DEST.
                       # if the tag is not in DEST, then we copy the tag from SRC to DEST.
                       if crane manifest "$DEST:$tag" >/dev/null 2>&1; then
-                        src_created_at_seconds=$(crane config "$SRC:$tag" | jq -r '.created' | date -f - +%s)
-                        dest_created_at_seconds=$(crane config "$DEST:$tag" | jq -r '.created' | date -f - +%s)
-                        if [ "$src_created_at_seconds" -le "$dest_created_at_seconds" ]; then
+                        src_created_at_seconds=$(date -D "%Y-%m-%dT%H:%M:%S" -d $(crane config "$SRC:$tag" | jq -r '.created') +%s)
+                        dst_created_at_seconds=$(date -D "%Y-%m-%dT%H:%M:%S" -d$(crane config "$DEST:$tag" | jq -r '.created') +%s)
+                        if [ "$src_created_at_seconds" -le "$dst_created_at_seconds" ]; then
                           echo "🏃 Tag $tag in $DEST is up to date, skipping..."
                           continue
                         fi
