@@ -6,6 +6,8 @@ resources:
   - _/build-component-linux.yaml
   - _/build-component-single-platform.yaml
   - _/ci-helper-for-pr.yaml
+  - _/collect-multi-arch-image.yaml
+  - _/push-oci-artifact-to-fileserver.yaml
   - pingcap/bump-placeholder-version-in-readme.yaml
   - pingcap/ctl/build-component-single-platform.yaml
   - pingcap/sync-owners-for-hotfix-branch.yaml
