@@ -110,9 +110,9 @@ spec:
                   fi
 
               resources:
-                limits:
+                requests:
                   cpu: 200m
                   memory: 1Gi
-                requests:
+                limits:
                   cpu: 500m
                   memory: 2Gi
