@@ -87,8 +87,8 @@ spec:
 
                     # Get and filter the tags from $SRC repo, and copy the filted tags to $DEST repo
 
-                    tags=$(crane ls "$SRC" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-pre(-enterprise)?$' | sort -Vr)
-                    for tag in $tags; do
+                    crane ls "$SRC" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-pre(-enterprise)?$' | sort -Vr | while IFS= read -r tag; do
+                      echo "🚀 Processing tag $tag"
                       # if the tag in DEST is older than the tag in SRC, then we copy the tag from SRC to DEST.
                       # if the tag is not in DEST, then we copy the tag from SRC to DEST.
                       if crane manifest "$DEST:$tag" >/dev/null 2>&1; then
@@ -96,7 +96,7 @@ spec:
                         dest_created_at=$(crane config "$DEST:$tag" | jq -r '.created')
                         compare_result=$(compare_datetimes "$src_created_at" "$dest_created_at")
                         if [ "$compare_result" -le "0" ]; then
-                          echo "Tag $tag in $DEST is up to date, skipping..."
+                          echo "🏃 Tag $tag in $DEST is up to date, skipping..."
                           continue
                         fi
                       fi
