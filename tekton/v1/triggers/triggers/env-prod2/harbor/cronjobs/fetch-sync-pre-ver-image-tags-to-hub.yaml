@@ -1,0 +1,98 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sync-pre-ver-img-tags-from-zot-to-hub
+spec:
+  schedule: 0 * * * * # hourly
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: image-releaser
+          containers:
+            - name: copy-image-tags
+              image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
+              env:
+                - name: SRC_REPO_PREFIX
+                  # value: us-docker.pkg.dev/pingcap-testing-account/hub
+                  value: hub-zot.pingcap.net/hub
+                - name: DST_REPO_PREFIX
+                  value: hub.pingcap.net
+              command:
+                - /bin/bash
+                - -c
+              args:
+                - |
+                  #!/usr/bin/env bash
+                  set -euo pipefail
+
+                  ocis=(
+                    pingcap/images/cdc
+                    pingcap/monitoring/image
+                    pingcap/ng-monitoring/image
+                    pingcap/ticdc/image
+                    pingcap/tici/image
+                    pingcap/tidb-binlog/image
+                    pingcap/tidb-dashboard/image
+                    pingcap/tidb-operator/image
+                    pingcap/tidb-operator/images/backup-manager
+                    pingcap/tidb-operator/images/prestop-checker
+                    pingcap/tidb-operator/images/tidb-backup-manager
+                    pingcap/tidb-operator/images/tidb-operator
+                    pingcap/tidb-tools/image
+                    pingcap/tidb/images/br
+                    pingcap/tidb/images/dumpling
+                    pingcap/tidb/images/tidb-lightning
+                    pingcap/tidb/images/tidb-server
+                    pingcap/tiflash/image
+                    pingcap/tiflow-operator/image
+                    pingcap/tiflow/images/cdc
+                    pingcap/tiflow/images/dm
+                    pingcap/tiflow/images/sync-diff-inspector
+                    pingcap/tiflow/images/ticdc
+                    pingcap/tiflow/images/tiflow
+                    pingcap/tiproxy/image
+                    tikv/pd/image
+                    tikv/tikv/image
+                  )
+
+                  any_failed=false
+                  for oci in "${ocis[@]}"; do
+                    SRC="$SRC_REPO_PREFIX/$oci"
+                    DEST="$DST_REPO_PREFIX/$oci"
+                    echo "Sync pre version image tag from $SRC to $DEST"
+
+                    # Get and filter the tags from $SRC repo, and copy the filted tags to $DEST repo
+
+                    crane ls "$SRC" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-pre(-enterprise)?$' | sort -Vr | while IFS= read -r tag; do
+                      echo "🚀 Processing tag $tag"
+                      # if the tag in DEST is older than the tag in SRC, then we copy the tag from SRC to DEST.
+                      # if the tag is not in DEST, then we copy the tag from SRC to DEST.
+                      if crane manifest "$DEST:$tag" >/dev/null 2>&1; then
+                        src_created_at_seconds=$(date -D "%Y-%m-%dT%H:%M:%S" -d $(crane config "$SRC:$tag" | jq -r '.created') +%s)
+                        dst_created_at_seconds=$(date -D "%Y-%m-%dT%H:%M:%S" -d$(crane config "$DEST:$tag" | jq -r '.created') +%s)
+                        if [ "$src_created_at_seconds" -le "$dst_created_at_seconds" ]; then
+                          echo "🏃 Tag $tag in $DEST is up to date, skipping..."
+                          continue
+                        fi
+                      fi
+                      crane cp "$SRC:$tag" "$DEST:$tag" || any_failed=true
+                    done
+                  done
+
+                  if [ "$any_failed" = "true" ]; then
+                    echo "Error: Failed to process some image tags. Please check logs for details." >&2
+                    exit 1
+                  fi
+
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 1Gi
+                limits:
+                  cpu: 500m
+                  memory: 2Gi

@@ -8,6 +8,7 @@ resources:
   - _/git-push-branch-build-failpoint.yaml
   - _/git-push-on-fips-branches.yaml
   - ctl/artifact-push-on-harbor.yaml
+  - harbor/cronjobs/fetch-sync-pre-ver-image-tags-to-hub.yaml
   - pingcap-inc/tici/git-create-tag.yaml
   - pingcap-inc/tici/git-push.yaml
   - pingcap/ticdc/git-create-tag.yaml
