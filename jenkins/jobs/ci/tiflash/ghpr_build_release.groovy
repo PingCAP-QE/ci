@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tiflash_ghpr_build_release') {
+    disabled(true)
     logRotator {
         daysToKeep(90)
         numToKeep(300)
