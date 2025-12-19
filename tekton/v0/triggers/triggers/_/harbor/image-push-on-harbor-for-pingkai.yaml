@@ -1,4 +1,4 @@
-piVersion: triggers.tekton.dev/v1beta1
+apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
   name: single-arch-image-push-on-harbor-for-pingkai
