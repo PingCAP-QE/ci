@@ -30,25 +30,6 @@ spec:
                   #!/usr/bin/env bash
                   set -euo pipefail
 
-                  # Function to compare two datetime variables
-                  compare_datetimes() {
-                    local datetime1="$1"
-                    local datetime2="$2"
-
-                    # Convert datetime strings to seconds since epoch
-                    local seconds1=$(date -d "$datetime1" +%s)
-                    local seconds2=$(date -d "$datetime2" +%s)
-
-                    # Compare the datetime variables
-                    if [ "$seconds1" -lt "$seconds2" ]; then
-                        echo "-1"  # datetime1 is earlier than datetime2
-                    elif [ "$seconds1" -gt "$seconds2" ]; then
-                        echo "1"   # datetime1 is later than datetime2
-                    else
-                        echo "0"   # datetime1 is the same as datetime2
-                    fi
-                  }
-
                   ocis=(
                     pingcap/images/cdc
                     pingcap/monitoring/image
@@ -92,10 +73,9 @@ spec:
                       # if the tag in DEST is older than the tag in SRC, then we copy the tag from SRC to DEST.
                       # if the tag is not in DEST, then we copy the tag from SRC to DEST.
                       if crane manifest "$DEST:$tag" >/dev/null 2>&1; then
-                        src_created_at=$(crane config "$SRC:$tag" | jq -r '.created')
-                        dest_created_at=$(crane config "$DEST:$tag" | jq -r '.created')
-                        compare_result=$(compare_datetimes "$src_created_at" "$dest_created_at")
-                        if [ "$compare_result" -le "0" ]; then
+                        src_created_at_seconds=$(crane config "$SRC:$tag" | jq -r '.created' | date -f - +%s)
+                        dest_created_at_seconds=$(crane config "$DEST:$tag" | jq -r '.created' | date -f - +%s)
+                        if [ "$src_created_at_seconds" -le "$dest_created_at_seconds" ]; then
                           echo "🏃 Tag $tag in $DEST is up to date, skipping..."
                           continue
                         fi
