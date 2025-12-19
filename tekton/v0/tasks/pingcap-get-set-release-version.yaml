@@ -20,7 +20,7 @@ spec:
     - name: source
   steps:
     - name: cleanup-tags
-      image: alpine/git:v2.49.1
+      image: alpine/git:v2.52.0
       workingDir: $(workspaces.source.path)
       resources:
         requests:
@@ -69,7 +69,7 @@ spec:
         - --save_build_git_tag_file=/workspace/new-tag
         - --save_release_version_file=$(results.version.path)
     - name: apply-tags
-      image: alpine/git:v2.49.1
+      image: alpine/git:v2.52.0
       workingDir: $(workspaces.source.path)
       script: |
         #!/bin/sh
@@ -84,7 +84,7 @@ spec:
           echo "No new tag needs to be applied."
         fi
     - name: set-ref
-      image: alpine/git:v2.49.1
+      image: alpine/git:v2.52.0
       script: |
         #!/bin/sh
         set -e
