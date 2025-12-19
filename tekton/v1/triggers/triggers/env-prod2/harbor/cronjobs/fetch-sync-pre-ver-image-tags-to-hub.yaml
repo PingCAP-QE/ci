@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: sync-pre-ver-img-tags-from-gar-to-hub
+  name: sync-pre-ver-img-tags-from-zot-to-hub
 spec:
   schedule: 0 * * * * # hourly
   concurrencyPolicy: Allow
@@ -18,7 +18,8 @@ spec:
               image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
               env:
                 - name: SRC_REPO_PREFIX
-                  value: us-docker.pkg.dev/pingcap-testing-account/hub
+                  # value: us-docker.pkg.dev/pingcap-testing-account/hub
+                  value: hub-zot.pingcap.net/hub
                 - name: DST_REPO_PREFIX
                   value: hub.pingcap.net
               command:
