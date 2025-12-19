@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tikv_ghpr_integration-copr-test') {
+    disabled(true)
     logRotator {
         daysToKeep(60)
         numToKeep(500)

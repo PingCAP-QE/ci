@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tikv_ghpr_build_arm64') {
+    disabled(true)
     logRotator {
         daysToKeep(90)
         numToKeep(1000)
