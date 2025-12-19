@@ -1,0 +1,152 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: fake-github-tag-create
+  labels:
+    type: fake-github-tag-create
+spec:
+  interceptors:
+    - name: filter on repo
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in [
+              'pingcap-inc/tici',
+              'pingcap/ng-monitoring',
+              'pingcap/ticdc',
+              'pingcap/tidb',
+              'pingcap/tidb-binlog',
+              'pingcap/tidb-dashboard',
+              'pingcap/tidb-operator',
+              'pingcap/tidb-tools',
+              'pingcap/tiflash',
+              'pingcap/tiflow',
+              'pingcap/tiproxy',
+              'tidbcloud/cloud-storage-engine',
+              'tidbcloud/tiflash-cse',
+              'tikv/pd',
+              'tikv/tikv'
+            ]
+            &&
+            ! (header.canonical('ce-paramPlatform') in [
+              'linux/amd64',
+              'linux/arm64',
+              'darwin/amd64',
+              'darwin/arm64'
+            ])
+        - name: overlays
+          value:
+            - key: resource-config
+              expression: >-
+                {
+                  'pingcap-inc/tici': {
+                    'timeout': '2h',
+                    'sourceWsSize': '50Gi',
+                    'builderResourcesCpu': '8',
+                    'builderResourcesMemory': '32Gi'
+                  },
+                  'pingcap/ng-monitoring': {
+                    'timeout': '30m',
+                    'sourceWsSize': '8Gi',
+                    'builderResourcesCpu': '2',
+                    'builderResourcesMemory': '4Gi'
+                  },
+                  'pingcap/ticdc': {
+                    'timeout': '20m',
+                    'sourceWsSize': '50Gi',
+                    'builderResourcesCpu': '4',
+                    'builderResourcesMemory': '16Gi'
+                  },
+                  'pingcap/tidb': {
+                    'timeout': '40m',
+                    'sourceWsSize': '50Gi',
+                    'builderResourcesCpu': '8',
+                    'builderResourcesMemory': '32Gi'
+                  },
+                  'pingcap/tidb-binlog': {
+                    'timeout': '2h',
+                    'sourceWsSize': '100Gi',
+                    'builderResourcesCpu': '8',
+                    'builderResourcesMemory': '32Gi'
+                  },
+                  'pingcap/tidb-dashboard': {
+                    'timeout': '40m',
+                    'sourceWsSize': '8Gi',
+                    'builderResourcesCpu': '2',
+                    'builderResourcesMemory': '4Gi'
+                  },
+                  'pingcap/tidb-operator': {
+                    'timeout': '30m',
+                    'sourceWsSize': '10Gi',
+                    'builderResourcesCpu': '2',
+                    'builderResourcesMemory': '8Gi'
+                  },
+                  'pingcap/tidb-tools': {
+                    'timeout': '1h',
+                    'sourceWsSize': '10Gi',
+                    'builderResourcesCpu': '4',
+                    'builderResourcesMemory': '16Gi'
+                  },
+                  'pingcap/tiflash': {
+                    'timeout': '2h',
+                    'sourceWsSize': '100Gi',
+                    'builderResourcesCpu': '16',
+                    'builderResourcesMemory': '64Gi'
+                  },
+                  'pingcap/tiflow': {
+                    'timeout': '40m',
+                    'sourceWsSize': '50Gi',
+                    'builderResourcesCpu': '8',
+                    'builderResourcesMemory': '32Gi'
+                  },
+                  'pingcap/tiproxy': {
+                    'timeout': '30m',
+                    'sourceWsSize': '10Gi',
+                    'builderResourcesCpu': '4',
+                    'builderResourcesMemory': '16Gi'
+                  },
+                  'tidbcloud/cloud-storage-engine': {
+                    'timeout': '2h30m',
+                    'sourceWsSize': '100Gi',
+                    'builderResourcesCpu': '16',
+                    'builderResourcesMemory': '64Gi'
+                  },
+                  'tidbcloud/tiflash-cse': {
+                    'timeout': '2h',
+                    'sourceWsSize': '100Gi',
+                    'builderResourcesCpu': '16',
+                    'builderResourcesMemory': '64Gi'
+                  },
+                  'tikv/pd': {
+                    'timeout': '40m',
+                    'sourceWsSize': '50Gi',
+                    'builderResourcesCpu': '8',
+                    'builderResourcesMemory': '32Gi'
+                  },
+                  'tikv/tikv': {
+                    'timeout': '2h30m',
+                    'sourceWsSize': '100Gi',
+                    'builderResourcesCpu': '16',
+                    'builderResourcesMemory': '64Gi'
+                  }
+                }[body.repository.full_name]
+            - key: custom-params
+              expression: >-
+                {
+                  'builder-image': header.canonical('ce-paramBuilderImage'),
+                  'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
+                }
+            - key: component
+              expression: >-
+                body.repository.full_name.startsWith('tidbcloud/') ? {
+                  'tidbcloud/tiflash-cse': 'tiflash',
+                  'tidbcloud/cloud-storage-engine': 'tikv',
+                }[body.repository.full_name]
+                : body.repository.name
+  bindings:
+    - ref: github-tag-create
+    - ref: ksy-dev-build-params
+
+  template:
+    ref: build-component-all-platforms

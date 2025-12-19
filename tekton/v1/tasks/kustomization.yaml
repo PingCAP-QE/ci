@@ -7,12 +7,14 @@ resources:
   - delivery/pingcap-deliver-images.yaml
   - delivery/pingcap-notify-to-deliver-images-to-cloud-tidbx.yaml
   - delivery/pingcap-notify-to-update-ops-tidbx.yaml
+  - delivery/publish-fileserver-from-oci-artifact.yaml
   - echo.yaml
   - git-clone.yaml
   - github-set-status.yaml
   - golang-build.yaml
   - golang-test.yaml
   - ks3utils.yaml
+  - multi-arch-image-collect.yaml
   - multi-arch-image-push.yaml
   - pingcap-build-binaries-darwin.yaml
   - pingcap-build-binaries-linux.yaml

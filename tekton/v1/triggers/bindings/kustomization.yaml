@@ -8,4 +8,6 @@ resources:
   - github-issue-comment.yaml
   - github-pr.yaml
   - github-tag-create.yaml
+  - harbor-image-push.yaml
   - ksy-classic-build-params.yaml
+  - ksy-dev-build-params.yaml

@@ -1,0 +1,21 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: push-oci-artifact-to-fileserver
+spec:
+  params:
+    - name: image_url
+      description: The OCI artifact full url
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: TaskRun
+      metadata:
+        generateName: publish-fileserver-from-oci-artifact-
+      spec:
+        taskRef:
+          name: publish-fileserver-from-oci-artifact
+        params:
+          - name: artifact-url
+            value: "$(tt.params.image_url)"
+          - name: publisher-url
+            value: https://publisher.pingcap.net

@@ -1,0 +1,101 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: multi-arch-image-collect
+spec:
+  description: |
+    The working flow:
+    1. list the tags for the repo.
+    2. filter the single arch tags.
+    3. get the digest of the tags.
+    4. the tags should follow the standard format:
+      - master-00595b4-release_linux_amd64 => master-00595b4-release => master-00595b4 => master
+      - master-00595b4-release-linux-arm64 => master-00595b4-release => master-00595b4 => master
+      - master-00595b4-release_arm64       => master-00595b4-release => master-00595b4 => master
+      - master-00595b4-release-arm64       => master-00595b4-release => master-00595b4 => master
+      - v6.5.7-20241119-4f2073d_linux_amd64 => v6.5.7-20241119-4f2073d
+      - v8.1.0-alpha-123-g1234567_linux_amd64 => v8.1.0-alpha-123-g0234567
+  params:
+    - name: image_url
+      description: |
+        The full url of the pushed image, contain the tag part.
+        It will parse the repo from it.
+    - name: release_tag_suffix
+      default: "release"
+  results:
+    - name: repo
+      description: image repo
+    - name: tags
+      description: tags pushed
+  steps:
+    - name: prepare-manifest
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      workingDir: /workspace
+      script: |
+        #! /usr/bin/env bash
+
+        set -exo pipefail
+
+        :> $(results.repo.path)
+        :> $(results.tags.path)
+        :> manifest.yaml
+
+        # steps:
+        # 1. check the pushed tag, if not existed, step will fail.
+        oras discover --distribution-spec v1.1-referrers-tag $(params.image_url)
+
+        # 2. compute the mult-arch tags and digests
+        pushed_repo="$(echo $(params.image_url) | cut -d ':' -f 1)"
+        pushed_tag="$(echo $(params.image_url) | cut -d ':' -f 2)"
+        tag=$(\
+          echo "$pushed_tag" | \
+          sed -E 's/[-_](amd64|arm64)$//g' | \
+          sed -E 's/[-_]linux$//g' \
+        )
+
+        # repo
+        yq -i ".image = \"$pushed_repo\"" manifest.yaml
+
+        # tags
+        tags=("$tag")
+        # [master-00595b4-release] => [master-00595b4-release, master-00595b4]
+        tags+=($(echo $tag | sed -E 's/[-_]$(params.release_tag_suffix)$//g'))
+        # [..., master-00595b4] => [..., master-00595b4, master]
+        semver_pattern="^v?[0-9]+\.[0-9]+\.[0-9]+([-+][a-zA-Z0-9]+)*$"
+        if [[ "$tag" =~ $semver_pattern ]]; then
+          echo "🤷 it is a semver tag, skip to trim the commit SHA suffix part."
+        else
+          echo "🎯 it is a <branch>-<commit> tag, I will trim the commit SHA suffix part."
+          tags+=($(echo ${tag##* } | sed -E 's/[-][0-9a-f]{7,40}//g'))
+        fi
+
+        # for tags
+        for t in "${tags[@]}"; do
+          yq -i ".tags = (.tags + [\"$t\"] | unique)" manifest.yaml
+        done
+
+        # digest map
+        for t in `oras repo tags $pushed_repo | grep -E "^${tag}[-_]linux[-_](amd64|arm64)$"`; do
+          manifest-tool inspect --raw "${pushed_repo}:$t" > manifest.json
+          platform=`jq -r '.os + "/" + .architecture' manifest.json`
+          digest=`jq -r '.digest' manifest.json`
+          echo "add for: ${platform} => ${digest}"
+
+          os="$(echo "$platform" | awk -F/ '{print $1}')"
+          architecture="${platform#*/}"
+          yq -i '.manifests += [{}]' manifest.yaml
+          yq -i ".manifests[-1].image = \"${pushed_repo}@${digest}\"" manifest.yaml
+          yq -i ".manifests[-1].platform.os = \"$os\"" manifest.yaml
+          yq -i ".manifests[-1].platform.architecture = \"$architecture\"" manifest.yaml
+        done
+
+        if yq -e '.manifests |length > 1' manifest.yaml >/dev/null 2>&1; then
+          printf "%s" "$pushed_repo" > $(results.repo.path)
+          yq '.tags | join " "' manifest.yaml | tr -d '\n' > $(results.tags.path)
+          cat manifest.yaml
+          manifest-tool push from-spec manifest.yaml
+        else
+          echo "🤷 no more than one arch tags found. Skip push oci manifest tags"
+          exit 0
+        fi
