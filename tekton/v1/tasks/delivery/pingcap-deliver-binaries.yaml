@@ -34,6 +34,10 @@ spec:
         memory: 128Mi
   steps:
     - name: notify-tiup-publisher
+      when:
+        - input: "$(params.publisher-url)"
+          operator: notin
+          values: ["false", ""]
       script: |
         #!/usr/bin/env bash
         set -euo pipefail

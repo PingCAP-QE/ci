@@ -2,11 +2,20 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - PingCAP-QE/artifacts/git-push.yaml
+  - _/fake-github/fake-github-branch-push-single-platform.yaml
+  - _/fake-github/fake-github-branch-push.yaml
+  - _/fake-github/fake-github-pr-single-platform.yaml
+  - _/fake-github/fake-github-pr.yaml
+  - _/fake-github/fake-github-tag-create-single-platform.yaml
+  - _/fake-github/fake-github-tag-create.yaml
+  - _/fake-github/shared-overlays.yaml
   - _/git-push-branch-build-community-darwin.yaml
   - _/git-push-branch-build-community-linux.yaml
   - _/git-push-branch-build-enterprise.yaml
   - _/git-push-branch-build-failpoint.yaml
   - _/git-push-on-fips-branches.yaml
+  - _/harbor/cronjobs/fetch-sync-pre-ver-image-tags-to-hub.yaml
+  - _/harbor/image-push-on-harbor-for-pingkai.yaml
   - ctl/artifact-push-on-harbor.yaml
   - harbor/cronjobs/fetch-sync-pre-ver-image-tags-to-hub.yaml
   - pingcap-inc/tici/git-create-tag.yaml

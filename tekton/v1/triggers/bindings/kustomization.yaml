@@ -9,3 +9,4 @@ resources:
   - github-pr.yaml
   - github-tag-create.yaml
   - ksy-classic-build-params.yaml
+  - ksy-dev-build-params.yaml

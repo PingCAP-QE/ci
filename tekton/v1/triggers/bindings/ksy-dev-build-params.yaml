@@ -1,0 +1,20 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: ksy-dev-build-params # only use in KSY clusters for dev-builds
+spec:
+  params:
+    - { name: boskos-server-url, value: http://boskos.ee-cd.svc }
+    - { name: builder-resources-cpu, value: $(extensions.resource-config.builderResourcesCpu) }
+    - {
+        name: builder-resources-memory,
+        value: $(extensions.resource-config.builderResourcesMemory),
+      }
+    - { name: ce-context, value: $(extensions.ce-context) }
+    - { name: component, value: $(extensions.component) }
+    - { name: force-builder-image, value: $(extensions.custom-params.builder-image) }
+    - { name: profile, value: $(extensions.custom-params.profile) }
+    - { name: publisher-url, value: "" } # no need publish in dev-builds
+    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/dev }
+    - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
+    - { name: timeout, value: $(extensions.resource-config.timeout) }
