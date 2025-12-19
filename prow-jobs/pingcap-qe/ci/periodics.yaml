@@ -32,7 +32,8 @@ periodics:
     spec:
       activeDeadlineSeconds: 300
       containers:
-        - name: main
+        - &periodic-reporter-flaky-tests-tidb-container
+          name: main
           image: denoland/deno:2.5.4
           command: [bash, -c]
           args:
@@ -104,3 +105,55 @@ periodics:
             requests:
               memory: 1Gi
               cpu: 200m
+  - name: periodic-reporter-flaky-tests-tidb-v85
+    decorate: true # need add this.
+    cron: "0 6 * * 5" # Run weekly at 14:00 UTC+8 (which is 6:00 UTC) every Friday
+    hidden: true
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-tidb-container
+          env:
+            - name: PARAM_REPO
+              value: pingcap/tidb
+            - name: PARAM_BRANCH
+              value: release-8.5
+            - name: PARAM_CASE_THRESHOLD_MS
+              value: "100000"
+            - name: PARAM_DSN
+              valueFrom:
+                secretKeyRef:
+                  key: ci-job-flay-report-dsn
+                  name: ci-job-params-mono
+            - name: PARAM_EMAIL_TO
+              valueFrom:
+                secretKeyRef:
+                  key: ci-job-flay-report-email-to
+                  name: ci-job-params-mono
+            - name: PARAM_EMAIL_CC
+              valueFrom:
+                secretKeyRef:
+                  key: ci-job-flay-report-email-cc
+                  name: ci-job-params-mono
+            - name: SMTP_SECURE
+              value: "true"
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-host
+                  name: ci-smtp
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-port
+                  name: ci-smtp
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-user
+                  name: ci-smtp
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-password
+                  name: ci-smtp
