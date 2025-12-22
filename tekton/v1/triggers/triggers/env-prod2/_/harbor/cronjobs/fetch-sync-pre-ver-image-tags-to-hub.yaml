@@ -31,7 +31,7 @@ spec:
                   set -euo pipefail
 
                   ocis=(
-                    pingcap/images/cdc
+                    pingcap/ticdc/image
                     pingcap/monitoring/image
                     pingcap/ng-monitoring/image
                     pingcap/ticdc/image
