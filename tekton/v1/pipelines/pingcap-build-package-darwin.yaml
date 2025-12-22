@@ -16,6 +16,13 @@ spec:
     - name: git-revision
       default: master
       type: string
+    - name: git-instead-of
+      description: |
+        Configure Git to use the `insteadOf` feature to speed up cloning.
+        You can specify multiple `insteadOf` configurations separated by commas.
+        For example: insteadof1 => new1, insteadof2 => new2
+      type: string
+      default: ""
     - name: component
       type: string
       description: |
@@ -82,6 +89,8 @@ spec:
           value: $(params.git-refspec)
         - name: subdirectory
           value: $(params.component)
+        - name: gitInsteadOf
+          value: $(params.git-instead-of)
       workspaces:
         - name: output
           workspace: source

@@ -42,6 +42,12 @@ spec:
       default: "http://boskos"
     - name: publisher-url
       default: "https://publisher.pingcap.net"
+    - name: git-instead-of
+      description: |
+        Configure Git to use the `insteadOf` feature to speed up cloning.
+        You can specify multiple `insteadOf` configurations separated by commas.
+        For example: insteadof1 => new1, insteadof2 => new2
+      default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -83,6 +89,8 @@ spec:
             value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
+          - name: git-instead-of
+            value: $(tt.params.git-instead-of)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
