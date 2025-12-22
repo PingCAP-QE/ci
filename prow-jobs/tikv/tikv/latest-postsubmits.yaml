@@ -17,15 +17,18 @@ postsubmits:
                 #!/usr/bin/env bash
                 set -euo pipefail
 
-                yum install -y cmake || true
-                yum install -y perl-CPAN perl-devel || true
-                yum install -y gcc-c++ glibc-devel || true
+                yum install -y cmake perl-CPAN perl-devel gcc-c++ glibc-devel || true
 
                 rustup component add llvm-tools-preview
 
-                curl -LO https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.109/cargo-nextest-0.9.109-aarch64-unknown-linux-gnu.tar.gz
-                tar xzvf cargo-nextest-0.9.109-aarch64-unknown-linux-gnu.tar.gz
-                cp cargo-nextest /usr/local/bin/
+                NEXTEST_VERSION="0.9.109"
+                NEXTEST_ARCH="aarch64-unknown-linux-gnu"
+                NEXTEST_TARBALL="cargo-nextest-${NEXTEST_VERSION}-${NEXTEST_ARCH}.tar.gz"
+                NEXTEST_URL="https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-${NEXTEST_VERSION}/${NEXTEST_TARBALL}"
+
+                curl -LO "${NEXTEST_URL}"
+                tar xzvf "${NEXTEST_TARBALL}"
+                mv cargo-nextest /usr/local/bin/
                 cargo-nextest --version
 
                 if ! command -v grcov >/dev/null 2>&1; then
