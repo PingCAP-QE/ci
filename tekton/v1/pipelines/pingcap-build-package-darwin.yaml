@@ -16,6 +16,13 @@ spec:
     - name: git-revision
       default: master
       type: string
+    - name: git-instead-of
+      description: |
+        Configure Git to use `git instead` for specific operations to speed up cloning.
+        You can specify multiple `insteadOf` configurations separated by commas.
+        For example: `insteadof1 => new1,insteadof2 => new2
+      type: string
+      default: ""
     - name: component
       type: string
       description: |

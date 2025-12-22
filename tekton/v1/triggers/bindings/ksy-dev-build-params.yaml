@@ -18,3 +18,7 @@ spec:
     - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/dev }
     - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
     - { name: timeout, value: $(extensions.resource-config.timeout) }
+    - name: git-instead-of
+      value: >-
+        https://github.com/ => http://git-cdn.cache.svc:80000/,
+        git@github.com: => http://git-cdn.cache.svc:80000/

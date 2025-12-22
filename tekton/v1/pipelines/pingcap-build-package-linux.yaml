@@ -16,6 +16,13 @@ spec:
     - name: git-revision
       default: master
       type: string
+    - name: git-instead-of
+      description: |
+        Configure Git to use `git instead` for specific operations to speed up cloning.
+        You can specify multiple `insteadOf` configurations separated by commas.
+        For example: `insteadof1 => new1,insteadof2 => new2
+      type: string
+      default: ""
     - name: component
       type: string
       description: |
@@ -60,9 +67,6 @@ spec:
     - name: pushed-images
       description: pushed single images.
       value: "$(tasks.build-images.results.pushed)"
-    # - name: pushed-multi-arch-images
-    #   description: pushed multi-arch images.
-    #   value: "$(tasks.build-images.results.pushed-multi-arch)"
   workspaces:
     - name: source
       description: The workspace where the git repo will be cloned.
@@ -88,6 +92,8 @@ spec:
           value: $(params.git-refspec)
         - name: subdirectory
           value: $(params.component)
+        - name: gitInsteadOf
+          value: $(params.git-instead-of)
       workspaces:
         - name: output
           workspace: source

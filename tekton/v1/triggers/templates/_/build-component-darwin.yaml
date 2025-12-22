@@ -37,6 +37,12 @@ spec:
       default: "http://boskos"
     - name: publisher-url
       default: "https://publisher.pingcap.net"
+    - name: git-instead-of
+      description: |
+        Configure Git to use `git instead` for specific operations to speed up cloning.
+        You can specify multiple `insteadOf` configurations separated by commas.
+        For example: `insteadof1 => new1,insteadof2 => new2
+      default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -78,6 +84,8 @@ spec:
             value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
+          - name: git-instead-of
+            value: $(tt.params.git-instead-of)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -101,9 +109,6 @@ spec:
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
-          # - name: git-basic-auth # fetch with git-cdn.
-          #   secret:
-          #     secretName: git-credentials-basic
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
@@ -147,6 +152,8 @@ spec:
             value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
+          - name: git-instead-of
+            value: $(tt.params.git-instead-of)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -170,9 +177,6 @@ spec:
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
-          # - name: git-basic-auth # fetch with git-cdn.
-          #   secret:
-          #     secretName: git-credentials-basic
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
