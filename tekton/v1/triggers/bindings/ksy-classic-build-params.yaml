@@ -5,7 +5,7 @@ metadata:
 spec:
   params:
     - name: registry
-      value: hub-zot.pingcap.net/hub
+      value: us-docker.pkg.dev/pingcap-testing-account/hub
     - name: boskos-server-url
       value: http://boskos.ee-cd.svc
     - name: publisher-url
