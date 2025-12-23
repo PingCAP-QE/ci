@@ -80,7 +80,6 @@ spec:
 
         if [ -f "$out_script" ]; then
           echo -n "true" > $(step.results.generated.path)
-          sed -i 's/fetch_file_from_oci_artifact hub.pingcap.net/fetch_file_from_oci_artifact hub-mig.pingcap.net/g' "$out_script"
           cat "$out_script"
         else
           echo -n "false" > $(step.results.generated.path)
