@@ -24,7 +24,7 @@ spec:
             'tikv/tikv',
             ]
             &&
-            body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+(-beta[.][0-9]+)?)$')
+            body.ref.matches('^refs/heads/(main|master|feature/fts|release-[6-9][.][0-9]+(-beta[.][0-9]+)?)$')
         - name: overlays
           value:
             - key: timeout
@@ -33,21 +33,21 @@ spec:
                 'pingcap/monitoring': '30m',
                 'pingcap/ng-monitoring': '30m',
                 'pingcap/ticdc': '20m',
-                'pingcap/tidb': '1h',
+                'pingcap/tidb': '45m',
                 'pingcap/tidb-dashboard': '40m',
-                'pingcap/tiflash': '3h',
+                'pingcap/tiflash': '2h',
                 'pingcap/tiflow': '40m',
                 'tikv/pd': '40m',
-                'tikv/tikv': '2h30m',
+                'tikv/tikv': '2h',
                 }[body.repository.full_name]
             - key: source-ws-size
               expression: >-
                 {
-                'pingcap/monitoring': '8Gi',
-                'pingcap/ng-monitoring': '8Gi',
+                'pingcap/monitoring': '20Gi',
+                'pingcap/ng-monitoring': '20Gi',
                 'pingcap/ticdc': '50Gi',
                 'pingcap/tidb': '50Gi',
-                'pingcap/tidb-dashboard': '8Gi',
+                'pingcap/tidb-dashboard': '20Gi',
                 'pingcap/tiflash': '100Gi',
                 'pingcap/tiflow': '50Gi',
                 'tikv/pd': '50Gi',
@@ -59,12 +59,12 @@ spec:
                 'pingcap/monitoring': '2',
                 'pingcap/ng-monitoring': '2',
                 'pingcap/ticdc': '4',
-                'pingcap/tidb': '8',
+                'pingcap/tidb': '6',
                 'pingcap/tidb-dashboard': '2',
-                'pingcap/tiflash': '16',
-                'pingcap/tiflow': '8',
-                'tikv/pd': '8',
-                'tikv/tikv': '16',
+                'pingcap/tiflash': '12',
+                'pingcap/tiflow': '6',
+                'tikv/pd': '6',
+                'tikv/tikv': '12',
                 }[body.repository.full_name]
             - key: builder-resources-memory
               expression: >-
@@ -72,16 +72,16 @@ spec:
                 'pingcap/monitoring': '4Gi',
                 'pingcap/ng-monitoring': '4Gi',
                 'pingcap/ticdc': '16Gi',
-                'pingcap/tidb': '32Gi',
+                'pingcap/tidb': '24Gi',
                 'pingcap/tidb-dashboard': '4Gi',
-                'pingcap/tiflash': '64Gi',
-                'pingcap/tiflow': '32Gi',
-                'tikv/pd': '32Gi',
-                'tikv/tikv': '64Gi',
+                'pingcap/tiflash': '48Gi',
+                'pingcap/tiflow': '24Gi',
+                'tikv/pd': '24Gi',
+                'tikv/tikv': '48Gi',
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: timeout, value: $(extensions.timeout) }

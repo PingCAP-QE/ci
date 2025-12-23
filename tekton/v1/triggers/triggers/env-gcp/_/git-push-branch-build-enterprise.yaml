@@ -41,22 +41,22 @@ spec:
             - key: builder-resources-cpu
               expression: >-
                 {
-                'pingcap/tidb': '8',
-                'pingcap/tiflash': '16',
-                'tikv/pd': '8',
-                'tikv/tikv': '16',
+                'pingcap/tidb': '6',
+                'pingcap/tiflash': '12',
+                'tikv/pd': '6',
+                'tikv/tikv': '12',
                 }[body.repository.full_name]
             - key: builder-resources-memory
               expression: >-
                 {
-                'pingcap/tidb': '32Gi',
-                'pingcap/tiflash': '64Gi',
-                'tikv/pd': '32Gi',
-                'tikv/tikv': '64Gi',
+                'pingcap/tidb': '24Gi',
+                'pingcap/tiflash': '48Gi',
+                'tikv/pd': '24Gi',
+                'tikv/tikv': '48Gi',
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - name: builder-resources-cpu
       value: $(extensions.builder-resources-cpu)
     - name: builder-resources-memory

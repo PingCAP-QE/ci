@@ -17,7 +17,7 @@ spec:
             body.ref.matches('^refs/heads/(feature/release-6.5-fips)$')
   bindings:
     - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: os, value: linux }
     - { name: profile, value: fips }
