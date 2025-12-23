@@ -81,6 +81,7 @@ spec:
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push
+    - ref: ksy-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: timeout, value: $(extensions.timeout) }

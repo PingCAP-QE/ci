@@ -53,6 +53,7 @@ spec:
               # Using explicit index instead of 'last()' which is not supported in Tekton CEL
               expression: body.event_data.resources[0].tag.split('_')[2]
   bindings:
+    - ref: ksy-classic-build-params
     - { name: component, value: ctl }
     - { name: profile, value: release }
     - { name: git-url, value: https://github.com/tikv/pd.git } # no need the repo to build but need it to compute version routes.
