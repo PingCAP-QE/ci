@@ -16,18 +16,11 @@ spec:
         - name: filter
           value: >-
             (
-              body.event_data.resources[0].resource_url.startsWith('hub.pingcap.net/')
+              body.event_data.resources[0].resource_url.startsWith('hub-zot.pingcap.net/hub/')
               ||
-              body.event_data.resources[0].resource_url.startsWith('hub-zot.pingcap.net/hub')
+              body.event_data.resources[0].resource_url.startsWith('us-docker.pkg.dev/pingcap-testing-account/hub/')
             ) &&
             body.event_data.repository.repo_full_name in [
-            'pingcap/tidb/package',
-            'pingcap/tiflow/package',
-            'pingcap/ticdc/package',
-            'pingcap/tidb-binlog/package',
-            'pingcap/tidb-ctl/package',
-            'tikv/pd/package',
-            'tikv/tikv/package',
             'hub/pingcap/tidb/package',
             'hub/pingcap/tiflow/package',
             'hub/pingcap/ticdc/package',
@@ -35,6 +28,13 @@ spec:
             'hub/pingcap/tidb-ctl/package',
             'hub/tikv/pd/package',
             'hub/tikv/tikv/package',
+            'pingcap-testing-account/hub/pingcap/tidb/package',
+            'pingcap-testing-account/hub/pingcap/tiflow/package',
+            'pingcap-testing-account/hub/pingcap/ticdc/package',
+            'pingcap-testing-account/hub/pingcap/tidb-binlog/package',
+            'pingcap-testing-account/hub/pingcap/tidb-ctl/package',
+            'pingcap-testing-account/hub/tikv/pd/package',
+            'pingcap-testing-account/hub/tikv/tikv/package',
             ] &&
             body.event_data.resources[0].tag.matches('^(master|main|release-[0-9]+[.][0-9]+(-beta[.][0-9]+)?)(-[0-9a-f]{6,10})_(darwin|linux)_(amd64|arm64)$')
         - name: overlays
@@ -53,7 +53,7 @@ spec:
               # Using explicit index instead of 'last()' which is not supported in Tekton CEL
               expression: body.event_data.resources[0].tag.split('_')[2]
   bindings:
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: ctl }
     - { name: profile, value: release }
     - { name: git-url, value: https://github.com/tikv/pd.git } # no need the repo to build but need it to compute version routes.

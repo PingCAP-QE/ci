@@ -11,9 +11,9 @@ resources:
   - _/git-push-branch-build-community-darwin.yaml
   - _/harbor/cronjobs/fetch-sync-pre-ver-image-tags-to-hub.yaml
   - _/harbor/image-push-on-harbor-for-pingkai.yaml
-  - ctl/artifact-push-on-harbor.yaml
   - pingcap-inc/tici/git-create-tag.yaml
   - pingcap-inc/tici/git-push.yaml
+  - pingcap/ctl/artifact-push-on-harbor.yaml
   - pingcap/ticdc/git-create-tag.yaml
   - pingcap/tidb-binlog/git-push.yaml
   - pingcap/tidb-ctl/git-create-tag.yaml

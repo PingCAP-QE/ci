@@ -1,0 +1,66 @@
+# Note: Tekton Triggers v0.24.x CEL implementation doesn't support the 'last()' method
+# See: https://tekton.dev/vault/triggers-v0.24.x-lts/cel_expressions/
+# Workaround: Use explicit array indexing instead of 'last()'
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: artifact-push-on-harbor-build-ctl-component
+  labels:
+    type: image-push
+spec:
+  interceptors:
+    - name: filter on image repo names and tags
+      ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            (
+              body.event_data.resources[0].resource_url.startsWith('hub-zot.pingcap.net/hub/')
+              ||
+              body.event_data.resources[0].resource_url.startsWith('us-docker.pkg.dev/pingcap-testing-account/hub/')
+            ) &&
+            body.event_data.repository.repo_full_name in [
+            'hub/pingcap/tidb/package',
+            'hub/pingcap/tiflow/package',
+            'hub/pingcap/ticdc/package',
+            'hub/pingcap/tidb-binlog/package',
+            'hub/pingcap/tidb-ctl/package',
+            'hub/tikv/pd/package',
+            'hub/tikv/tikv/package',
+            'pingcap-testing-account/hub/pingcap/tidb/package',
+            'pingcap-testing-account/hub/pingcap/tiflow/package',
+            'pingcap-testing-account/hub/pingcap/ticdc/package',
+            'pingcap-testing-account/hub/pingcap/tidb-binlog/package',
+            'pingcap-testing-account/hub/pingcap/tidb-ctl/package',
+            'pingcap-testing-account/hub/tikv/pd/package',
+            'pingcap-testing-account/hub/tikv/tikv/package',
+            ] &&
+            body.event_data.resources[0].tag.matches('^(master|main|release-[0-9]+[.][0-9]+(-beta[.][0-9]+)?)(-[0-9a-f]{6,10})_(darwin|linux)_(amd64|arm64)$')
+        - name: overlays
+          value:
+            - key: git-url
+              expression: >-
+                'https://github.com/' + body.event_data.repository.repo_full_name.translate('^hub/', '').replace('/package', '.git')
+            - key: git-ref
+              # - master-abcdef123_linux_amd64 => master
+              # - release-1.2-abcdef123_linux_amd64 => release-1.2
+              # - release-1.2-beta.1-abcdef123_linux_amd64 => release-1.2-beta.1
+              expression: body.event_data.resources[0].tag.split("_")[0].translate("-[0-9a-f]{6,10}$", "")
+            - key: os
+              expression: body.event_data.resources[0].tag.split('_')[1]
+            - key: arch
+              # Using explicit index instead of 'last()' which is not supported in Tekton CEL
+              expression: body.event_data.resources[0].tag.split('_')[2]
+  bindings:
+    - ref: ksy-classic-build-params
+    - { name: component, value: ctl }
+    - { name: profile, value: release }
+    - { name: git-url, value: https://github.com/tikv/pd.git } # no need the repo to build but need it to compute version routes.
+    # Both git-ref and git-revision intentionally use the same extension value
+    - { name: git-ref, value: $(extensions.git-ref) }
+    - { name: git-revision, value: $(extensions.git-ref) }
+    - { name: os, value: $(extensions.os) }
+    - { name: arch, value: $(extensions.arch) }
+  template:
+    ref: build-ctl-single-platform
