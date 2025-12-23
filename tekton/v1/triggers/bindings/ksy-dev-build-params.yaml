@@ -20,5 +20,5 @@ spec:
     - { name: timeout, value: $(extensions.resource-config.timeout) }
     - name: git-instead-of
       value: >-
-        https://github.com/ => http://git-cdn.cache.svc:80000/,
-        git@github.com: => http://git-cdn.cache.svc:80000/
+        https://github.com/ => http://git-cdn.cache.svc:8000/,
+        git@github.com: => http://git-cdn.cache.svc:8000/
