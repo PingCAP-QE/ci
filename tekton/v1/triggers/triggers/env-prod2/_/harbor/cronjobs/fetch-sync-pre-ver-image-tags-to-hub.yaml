@@ -13,6 +13,10 @@ spec:
         spec:
           restartPolicy: Never
           serviceAccountName: image-releaser
+          volumes:
+            - name: docker-config
+              secret:
+                secretName: image-release-cred
           containers:
             - name: copy-image-tags
               image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
@@ -28,7 +32,7 @@ spec:
               args:
                 - |
                   #!/usr/bin/env bash
-                  set -euo pipefail
+                  set -eu
 
                   ocis=(
                     pingcap/ticdc/image
@@ -67,7 +71,6 @@ spec:
                     echo "Sync pre version image tag from $SRC to $DEST"
 
                     # Get and filter the tags from $SRC repo, and copy the filted tags to $DEST repo
-
                     crane ls "$SRC" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-pre(-enterprise)?$' | sort -Vr | while IFS= read -r tag; do
                       echo "🚀 Processing tag $tag"
                       # if the tag in DEST is older than the tag in SRC, then we copy the tag from SRC to DEST.
@@ -89,6 +92,11 @@ spec:
                     exit 1
                   fi
 
+              volumeMounts:
+                - name: docker-config
+                  subPath: .dockerconfigjson
+                  mountPath: /root/.docker/config.json
+                  readOnly: true
               resources:
                 requests:
                   cpu: 200m
