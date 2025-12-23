@@ -150,8 +150,8 @@ postsubmits:
                 make server build_tools build_dumpling
             resources:
               requests:
-                cpu: "3"
-                memory: 12Gi
+                cpu: "6"
+                memory: 24Gi
               limits:
                 cpu: "6"
                 memory: 24Gi
