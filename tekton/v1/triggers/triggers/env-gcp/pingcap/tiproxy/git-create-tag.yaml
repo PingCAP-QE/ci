@@ -18,12 +18,12 @@ spec:
             body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|nextgen)([.][0-9]+.*)?)?$')
   bindings:
     - ref: github-tag-create
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: timeout, value: 30m }
-    - { name: source-ws-size, value: 10Gi }
-    - { name: builder-resources-memory, value: 32Gi }
-    - { name: builder-resources-cpu, value: "8" }
+    - { name: source-ws-size, value: 20Gi }
+    - { name: builder-resources-memory, value: 12Gi }
+    - { name: builder-resources-cpu, value: "3" }
   template:
-    ref: build-component-darwin
+    ref: build-component-all-platforms
