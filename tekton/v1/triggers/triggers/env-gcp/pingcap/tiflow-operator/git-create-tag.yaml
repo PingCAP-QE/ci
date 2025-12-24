@@ -1,30 +1,30 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-tiflow-operator
+  name: tag-create-pingcap-tiflow-operator
   labels:
-    type: github-branch-push
+    type: github-tag-create
     github-owner: pingcap
     github-repo: tiflow-operator
 spec:
   interceptors:
-    - name: filter on repo owner and name and branches
+    - name: filter on repo owner and name
       ref: { name: cel }
       params:
         - name: filter
           value: >-
             body.repository.full_name == 'pingcap/tiflow-operator'
             &&
-            body.ref.matches('^refs/heads/(master)$')
+            body.ref.matches('^v.+')
 
   bindings:
-    - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: github-tag-create
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: os, value: linux }
     - { name: profile, value: release }
     - { name: timeout, value: 30m }
-    - { name: source-ws-size, value: 5Gi }
+    - { name: source-ws-size, value: 20Gi }
     - { name: builder-resources-memory, value: 4Gi }
     - { name: builder-resources-cpu, value: "2" }
   template:
