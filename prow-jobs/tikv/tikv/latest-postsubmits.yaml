@@ -31,7 +31,7 @@ postsubmits:
                     NEXTEST_ARCH="aarch64-unknown-linux-gnu"
                     ;;
                   *)
-                    echo "Unsupported architecture: $ARCH"
+                    echo "Unsupported architecture: $ARCH" >&2
                     exit 1
                     ;;
                 esac
