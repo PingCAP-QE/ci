@@ -20,6 +20,7 @@ resources:
   - pingcap/advanced-statefulset/git-create-tag.yaml
   - pingcap/advanced-statefulset/git-push.yaml
   - pingcap/ctl/artifact-push-on-harbor.yaml
+  - pingcap/ticdc/git-create-tag.yaml
   - pingcap/tidb-operator/git-create-tag.yaml
   - pingcap/tidb-operator/git-push.yaml
   - pingcap/tidb/git-push-branch-build.yaml
