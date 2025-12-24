@@ -22,12 +22,25 @@ postsubmits:
                 rustup component add llvm-tools-preview
 
                 NEXTEST_VERSION="0.9.109"
-                NEXTEST_ARCH="aarch64-unknown-linux-gnu"
+                ARCH=$(uname -m)
+                case "$ARCH" in
+                  x86_64)
+                    NEXTEST_ARCH="x86_64-unknown-linux-gnu"
+                    ;;
+                  aarch64|arm64)
+                    NEXTEST_ARCH="aarch64-unknown-linux-gnu"
+                    ;;
+                  *)
+                    echo "Unsupported architecture: $ARCH" >&2
+                    exit 1
+                    ;;
+                esac
                 NEXTEST_TARBALL="cargo-nextest-${NEXTEST_VERSION}-${NEXTEST_ARCH}.tar.gz"
                 NEXTEST_URL="https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-${NEXTEST_VERSION}/${NEXTEST_TARBALL}"
 
                 curl -LO "${NEXTEST_URL}"
                 tar xzvf "${NEXTEST_TARBALL}"
+                chmod +x cargo-nextest
                 mv cargo-nextest /usr/local/bin/
                 cargo-nextest --version
 
