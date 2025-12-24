@@ -26,4 +26,4 @@ spec:
     - { name: builder-resources-memory, value: 12Gi }
     - { name: builder-resources-cpu, value: "3" }
   template:
-    ref: build-component-all-platforms
+    ref: build-component-linux
