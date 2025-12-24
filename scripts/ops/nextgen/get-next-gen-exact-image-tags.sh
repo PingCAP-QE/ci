@@ -6,7 +6,7 @@ check_tools() {
     # Check if jq, crane and gcloud is installed
     for tool in jq crane gcloud; do
         if ! command -v $tool &> /dev/null; then
-            echo "jq is not installed. Please install $tool before running this script."
+            echo "$tool is not installed. Please install $tool before running this script."
             exit 1
         fi
     done
@@ -95,7 +95,7 @@ fetch_all() {
     echo "🚀 Fetch images built from tidbcloud/cloud-storage-engine..."
     trunk_branch=dedicated
     release_branch=release-nextgen-20251011
-    img_repo=us.gcr.io/pingcap-public/tidbx/tikv
+    img_repo="${registry}/pingcap-public/tidbx/tikv
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
     fetch_next_gen_exact_tags $img_repo $release_branch
