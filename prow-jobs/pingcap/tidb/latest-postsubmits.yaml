@@ -134,7 +134,7 @@ postsubmits:
       skip_report: true
 
     - <<: *brancher
-      name: merged-build
+      name: merged-tidb-build
       cluster: default
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
