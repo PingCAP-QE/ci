@@ -139,6 +139,7 @@ postsubmits:
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
       max_concurrency: 1
+      skip_submodules: true
       spec:
         containers:
           - name: build
