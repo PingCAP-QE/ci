@@ -20,7 +20,6 @@ resources:
   - pingcap/tidb-ctl/git-push.yaml
   - pingcap/tidb-tools/git-create-tag.yaml
   - pingcap/tidb-tools/git-push.yaml
-  - pingcap/tidb/git-push-branch-build.yaml
   - pingcap/tiflow-operator/git-create-tag.yaml
   - pingcap/tiflow-operator/git-push.yaml
   - pingcap/tiproxy/git-create-tag.yaml
