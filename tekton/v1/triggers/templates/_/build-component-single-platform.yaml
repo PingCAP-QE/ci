@@ -28,7 +28,7 @@ spec:
       default: 2h
     - name: source-ws-size
       description: workspace size for source.
-      default: 10Gi
+      default: 20Gi
     - name: builder-resources-memory
       default: 16Gi
     - name: builder-resources-cpu

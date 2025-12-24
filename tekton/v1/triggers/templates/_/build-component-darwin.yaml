@@ -26,7 +26,7 @@ spec:
       default: 2h
     - name: source-ws-size
       description: workspace size for source.
-      default: 10Gi
+      default: 20Gi
     - name: ce-context
       description: cloud event context.
       default: "{}"
