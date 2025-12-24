@@ -22,13 +22,13 @@ spec:
 
   bindings:
     - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: os, value: linux }
     - { name: profile, value: enterprise-without-plugins }
     - { name: timeout, value: 45m }
     - { name: source-ws-size, value: 50Gi }
-    - { name: builder-resources-memory, value: 32Gi }
-    - { name: builder-resources-cpu, value: "8" }
+    - { name: builder-resources-memory, value: 24Gi }
+    - { name: builder-resources-cpu, value: "6" }
   template:
     ref: build-component-linux
