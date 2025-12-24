@@ -114,15 +114,6 @@ pipeline {
                     )
                 }
             }
-            post {
-                success {
-                    dir(REFS.repo) {
-                        script {
-                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage-extension.dat')
-                        }
-                    }
-                }
-            }
         }
     }
 }
