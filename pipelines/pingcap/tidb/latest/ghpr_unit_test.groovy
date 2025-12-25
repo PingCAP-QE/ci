@@ -120,23 +120,33 @@ pipeline {
                             done
                             echo "TestLogRanges shard (k8-fastbuild-ST):"
                             for root in "${bazel_out_parent}"/k8-fastbuild*/testlogs; do
-                              grep -nH "TestLogRanges" "$root/br/pkg/rtree/rtree_test/shard_*_of_8/test.log" 2>/dev/null || true
+                              for f in "$root"/br/pkg/rtree/rtree_test/shard_*_of_8/test.log; do
+                                grep -nH "TestLogRanges" "$f" 2>/dev/null || true
+                              done
                             done
                             echo "TestCheckRequirementsTiFlash shard (k8-fastbuild-ST):"
                             for root in "${bazel_out_parent}"/k8-fastbuild*/testlogs; do
-                              grep -nH "TestCheckRequirementsTiFlash" "$root/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log" 2>/dev/null || true
+                              for f in "$root"/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log; do
+                                grep -nH "TestCheckRequirementsTiFlash" "$f" 2>/dev/null || true
+                              done
                             done
                             echo "TestGetRegionSplitSizeKeys shard (k8-fastbuild-ST):"
                             for root in "${bazel_out_parent}"/k8-fastbuild*/testlogs; do
-                              grep -nH "TestGetRegionSplitSizeKeys" "$root/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log" 2>/dev/null || true
+                              for f in "$root"/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log; do
+                                grep -nH "TestGetRegionSplitSizeKeys" "$f" 2>/dev/null || true
+                              done
                             done
                             echo "Coverage entries for rtree/logging.go (k8-fastbuild-ST):"
                             for root in "${bazel_out_parent}"/k8-fastbuild*/testlogs; do
-                              grep -nH "github.com/pingcap/tidb/br/pkg/rtree/logging.go" "$root/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat" 2>/dev/null || true
+                              for f in "$root"/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat; do
+                                grep -nH "github.com/pingcap/tidb/br/pkg/rtree/logging.go" "$f" 2>/dev/null || true
+                              done
                             done
                             echo "Coverage entries for lightning local.go (k8-fastbuild-ST):"
                             for root in "${bazel_out_parent}"/k8-fastbuild*/testlogs; do
-                              grep -nHE "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" "$root/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat" 2>/dev/null || true
+                              for f in "$root"/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat; do
+                                grep -nHE "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" "$f" 2>/dev/null || true
+                              done
                             done
                         '''
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
