@@ -215,6 +215,7 @@ spec:
         - name: source
           workspace: source
     - name: deliver-binaries
+      retries: 2
       when:
         - input: $(tasks.build-binaries.results.pushed)
           operator: notin
@@ -231,6 +232,7 @@ spec:
         - name: publisher-url
           value: "$(params.publisher-url)"
     - name: deliver-images
+      retries: 2
       when:
         - input: $(tasks.build-images.results.pushed)
           operator: notin

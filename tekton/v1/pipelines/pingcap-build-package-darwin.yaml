@@ -189,6 +189,7 @@ spec:
         - name: message
           value: "'{}'"
     - name: deliver-binaries
+      retries: 2
       when:
         - input: $(tasks.build-binaries.results.pushed)
           operator: notin
