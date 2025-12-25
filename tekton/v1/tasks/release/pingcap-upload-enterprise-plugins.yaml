@@ -29,7 +29,7 @@ spec:
       env:
         - name: FILE_SERVER_URL
           value: "http://fileserver.pingcap.net"
-        - name: dl_svc_url
+        - name: DL_SERVER_URL
           value: "https://internal2-do.pingcap.net/dl"
       script: |
         #!/usr/bin/env bash
@@ -54,13 +54,13 @@ spec:
           tag="$(params.version)-enterprise_${platform}"
           echo "🚀 uploading for ${tag} ..."
 
-          curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}"
-          for f in $(curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}" | jq -r '.[]' | grep "plugins-v"); do
+          curl "${DL_SERVER_URL}/oci-files/${repo}?tag=${tag}"
+          for f in $(curl "${DL_SERVER_URL}/oci-files/${repo}?tag=${tag}" | jq -r '.[]' | grep "plugins-v"); do
             # TODO: skip it if it is uploaded remotely.
 
             # download from oci artifact.
             echo "🚀 Downloading $f from ${repo}:${tag} ..."
-            wget -q -O "$f" "${dl_svr_url}/oci-file/${repo}?tag=${tag}&file=$f"
+            wget -q -O "$f" "${DL_SERVER_URL}/oci-file/${repo}?tag=${tag}&file=$f"
             echo "✅ Downloaded $f from ${repo}:${tag} ."
 
             # upload it.

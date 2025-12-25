@@ -31,6 +31,8 @@ spec:
           value: "$(params.rc-version)"
         - name: ga-version
           value: $(params.version)
+        - name: registry
+          value: $(params.oci-registry)
       taskRef:
         name: tag-rc2ga-on-oci-artifacts
     - name: create-releases
