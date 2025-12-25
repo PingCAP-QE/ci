@@ -85,25 +85,25 @@ pipeline {
                             echo "bazel-testlogs -> $(readlink -f bazel-testlogs || true)"
                             echo "bazel output_path: $(bazel info output_path || true)"
                             echo "TestLogRanges shard (bazel-testlogs):"
-                            rg -n "TestLogRanges" bazel-testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/test.log || true
+                            grep -nH "TestLogRanges" bazel-testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/test.log 2>/dev/null || true
                             echo "TestCheckRequirementsTiFlash shard (bazel-testlogs):"
-                            rg -n "TestCheckRequirementsTiFlash" bazel-testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log || true
+                            grep -nH "TestCheckRequirementsTiFlash" bazel-testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log 2>/dev/null || true
                             echo "TestGetRegionSplitSizeKeys shard (bazel-testlogs):"
-                            rg -n "TestGetRegionSplitSizeKeys" bazel-testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log || true
+                            grep -nH "TestGetRegionSplitSizeKeys" bazel-testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log 2>/dev/null || true
                             echo "Coverage entries for rtree/logging.go (bazel-testlogs):"
-                            rg -n "github.com/pingcap/tidb/br/pkg/rtree/logging.go" bazel-testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat || true
+                            grep -nH "github.com/pingcap/tidb/br/pkg/rtree/logging.go" bazel-testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat 2>/dev/null || true
                             echo "Coverage entries for lightning local.go (bazel-testlogs):"
-                            rg -n "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" bazel-testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat || true
+                            grep -nHE "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" bazel-testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat 2>/dev/null || true
                             echo "TestLogRanges shard (k8-fastbuild-ST):"
-                            rg -n "TestLogRanges" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/test.log 2>/dev/null || true
+                            grep -nH "TestLogRanges" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/test.log 2>/dev/null || true
                             echo "TestCheckRequirementsTiFlash shard (k8-fastbuild-ST):"
-                            rg -n "TestCheckRequirementsTiFlash" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log 2>/dev/null || true
+                            grep -nH "TestCheckRequirementsTiFlash" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log 2>/dev/null || true
                             echo "TestGetRegionSplitSizeKeys shard (k8-fastbuild-ST):"
-                            rg -n "TestGetRegionSplitSizeKeys" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log 2>/dev/null || true
+                            grep -nH "TestGetRegionSplitSizeKeys" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log 2>/dev/null || true
                             echo "Coverage entries for rtree/logging.go (k8-fastbuild-ST):"
-                            rg -n "github.com/pingcap/tidb/br/pkg/rtree/logging.go" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat 2>/dev/null || true
+                            grep -nH "github.com/pingcap/tidb/br/pkg/rtree/logging.go" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat 2>/dev/null || true
                             echo "Coverage entries for lightning local.go (k8-fastbuild-ST):"
-                            rg -n "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat 2>/dev/null || true
+                            grep -nHE "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat 2>/dev/null || true
                         '''
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                         archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
