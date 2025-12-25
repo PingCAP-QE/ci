@@ -94,6 +94,12 @@ pipeline {
                             grep -nH "github.com/pingcap/tidb/br/pkg/rtree/logging.go" bazel-testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat 2>/dev/null || true
                             echo "Coverage entries for lightning local.go (bazel-testlogs):"
                             grep -nHE "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" bazel-testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat 2>/dev/null || true
+                            echo "k8-fastbuild-ST testlogs roots:"
+                            ls -la /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs 2>/dev/null || true
+                            echo "rtree testlogs files (k8-fastbuild-ST, sample):"
+                            find /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test -maxdepth 3 -type f \\( -name 'test.log' -o -name 'coverage.dat' \\) 2>/dev/null | head -n 20 || true
+                            echo "lightning local_test files (k8-fastbuild-ST, sample):"
+                            find /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test -maxdepth 3 -type f \\( -name 'test.log' -o -name 'coverage.dat' \\) 2>/dev/null | head -n 20 || true
                             echo "TestLogRanges shard (k8-fastbuild-ST):"
                             grep -nH "TestLogRanges" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/test.log 2>/dev/null || true
                             echo "TestCheckRequirementsTiFlash shard (k8-fastbuild-ST):"
