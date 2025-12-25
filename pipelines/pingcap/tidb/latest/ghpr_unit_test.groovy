@@ -94,22 +94,42 @@ pipeline {
                             grep -nH "github.com/pingcap/tidb/br/pkg/rtree/logging.go" bazel-testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat 2>/dev/null || true
                             echo "Coverage entries for lightning local.go (bazel-testlogs):"
                             grep -nHE "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" bazel-testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat 2>/dev/null || true
-                            echo "k8-fastbuild-ST testlogs roots:"
-                            ls -la /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs 2>/dev/null || true
-                            echo "rtree testlogs files (k8-fastbuild-ST, sample):"
-                            find /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test -maxdepth 3 -type f \\( -name 'test.log' -o -name 'coverage.dat' \\) 2>/dev/null | head -n 20 || true
-                            echo "lightning local_test files (k8-fastbuild-ST, sample):"
-                            find /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test -maxdepth 3 -type f \\( -name 'test.log' -o -name 'coverage.dat' \\) 2>/dev/null | head -n 20 || true
+                            output_path="$(bazel info output_path || true)"
+                            echo "bazel output_path resolved: ${output_path}"
+                            echo "testlogs roots under output_path:"
+                            for root in ${output_path}/k8-fastbuild*/testlogs; do
+                              if [ -d "$root" ]; then
+                                echo "$root"
+                              fi
+                            done
+                            echo "rtree testlogs files (output_path roots, sample):"
+                            for root in ${output_path}/k8-fastbuild*/testlogs; do
+                              find "$root/br/pkg/rtree/rtree_test" -maxdepth 3 -type f \\( -name 'test.log' -o -name 'coverage.dat' \\) 2>/dev/null | head -n 20
+                            done
+                            echo "lightning local_test files (output_path roots, sample):"
+                            for root in ${output_path}/k8-fastbuild*/testlogs; do
+                              find "$root/pkg/lightning/backend/local/local_test" -maxdepth 3 -type f \\( -name 'test.log' -o -name 'coverage.dat' \\) 2>/dev/null | head -n 20
+                            done
                             echo "TestLogRanges shard (k8-fastbuild-ST):"
-                            grep -nH "TestLogRanges" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/test.log 2>/dev/null || true
+                            for root in ${output_path}/k8-fastbuild*/testlogs; do
+                              grep -nH "TestLogRanges" "$root/br/pkg/rtree/rtree_test/shard_*_of_8/test.log" 2>/dev/null
+                            done
                             echo "TestCheckRequirementsTiFlash shard (k8-fastbuild-ST):"
-                            grep -nH "TestCheckRequirementsTiFlash" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log 2>/dev/null || true
+                            for root in ${output_path}/k8-fastbuild*/testlogs; do
+                              grep -nH "TestCheckRequirementsTiFlash" "$root/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log" 2>/dev/null
+                            done
                             echo "TestGetRegionSplitSizeKeys shard (k8-fastbuild-ST):"
-                            grep -nH "TestGetRegionSplitSizeKeys" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log 2>/dev/null || true
+                            for root in ${output_path}/k8-fastbuild*/testlogs; do
+                              grep -nH "TestGetRegionSplitSizeKeys" "$root/pkg/lightning/backend/local/local_test/shard_*_of_50/test.log" 2>/dev/null
+                            done
                             echo "Coverage entries for rtree/logging.go (k8-fastbuild-ST):"
-                            grep -nH "github.com/pingcap/tidb/br/pkg/rtree/logging.go" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat 2>/dev/null || true
+                            for root in ${output_path}/k8-fastbuild*/testlogs; do
+                              grep -nH "github.com/pingcap/tidb/br/pkg/rtree/logging.go" "$root/br/pkg/rtree/rtree_test/shard_*_of_8/coverage.dat" 2>/dev/null
+                            done
                             echo "Coverage entries for lightning local.go (k8-fastbuild-ST):"
-                            grep -nHE "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" /home/jenkins/.tidb/tmp/*/execroot/__main__/bazel-out/k8-fastbuild-ST-*/testlogs/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat 2>/dev/null || true
+                            for root in ${output_path}/k8-fastbuild*/testlogs; do
+                              grep -nHE "github.com/pingcap/tidb/pkg/lightning/backend/local/local.go:(350|367|370)" "$root/pkg/lightning/backend/local/local_test/shard_*_of_50/coverage.dat" 2>/dev/null
+                            done
                         '''
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                         archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
