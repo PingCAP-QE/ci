@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - pingcap-build-package-darwin.yaml
   - pingcap-build-package-linux.yaml
+  - pingcap-release-ga.yaml

@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: pingcap-create-github-releases
@@ -10,15 +11,15 @@ spec:
   workspaces:
     - name: github
       description: Must includes a key `token`
+  stepTemplate:
+    image: docker.io/denoland/deno:alpine-2.2.5
   steps:
     - name: create-releases
-      image: docker.io/denoland/deno:alpine-2.2.5
       script: |
         deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/flow/ga/create_github_release.ts \
           --version="$(params.version)" \
           --token="$(cat $(workspaces.github.path)/token)"
     - name: create-branches
-      image: docker.io/denoland/deno:alpine-2.2.5
       onError: continue # it's not so important.
       script: |
         deno run --allow-net https://github.com/PingCAP-QE/ci/raw/main/scripts/flow/ga/create-patch-release-branches.ts \

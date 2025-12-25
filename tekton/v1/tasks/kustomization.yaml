@@ -24,3 +24,10 @@ resources:
   - pingcap-git-clone-ext.yaml
   - release/create-pr-to-add-release-anchor-commit.yaml
   - release/create-pr-to-bump-tikv-version.yaml
+  - release/pingcap-compose-offline-pkgs.yaml
+  - release/pingcap-create-github-releases.yaml
+  - release/pingcap-upload-enterprise-plugins.yaml
+  - release/pingcap-upload-offline-package.yaml
+  - release/tag-rc2ga-on-oci-artifacts.yaml
+  - release/wait-delivery-images.yaml
+  - release/wait-delivery-tiup.yaml
