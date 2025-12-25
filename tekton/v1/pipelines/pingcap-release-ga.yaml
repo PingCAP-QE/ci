@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Pipeline.json
+apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: pingcap-release-ga
@@ -17,13 +18,10 @@ spec:
       default: http://tiup.pingcap.net:8987
       description: the product tiup mirror site.
     - name: oci-registry
-      default: hub.pingcap.net
+      default: us-docker.pkg.dev/pingcap-testing-account/hub
       description: The OCI registry stored the origin artifacts.
   workspaces:
-    # TODO: why need to push dm offline pkgs to another bucket?
-    - name: aws-secrets
-      optional: true
-    - name: aws-secrets-tencent
+    - name: s3-secrets
     - name: github
       description: for creating github release
   tasks:
@@ -79,7 +77,7 @@ spec:
       taskRef:
         name: pingcap-upload-offline-package
       workspaces:
-        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+        - { name: s3-secrets, workspace: s3-secrets }
       params:
         - { name: version, value: "$(params.version)" }
         - { name: edition, value: community }
@@ -106,7 +104,7 @@ spec:
         - { name: os, value: linux }
         - { name: arch, value: amd64 }
       workspaces:
-        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+        - { name: s3-secrets, workspace: s3-secrets }
     - name: compose-offline-pkgs-amd64-dm
       runAfter: [wait-delivery-tiup]
       taskRef: { name: pingcap-compose-offline-pkgs }
@@ -123,8 +121,7 @@ spec:
       taskRef:
         name: pingcap-upload-offline-package
       workspaces:
-        - { name: aws-secrets, workspace: aws-secrets }
-        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+        - { name: s3-secrets, workspace: s3-secrets }
       params:
         - { name: version, value: "$(params.version)" }
         - { name: edition, value: dm }
@@ -146,7 +143,7 @@ spec:
       taskRef:
         name: pingcap-upload-offline-package
       workspaces:
-        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+        - { name: s3-secrets, workspace: s3-secrets }
       params:
         - { name: version, value: "$(params.version)" }
         - { name: edition, value: community }
@@ -168,7 +165,7 @@ spec:
       taskRef:
         name: pingcap-upload-offline-package
       workspaces:
-        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+        - { name: s3-secrets, workspace: s3-secrets }
       params:
         - { name: version, value: "$(params.version)" }
         - { name: edition, value: enterprise }
@@ -190,8 +187,7 @@ spec:
       taskRef:
         name: pingcap-upload-offline-package
       workspaces:
-        - { name: aws-secrets, workspace: aws-secrets }
-        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+        - { name: s3-secrets, workspace: s3-secrets }
       params:
         - { name: version, value: "$(params.version)" }
         - { name: edition, value: dm }
@@ -203,6 +199,6 @@ spec:
       taskRef:
         name: pingcap-upload-enterprise-plugins
       workspaces:
-        - { name: aws-secrets-tencent, workspace: aws-secrets-tencent }
+        - { name: s3-secrets, workspace: s3-secrets }
       params:
         - { name: version, value: "$(params.version)" }

@@ -1,4 +1,5 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: wait-delivery-images
