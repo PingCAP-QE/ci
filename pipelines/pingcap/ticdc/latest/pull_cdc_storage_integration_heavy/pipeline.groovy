@@ -6,8 +6,9 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/latest/pod-pull_cdc_kafka_integration_heavy.yaml'
-final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/latest/pod-pull_cdc_integration_build.yaml'
+final BRANCH_ALIAS = 'latest'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
+final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -19,6 +20,7 @@ pipeline {
         }
     }
     environment {
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
@@ -84,8 +86,8 @@ pipeline {
                         }
                     }
                 }
-                dir("ticdc") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
+                dir(REFS.repo) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-storage-integration')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
@@ -113,8 +115,8 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08',
-                            'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09',
+                            'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
                 agent{
@@ -128,22 +130,10 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
-                            dir('ticdc') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    container("kafka") {
-                                        timeout(time: 6, unit: 'MINUTES') {
-                                            sh label: "Waiting for kafka ready", script: """
-                                                echo "Waiting for zookeeper to be ready..."
-                                                while ! nc -z localhost 2181; do sleep 10; done
-                                                echo "Waiting for kafka to be ready..."
-                                                while ! nc -z localhost 9092; do sleep 10; done
-                                                echo "Waiting for kafka-broker to be ready..."
-                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                            """
-                                        }
-                                    }
                                     sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_heavy_it_in_ci.sh kafka ${TEST_GROUP}
+                                        ./tests/integration_tests/run_heavy_it_in_ci.sh storage ${TEST_GROUP}
                                     """
                                 }
                             }

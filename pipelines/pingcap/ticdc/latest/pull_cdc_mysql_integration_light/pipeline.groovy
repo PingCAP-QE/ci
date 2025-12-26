@@ -1,13 +1,11 @@
-// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
-// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/latest/pod-pull_cdc_mysql_integration_light.yaml'
-final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/latest/pod-pull_cdc_integration_build.yaml'
+final BRANCH_ALIAS = 'latest'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
+final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -23,7 +21,7 @@ pipeline {
     }
     options {
         timeout(time: 80, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -91,6 +89,7 @@ pipeline {
                         sh label: "prepare", script: """
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
+                            [ -f ./bin/cdc_mysql_consumer ] || make mysql_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
