@@ -5,11 +5,8 @@ metadata:
 spec:
   params:
     - { name: boskos-server-url, value: http://boskos.ee-cd.svc }
-    - { name: builder-resources-cpu, value: $(extensions.resource-config.builderResourcesCpu) }
-    - {
-        name: builder-resources-memory,
-        value: $(extensions.resource-config.builderResourcesMemory),
-      }
+    - { name: builder-resources-cpu, value: $(extensions.resource-config.cpu) }
+    - { name: builder-resources-memory, value: $(extensions.resource-config.memory) }
     - { name: ce-context, value: $(extensions.ce-context) }
     - { name: component, value: $(extensions.component) }
     - { name: force-builder-image, value: $(extensions.custom-params.builder-image) }
