@@ -27,16 +27,16 @@ spec:
                 'pingcap/tidb',
                 'pingcap/tiflash',
                 'tikv/pd',
-              ] && && body.ref == 'refs/heads/master'
+              ] && body.ref == 'refs/heads/master'
             ) || (
               body.repository.full_name in [
                 'tidbcloud/cloud-storage-engine',
-              ] && && body.ref == 'dedicated'
+              ] && body.ref == 'dedicated'
             ) || (
               body.repository.full_name in [
                 'pingcap/tidb',
                 'pingcap/tiflash',
-              ] && && body.ref == 'refs/heads/feature/fts'
+              ] && body.ref == 'refs/heads/feature/fts'
             )
         - name: overlays
           value:
