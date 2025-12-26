@@ -17,9 +17,9 @@ pipelineJob('pingcap/ticdc/pull_cdc_kafka_integration_heavy') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/ticdc/latest/pull_cdc_kafka_integration_heavy.groovy")
+            scriptPath("pipelines/pingcap/ticdc/latest/pull_cdc_kafka_integration_heavy/pipeline.groovy")
             scm {
-                git{
+                git {
                     remote {
                         url('https://github.com/PingCAP-QE/ci.git')
                     }

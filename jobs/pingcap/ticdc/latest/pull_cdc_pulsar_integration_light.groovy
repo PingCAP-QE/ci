@@ -17,7 +17,7 @@ pipelineJob('pingcap/ticdc/pull_cdc_pulsar_integration_light') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/ticdc/latest/pull_cdc_pulsar_integration_light.groovy")
+            scriptPath("pipelines/pingcap/ticdc/latest/pull_cdc_pulsar_integration_light/pipeline.groovy")
             scm {
                 git{
                     remote {

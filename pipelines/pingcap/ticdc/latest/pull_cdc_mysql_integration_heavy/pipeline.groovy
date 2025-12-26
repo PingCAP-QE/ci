@@ -6,8 +6,9 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/latest/pod-pull_cdc_kafka_integration_light.yaml'
-final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/latest/pod-pull_cdc_integration_build.yaml'
+final BRANCH_ALIAS = 'latest'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
+final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -91,8 +92,7 @@ pipeline {
                         sh label: "prepare", script: """
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
-                            [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
+                            [ -f ./bin/cdc_mysql_consumer ] || make mysql_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
@@ -130,20 +130,8 @@ pipeline {
                         steps {
                             dir('ticdc') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    container("kafka") {
-                                        timeout(time: 6, unit: 'MINUTES') {
-                                            sh label: "Waiting for kafka ready", script: """
-                                                echo "Waiting for zookeeper to be ready..."
-                                                while ! nc -z localhost 2181; do sleep 10; done
-                                                echo "Waiting for kafka to be ready..."
-                                                while ! nc -z localhost 9092; do sleep 10; done
-                                                echo "Waiting for kafka-broker to be ready..."
-                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                            """
-                                        }
-                                    }
                                     sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_light_it_in_ci.sh kafka ${TEST_GROUP}
+                                        ./tests/integration_tests/run_heavy_it_in_ci.sh mysql ${TEST_GROUP}
                                     """
                                 }
                             }
