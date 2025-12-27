@@ -92,7 +92,6 @@ pipeline {
                         sh label: "prepare", script: """
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc_mysql_consumer ] || make mysql_consumer
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
