@@ -15,7 +15,7 @@ spec:
           value: >-
             body.repository.full_name == 'pingcap/tiproxy'
             &&
-            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|nextgen)([.][0-9]+.*)?)?$')
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta)([.][0-9]+)?)?$')
   bindings:
     - ref: github-tag-create
     - ref: gcp-classic-build-params
