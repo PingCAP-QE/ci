@@ -31,7 +31,7 @@ spec:
             ) || (
               body.repository.full_name in [
                 'tidbcloud/cloud-storage-engine',
-              ] && body.ref == 'dedicated'
+              ] && body.ref == 'refs/heads/dedicated'
             ) || (
               body.repository.full_name in [
                 'pingcap/tidb',
