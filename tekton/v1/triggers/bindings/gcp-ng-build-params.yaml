@@ -4,9 +4,10 @@ metadata:
   name: gcp-ng-build-params # only use in GCP clusters for nextgen builds
 spec:
   params:
-    - name: profile
-      value: next-gen
-    - name: registry
-      value: us-docker.pkg.dev/pingcap-testing-account/tidbx
-    - name: publisher-url
-      value: "https://do2.pingcap.net/publisher"
+    - { name: builder-resources-cpu, value: $(extensions.resource-config.cpu) }
+    - { name: builder-resources-memory, value: $(extensions.resource-config.memory) }
+    - { name: component, value: $(extensions.component) }
+    - { name: publisher-url, value: "https://do2.pingcap.net/publisher" }
+    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/tidbx }
+    - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
+    - { name: timeout, value: $(extensions.resource-config.timeout) }
