@@ -90,11 +90,23 @@ postsubmits:
                   --ignore "**/target/debug/build/**" \
                   -o lcov.info
 
-                  if ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B "$PULL_BASE_REF -r "tikv/tikv" -Z"; then
+                  UPLOAD_RC=0
+                  if ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B "$PULL_BASE_REF" -r "tikv/tikv" -Z; then
                     echo "Coverage report uploaded successfully to codecov.io"
                   else
                     echo "Codecov upload failed..."
-                    exit 1
+                    UPLOAD_RC=1
+                  fi
+
+                  if [ ${TEST_RC} -ne 0 ]; then
+                    echo "Task failed: Tests failed (exit code: ${TEST_RC})"
+                    exit ${TEST_RC}
+                  else
+                    echo "Task succeeded: All tests passed"
+                    if [ ${UPLOAD_RC} -ne 0 ]; then
+                      echo "Warning: Coverage upload failed, but tests passed"
+                    fi
+                    exit 0
                   fi
             env:
               - name: CODECOV_TOKEN
