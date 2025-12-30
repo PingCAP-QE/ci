@@ -18,11 +18,15 @@ spec:
           value:
             - key: images
               expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images.marshalJSON()
+            - key: target_images
+              expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().target_images.marshalJSON()
             - key: stage
               expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().stage
+
   bindings:
     - ref: github-issue-comment
     - { name: images, value: $(extensions.images) }
+    - { name: target_images, value: $(extensions.target_images) }
     - { name: stage, value: $(extensions.stage) }
   template:
     spec:
@@ -35,13 +39,15 @@ spec:
           metadata:
             generateName: pingcap-notify-to-deliver-images-to-cloud-tidbx-
           spec:
+            taskRef:
+              name: pingcap-notify-to-update-ops-tidbx
             params:
               - name: images
                 value: $(tt.params.images)
+              - name: target_images
+                value: $(tt.params.target_images)
               - name: stage
                 value: $(tt.params.stage)
-            taskRef:
-              name: pingcap-notify-to-update-ops-tidbx
             workspaces:
               - name: notify-config
                 secret:
