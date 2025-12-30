@@ -12,19 +12,25 @@ spec:
       params:
         - name: filter
           value: >-
-            body.repository.full_name in [
-            'pingcap/monitoring',
-            'pingcap/ng-monitoring',
-            'pingcap/ticdc',
-            'pingcap/tidb',
-            'pingcap/tidb-dashboard',
-            'pingcap/tiflash',
-            'pingcap/tiflow',
-            'tikv/pd',
-            'tikv/tikv',
-            ]
-            &&
-            body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+(-beta[.][0-9]+)?)$')
+            (
+              body.repository.full_name in [
+                'pingcap/monitoring',
+                'pingcap/ng-monitoring',
+                'pingcap/ticdc',
+                'pingcap/tidb',
+                'pingcap/tidb-dashboard',
+                'pingcap/tiflash',
+                'pingcap/tiflow',
+                'tikv/pd',
+                'tikv/tikv',
+              ]
+              &&
+              body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+(-beta[.][0-9]+)?)$')
+            ) || (
+              body.repository.full_name in [ 'pingcap/tiproxy' ]
+              &&
+              body.ref.matches('^refs/heads/(main|master|release-[0-9][.][0-9]+)$')
+            )
         - name: overlays
           value:
             - key: timeout
@@ -37,6 +43,7 @@ spec:
                 'pingcap/tidb-dashboard': '40m',
                 'pingcap/tiflash': '3h',
                 'pingcap/tiflow': '40m',
+                'pingcap/tiproxy': '30m',
                 'tikv/pd': '40m',
                 'tikv/tikv': '2h30m',
                 }[body.repository.full_name]
@@ -50,6 +57,7 @@ spec:
                 'pingcap/tidb-dashboard': '8Gi',
                 'pingcap/tiflash': '100Gi',
                 'pingcap/tiflow': '50Gi',
+                'pingcap/tiproxy': '10Gi',
                 'tikv/pd': '50Gi',
                 'tikv/tikv': '100Gi',
                 }[body.repository.full_name]
@@ -63,6 +71,7 @@ spec:
                 'pingcap/tidb-dashboard': '2',
                 'pingcap/tiflash': '16',
                 'pingcap/tiflow': '8',
+                'pingcap/tiproxy': '4',
                 'tikv/pd': '8',
                 'tikv/tikv': '16',
                 }[body.repository.full_name]
@@ -76,6 +85,7 @@ spec:
                 'pingcap/tidb-dashboard': '4Gi',
                 'pingcap/tiflash': '64Gi',
                 'pingcap/tiflow': '32Gi',
+                'pingcap/tiproxy': '16Gi',
                 'tikv/pd': '32Gi',
                 'tikv/tikv': '64Gi',
                 }[body.repository.full_name]
