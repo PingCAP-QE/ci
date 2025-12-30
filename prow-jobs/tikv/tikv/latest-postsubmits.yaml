@@ -84,19 +84,18 @@ postsubmits:
                   --branch \
                   --ignore-not-existing \
                   --ignore "target/debug/*" \
+                  --ignore "**/.cargo/**" \
+                  --ignore "**/cargo/**" \
+                  --ignore "**/target/debug/deps/**" \
+                  --ignore "**/target/debug/build/**" \
                   -o lcov.info
 
-                gzip -c lcov.info > lcov.info.gz
-
-                if ./codecov \
-                  -f lcov.info.gz \
-                  -C "${PULL_BASE_SHA}" \
-                  -B "$PULL_BASE_REF" \
-                  -Z; then
-                  echo "Coverage report uploaded successfully"
-                else
-                  echo "Upload failed"
-                fi
+                  if ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B "$PULL_BASE_REF -r "tikv/tikv" -Z"; then
+                    echo "Coverage report uploaded successfully to codecov.io"
+                  else
+                    echo "Codecov upload failed..."
+                    exit 1
+                  fi
             env:
               - name: CODECOV_TOKEN
                 valueFrom:
@@ -122,4 +121,4 @@ postsubmits:
                   storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
-                      storage: 200Gi
+                      storage: 100Gi
