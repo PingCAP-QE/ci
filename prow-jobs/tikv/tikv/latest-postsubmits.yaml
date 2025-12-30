@@ -26,9 +26,11 @@ postsubmits:
                 case "$ARCH" in
                   x86_64)
                     NEXTEST_ARCH="x86_64-unknown-linux-gnu"
+                    CODECOV_ARCH="linux"
                     ;;
                   aarch64|arm64)
                     NEXTEST_ARCH="aarch64-unknown-linux-gnu"
+                    CODECOV_ARCH="aarch64"
                     ;;
                   *)
                     echo "Unsupported architecture: $ARCH" >&2
@@ -49,11 +51,15 @@ postsubmits:
                 fi
                 grcov --version
 
+                curl -fsSL https://uploader.codecov.io/latest/${CODECOV_ARCH}/codecov -o codecov
+                chmod +x codecov
+
                 export FAIL_POINT=1
                 export ROCKSDB_SYS_SSE=1
                 export CARGO_INCREMENTAL=0
                 export RUSTFLAGS="-C instrument-coverage"
                 export NEXTEST_PROFILE=ci
+                export CUSTOM_TEST_COMMAND="nextest run --test-threads 8"
 
                 if [ -f /opt/rh/devtoolset-8/enable ]; then
                   echo "using devtoolset-8 (gcc 8)"
@@ -62,8 +68,7 @@ postsubmits:
                 fi
 
                 set +e
-                LLVM_PROFILE_FILE="tikv-%p-%m.profraw" \
-                RUST_TEST_THREADS=1 \
+                LLVM_PROFILE_FILE="/mnt/profraw/tikv-%p-%m.profraw" \
                 EXTRA_CARGO_ARGS=--no-fail-fast \
                 make test_with_nextest
                 TEST_RC=$?
@@ -72,30 +77,60 @@ postsubmits:
                   echo "tests failed (rc=${TEST_RC}), continue to generate coverage anyway"
                 fi
 
-                grcov . \
+                grcov /mnt/profraw/ \
                   --binary-path ./target/debug/ \
                   -s . \
                   -t lcov \
                   --branch \
                   --ignore-not-existing \
                   --ignore "target/debug/*" \
+                  --ignore "**/.cargo/**" \
+                  --ignore "**/cargo/**" \
+                  --ignore "**/target/debug/deps/**" \
+                  --ignore "**/target/debug/build/**" \
                   -o lcov.info
 
-                if ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B "$PULL_BASE_REF"; then
-                  echo "Coverage report uploaded successfully to codecov.io"
-                else
-                  echo "Codecov upload failed, but continuing..."
-                fi
+                  UPLOAD_RC=0
+                  if ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B "$PULL_BASE_REF" -r "tikv/tikv" -Z; then
+                    echo "Coverage report uploaded successfully to codecov.io"
+                  else
+                    echo "Codecov upload failed..."
+                    UPLOAD_RC=1
+                  fi
+
+                  if [ ${TEST_RC} -ne 0 ]; then
+                    echo "Task failed: Tests failed (exit code: ${TEST_RC})"
+                    exit ${TEST_RC}
+                  else
+                    echo "Task succeeded: All tests passed"
+                    if [ ${UPLOAD_RC} -ne 0 ]; then
+                      echo "Warning: Coverage upload failed, but tests passed"
+                    fi
+                    exit ${UPLOAD_RC}
+                  fi
             env:
               - name: CODECOV_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
                     key: tikv-tikv
+            volumeMounts:
+              - name: profraw-storage
+                mountPath: /mnt/profraw
             resources:
               requests:
-                cpu: "4"
-                memory: 8Gi
+                cpu: "8"
+                memory: 16Gi
               limits:
                 cpu: "8"
                 memory: 16Gi
+        volumes:
+          - name: profraw-storage
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "hyperdisk-rwo"
+                  resources:
+                    requests:
+                      storage: 100Gi
