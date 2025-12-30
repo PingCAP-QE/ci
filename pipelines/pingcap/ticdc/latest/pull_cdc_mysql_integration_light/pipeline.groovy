@@ -65,7 +65,7 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-mysql-integration')) {
-                        // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
+                        // build cdc, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
                             [ -f ./bin/cdc ] || make cdc
