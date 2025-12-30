@@ -32,6 +32,7 @@ spec:
     spec:
       params:
         - name: images
+        - name: target_images
         - name: stage
       resourceTemplates:
         - apiVersion: tekton.dev/v1
