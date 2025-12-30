@@ -168,10 +168,10 @@ spec:
           local source_images="$2"
           local target_images="$3"
 
-          local message="The Images are delivered to cloud registries of ${stage} env.\n"
-          message+="Sources:\n$(echo "$source_images" | jq -r '.[]')\n"
-          message+="Targets:\n$(echo "$target_images" | jq -r '.[]')"
-          echo "$message"
+          local title="The Images are delivered to cloud registries of ${stage} env."
+          local source_image_lines="$(echo "$source_images" | jq -r '.[]')"
+          local target_image_lines="$(echo "$target_images" | jq -r '.[]')"
+          printf "%s\nSources:\n%s\nTargets:\n%s" "$title" "$source_image_lines" "$target_image_lines"
         }
 
         function generate_ops_tickets_message() {
