@@ -151,7 +151,7 @@ spec:
         function send_lark_notification() {
           local message="$1"
           local lark_webhook_url="$2"
-          local body_file="/tmp/lark-notify-$(date +%s).json"
+          local body_file=$(mktemp)
 
           # Create JSON payload
           jq -n --arg text "$message" '{ msg_type: "text", content: { text: $text } }' > "$body_file"
