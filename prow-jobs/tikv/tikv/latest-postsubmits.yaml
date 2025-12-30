@@ -26,9 +26,11 @@ postsubmits:
                 case "$ARCH" in
                   x86_64)
                     NEXTEST_ARCH="x86_64-unknown-linux-gnu"
+                    CODECOV_ARCH="linux"
                     ;;
                   aarch64|arm64)
                     NEXTEST_ARCH="aarch64-unknown-linux-gnu"
+                    CODECOV_ARCH="aarch64"
                     ;;
                   *)
                     echo "Unsupported architecture: $ARCH" >&2
@@ -49,11 +51,15 @@ postsubmits:
                 fi
                 grcov --version
 
+                curl -fsSL https://uploader.codecov.io/latest/${CODECOV_ARCH}/codecov -o codecov
+                chmod +x codecov
+
                 export FAIL_POINT=1
                 export ROCKSDB_SYS_SSE=1
                 export CARGO_INCREMENTAL=0
                 export RUSTFLAGS="-C instrument-coverage"
                 export NEXTEST_PROFILE=ci
+                export CUSTOM_TEST_COMMAND="nextest run --test-threads 8"
 
                 if [ -f /opt/rh/devtoolset-8/enable ]; then
                   echo "using devtoolset-8 (gcc 8)"
@@ -62,8 +68,7 @@ postsubmits:
                 fi
 
                 set +e
-                LLVM_PROFILE_FILE="tikv-%p-%m.profraw" \
-                RUST_TEST_THREADS=4 \
+                LLVM_PROFILE_FILE="/mnt/profraw/tikv-%p-%m.profraw" \
                 EXTRA_CARGO_ARGS=--no-fail-fast \
                 make test_with_nextest
                 TEST_RC=$?
@@ -72,7 +77,7 @@ postsubmits:
                   echo "tests failed (rc=${TEST_RC}), continue to generate coverage anyway"
                 fi
 
-                grcov . \
+                grcov /mnt/profraw/ \
                   --binary-path ./target/debug/ \
                   -s . \
                   -t lcov \
@@ -81,10 +86,16 @@ postsubmits:
                   --ignore "target/debug/*" \
                   -o lcov.info
 
-                if ./codecov -f lcov.info -C "${PULL_BASE_SHA}" -B "$PULL_BASE_REF"; then
-                  echo "Coverage report uploaded successfully to codecov.io"
+                gzip -c lcov.info > lcov.info.gz
+
+                if ./codecov \
+                  -f lcov.info.gz \
+                  -C "${PULL_BASE_SHA}" \
+                  -B "$PULL_BASE_REF" \
+                  -Z; then
+                  echo "Coverage report uploaded successfully"
                 else
-                  echo "Codecov upload failed, but continuing..."
+                  echo "Upload failed"
                 fi
             env:
               - name: CODECOV_TOKEN
@@ -92,10 +103,23 @@ postsubmits:
                   secretKeyRef:
                     name: codecov-tokens
                     key: tikv-tikv
+            volumeMounts:
+              - name: profraw-storage
+                mountPath: /mnt/profraw
             resources:
               requests:
-                cpu: "4"
-                memory: 8Gi
+                cpu: "8"
+                memory: 16Gi
               limits:
                 cpu: "8"
                 memory: 16Gi
+        volumes:
+          - name: profraw-storage
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "hyperdisk-rwo"
+                  resources:
+                    requests:
+                      storage: 200Gi
