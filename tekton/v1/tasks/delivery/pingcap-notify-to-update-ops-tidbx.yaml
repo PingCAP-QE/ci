@@ -16,6 +16,10 @@ spec:
     - name: images
       type: string
       description: images list
+    - name: target_images
+      type: string
+      description: delivered target images list
+      default: "[]"
     - name: stage
       type: string
       description: stage name
@@ -41,8 +45,7 @@ spec:
         - input: "$(params.stage)"
           operator: in
           values: ["prod"]
-      args:
-        ["$(params.stage)", "$(params.images)", "/workspace/ops-tickets.txt"]
+      args: ["$(params.stage)", "$(params.images)", "/workspace/ops-tickets.txt"]
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -92,7 +95,7 @@ spec:
             ops_instance_id=$(jq -r .instance_id $response_file)
             ops_ticket_url="$(get_ops_instance_url $stage $ops_instance_id)"
             echo "✅ Requested image updating successfully for component $component@$component_version in stage $stage with: $image_repo:$image_tag, the Ops ticket URL is: $ops_ticket_url"
-            echo "$component@$component_version in stage $stage: $ops_ticket_url" >> "$save_file"
+            echo "$component@$component_version in $stage stage: $ops_ticket_url" >> "$save_file"
         }
 
         function update_ops_config_for_image() {
@@ -140,34 +143,55 @@ spec:
         main "$@"
 
     - name: notify-in-lark-channel
-      args:
-        ["$(params.stage)", "$(params.images)", "/workspace/ops-tickets.txt"]
+      args: ["$(params.stage)", "$(params.images)", "$(params.target_images)", "/workspace/ops-tickets.txt"]
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
 
-        function notify_in_lark_channel() {
-          local content="$1"
+        function send_lark_notification() {
+          local message="$1"
           local lark_webhook_url="$2"
+          local body_file=$(mktemp)
 
-          printf "%s" "$content" > content.txt
-          body_file=/workspace/lark-notify.json
-          yq -n --output-format json '.msg_type = "text"' > $body_file
-          yq --output-format json -i '.content.text = load_str("content.txt")' $body_file
+          # Create JSON payload
+          jq -n --arg text "$message" '{ msg_type: "text", content: { text: $text } }' > "$body_file"
 
-          # send lark message.
-          curl --fail -X POST -H 'Content-Type: application/json' -d "@$body_file" "$lark_webhook_url"
-          rm -f content.txt $body_file
+          # Send notification
+          curl --fail -X POST -H "Content-Type: application/json" -d "@$body_file" "$lark_webhook_url"
+
+          # Clean up
+          rm -f "$body_file"
         }
 
+        function generate_image_delivery_message() {
+          local stage="$1"
+          local source_images="$2"
+          local target_images="$3"
+
+          local message="The Images are delivered to cloud registries of ${stage} env.\n"
+          message+="Sources:\n$(echo "$source_images" | jq -r '.[]')\n"
+          message+="Targets:\n$(echo "$target_images" | jq -r '.[]')"
+          echo "$message"
+        }
+
+        function generate_ops_tickets_message() {
+          local stage="$1"
+          local tickets_file="$2"
+
+          local message="The Ops tickets are created for ${stage} env:\n"
+          message+="$(cat "$tickets_file")"
+          echo "$message"
+        }
+
+        # Main execution
         lark_webhook_url="$(cat $(workspaces.notify-config.path)/${1}_lark_webhook)"
 
-        # update image delivery results
-        content="$(printf "The Images are delivered to cloud registries of %s env:\n%s" "$1" "$(echo "$2" | jq -r '.[]')")"
-        notify_in_lark_channel "$content" "$lark_webhook_url"
+        # Send image delivery notification
+        image_delivery_message="$(generate_image_delivery_message "$1" "$2" "$3")"
+        send_lark_notification "$image_delivery_message" "$lark_webhook_url"
 
-        # update ops ticket create results
-        if [ -f "$3" ]; then
-          content="$(printf "The Ops tickets are created for %s env:\n%s" "$1" "$(cat $3)")"
-          notify_in_lark_channel "$content" "$lark_webhook_url"
+        # Send ops tickets notification if tickets file exists
+        if [ -f "$4" ]; then
+          ops_tickets_message="$(generate_ops_tickets_message "$1" "$4")"
+          send_lark_notification "$ops_tickets_message" "$lark_webhook_url"
         fi
