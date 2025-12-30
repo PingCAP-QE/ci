@@ -106,7 +106,7 @@ postsubmits:
                     if [ ${UPLOAD_RC} -ne 0 ]; then
                       echo "Warning: Coverage upload failed, but tests passed"
                     fi
-                    exit 0
+                    exit ${UPLOAD_RC}
                   fi
             env:
               - name: CODECOV_TOKEN
