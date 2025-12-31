@@ -129,7 +129,11 @@ pipeline {
                                 git diff .
                                 git status
                                 """
-                                sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
+                                sh """
+                                export BRIETEST_TMPDIR="${WORKSPACE}/tmp"
+                                mkdir -p "${WORKSPACE}/tmp"
+                                ${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}
+                                """
                             }
                         }
                         post {
