@@ -11,6 +11,11 @@ final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIDB = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+
 pipeline {
     agent {
         kubernetes {
@@ -20,11 +25,11 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     options {
         timeout(time: 100, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
@@ -61,45 +66,50 @@ pipeline {
         stage("prepare") {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir("third_party_download") {
-                    script {
-                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        retry(2) {
-                            sh label: "download third_party", script: """
-                                export TIDB_BRANCH=${tidbBranch}
-                                export PD_BRANCH=${pdBranch}
-                                export TIKV_BRANCH=${tikvBranch}
-                                export TIFLASH_BRANCH=${tiflashBranch}
-                                cd ../ticdc && ./tests/scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                                make check_third_party_binary
-                                cd - && mkdir -p bin && mv ../ticdc/bin/* ./bin/
-                                ls -alh ./bin
-                                ./bin/tidb-server -V
-                                ./bin/pd-server -V
-                                ./bin/tikv-server -V
-                                ./bin/tiflash --version
-                            """
-                        }
-                    }
-                }
                 dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
-                        // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-mysql-integration')) {
+                        // build cdc, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
-                            ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
                         """
                     }
+                    container("utils") {
+                        dir("bin") {
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        chmod +x \$script
+                                        \$script \
+                                            --pd=${OCI_TAG_PD} \
+                                            --pd-ctl=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --minio=RELEASE.2025-07-23T15-54-02Z
+
+                                        ls -d tiflash
+                                        mv tiflash tiflash-dir
+                                        mv tiflash-dir/* .
+                                        rm -rf tiflash-dir
+                                    """
+                                }
+                            }
+                        }
+                    }
+                    script {
+                        retry(2) {
+                            sh label: "download third_party", script: """
+                                ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
+                            """
+                        }
+                    }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                         sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
                             ls -alh ./bin
                         """
                     }
@@ -112,8 +122,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08',
-                            'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
                 agent{
@@ -129,10 +138,19 @@ pipeline {
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_heavy_it_in_ci.sh mysql ${TEST_GROUP}
+                                    sh """
+                                        make check_third_party_binary
+                                        ls -alh ./bin
+                                        ./bin/tidb-server -V
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/tiflash --version
+
                                     """
                                 }
+                                sh label: "${TEST_GROUP}", script: """
+                                    ./tests/integration_tests/run_heavy_it_in_ci.sh mysql ${TEST_GROUP}
+                                """
                             }
                         }
                         post {
