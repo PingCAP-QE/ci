@@ -134,9 +134,8 @@ function main() {
     if [[ -n "$ETCDCTL" ]]; then
         echo "🚀 start download etcdctl"
         download "$etcd_oci_url" '^etcd-v.+.tar.gz$' etcd.tar.gz
-        tar -zxf etcd.tar.gz
-        mv etcd-*/etcdctl ./
-        rm -rf etcd.tar.gz etcd-*
+        tar -zxf etcd.tar.gz --strip-components=1 --wildcards '*/etcdctl'
+        rm etcd.tar.gz
         chmod +x etcdctl
         echo "🎉 download etcdctl success"
     fi
