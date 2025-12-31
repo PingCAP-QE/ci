@@ -148,11 +148,10 @@ function main() {
     fi
     if [[ -n "$SCHEMA_REGISTRY" ]]; then
         echo "🚀 start download schema-registry"
-        folder=schema-registry
-        download_and_extract_with_path "$schema_registry_oci_url" '^schema-registry.*.tar.gz$' schema-registry.tar.gz "$folder"
-        chmod +x $folder/bin/*
-        mv $folder/* ./
-        rmdir $folder
+        download "$schema_registry_oci_url" '^schema-registry.*.tar.gz$' schema-registry.tar.gz
+        tar -zxf schema-registry.tar.gz --strip-components=1
+        rm schema-registry.tar.gz
+        chmod +x bin/*
         echo "🎉 download schema-registry success"
     fi
     if [[ -n "$SYNC_DIFF_INSPECTOR" ]]; then
