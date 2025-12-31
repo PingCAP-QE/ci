@@ -143,6 +143,7 @@ pipeline {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                     sh """
+                                        ln -sf /usr/bin/jq ./bin/jq
                                         make check_third_party_binary
                                         ls -alh ./bin
                                         ./bin/tidb-server -V
