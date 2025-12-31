@@ -134,6 +134,27 @@ function main() {
         chmod +x minio mc
         echo "🎉 download MinIO server and client success"
     fi
+    if [[ -n "$ETCDCTL" ]]; then
+        echo "🚀 start download etcdctl"
+        download_and_extract_with_path "$etcd_oci_url" '^ctl-v.+.tar.gz$' ctl.tar.gz etcdctl
+        chmod +x etcdctl
+        echo "🎉 download etcdctl success"
+    fi
+    if [[ -n "$YCSB" ]]; then
+        echo "🚀 start download go-ycsb"
+        download_and_extract_with_path "$ycsb_oci_url" '^go-ycsb-.+.tar.gz$' go-ycsb.tar.gz go-ycsb
+        chmod +x go-ycsb
+        echo "🎉 download go-ycsb success"
+    fi
+    if [[ -n "$SCHEMA_REGISTRY" ]]; then
+        echo "🚀 start download schema-registry"
+        folder=schema-registry
+        download_and_extract_with_path "$schema_registry_oci_url" '^schema-registry.*.tar.gz$' schema-registry.tar.gz "$folder"
+        chmod +x $folder/bin/*
+        mv $folder/* ./
+        rmdir $folder
+        echo "🎉 download schema-registry success"
+    fi
 }
 
 function parse_cli_args() {
@@ -175,6 +196,18 @@ function parse_cli_args() {
         MINIO="${i#*=}"
         shift # past argument=value
         ;;
+        -etcdctl=*|--etcdctl=*)
+        ETCDCTL="${i#*=}"
+        shift # past argument=value
+        ;;
+        -ycsb=*|--ycsb=*)
+        YCSB="${i#*=}"
+        shift # past argument=value
+        ;;
+        -schema-registry=*|--schema-registry=*)
+        SCHEMA_REGISTRY="${i#*=}"
+        shift # past argument=value
+        ;;
         --default)
         DEFAULT=YES
         shift # past argument with no value
@@ -197,6 +230,9 @@ function parse_cli_args() {
     [[ -n "${TICDC}" ]]         && echo "TICDC       = ${TICDC}"
     [[ -n "${TICDC_NEW}" ]]     && echo "TICDC_NEW   = ${TICDC_NEW}"
     [[ -n "${MINIO}" ]]         && echo "MINIO       = ${MINIO}"
+    [[ -n "${ETCDCTL}" ]]       && echo "ETCDCTL     = ${ETCDCTL}"
+    [[ -n "${YCSB}" ]]          && echo "YCSB        = ${YCSB}"
+    [[ -n "${SCHEMA_REGISTRY}" ]] && echo "SCHEMA_REGISTRY = ${SCHEMA_REGISTRY}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
@@ -216,6 +252,9 @@ function parse_cli_args() {
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
     ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
     minio_oci_url="${registry_host}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
+    etcd_oci_url="${registry_host}/pingcap/third-party/etcd:${ETCDCTL}_${tag_suffix}"
+    ycsb_oci_url="${registry_host}/pingcap/go-ycsb/package:${YCSB}_${tag_suffix}"
+    schema_registry_oci_url="${registry_host}/pingcap/third-party/schema-registry:${SCHEMA_REGISTRY}_${tag_suffix}"
 }
 
 function check_tools() {
