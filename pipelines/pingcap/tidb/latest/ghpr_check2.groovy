@@ -130,8 +130,8 @@ pipeline {
                                 git status
                                 """
                                 sh """
-                                export BRIETEST_TMPDIR="${WORKSPACE}/tmp"
                                 mkdir -p "${WORKSPACE}/tmp"
+                                export BRIETEST_TMPDIR="${WORKSPACE}/tmp"
                                 ${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}
                                 """
                             }
