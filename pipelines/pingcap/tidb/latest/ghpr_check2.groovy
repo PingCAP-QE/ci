@@ -131,7 +131,7 @@ pipeline {
                                 """
                                 sh """
                                 export BRIETEST_TMPDIR="${WORKSPACE}/tmp"
-                                mkdir -vp "$BRIETEST_TMPDIR"
+                                mkdir -vp "\$BRIETEST_TMPDIR"
 
                                 ${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}
                                 """
