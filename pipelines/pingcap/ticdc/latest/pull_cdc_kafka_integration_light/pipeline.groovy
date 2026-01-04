@@ -15,6 +15,11 @@ final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls
 final OCI_TAG_TIDB = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
+final OCI_TAG_ETCD = 'v3.5.15'
+final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_SCHEMA_REGISTRY = 'latest'
 
 pipeline {
     agent {
@@ -92,7 +97,11 @@ pipeline {
                                             --tikv=${OCI_TAG_TIKV} \
                                             --tidb=${OCI_TAG_TIDB} \
                                             --tiflash=${OCI_TAG_TIFLASH} \
-                                            --minio=RELEASE.2025-07-23T15-54-02Z
+                                            --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR} \
+                                            --minio=${OCI_TAG_MINIO} \
+                                            --etcdctl=${OCI_TAG_ETCD} \
+                                            --ycsb=${OCI_TAG_YCSB} \
+                                            --schema-registry=${OCI_TAG_SCHEMA_REGISTRY}
 
                                         ls -d tiflash
                                         mv tiflash tiflash-dir
@@ -101,13 +110,6 @@ pipeline {
                                     """
                                 }
                             }
-                        }
-                    }
-                    script {
-                        retry(2) {
-                            sh label: "download third_party", script: """
-                                ./tests/scripts/download-integration-test-binaries-next-gen.sh && ls -alh ./bin
-                            """
                         }
                     }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
@@ -142,6 +144,7 @@ pipeline {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                                     sh """
+                                        ln -sf /usr/bin/jq ./bin/jq
                                         make check_third_party_binary
                                         ls -alh ./bin
                                         ./bin/tidb-server -V
