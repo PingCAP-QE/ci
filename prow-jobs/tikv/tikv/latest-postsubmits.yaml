@@ -59,7 +59,7 @@ postsubmits:
                 export CARGO_INCREMENTAL=0
                 export RUSTFLAGS="-C instrument-coverage"
                 export NEXTEST_PROFILE=ci
-                export CUSTOM_TEST_COMMAND="nextest run --test-threads 8"
+                export CUSTOM_TEST_COMMAND="nextest run --test-threads 6"
 
                 if [ -f /opt/rh/devtoolset-8/enable ]; then
                   echo "using devtoolset-8 (gcc 8)"
@@ -119,10 +119,10 @@ postsubmits:
                 mountPath: /mnt/profraw
             resources:
               requests:
-                cpu: "8"
+                cpu: "6"
                 memory: 16Gi
               limits:
-                cpu: "8"
+                cpu: "6"
                 memory: 16Gi
         volumes:
           - name: profraw-storage
