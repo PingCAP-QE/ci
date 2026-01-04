@@ -15,6 +15,7 @@ final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "
 final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
 final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 final OCI_TAG_SCHEMA_REGISTRY = 'latest'
@@ -97,7 +98,7 @@ pipeline {
                                             --tidb=${OCI_TAG_TIDB} \
                                             --tiflash=${OCI_TAG_TIFLASH} \
                                             --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR} \
-                                            --minio=RELEASE.2025-07-23T15-54-02Z \
+                                            --minio=${OCI_TAG_MINIO} \
                                             --etcdctl=${OCI_TAG_ETCD} \
                                             --ycsb=${OCI_TAG_YCSB} \
                                             --schema-registry=${OCI_TAG_SCHEMA_REGISTRY}
