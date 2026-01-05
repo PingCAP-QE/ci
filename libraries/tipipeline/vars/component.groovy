@@ -218,7 +218,7 @@ def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentials
     sshagent(credentials: [credentialsId]) {
         sh label: 'Know hosts', script: """#!/usr/bin/env bash
             [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-            ssh-keyscan -t rsa,dsa github.com >> ~/.ssh/known_hosts
+            ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
         """
         sh(label: 'checkout', script: """#!/usr/bin/env bash
             set -e
