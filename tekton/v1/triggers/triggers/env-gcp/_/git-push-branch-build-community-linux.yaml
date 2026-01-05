@@ -77,7 +77,7 @@ spec:
                 'pingcap/tiflash': '48Gi',
                 'pingcap/tiflow': '24Gi',
                 'tikv/pd': '24Gi',
-                'tikv/tikv': '48Gi',
+                'tikv/tikv': '56Gi',
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push
