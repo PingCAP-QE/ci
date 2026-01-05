@@ -82,7 +82,7 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
     sshagent(credentials: [credentialsId]) {
         sh label: 'Know hosts', script: """
             [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-            ssh-keyscan -t rsa,dsa ${gitSshHost} >> ~/.ssh/known_hosts
+            ssh-keyscan -t rsa,ecdsa,ed25519 ${gitSshHost} >> ~/.ssh/known_hosts
         """
         // checkout base.
         sh label: 'Checkout and merge pull request(s) to target if exist', script: """#!/usr/bin/env bash
