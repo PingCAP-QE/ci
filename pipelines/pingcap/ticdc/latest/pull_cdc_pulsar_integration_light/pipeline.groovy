@@ -44,6 +44,7 @@ pipeline {
                     echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
                 """
                 container(name: 'net-tool') {
+                    sh 'dig github.com'
                 }
             }
         }
