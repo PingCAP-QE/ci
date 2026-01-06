@@ -10,6 +10,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -37,9 +38,6 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
                 }
             }
         }
@@ -112,8 +110,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09',
-                            'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
                 agent{

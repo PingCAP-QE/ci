@@ -1,6 +1,3 @@
-// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
-// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
@@ -10,6 +7,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -37,9 +35,6 @@ pipeline {
                 """
                 container(name: 'net-tool') {
                     sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
                 }
             }
         }
