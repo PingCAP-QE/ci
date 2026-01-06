@@ -10,6 +10,7 @@ presubmits:
   pingcap/ticdc:
     - name: pingcap/ticdc/pull_cdc_mysql_integration_light_next_gen
       agent: jenkins
+      max_concurrency: 2
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light-next-gen
@@ -20,6 +21,7 @@ presubmits:
 
     - name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_next_gen
       agent: jenkins
+      max_concurrency: 2
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
@@ -31,6 +33,7 @@ presubmits:
 
     - name: pingcap/ticdc/pull_cdc_kafka_integration_light_next_gen
       agent: jenkins
+      max_concurrency: 2
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
@@ -42,6 +45,7 @@ presubmits:
 
     - name: pingcap/ticdc/pull_cdc_kafka_integration_heavy_next_gen
       agent: jenkins
+      max_concurrency: 2
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
@@ -53,6 +57,7 @@ presubmits:
 
     - name: pingcap/ticdc/pull_cdc_pulsar_integration_light_next_gen
       agent: jenkins
+      max_concurrency: 2
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
@@ -64,6 +69,7 @@ presubmits:
 
     - name: pingcap/ticdc/pull_cdc_storage_integration_light_next_gen
       agent: jenkins
+      max_concurrency: 2
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
@@ -75,6 +81,7 @@ presubmits:
 
     - name: pingcap/ticdc/pull_cdc_storage_integration_heavy_next_gen
       agent: jenkins
+      max_concurrency: 2
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
