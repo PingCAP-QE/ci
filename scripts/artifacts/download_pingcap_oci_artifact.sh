@@ -253,6 +253,7 @@ function parse_cli_args() {
     local tag_suffix=$(compute_tag_platform_suffix)
 
     registry_host="${OCI_ARTIFACT_HOST:-hub.pingcap.net}"
+    registry_host_community="${OCI_ARTIFACT_HOST_COMMUNITY:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
@@ -261,11 +262,13 @@ function parse_cli_args() {
     pd_ctl_oci_url="${registry_host}/tikv/pd/package:${PD_CTL}_${tag_suffix}"
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
     ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
-    minio_oci_url="${registry_host}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
-    etcd_oci_url="${registry_host}/pingcap/third-party/etcd:${ETCDCTL}_${tag_suffix}"
-    ycsb_oci_url="${registry_host}/pingcap/go-ycsb/package:${YCSB}_${tag_suffix}"
-    schema_registry_oci_url="${registry_host}/pingcap/third-party/schema-registry:${SCHEMA_REGISTRY}_${tag_suffix}"
-    sync_diff_inspector_oci_url="${registry_host}/pingcap/tiflow/package:${SYNC_DIFF_INSPECTOR}_${tag_suffix}"
+
+    # third party or public test tools.
+    minio_oci_url="${registry_host_community}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
+    etcd_oci_url="${registry_host_community}/pingcap/third-party/etcd:${ETCDCTL}_${tag_suffix}"
+    ycsb_oci_url="${registry_host_community}/pingcap/go-ycsb/package:${YCSB}_${tag_suffix}"
+    schema_registry_oci_url="${registry_host_community}/pingcap/third-party/schema-registry:${SCHEMA_REGISTRY}_${tag_suffix}"
+    sync_diff_inspector_oci_url="${registry_host_community}/pingcap/tiflow/package:${SYNC_DIFF_INSPECTOR}_${tag_suffix}"
 }
 
 function check_tools() {
