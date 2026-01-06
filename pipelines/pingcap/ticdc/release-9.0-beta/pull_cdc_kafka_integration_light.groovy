@@ -10,6 +10,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

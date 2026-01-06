@@ -11,6 +11,7 @@ final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pu
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

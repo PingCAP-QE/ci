@@ -21,6 +21,7 @@ final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 final OCI_TAG_SCHEMA_REGISTRY = 'latest'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

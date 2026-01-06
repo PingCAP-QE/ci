@@ -7,7 +7,6 @@ final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-
 final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIDB = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
@@ -18,6 +17,7 @@ final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 final OCI_TAG_SCHEMA_REGISTRY = 'latest'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
