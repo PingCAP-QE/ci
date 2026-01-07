@@ -51,7 +51,7 @@ presubmits:
                   fi
                 fi
                 if command -v clang-format &> /dev/null; then
-                  find librocksdb_sys/crocksdb/ -iname "*.h" -o -iname "*.cc" | xargs -L1 clang-format -i
+                  find librocksdb_sys/crocksdb/ -iname "*.h" -o -iname "*.cc" | xargs -P 4 -L1 clang-format -i
                   if [[ $(git diff) ]]; then
                     echo "Run scripts/format-diff.sh to format your code."
                     git diff
