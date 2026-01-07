@@ -38,7 +38,7 @@ presubmits:
                 # Run tici-server to display version
                 ./target/debug/tici-server --version || { echo "Failed to run tici-server"; exit 1; }
 
-                # check format & clippy
+                # check format & clippy & bench compile
                 make check
 
                 # Run unit tests
@@ -46,10 +46,10 @@ presubmits:
             resources:
               requests:
                 cpu: "6"
-                memory: 12Gi
+                memory: 24Gi
               limits:
                 cpu: "6"
-                memory: 12Gi
+                memory: 24Gi
 
     - <<: *brancher
       name: pull-it
@@ -76,10 +76,10 @@ presubmits:
             resources:
               requests:
                 cpu: "6"
-                memory: 12Gi
+                memory: 24Gi
               limits:
                 cpu: "6"
-                memory: 12Gi
+                memory: 24Gi
 
     - <<: *brancher
       name: pull-e2e
@@ -106,7 +106,7 @@ presubmits:
             resources:
               requests:
                 cpu: "6"
-                memory: 12Gi
+                memory: 24Gi
               limits:
                 cpu: "6"
-                memory: 12Gi
+                memory: 24Gi
