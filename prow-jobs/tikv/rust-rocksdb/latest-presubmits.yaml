@@ -1,0 +1,248 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+presubmits:
+  tikv/rust-rocksdb:
+    # Format check job - checks both Rust and C++ formatting
+    - <<: *brancher
+      name: pull-rust-rocksdb-format
+      decorate: true
+      always_run: false  
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: rust
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
+            command: [bash, -ce]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Sync rust-toolchain with TiKV
+                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+                cat ./rust-toolchain.toml
+
+                # Check Rust formatting
+                cargo fmt --all -- --check
+
+                # Check C++ formatting
+                if [ -f /opt/rh/llvm-toolset-7.0/enable ]; then
+                  source /opt/rh/llvm-toolset-7.0/enable
+                  clang-format --version
+                else
+                  if ! command -v clang-format &> /dev/null; then
+                    dnf install -y clang-tools-extra 2>/dev/null || \
+                    yum install -y clang-tools-extra 2>/dev/null || \
+                    echo "Warning: Could not install clang-format, skipping C++ format check"  
+                  fi
+                fi
+                if command -v clang-format &> /dev/null; then
+                  find librocksdb_sys/crocksdb/ -iname "*.h" -o -iname "*.cc" | xargs -L1 clang-format -i
+                  if [[ $(git diff) ]]; then
+                    echo "Run scripts/format-diff.sh to format your code."
+                    git diff
+                    exit 1
+                  fi
+                fi
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
+
+    # x86 minimal features test (no features)
+    - <<: *brancher
+      name: pull-rust-rocksdb-test-x86-minimal
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        volumes:
+          - name: cargo-cache
+            persistentVolumeClaim:
+              claimName: cargo-home-linux-amd64
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: rust
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
+            command: [bash, -ce]
+            env:
+              - name: RUST_BACKTRACE
+                value: "1"
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+                
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+                
+                # Sync rust-toolchain with TiKV
+                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+                cat ./rust-toolchain.toml
+                
+                # Build with minimal features
+                cargo build
+                
+                # Run tests with minimal features
+                cargo test --all
+            volumeMounts:
+              - name: cargo-cache
+                mountPath: /root/.cargo
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
+
+    # x86 all features test (encryption, portable, jemalloc, sse)
+    - <<: *brancher
+      name: pull-rust-rocksdb-test-x86-all
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        volumes:
+          - name: cargo-cache
+            persistentVolumeClaim:
+              claimName: cargo-home-linux-amd64
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: rust
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
+            command: [bash, -ce]
+            env:
+              - name: RUST_BACKTRACE
+                value: "1"
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+                
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+                
+                # Sync rust-toolchain with TiKV
+                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+                cat ./rust-toolchain.toml
+                
+                # Build with all x86 features
+                cargo build --features=encryption,portable,jemalloc,sse
+                
+                # Run tests with all x86 features
+                cargo test --all --features=encryption,portable,jemalloc,sse
+            volumeMounts:
+              - name: cargo-cache
+                mountPath: /root/.cargo
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
+
+    # ARM test (encryption, portable, jemalloc)
+    - <<: *brancher
+      name: pull-rust-rocksdb-test-arm
+      cluster: gcp-prow-ksyun
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        volumes:
+          - name: cargo-cache
+            persistentVolumeClaim:
+              claimName: cargo-home-linux-arm64
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - arm64
+        containers:
+          - name: rust
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
+            command: [bash, -ce]
+            env:
+              - name: RUST_BACKTRACE
+                value: "1"
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+                
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+                
+                # Sync rust-toolchain with TiKV
+                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+                cat ./rust-toolchain.toml
+                
+                # Build with ARM features
+                cargo build --features=encryption,portable,jemalloc
+                
+                # Run tests with ARM features
+                cargo test --all --features=encryption,portable,jemalloc
+            volumeMounts:
+              - name: cargo-cache
+                mountPath: /root/.cargo
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "8"
+                memory: 16Gi
