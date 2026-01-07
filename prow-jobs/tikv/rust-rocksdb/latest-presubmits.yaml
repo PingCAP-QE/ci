@@ -10,7 +10,7 @@ presubmits:
     - <<: *brancher
       name: pull-rust-rocksdb-format
       decorate: true
-      always_run: false  
+      always_run: false
       optional: true
       skip_if_only_changed: *skip_if_only_changed
       spec:
@@ -47,7 +47,7 @@ presubmits:
                   if ! command -v clang-format &> /dev/null; then
                     dnf install -y clang-tools-extra 2>/dev/null || \
                     yum install -y clang-tools-extra 2>/dev/null || \
-                    echo "Warning: Could not install clang-format, skipping C++ format check"  
+                    echo "Warning: Could not install clang-format, skipping C++ format check"
                   fi
                 fi
                 if command -v clang-format &> /dev/null; then
@@ -94,21 +94,21 @@ presubmits:
               - |
                 #!/usr/bin/env bash
                 set -exo pipefail
-                
+
                 # Setup GCC 8
                 if [ -f /opt/rh/devtoolset-8/enable ]; then
                   source /opt/rh/devtoolset-8/enable
                 fi
                 g++ --version
                 cmake --version
-                
+
                 # Sync rust-toolchain with TiKV
                 curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
                 cat ./rust-toolchain.toml
-                
+
                 # Build with minimal features
                 cargo build
-                
+
                 # Run tests with minimal features
                 cargo test --all
             resources:
@@ -147,21 +147,21 @@ presubmits:
               - |
                 #!/usr/bin/env bash
                 set -exo pipefail
-                
+
                 # Setup GCC 8
                 if [ -f /opt/rh/devtoolset-8/enable ]; then
                   source /opt/rh/devtoolset-8/enable
                 fi
                 g++ --version
                 cmake --version
-                
+
                 # Sync rust-toolchain with TiKV
                 curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
                 cat ./rust-toolchain.toml
-                
+
                 # Build with all x86 features
                 cargo build --features=encryption,portable,jemalloc,sse
-                
+
                 # Run tests with all x86 features
                 cargo test --all --features=encryption,portable,jemalloc,sse
             resources:
@@ -201,21 +201,21 @@ presubmits:
               - |
                 #!/usr/bin/env bash
                 set -exo pipefail
-                
+
                 # Setup GCC 8
                 if [ -f /opt/rh/devtoolset-8/enable ]; then
                   source /opt/rh/devtoolset-8/enable
                 fi
                 g++ --version
                 cmake --version
-                
+
                 # Sync rust-toolchain with TiKV
                 curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
                 cat ./rust-toolchain.toml
-                
+
                 # Build with ARM features
                 cargo build --features=encryption,portable,jemalloc
-                
+
                 # Run tests with ARM features
                 cargo test --all --features=encryption,portable,jemalloc
             resources:
