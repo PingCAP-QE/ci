@@ -1,0 +1,200 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+presubmits:
+  tikv/rust-rocksdb:
+    # Lint check job - checks both Rust and C++ linting
+    - <<: *brancher
+      name: pull-rust-rocksdb-lint
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: rust
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            command: [bash, -ce]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Sync rust-toolchain with TiKV
+                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+
+                # Check Rust formatting
+                cargo fmt --all -- --check
+
+                # Check C++ formatting
+                if ! command -v clang-format &> /dev/null; then
+                  # CentOS 7 uses yum and llvm-toolset-7.0
+                  yum install -y llvm-toolset-7.0
+                  if [ -f /opt/rh/llvm-toolset-7.0/enable ]; then
+                    source /opt/rh/llvm-toolset-7.0/enable
+                  fi
+                fi
+                find librocksdb_sys/crocksdb/ \( -iname "*.h" -o -iname "*.cc" \) | while read f; do
+                  diff -q <(clang-format "$f") "$f" || (echo "❌ $f" && exit 1)
+                done
+            resources:
+              requests:
+                cpu: "3"
+                memory: 6Gi
+              limits:
+                cpu: "3"
+                memory: 6Gi
+
+    # x86 test (minimal + all features)
+    - <<: *brancher
+      name: pull-rust-rocksdb-test-x86
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: rust
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            command: [bash, -ce]
+            env:
+              - name: RUST_BACKTRACE
+                value: "1"
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+
+                # Sync rust-toolchain with TiKV
+                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+
+                # Test 1: Build and test with x86 minimal features
+                echo "=========================================="
+                echo "Testing: x86 minimal features (no features)"
+                echo "=========================================="
+                if ! cargo build; then
+                  echo "❌ Minimal build failed"
+                  exit 1
+                fi
+                echo "✅ Minimal build passed"
+                if ! cargo test --all; then
+                  echo "❌ Minimal tests failed"
+                  exit 1
+                fi
+                echo "✅ Minimal tests passed"
+
+                # Test 2: Build and test with all x86 features
+                echo "=========================================="
+                echo "Testing: all x86 features (encryption,portable,jemalloc,sse)"
+                echo "=========================================="
+                if ! cargo build --features=encryption,portable,jemalloc,sse; then
+                  echo "❌ All features build failed"
+                  exit 1
+                fi
+                echo "✅ All x86 features build passed"
+
+                if ! cargo test --all --features=encryption,portable,jemalloc,sse; then
+                  echo "❌ All x86 features tests failed"
+                  exit 1
+                fi
+                echo "✅ All x86 features tests passed"
+            resources:
+              requests:
+                cpu: "4"
+                memory: 6Gi
+              limits:
+                cpu: "4"
+                memory: 6Gi
+
+    # ARM test
+    - <<: *brancher
+      name: pull-rust-rocksdb-test-arm
+      cluster: gcp-prow-ksyun
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - arm64
+        containers:
+          - name: rust
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            command: [bash, -ce]
+            env:
+              - name: RUST_BACKTRACE
+                value: "1"
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+
+                # Sync rust-toolchain with TiKV
+                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+
+                # echo "=========================================="
+                # echo "Testing: arm minimal features (no features)"
+                # echo "=========================================="
+                # if ! cargo build; then
+                #   echo "❌ Minimal build failed"
+                #   exit 1
+                # fi
+                # echo "✅ Minimal build passed"
+                # if ! cargo test --all; then
+                #   echo "❌ Minimal tests failed"
+                #   exit 1
+                # fi
+                # echo "✅ Minimal tests passed"
+
+                # Build and test with ARM features
+                cargo build --features=encryption,portable,jemalloc
+                cargo test --all --features=encryption,portable,jemalloc
+            resources:
+              requests:
+                cpu: "4"
+                memory: 6Gi
+              limits:
+                cpu: "4"
+                memory: 6Gi
