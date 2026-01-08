@@ -18,9 +18,8 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - args:
-        - cat
-      image: hub.pingcap.net/jenkins/rocky8_golang-1.25:tini
+    - image: ghcr.io/pingcap-qe/ci/jenkins:v2025.12.28-2-g97bb688-go1.25
+      command: [tini, --, bash]
       imagePullPolicy: Always
       name: golang
       resources:
