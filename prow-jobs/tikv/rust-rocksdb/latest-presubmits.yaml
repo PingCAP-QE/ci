@@ -25,7 +25,7 @@ presubmits:
                         - amd64
         containers:
           - name: rust
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
             command: [bash, -ce]
             args:
               - |
@@ -39,7 +39,13 @@ presubmits:
                 cargo fmt --all -- --check
 
                 # Check C++ formatting
-                dnf install -y clang-tools-extra
+                if ! command -v clang-format &> /dev/null; then
+                  # CentOS 7 uses yum and llvm-toolset-7.0
+                  yum install -y llvm-toolset-7.0
+                  if [ -f /opt/rh/llvm-toolset-7.0/enable ]; then
+                    source /opt/rh/llvm-toolset-7.0/enable
+                  fi
+                fi
                 find librocksdb_sys/crocksdb/ \( -iname "*.h" -o -iname "*.cc" \) | while read f; do
                   diff -q <(clang-format "$f") "$f" || (echo "❌ $f" && exit 1)
                 done
@@ -70,7 +76,7 @@ presubmits:
                         - amd64
         containers:
           - name: rust
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
             command: [bash, -ce]
             env:
               - name: RUST_BACKTRACE
@@ -148,7 +154,7 @@ presubmits:
                         - arm64
         containers:
           - name: rust
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
             command: [bash, -ce]
             env:
               - name: RUST_BACKTRACE
@@ -167,6 +173,20 @@ presubmits:
 
                 # Sync rust-toolchain with TiKV
                 curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+
+                # echo "=========================================="
+                # echo "Testing: arm minimal features (no features)"
+                # echo "=========================================="
+                # if ! cargo build; then
+                #   echo "❌ Minimal build failed"
+                #   exit 1
+                # fi
+                # echo "✅ Minimal build passed"
+                # if ! cargo test --all; then
+                #   echo "❌ Minimal tests failed"
+                #   exit 1
+                # fi
+                # echo "✅ Minimal tests passed"
 
                 # Build and test with ARM features
                 cargo build --features=encryption,portable,jemalloc
