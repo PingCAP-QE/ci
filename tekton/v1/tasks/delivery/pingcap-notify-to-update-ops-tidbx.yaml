@@ -178,9 +178,7 @@ spec:
           local stage="$1"
           local tickets_file="$2"
 
-          local message="The Ops tickets are created for ${stage} env:\n"
-          message+="$(cat "$tickets_file")"
-          echo "$message"
+          printf "The Ops tickets are created for %s env:\n%s" "$stage" "$(cat "$tickets_file")"
         }
 
         # Main execution
