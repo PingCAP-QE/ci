@@ -98,6 +98,7 @@ spec:
         - name: output
           workspace: source
     - name: checkout-ext
+      retries: 2
       runAfter:
         - checkout
       taskRef:
@@ -117,6 +118,7 @@ spec:
         - name: output
           workspace: source
     - name: get-release-ver
+      retries: 2
       runAfter:
         - checkout
       taskRef:
@@ -131,6 +133,7 @@ spec:
           workspace: source
           subPath: $(params.component)
     - name: get-binaries-builder
+      retries: 2
       taskRef:
         name: pingcap-get-builder-image
       params:
@@ -147,6 +150,7 @@ spec:
         - name: force-builder-image
           value: "$(params.force-builder-image)"
     - name: build-binaries
+      retries: 2
       runAfter:
         - checkout-ext
       taskRef:
@@ -182,6 +186,7 @@ spec:
         - name: cypress-cache
           workspace: cypress-cache
     - name: build-images
+      retries: 2
       when:
         - input: "$(params.push)"
           operator: in
