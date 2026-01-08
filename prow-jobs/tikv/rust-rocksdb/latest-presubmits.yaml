@@ -6,9 +6,9 @@ global_definitions:
 
 presubmits:
   tikv/rust-rocksdb:
-    # Format check job - checks both Rust and C++ formatting
+    # Lint check job - checks both Rust and C++ linting
     - <<: *brancher
-      name: pull-rust-rocksdb-format
+      name: pull-rust-rocksdb-lint
       decorate: true
       always_run: false
       optional: true
@@ -34,41 +34,26 @@ presubmits:
 
                 # Sync rust-toolchain with TiKV
                 curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
-                cat ./rust-toolchain.toml
 
                 # Check Rust formatting
                 cargo fmt --all -- --check
 
                 # Check C++ formatting
-                if [ -f /opt/rh/llvm-toolset-7.0/enable ]; then
-                  source /opt/rh/llvm-toolset-7.0/enable
-                  clang-format --version
-                else
-                  if ! command -v clang-format &> /dev/null; then
-                    dnf install -y clang-tools-extra 2>/dev/null || \
-                    yum install -y clang-tools-extra 2>/dev/null || \
-                    echo "Warning: Could not install clang-format, skipping C++ format check"
-                  fi
-                fi
-                if command -v clang-format &> /dev/null; then
-                  find librocksdb_sys/crocksdb/ -iname "*.h" -o -iname "*.cc" | xargs -P 4 -L1 clang-format -i
-                  if [[ $(git diff) ]]; then
-                    echo "Run scripts/format-diff.sh to format your code."
-                    git diff
-                    exit 1
-                  fi
-                fi
+                dnf install -y clang-tools-extra
+                find librocksdb_sys/crocksdb/ \( -iname "*.h" -o -iname "*.cc" \) | while read f; do
+                  diff -q <(clang-format "$f") "$f" || (echo "❌ $f" && exit 1)
+                done
             resources:
               requests:
-                cpu: "4"
-                memory: 8Gi
+                cpu: "3"
+                memory: 6Gi
               limits:
-                cpu: "4"
-                memory: 8Gi
+                cpu: "3"
+                memory: 6Gi
 
-    # x86 minimal features test (no features)
+    # x86 test (minimal + all features)
     - <<: *brancher
-      name: pull-rust-rocksdb-test-x86-minimal
+      name: pull-rust-rocksdb-test-x86
       decorate: true
       always_run: false
       optional: true
@@ -104,75 +89,46 @@ presubmits:
 
                 # Sync rust-toolchain with TiKV
                 curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
-                cat ./rust-toolchain.toml
 
-                # Build with minimal features
-                cargo build
-
-                # Run tests with minimal features
-                cargo test --all
-            resources:
-              requests:
-                cpu: "4"
-                memory: 8Gi
-              limits:
-                cpu: "4"
-                memory: 8Gi
-
-    # x86 all features test (encryption, portable, jemalloc, sse)
-    - <<: *brancher
-      name: pull-rust-rocksdb-test-x86-all
-      decorate: true
-      always_run: false
-      optional: true
-      skip_if_only_changed: *skip_if_only_changed
-      spec:
-        affinity:
-          nodeAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              nodeSelectorTerms:
-                - matchExpressions:
-                    - key: kubernetes.io/arch
-                      operator: In
-                      values:
-                        - amd64
-        containers:
-          - name: rust
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
-            command: [bash, -ce]
-            env:
-              - name: RUST_BACKTRACE
-                value: "1"
-            args:
-              - |
-                #!/usr/bin/env bash
-                set -exo pipefail
-
-                # Setup GCC 8
-                if [ -f /opt/rh/devtoolset-8/enable ]; then
-                  source /opt/rh/devtoolset-8/enable
+                # Test 1: Build and test with x86 minimal features
+                echo "=========================================="
+                echo "Testing: x86 minimal features (no features)"
+                echo "=========================================="
+                if ! cargo build; then
+                  echo "❌ Minimal build failed"
+                  exit 1
                 fi
-                g++ --version
-                cmake --version
+                echo "✅ Minimal build passed"
+                if ! cargo test --all; then
+                  echo "❌ Minimal tests failed"
+                  exit 1
+                fi
+                echo "✅ Minimal tests passed"
 
-                # Sync rust-toolchain with TiKV
-                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
-                cat ./rust-toolchain.toml
+                # Test 2: Build and test with all x86 features
+                echo "=========================================="
+                echo "Testing: all x86 features (encryption,portable,jemalloc,sse)"
+                echo "=========================================="
+                if ! cargo build --features=encryption,portable,jemalloc,sse; then
+                  echo "❌ All features build failed"
+                  exit 1
+                fi
+                echo "✅ All x86 features build passed"
 
-                # Build with all x86 features
-                cargo build --features=encryption,portable,jemalloc,sse
-
-                # Run tests with all x86 features
-                cargo test --all --features=encryption,portable,jemalloc,sse
+                if ! cargo test --all --features=encryption,portable,jemalloc,sse; then
+                  echo "❌ All x86 features tests failed"
+                  exit 1
+                fi
+                echo "✅ All x86 features tests passed"
             resources:
               requests:
                 cpu: "4"
-                memory: 8Gi
+                memory: 6Gi
               limits:
                 cpu: "4"
-                memory: 8Gi
+                memory: 6Gi
 
-    # ARM test (encryption, portable, jemalloc)
+    # ARM test
     - <<: *brancher
       name: pull-rust-rocksdb-test-arm
       cluster: gcp-prow-ksyun
@@ -211,17 +167,14 @@ presubmits:
 
                 # Sync rust-toolchain with TiKV
                 curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
-                cat ./rust-toolchain.toml
 
-                # Build with ARM features
+                # Build and test with ARM features
                 cargo build --features=encryption,portable,jemalloc
-
-                # Run tests with ARM features
                 cargo test --all --features=encryption,portable,jemalloc
             resources:
               requests:
                 cpu: "4"
-                memory: 8Gi
+                memory: 6Gi
               limits:
                 cpu: "4"
-                memory: 8Gi
+                memory: 6Gi
