@@ -1,26 +1,26 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: tag-create-pingcap-ticdc
+  name: git-push-pingcap-ticdc-build-hotfix
   labels:
-    type: github-tag-create
+    type: github-branch-push
     github-owner: pingcap
     github-repo: ticdc
 spec:
   interceptors:
-    - name: filter on repo owner and name and tags
+    - name: filter on repo owner and name and branches
       ref: { name: cel }
       params:
         - name: filter
-          # support tags:
-          # - vX.Y.Z-release.N
-          # - vX.Y.Z-release.N-YYYYMMDD-<short-commit-hash>
+          # support branches:
+          # - release-vX.Y.Z-release.N-YYYYMMDD
           value: >-
             body.repository.full_name == 'pingcap/ticdc'
             &&
-            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+-release[.][0-9]+(-[0-9]{8,}-[0-9a-f]{6,})?$')
+            body.ref.matches('^refs/heads/release-[0-9]+[.][0-9]+[.][0-9]+-release[.][0-9]+-[0-9]+$')
+
   bindings:
-    - ref: github-tag-create
+    - ref: github-branch-push
     - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
