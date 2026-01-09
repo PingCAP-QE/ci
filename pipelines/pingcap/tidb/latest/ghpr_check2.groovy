@@ -24,7 +24,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     stages {
@@ -47,12 +46,16 @@ pipeline {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
-                    script {
-                        def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
-                        def artifactVerify = !isFeatureBranch
-
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
+                    container("utils") {
+                        dir("bin") {
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
+                            }
+                        }
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
