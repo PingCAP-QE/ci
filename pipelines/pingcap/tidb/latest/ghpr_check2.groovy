@@ -7,6 +7,8 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check2.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -23,22 +25,9 @@ pipeline {
     }
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir('tidb') {
@@ -54,7 +43,7 @@ pipeline {
         }
         stage("Prepare") {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
@@ -169,20 +158,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        success {
-            // Upload check flag to fileserver
-            sh "echo done > done && curl -F ci_check/${JOB_NAME}/${REFS.pulls[0].sha}=@done ${FILE_SERVER_URL}/upload"
-        }
-
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
