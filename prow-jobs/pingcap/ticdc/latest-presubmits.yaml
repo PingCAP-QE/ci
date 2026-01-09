@@ -5,6 +5,7 @@ global_definitions:
     - ^release-8\.5$
     - ^feature/.+
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  make_check_skip_if_only_changed: &make_check_skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -132,7 +133,7 @@ presubmits:
 
     - name: pull-check
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *make_check_skip_if_only_changed
       branches:
         - ^master$
         - ^release-8\.5$
