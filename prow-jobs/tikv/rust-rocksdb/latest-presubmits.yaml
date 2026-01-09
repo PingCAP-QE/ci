@@ -86,6 +86,8 @@ presubmits:
                 #!/usr/bin/env bash
                 set -exo pipefail
 
+                yum install -y openssl-devel
+
                 # Setup GCC 8
                 if [ -f /opt/rh/devtoolset-8/enable ]; then
                   source /opt/rh/devtoolset-8/enable
@@ -163,6 +165,8 @@ presubmits:
               - |
                 #!/usr/bin/env bash
                 set -exo pipefail
+
+                yum install -y openssl-devel
 
                 # Setup GCC 8
                 if [ -f /opt/rh/devtoolset-8/enable ]; then
