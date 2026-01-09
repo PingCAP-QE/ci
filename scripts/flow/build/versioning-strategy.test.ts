@@ -323,6 +323,30 @@ Deno.test("compute", () => {
         newBuildTag: "v8.5.0-feature.fts",
       },
     },
+    {
+      description: "ticdc hotfix branch",
+      gitVer: "v8.5.5-release.3-2-ge8080",
+      branches: ["release-8.5.5-release.3-20260109"],
+      expect: {
+        version: "v8.5.5-release.3-2-ge8080",
+      },
+    },
+    {
+      description: "ticdc hotfix branch",
+      gitVer: "v8.5.5-release.3-hotfix-0101-2-ge80aedfd",
+      branches: ["release-8.5.5-release.3-20260109"],
+      expect: {
+        version: "v8.5.5-release.3-hotfix-0101-2-ge80aedfd",
+      },
+    },
+    {
+      description: "ticdc hotfix branch",
+      gitVer: "v8.5.5-release.3-20260109-abcdef1",
+      branches: ["release-8.5.5-release.3-20260109"],
+      expect: {
+        version: "v8.5.5-release.3-20260109-abcdef1",
+      },
+    },
   ];
 
   for (const { description, gitVer, branches, expect } of tests) {
