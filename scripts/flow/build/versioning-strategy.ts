@@ -9,11 +9,26 @@ interface builtControl {
 }
 
 /**
+ * Determine if the given branch is a hotfix branch.
+ * @param {string} branch - The branch name to check.
+ * @returns {boolean} True if the branch is a hotfix branch, false otherwise.
+ */
+function isHotfixBranch(branch: string): boolean {
+  return /\brelease-[0-9]+[.][0-9]+[.][0-9]+-release[.][0-9]+-[0-9]{8}\b/.test(
+    branch,
+  );
+}
+
+/**
  * Determine if the given branch is a release branch.
  * @param {string} branch - The branch name to check.
  * @returns {boolean} True if the branch is a release branch, false otherwise.
  */
 function isReleaseBranch(branch: string): boolean {
+  // Exclude hotfix branches explicitly
+  if (isHotfixBranch(branch)) {
+    return false;
+  }
   const standardRelease =
     /\brelease-[0-9]+[.][0-9]+(?:-beta\.[0-9]+)?(?!-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+)/
       .test(
@@ -62,6 +77,13 @@ export function compute(
   if (!commitInBranches.some(isReleaseBranch)) {
     console.info("Current commit is not contained in any release branches.");
 
+    // Check for hotfix branch
+    const hotfixBranch = commitInBranches.find(isHotfixBranch);
+    if (hotfixBranch) {
+      console.info("Current commit is in a hotfix branch.");
+      return { releaseVersion: "v" + semver.format(rv) };
+    }
+
     // Check for feature branch
     const featureBranch = commitInBranches.find((b) =>
       /\bfeature\/[\w.-]+$/.test(b)
@@ -73,6 +95,7 @@ export function compute(
         .replace(/.*\bfeature\//, "feature/")
         .replaceAll("/", ".")
         .replaceAll("-", ".");
+      // Construct feature version, ignoring any existing prerelease (e.g., alpha, beta)
       const featureVersion = `v${rv.major}.${rv.minor}.${rv.patch}-${suffix}`;
       return {
         releaseVersion: featureVersion,
