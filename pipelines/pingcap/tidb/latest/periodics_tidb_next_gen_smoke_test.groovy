@@ -23,7 +23,7 @@ pipeline {
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Debug info') {
