@@ -15,6 +15,8 @@ global_definitions:
                   - amd64
   jenkins_job: &jenkins_job
     agent: jenkins
+    labels:
+      master: "0"
     decorate: false
   kubernetes_job: &kubernetes_job
     agent: kubernetes

@@ -57,6 +57,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/unit-test

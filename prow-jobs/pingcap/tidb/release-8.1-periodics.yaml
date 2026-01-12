@@ -2,9 +2,11 @@
 periodics:
   - name: pingcap/tidb/release-8.1/periodics_br_integration_test
     agent: jenkins
+    labels:
+      master: "0"
     decorate: false # need add this.
     cron: "0 */12 * * *" # every 12 hour
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-    - org: pingcap
-      repo: tidb
-      base_ref: release-8.1
+      - org: pingcap
+        repo: tidb
+        base_ref: release-8.1

@@ -2,17 +2,21 @@
 periodics:
   - name: pingcap/tiflow/periodics_cdc_integration_kafka_test
     agent: jenkins
+    labels:
+      master: "0"
     decorate: false # need add this.
     cron: "0 */12 * * *" # every 12 hour
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-    - org: pingcap
-      repo: tiflow
-      base_ref: master
+      - org: pingcap
+        repo: tiflow
+        base_ref: master
   - name: pingcap/tiflow/periodics_cdc_integration_mysql_test
     agent: jenkins
+    labels:
+      master: "0"
     decorate: false # need add this.
     cron: "0 */12 * * *" # every 12 hour
     extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-    - org: pingcap
-      repo: tiflow
-      base_ref: master
+      - org: pingcap
+        repo: tiflow
+        base_ref: master

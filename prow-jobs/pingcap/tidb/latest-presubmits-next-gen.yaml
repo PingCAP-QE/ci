@@ -7,6 +7,8 @@ global_definitions:
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   jenkins_job: &jenkins_job
     agent: jenkins
+    labels:
+      master: "0"
     decorate: false # need add this.
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
