@@ -10,6 +10,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/e2e-test
@@ -19,6 +21,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/common-test
@@ -28,6 +32,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-common-test
@@ -37,6 +43,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: ci/integration-jdbc-test
       skip_if_only_changed: *skip_if_only_changed
@@ -46,6 +54,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-mysql-test
@@ -55,6 +65,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/sqllogic-test
@@ -64,6 +76,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-copr-test
@@ -73,6 +87,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/unit-test
@@ -82,6 +98,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_unit_test_ddlv1
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: wip/unit-test-ddlv1 # TODO: change to ci/ after test.
@@ -91,6 +109,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_python_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-python-orm-test
@@ -100,6 +120,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_nodejs_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-nodejs-test
@@ -109,6 +131,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_br_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: wip/integration-br-test
@@ -118,6 +142,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_lightning_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: wip/integration-lightning-test
@@ -127,6 +153,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_tiflash_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: wip/tiflash-integration-test

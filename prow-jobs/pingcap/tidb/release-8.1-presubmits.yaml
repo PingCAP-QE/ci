@@ -9,6 +9,8 @@ presubmits:
   pingcap/tidb:
     - name: pingcap/tidb/release-8.1/ghpr_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
@@ -18,6 +20,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/ghpr_check
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
@@ -27,6 +31,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/ghpr_check2
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -36,6 +42,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/ghpr_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
@@ -45,6 +53,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/ghpr_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
@@ -54,6 +64,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_br_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-br-integration-test
       always_run: false
@@ -65,6 +77,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_lightning_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-lightning-integration-test
       always_run: false
@@ -76,6 +90,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_ddl_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -87,6 +103,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_mysql_client_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -98,6 +116,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -108,6 +128,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -119,6 +141,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -130,6 +154,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -141,6 +167,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -152,6 +180,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -163,6 +193,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -174,6 +206,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_tiflash_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -185,6 +219,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_nodejs_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -196,6 +232,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_python_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -207,6 +245,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_tidb_tools_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -218,6 +258,8 @@ presubmits:
 
     - name: pingcap/tidb/release-8.1/pull_integration_binlog_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true

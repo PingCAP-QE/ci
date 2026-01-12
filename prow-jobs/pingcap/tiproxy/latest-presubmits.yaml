@@ -3,6 +3,8 @@ presubmits:
   pingcap/tiproxy:
     - name: pingcap/tiproxy/ghpr_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
@@ -14,6 +16,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/ghpr_check
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
@@ -25,6 +29,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/ghpr_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
@@ -36,6 +42,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/pull_mysql_connector_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -48,6 +56,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/pull_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: pull-mysql-test
@@ -59,6 +69,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/pull_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: pull-integration-jdbc-test # need change this.
@@ -70,6 +82,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/pull_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: pull-integration-common-test # need change this.
@@ -80,6 +94,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/pull_integration_ruby_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: pull-integration-ruby-orm-test # need change this.
@@ -90,6 +106,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/pull_integration_nodejs_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: pull-integration-nodejs-test
@@ -101,6 +119,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/pull_integration_python_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: pull-integration-python-orm-test
@@ -112,6 +132,8 @@ presubmits:
         - .+
     - name: pingcap/tiproxy/pull_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: pull-sqllogic-test

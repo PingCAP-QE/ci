@@ -1,7 +1,6 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
-  skip_if_only_changed: &skip_if_only_changed
-    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   branches: &branches
     - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
 
@@ -9,6 +8,8 @@ presubmits:
   tikv/tikv:
     - name: tikv/tikv/release-7.1/pull_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-unit-test
@@ -18,9 +19,11 @@ presubmits:
 
     - name: tikv/tikv/release-7.1/pull_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
-      always_run: false  # update here after test passed
+      always_run: false # update here after test passed
       optional: true # update here after test passed
       skip_report: true # update here after test passed
       context: wip/pull-integration-test

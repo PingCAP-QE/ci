@@ -3,6 +3,8 @@ postsubmits:
   pingcap/tiflash:
     - name: pingcap/tiflash/merged_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: merged-unit-test # need change this after test pass.
       max_concurrency: 1
@@ -11,6 +13,8 @@ postsubmits:
         - ^master$
     - name: pingcap/tiflash/merged_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: merged-build # need change this after test pass.
       max_concurrency: 1
@@ -19,6 +23,8 @@ postsubmits:
         - ^master$
     - name: pingcap/tiflash/merged_build_next_gen
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: merged-build-next-gen
       max_concurrency: 1

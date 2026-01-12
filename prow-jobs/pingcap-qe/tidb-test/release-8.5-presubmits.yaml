@@ -3,6 +3,8 @@ presubmits:
   PingCAP-QE/tidb-test:
     - name: pingcap-qe/tidb-test/release-8.5/ghpr_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md)$"
       context: ci/build
@@ -13,6 +15,8 @@ presubmits:
         - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap-qe/tidb-test/release-8.5/ghpr_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "(jdbc8_test|jdbc_test)/.*"
       context: ci/common-test
@@ -23,6 +27,8 @@ presubmits:
         - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "(jdbc8_test|mybatis_test|jooq_test|tidb_jdbc_test)/.*"
       context: ci/integration-jdbc-test
@@ -33,6 +39,8 @@ presubmits:
         - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "randgen-test/.*"
       context: ci/integration-common-test
@@ -43,6 +51,8 @@ presubmits:
         - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "mysql_test/.*"
       context: ci/integration-mysql-test
@@ -53,6 +63,8 @@ presubmits:
         - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap-qe/tidb-test/release-8.5/ghpr_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       run_if_changed: "mysql_test/.*"
       decorate: false # need add this.
       context: ci/mysql-test

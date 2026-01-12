@@ -12,6 +12,8 @@ presubmits:
   pingcap/tiflash:
     - <<: *brancher
       agent: jenkins
+      labels:
+        master: "0"
       context: pull-unit-next-gen
       decorate: false # need add this.
       name: pingcap/tiflash/pull_unit_next_gen
@@ -23,6 +25,8 @@ presubmits:
 
     - <<: *brancher
       agent: jenkins
+      labels:
+        master: "0"
       context: pull-integration-next-gen
       decorate: false # need add this.
       name: pingcap/tiflash/pull_integration_next_gen

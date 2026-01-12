@@ -12,6 +12,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/canary_ghpr_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       max_concurrency: 2
       # run_if_changed: "pkg/executor"

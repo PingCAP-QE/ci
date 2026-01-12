@@ -12,6 +12,8 @@ presubmits:
     - <<: *brancher
       name: tikv/copr-test/pull_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       always_run: false

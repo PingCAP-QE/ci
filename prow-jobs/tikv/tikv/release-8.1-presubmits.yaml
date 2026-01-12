@@ -9,6 +9,8 @@ presubmits:
   tikv/tikv:
     - name: tikv/tikv/release-8.1/pull_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-unit-test
@@ -18,6 +20,8 @@ presubmits:
 
     - name: tikv/tikv/release-8.1/pull_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false  # update here after test passed
       optional: true # update here after test passed
