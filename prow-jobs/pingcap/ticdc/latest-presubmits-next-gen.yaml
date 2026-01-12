@@ -36,7 +36,6 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_kafka_integration_light_next_gen
-      decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
       context: pull-cdc-kafka-integration-light-next-gen

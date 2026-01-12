@@ -25,7 +25,6 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
-      decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-heavy

@@ -51,8 +51,6 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/release-9.0-beta/pull_cdc_pulsar_integration_light
-      agent: jenkins
-      decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-pulsar-integration-light
