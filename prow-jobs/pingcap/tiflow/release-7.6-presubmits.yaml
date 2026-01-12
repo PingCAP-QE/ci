@@ -3,6 +3,8 @@ presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-7.6/pull_cdc_integration_kafka_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -14,6 +16,8 @@ presubmits:
         - ^release-7\.6(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflow/release-7.6/pull_cdc_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -25,6 +29,8 @@ presubmits:
         - ^release-7\.6(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflow/release-7.6/pull_cdc_integration_pulsar_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -36,6 +42,8 @@ presubmits:
         - ^release-7\.6(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflow/release-7.6/pull_cdc_integration_storage_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -47,6 +55,8 @@ presubmits:
         - ^release-7\.6(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflow/release-7.6/pull_dm_compatibility_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -58,6 +68,8 @@ presubmits:
         - ^release-7\.6(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflow/release-7.6/pull_dm_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -69,6 +81,8 @@ presubmits:
         - ^release-7\.6(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflow/release-7.6/ghpr_verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-verify

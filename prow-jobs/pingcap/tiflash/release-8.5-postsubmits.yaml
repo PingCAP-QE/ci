@@ -3,6 +3,8 @@ postsubmits:
   pingcap/tiflash:
     - name: pingcap/tiflash/release-8.5/merged_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: merged-unit-test
       max_concurrency: 1
@@ -11,6 +13,8 @@ postsubmits:
         - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflash/release-8.5/merged_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: merged-build
       max_concurrency: 1

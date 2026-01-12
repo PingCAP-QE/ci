@@ -8,6 +8,8 @@ presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-6.5/ghpr_verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-verify
@@ -19,6 +21,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_kafka_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       run_before_merge: true
@@ -32,6 +36,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -45,6 +51,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-6.5/pull_dm_compatibility_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -58,6 +66,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-6.5/pull_dm_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed

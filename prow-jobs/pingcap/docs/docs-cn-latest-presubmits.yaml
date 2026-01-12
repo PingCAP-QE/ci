@@ -2,6 +2,8 @@ presubmits:
   pingcap/docs-cn:
     - name: pingcap/docs-cn/pull_verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: true
       skip_report: false

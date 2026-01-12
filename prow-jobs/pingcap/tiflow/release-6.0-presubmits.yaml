@@ -3,6 +3,8 @@ presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-6.0/ghpr_verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-verify

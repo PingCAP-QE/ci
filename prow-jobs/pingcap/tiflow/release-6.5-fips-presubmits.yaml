@@ -3,6 +3,8 @@ presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-6.5-fips/ghpr_verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-verify
@@ -12,6 +14,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tiflow/release-6.5-fips/pull_cdc_integration_kafka_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -23,6 +27,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tiflow/release-6.5-fips/pull_cdc_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -34,6 +40,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tiflow/release-6.5-fips/pull_dm_compatibility_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -45,6 +53,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tiflow/release-6.5-fips/pull_dm_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"

@@ -81,6 +81,8 @@ presubmits:
     - <<: *brancher
       name: tikv/pd/pull_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -91,6 +93,8 @@ presubmits:
     - <<: *brancher
       name: tikv/pd/pull_integration_realcluster_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: true
       optional: false

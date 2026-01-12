@@ -3,6 +3,8 @@ postsubmits:
   pingcap/docs-tidb-operator:
     - name: pingcap/docs-tidb-operator/merged_update
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: docs-tidb-operator/merged-ci
       max_concurrency: 5

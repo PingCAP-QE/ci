@@ -3,6 +3,8 @@ presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-6.5-20241101-v6.5.7/ghpr_verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-verify
@@ -12,6 +14,8 @@ presubmits:
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
     - name: pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_cdc_integration_kafka_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       run_before_merge: true
@@ -23,6 +27,8 @@ presubmits:
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
     - name: pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_cdc_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -34,6 +40,8 @@ presubmits:
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
     - name: pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_dm_compatibility_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -45,6 +53,8 @@ presubmits:
         - ^release-6\.5-20241101-v6\.5\.7$ # trigger for specific hotfix branch
     - name: pingcap/tiflow/release-6.5-20241101-v6.5.7/pull_dm_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"

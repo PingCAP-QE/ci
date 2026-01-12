@@ -6,6 +6,8 @@ presubmits:
   pingcap/tidb:
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/ghpr_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
@@ -14,6 +16,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/ghpr_check
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
@@ -22,6 +26,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/ghpr_check2
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -30,6 +36,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/ghpr_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
@@ -38,6 +46,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/ghpr_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
@@ -46,6 +56,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_br_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-br-integration-test
       always_run: false
@@ -56,6 +68,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_integration_ddl_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -66,6 +80,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -75,6 +91,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -85,6 +103,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -95,6 +115,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -105,6 +127,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -115,6 +139,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -125,6 +151,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -135,6 +163,8 @@ presubmits:
       branches: *branches
     - name: pingcap/tidb/release-6.5-20241101-v6.5.7/pull_tiflash_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true

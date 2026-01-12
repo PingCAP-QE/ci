@@ -3,6 +3,8 @@ postsubmits:
   pingcap/tiproxy:
     - name: pingcap/tiproxy/merged_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-mysql-test # need change this.
@@ -12,6 +14,8 @@ postsubmits:
         - .+
     - name: pingcap/tiproxy/merged_integration_nodejs_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-nodejs-test # need change this.
@@ -21,6 +25,8 @@ postsubmits:
         - .+
     - name: pingcap/tiproxy/merged_integration_python_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-python-orm-test # need change this.
@@ -30,6 +36,8 @@ postsubmits:
         - .+
     - name: pingcap/tiproxy/merged_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-sqllogic-test # need change this.
@@ -39,6 +47,8 @@ postsubmits:
         - .+
     - name: pingcap/tiproxy/merged_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-common-test # need change this.
@@ -48,6 +58,8 @@ postsubmits:
         - .+
     - name: pingcap/tiproxy/merged_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-jdbc-test # need change this.

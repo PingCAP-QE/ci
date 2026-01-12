@@ -4,6 +4,8 @@ presubmits:
     #### for release-6.5 branch
     - name: pingcap/tidb/release-6.5-fips/ghpr_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
@@ -13,6 +15,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tidb/release-6.5-fips/ghpr_check
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
@@ -22,6 +26,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tidb/release-6.5-fips/ghpr_check2
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -31,6 +37,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tidb/release-6.5-fips/ghpr_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
@@ -40,6 +48,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tidb/release-6.5-fips/ghpr_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
@@ -49,6 +59,8 @@ presubmits:
         - ^feature/release-6.5-fips$
     - name: pingcap/tidb/release-6.5-fips/pull_br_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-br-integration-test
       always_run: false

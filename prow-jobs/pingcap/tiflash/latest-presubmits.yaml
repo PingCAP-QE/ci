@@ -13,6 +13,8 @@ presubmits:
   pingcap/tiflash:
     - <<: *brancher
       agent: jenkins
+      labels:
+        master: "0"
       context: pull-unit-test
       decorate: false # need add this.
       name: pingcap/tiflash/pull_unit_test
@@ -24,6 +26,8 @@ presubmits:
 
     - <<: *brancher
       agent: jenkins
+      labels:
+        master: "0"
       context: pull-integration-test
       decorate: false # need add this.
       name: pingcap/tiflash/pull_integration_test

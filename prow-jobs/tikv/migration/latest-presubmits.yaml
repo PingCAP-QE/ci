@@ -3,6 +3,8 @@ presubmits:
   tikv/migration:
     - name: tikv/migration/pull_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: true
       context: pull-integration-test
@@ -14,6 +16,8 @@ presubmits:
         - ^br-release-.*$
     - name: tikv/migration/pull_integration_kafka_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: true
       context: pull-integration-kafka-test
@@ -25,6 +29,8 @@ presubmits:
         - ^br-release-.*$
     - name: tikv/migration/pull_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: true
       context: pull-unit-test

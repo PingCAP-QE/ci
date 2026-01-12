@@ -2,6 +2,8 @@ presubmits:
   pingcap-inc/enterprise-extensions:
     - name: pingcap-inc/enterprise-extensions/pr-verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: true
       context: pr-verify
@@ -14,6 +16,8 @@ presubmits:
         - ^release-[8-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap-inc/enterprise-extensions/le-release-7.4/pr-verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: true
       context: pr-verify

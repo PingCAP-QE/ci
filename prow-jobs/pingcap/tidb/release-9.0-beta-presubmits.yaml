@@ -13,6 +13,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/build
@@ -22,6 +24,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_check
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev
@@ -31,6 +35,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_check2
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -40,6 +46,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/mysql-test
@@ -49,6 +57,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/unit-test
@@ -58,6 +68,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_unit_test_ddlv1
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
@@ -67,6 +79,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_br_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-br-integration-test
       run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
@@ -76,6 +90,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_lightning_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-lightning-integration-test
       always_run: false
@@ -87,6 +103,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_ddl_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -98,6 +116,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_mysql_client_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -109,6 +129,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -119,6 +141,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -130,6 +154,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -141,6 +167,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -152,6 +180,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -163,6 +193,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -174,6 +206,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -185,6 +219,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_nodejs_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -196,6 +232,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_python_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -207,6 +245,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -218,6 +258,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/release-9.0-beta/pull_integration_tidb_tools_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true

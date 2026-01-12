@@ -3,6 +3,8 @@ presubmits:
   pingcap/tidb:
     - name: pingcap/tidb/release-8.2/pull_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
@@ -12,6 +14,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_check
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
@@ -21,6 +25,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_check2
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -30,6 +36,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
@@ -39,6 +47,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
@@ -48,6 +58,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_br_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-br-integration-test
       always_run: false
@@ -59,6 +71,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_lightning_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-lightning-integration-test
       always_run: false
@@ -70,6 +84,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_integration_ddl_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -81,6 +97,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_mysql_client_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -92,6 +110,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -102,6 +122,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -113,6 +135,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -124,6 +148,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -135,6 +161,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -146,6 +174,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -157,6 +187,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -168,6 +200,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_tiflash_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -179,6 +213,8 @@ presubmits:
         - ^release-8\.2(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tidb/release-8.2/pull_integration_nodejs_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true

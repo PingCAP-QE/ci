@@ -3,6 +3,8 @@ presubmits:
   pingcap/tiflash:
     - name: pingcap/tiflash/release-8.3/pull_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-unit-test
@@ -14,6 +16,8 @@ presubmits:
         - ^release-8\.3(\.\d+)?(-\d+)?(-v[\.\d]+)?$
     - name: pingcap/tiflash/release-8.3/pull_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-integration-test

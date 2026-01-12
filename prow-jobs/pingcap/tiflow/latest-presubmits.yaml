@@ -9,6 +9,8 @@ presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/pull_cdc_integration_kafka_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -22,6 +24,8 @@ presubmits:
     # Currently we keep the Jenkins job name.
     - name: pingcap/tiflow/pull_cdc_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -33,6 +37,8 @@ presubmits:
 
     - name: pingcap/tiflow/pull_cdc_integration_storage_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -44,6 +50,8 @@ presubmits:
 
     - name: pingcap/tiflow/pull_cdc_integration_pulsar_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -55,6 +63,8 @@ presubmits:
 
     - name: pingcap/tiflow/pull_dm_compatibility_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -66,6 +76,8 @@ presubmits:
 
     - name: pingcap/tiflow/pull_dm_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -77,6 +89,8 @@ presubmits:
 
     - name: pingcap/tiflow/pull_syncdiff_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -87,6 +101,8 @@ presubmits:
 
     - name: pingcap/tiflow/ghpr_verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-verify

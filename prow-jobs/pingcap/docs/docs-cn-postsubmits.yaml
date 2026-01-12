@@ -3,6 +3,8 @@ postsubmits:
   pingcap/docs-cn:
     - name: pingcap/docs-cn/merged_update_docs_cn
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: docs-cn/merged-ci
       max_concurrency: 5
