@@ -11,10 +11,15 @@ global_definitions:
     max_concurrency: 2
     labels:
       master: "0"
+  jenkins_job1: &jenkins_job1
+    agent: jenkins
+    decorate: false # need add this.
+    labels:
+      master: "1"
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/ticdc:
-    - <<: *jenkins_job
+    - <<: *jenkins_job1
       name: pingcap/ticdc/pull_cdc_mysql_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
