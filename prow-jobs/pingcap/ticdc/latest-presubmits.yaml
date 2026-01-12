@@ -5,13 +5,17 @@ global_definitions:
     - ^release-8\.5$
     - ^feature/.+
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false # need add this.
+    max_concurrency: 2
+    labels:
+      master: "0"
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/ticdc:
-    - name: pingcap/ticdc/pull_cdc_mysql_integration_light
-      agent: jenkins
-      max_concurrency: 2
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light
@@ -19,9 +23,8 @@ presubmits:
       rerun_command: "/test pull-cdc-mysql-integration-light"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
-      agent: jenkins
-      max_concurrency: 2
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
@@ -30,10 +33,8 @@ presubmits:
       rerun_command: "/test pull-cdc-mysql-integration-heavy"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_kafka_integration_light
-      agent: jenkins
-      max_concurrency: 2
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_kafka_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-kafka-integration-light
@@ -41,10 +42,8 @@ presubmits:
       rerun_command: "/test pull-cdc-kafka-integration-light"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_kafka_integration_heavy
-      agent: jenkins
-      max_concurrency: 2
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_kafka_integration_heavy
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-kafka-integration-heavy
@@ -52,10 +51,8 @@ presubmits:
       rerun_command: "/test pull-cdc-kafka-integration-heavy"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_pulsar_integration_light
-      agent: jenkins
-      max_concurrency: 2
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_pulsar_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-pulsar-integration-light
@@ -64,10 +61,8 @@ presubmits:
       rerun_command: "/test pull-cdc-pulsar-integration-light"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_storage_integration_light
-      agent: jenkins
-      max_concurrency: 2
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_storage_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-light
@@ -75,10 +70,8 @@ presubmits:
       rerun_command: "/test pull-cdc-storage-integration-light"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_storage_integration_heavy
-      agent: jenkins
-      max_concurrency: 2
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_storage_integration_heavy
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-heavy
