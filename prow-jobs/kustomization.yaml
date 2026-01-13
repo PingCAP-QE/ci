@@ -51,7 +51,6 @@ configMapGenerator:
       - pingcap_tidb_release-6.4-presubmits.yaml=pingcap/tidb/release-6.4-presubmits.yaml
       - pingcap_tidb_release-6.5-20241101-v6.5.7-presubits.yaml=pingcap/tidb/release-6.5-20241101-v6.5.7-presubits.yaml
       - pingcap_tidb_release-6.5-fips-presubmits.yaml=pingcap/tidb/release-6.5-fips-presubmits.yaml
-      - pingcap_tidb_release-6.5-periodics.yaml=pingcap/tidb/release-6.5-periodics.yaml
       - pingcap_tidb_release-6.5-presubmits.yaml=pingcap/tidb/release-6.5-presubmits.yaml
       - pingcap_tidb_release-6.5-with-kv-timeout-feature-presubmits.yaml=pingcap/tidb/release-6.5-with-kv-timeout-feature-presubmits.yaml
       - pingcap_tidb_release-6.6-presubmits.yaml=pingcap/tidb/release-6.6-presubmits.yaml
@@ -113,7 +112,6 @@ configMapGenerator:
       - pingcap_tiflow_release-9.0-beta-presubmits.yaml=pingcap/tiflow/release-9.0-beta-presubmits.yaml
       - pingcap_tiproxy_latest-postsubmits.yaml=pingcap/tiproxy/latest-postsubmits.yaml
       - pingcap_tiproxy_latest-presubmits.yaml=pingcap/tiproxy/latest-presubmits.yaml
-      - ti-community-infra_configs_periodics.yaml=ti-community-infra/configs/periodics.yaml
       - ti-community-infra_configs_postsubmits.yaml=ti-community-infra/configs/postsubmits.yaml
       - ti-community-infra_configs_presubmits.yaml=ti-community-infra/configs/presubmits.yaml
       - ti-community-infra_periodics.yaml=ti-community-infra/periodics.yaml
