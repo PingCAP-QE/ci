@@ -24,8 +24,8 @@ spec:
       name: golang
       resources:
         limits:
-          cpu: "12"
-          memory: 32Gi
+          cpu: "6"
+          memory: 16Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp

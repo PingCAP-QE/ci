@@ -9,8 +9,8 @@ spec:
       tty: true
       resources:
         limits:
-          memory: 32Gi
-          cpu: "12"
+          memory: 16Gi
+          cpu: "6"
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

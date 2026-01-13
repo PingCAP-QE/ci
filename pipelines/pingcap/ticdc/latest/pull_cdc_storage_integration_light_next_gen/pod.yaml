@@ -9,7 +9,7 @@ spec:
       tty: true
       resources:
         limits:
-          memory: 16Gi
+          memory: 8Gi
           cpu: "6"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
