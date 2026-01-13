@@ -8,18 +8,13 @@ global_definitions:
   jenkins_job: &jenkins_job
     agent: jenkins
     decorate: false # need add this.
-    max_concurrency: 2
-    labels:
-      master: "0"
-  jenkins_job1: &jenkins_job1
-    agent: jenkins
-    decorate: false # need add this.
     labels:
       master: "1"
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/ticdc:
-    - <<: *jenkins_job1
+    - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
@@ -37,7 +32,7 @@ presubmits:
       rerun_command: "/test pull-cdc-mysql-integration-heavy"
       branches: *branches
 
-    - <<: *jenkins_job1
+    - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_kafka_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
@@ -55,7 +50,7 @@ presubmits:
       rerun_command: "/test pull-cdc-kafka-integration-heavy"
       branches: *branches
 
-    - <<: *jenkins_job1
+    - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_pulsar_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
@@ -65,7 +60,7 @@ presubmits:
       rerun_command: "/test pull-cdc-pulsar-integration-light"
       branches: *branches
 
-    - <<: *jenkins_job1
+    - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_storage_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
