@@ -68,6 +68,12 @@ pipeline {
                         """
                     }
                     container("utils") {
+                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                            sh label: "prepare docker auth", script: '''
+                                mkdir -p ~/.docker
+                                cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                            '''
+                        }
                         dir("bin") {
                             script {
                                 retry(2) {
