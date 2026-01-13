@@ -14,6 +14,7 @@ pipelineJob('pingcap/tidb/periodics_integration_test') {
                 cron{ spec('0 * * * *') }
             }
         }
+        disableConcurrentBuilds()
     }
 
     definition {
