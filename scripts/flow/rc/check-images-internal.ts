@@ -237,18 +237,18 @@ async function main(
   await Deno.writeTextFile(save_to, yaml.stringify(totalResults));
 
   if (totalFailedPkgs["community"].length > 0) {
-    throw new Error(
-      `some community images check failed: ${
-        totalFailedPkgs["community"].join(", ")
-      }`,
+    console.error(
+      "❌ some community images check failed:",
+      totalFailedPkgs["community"].join(", "),
     );
+    Deno.exit(1);
   }
   if (totalFailedPkgs["enterprise"].length > 0) {
-    throw new Error(
-      `some enterprise images check failed: ${
-        totalFailedPkgs["enterprise"].join(", ")
-      }`,
+    console.error(
+      "❌ some enterprise images check failed:",
+      totalFailedPkgs["enterprise"].join(", "),
     );
+    Deno.exit(1);
   }
 
   console.info("🏅🏅🏅 check success!");
