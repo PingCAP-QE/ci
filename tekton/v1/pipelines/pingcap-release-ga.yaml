@@ -73,6 +73,7 @@ spec:
         - { name: push, value: "true" }
         - { name: arch, value: amd64 }
         - { name: edition, value: community }
+        - { name: registry, value: $(params.oci-registry) }
     - name: upload-offline-pkgs-to-buckets-amd64-community
       runAfter:
         - "compose-offline-pkgs-amd64-community"
@@ -95,6 +96,7 @@ spec:
         - { name: push, value: "true" }
         - { name: arch, value: amd64 }
         - { name: edition, value: enterprise }
+        - { name: registry, value: $(params.oci-registry) }
     - name: upload-offline-pkgs-to-buckets-amd64-enterprise
       runAfter:
         - "compose-offline-pkgs-amd64-enterprise"
@@ -117,6 +119,7 @@ spec:
         - { name: push, value: "true" }
         - { name: arch, value: amd64 }
         - { name: edition, value: dm }
+        - { name: registry, value: $(params.oci-registry) }
     - name: upload-offline-pkgs-to-buckets-amd64-dm
       runAfter:
         - "compose-offline-pkgs-amd64-dm"
@@ -139,6 +142,7 @@ spec:
         - { name: push, value: "true" }
         - { name: arch, value: arm64 }
         - { name: edition, value: community }
+        - { name: registry, value: $(params.oci-registry) }
     - name: upload-offline-pkgs-to-buckets-arm64-community
       runAfter:
         - "compose-offline-pkgs-arm64-community"
@@ -161,6 +165,7 @@ spec:
         - { name: push, value: "true" }
         - { name: arch, value: arm64 }
         - { name: edition, value: enterprise }
+        - { name: registry, value: $(params.oci-registry) }
     - name: upload-offline-pkgs-to-buckets-arm64-enterprise
       runAfter:
         - "compose-offline-pkgs-arm64-enterprise"
@@ -183,6 +188,7 @@ spec:
         - { name: push, value: "true" }
         - { name: arch, value: arm64 }
         - { name: edition, value: dm }
+        - { name: registry, value: $(params.oci-registry) }
     - name: upload-offline-pkgs-to-buckets-arm64-dm
       runAfter:
         - "compose-offline-pkgs-arm64-dm"
