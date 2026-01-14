@@ -1,0 +1,113 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: tag-and-deliver-rc2ga-on-oci-artifacts
+spec:
+  description: include images and non-image artifacts.
+  params:
+    - name: rc-version
+      description: >
+        the rc tag of artifacts repos, example: v1.1.1-pre
+    - name: ga-version
+      description: >
+        the GA publish tag of artifacts repos, example: v1.1.1
+    - name: registry
+      default: hub.pingcap.net
+    - name: force
+      default: "false"
+      description: force to create tag whether it existed or not.
+    - name: delivery-config-url
+      description: URL of the delivery configuration file
+      default: https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/packages/delivery.yaml
+    - name: generator-script-url
+      description: URL of the generator script
+      default: https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/packages/scripts/gen-delivery-image-commands.ts
+    - name: publisher-url
+      description: URL of the publisher service
+      default: https://publisher.pingcap.net
+  stepTemplate:
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
+  steps:
+    - name: add-tags
+      args:
+        - "$(params.rc-version)"
+        - "$(params.ga-version)"
+        - "$(params.registry)"
+        - "$(params.force)"
+      script: |
+        #! /usr/bin/env bash
+        set -ex
+
+        rc_ver="$1"
+        ga_ver="$2"
+        registry="$3"
+        force="$4"
+
+        wget -c --tries=3 https://github.com/PingCAP-QE/ci/raw/main/scripts/artifacts/tag-rc2ga-on-repos.sh
+        chmod +x tag-rc2ga-on-repos.sh
+
+        ./tag-rc2ga-on-repos.sh "$rc_ver" "$ga_ver" "$registry" "$force" /workspace/results.yaml
+        cat /workspace/results.yaml
+    - name: deliver-binaries
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        publisher_url="$(params.publisher-url)/tiup/delivery-by-rules"
+
+        deliver() {
+          local artifact_url="$1"
+          echo "Delivering artifact_url: $artifact_url"
+          response=$(curl --fail-with-body -s -X POST "$publisher_url" \
+            -H "Content-Type: application/json" \
+            -d "{\"artifact_url\":\"$artifact_url\"}") || {
+            echo "Failed to deliver artifact: $artifact_url"
+            echo "Curl response: $response"
+            exit 1
+          }
+          echo "Response: $response"
+        }
+
+        # use yq to loop entries of `.packages` in file /workspace/results.yaml
+        yq -r '.packages[]' /workspace/results.yaml | while read -r url; do
+          deliver "$url"
+        done
+
+    - name: deliver-images
+      env:
+        - name: MAX_RETRIES
+          value: "3"
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # install deno
+        apk add deno
+
+        # prepare the images info file
+        yq -r '.images[]' /workspace/results.yaml | awk -F: '{print "- { repo: " $1 ", tag: " $2, "}"}' | tee /workspace/images.yaml
+
+        # prepare the delivery script
+        wget -O delivery.yaml $(params.delivery-config-url)
+        script="/workspace/delivery.sh"
+        targetsInfo="/workspace/delivery-targets.yaml"
+        deno run --allow-read --allow-write "$(params.generator-script-url)" \
+          --images_file="/workspace/images.yaml" \
+          --yaml_file=delivery.yaml \
+          --outfile=$script \
+          --images_outfile=$targetsInfo
+
+        chmod +x $script && cat $script
+
+        # run the delivery script
+        tries=0
+        until $script; do
+          tries=$((tries + 1))
+          if [ $tries -ge $MAX_RETRIES ]; then
+            echo "Script '$script' failed after $MAX_RETRIES attempts."
+            exit 1
+          fi
+          echo "Script '$script' failed. Retrying in 10 seconds... ($tries/$MAX_RETRIES)"
+          sleep 10
+        done
