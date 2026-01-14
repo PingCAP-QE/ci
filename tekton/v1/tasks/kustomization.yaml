@@ -28,6 +28,6 @@ resources:
   - release/pingcap-create-github-releases.yaml
   - release/pingcap-upload-enterprise-plugins.yaml
   - release/pingcap-upload-offline-package.yaml
-  - release/tag-rc2ga-on-oci-artifacts.yaml
+  - release/tag-and-delivery-rc2ga-on-oci-artifacts.yaml
   - release/wait-delivery-images.yaml
   - release/wait-delivery-tiup.yaml
