@@ -19,7 +19,7 @@ spec:
     - name: dry-run
       default: "false"
     - name: oci-repo
-      default: hub.pingcap.net/pingcap/tidb/package
+      default: us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/tidb/package
   workspaces:
     - name: s3-secrets
   steps:

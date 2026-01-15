@@ -14,7 +14,7 @@ spec:
       description: >
         Product is http://tiup.pingcap.net:8987, Staging is http://tiup.pingcap.net:8988
     - name: oci-registry
-      default: hub.pingcap.net
+      default: us-docker.pkg.dev/pingcap-testing-account/hub
       description: The OCI registry stored the origin tarball files.
   steps:
     - name: wait
