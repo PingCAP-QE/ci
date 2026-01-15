@@ -18,7 +18,7 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|next-gen|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light-next-gen"
       branches: *branches
       optional: true
@@ -85,7 +85,8 @@ presubmits:
 
     - name: pull-unit-test-next-gen
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       branches:
         - ^master$
         - ^release-nextgen-\d+$
