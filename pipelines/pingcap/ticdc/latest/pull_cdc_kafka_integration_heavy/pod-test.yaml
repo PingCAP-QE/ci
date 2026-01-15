@@ -25,7 +25,7 @@ spec:
       resources:
         limits:
           cpu: "6"
-          memory: 16Gi
+          memory: 24Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
