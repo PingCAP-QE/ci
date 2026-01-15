@@ -87,7 +87,7 @@ function check_results() {
 
 function main() {
     check_version="$1"
-    oci_registry="${2:-hub.pingcap.net}"
+    oci_registry="${2:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     fail_fast="${3:-false}"
 
     gather_results "$check_version" "$oci_registry" && check_results
