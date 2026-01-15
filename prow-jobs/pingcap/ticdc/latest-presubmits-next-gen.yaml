@@ -85,7 +85,8 @@ presubmits:
 
     - name: pull-unit-test-next-gen
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       branches:
         - ^master$
         - ^release-nextgen-\d+$
@@ -108,8 +109,7 @@ presubmits:
 
     - name: pull-build-next-gen
       decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
-      run_before_merge: true
+      skip_if_only_changed: *skip_if_only_changed
       optional: true
       branches:
         - ^master$
