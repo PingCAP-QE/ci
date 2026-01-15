@@ -1,0 +1,281 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - .+
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+presubmits:
+  tikv/rocksdb:
+    # ARM Architecture Build and Test
+    - <<: *brancher
+      name: pull-rocksdb-test-arm
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - arm64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            command: [bash, -ce]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+
+                # Build all targets
+                echo "=========================================="
+                echo "Building: ARM all targets"
+                echo "=========================================="
+                LIB_MODE=static V=1 make all -j 6
+
+                # Run tests (partial, up to db_block_cache_test)
+                echo "=========================================="
+                echo "Testing: ARM (up to db_block_cache_test)"
+                echo "=========================================="
+                export TEST_TMPDIR=/tmp/test_dir
+                export ROCKSDBTESTS_START=""
+                export ROCKSDBTESTS_END="db_block_cache_test"
+                LIB_MODE=static V=1 make all_but_some_tests check_some -j 6
+                # TODO:  consistent with the tests on the AMD architecture
+            resources:
+              requests:
+                cpu: "6"
+                memory: 8Gi
+              limits:
+                cpu: "6"
+                memory: 8Gi
+
+    # x86 Debug Build and Test - Part 1 (Platform-Specific Tests + Basic Tests)
+    - <<: *brancher
+      name: pull-rocksdb-test-x86-debug-part1
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            command: [bash, -ce]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+
+                # Build debug library
+                echo "=========================================="
+                echo "Building: x86 debug (librocksdb_debug.a)"
+                echo "=========================================="
+                LIB_MODE=static V=1 make librocksdb_debug.a -j 6
+
+                # Run tests: platform dependent tests (up to db_block_cache_test)
+                echo "=========================================="
+                echo "Testing: x86 debug part 1 (platform dependent, up to db_block_cache_test)"
+                echo "=========================================="
+                export TEST_TMPDIR=/tmp/test_dir
+                export ROCKSDBTESTS_START=""
+                export ROCKSDBTESTS_END="db_block_cache_test"
+                LIB_MODE=static V=1 make all_but_some_tests check_some -j 6
+
+                # Run encrypted environment tests
+                echo "=========================================="
+                echo "Testing: x86 debug encrypted environment (up to db_block_cache_test)"
+                echo "=========================================="
+                LIB_MODE=static V=1 ENCRYPTED_ENV=1 make all_but_some_tests check_some -j 6
+            resources:
+              requests:
+                cpu: "6"
+                memory: 8Gi
+              limits:
+                cpu: "6"
+                memory: 8Gi
+
+    # x86 Debug Build and Test - Part 2 (Intermediate Test Suite)
+    - <<: *brancher
+      name: pull-rocksdb-test-x86-debug-part2
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            command: [bash, -ce]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+
+                # Build debug library
+                echo "=========================================="
+                echo "Building: x86 debug (librocksdb_debug.a)"
+                echo "=========================================="
+                LIB_MODE=static V=1 make librocksdb_debug.a -j 6
+
+                # Run tests: group 1 and 2 combined
+                echo "=========================================="
+                echo "Testing: x86 debug part 2 (db_block_cache_test to write_batch_with_index_test)"
+                echo "=========================================="
+                export TEST_TMPDIR=/tmp/test_dir
+                export ROCKSDBTESTS_START="db_block_cache_test"
+                export ROCKSDBTESTS_END="write_batch_with_index_test"
+                LIB_MODE=static V=1 make all_but_some_tests check_some -j 6
+            resources:
+              requests:
+                cpu: "6"
+                memory: 8Gi
+              limits:
+                cpu: "6"
+                memory: 8Gi
+
+    # x86 Debug Build and Test - Part 3 (Remaining Tests)
+    - <<: *brancher
+      name: pull-rocksdb-test-x86-debug-part3
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            command: [bash, -ce]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+
+                # Build debug library
+                echo "=========================================="
+                echo "Building: x86 debug (librocksdb_debug.a)"
+                echo "=========================================="
+                LIB_MODE=static V=1 make librocksdb_debug.a -j 6
+
+                # Run tests: group 3 and 4 combined (write_batch_with_index_test onwards)
+                echo "=========================================="
+                echo "Testing: x86 debug part 3 (write_batch_with_index_test onwards)"
+                echo "=========================================="
+                export TEST_TMPDIR=/tmp/test_dir
+                export ROCKSDBTESTS_START="write_batch_with_index_test"
+                export ROCKSDBTESTS_END=""
+                LIB_MODE=static V=1 make all_but_some_tests check_some -j 6
+            resources:
+              requests:
+                cpu: "6"
+                memory: 8Gi
+              limits:
+                cpu: "6"
+                memory: 8Gi
+
+    # x86 Release Build Validation (Build-Only, No Tests Executed)
+    - <<: *brancher
+      name: pull-rocksdb-build-x86-release
+      decorate: true
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            command: [bash, -ce]
+            args:
+              - |
+                #!/usr/bin/env bash
+                set -exo pipefail
+
+                # Setup GCC 8
+                if [ -f /opt/rh/devtoolset-8/enable ]; then
+                  source /opt/rh/devtoolset-8/enable
+                fi
+                g++ --version
+                cmake --version
+
+                # Build release target
+                echo "=========================================="
+                echo "Building: x86 release"
+                echo "=========================================="
+                LIB_MODE=static V=1 make release -j 6
+                echo "Release build completed successfully"
+            resources:
+              requests:
+                cpu: "6"
+                memory: 8Gi
+              limits:
+                cpu: "6"
+                memory: 8Gi
