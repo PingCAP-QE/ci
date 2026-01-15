@@ -86,16 +86,16 @@ fetch_all() {
     echo "🚀 Fetch images built from pingcap/tiproxy..."
     trunk_branch=main
     release_branch=release-nextgen-20251023
-    img_repo="gcr.io/pingcap-public/dbaas/tiproxy"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "$trunk_branch"
-    fetch_next_gen_exact_tags $img_repo $release_branch
+    echo "💿 gcr.io/pingcap-public/dbaas/tiproxy"
+    fetch_next_gen_exact_tags "gcr.io/pingcap-public/dbaas/tiproxy" "$trunk_branch"
+    echo "💿 us.gcr.io/pingcap-public/tidbx/tiproxy"
+    fetch_next_gen_exact_tags "us.gcr.io/pingcap-public/tidbx/tiproxy" $release_branch
 
     # tidbcloud/cloud-storage-engine repo
     echo "🚀 Fetch images built from tidbcloud/cloud-storage-engine..."
     trunk_branch=dedicated
     release_branch=release-nextgen-20251011
-    img_repo="${registry}/pingcap-public/tidbx/tikv
+    img_repo="${registry}/pingcap-public/tidbx/tikv"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
     fetch_next_gen_exact_tags $img_repo $release_branch
