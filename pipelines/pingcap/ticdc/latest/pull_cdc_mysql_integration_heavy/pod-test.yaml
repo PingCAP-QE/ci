@@ -9,7 +9,7 @@ spec:
       tty: true
       resources:
         limits:
-          memory: 28Gi
+          memory: 32Gi
           cpu: "6"
   affinity:
     nodeAffinity:
