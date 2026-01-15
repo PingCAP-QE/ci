@@ -114,9 +114,6 @@ presubmits:
                 echo "=========================================="
                 echo "Testing: x86 debug encrypted environment (up to db_block_cache_test)"
                 echo "=========================================="
-                export TEST_TMPDIR=/tmp/test_dir
-                export ROCKSDBTESTS_START=""
-                export ROCKSDBTESTS_END="db_block_cache_test"
                 LIB_MODE=static V=1 ENCRYPTED_ENV=1 make all_but_some_tests check_some -j 6
             resources:
               requests:
