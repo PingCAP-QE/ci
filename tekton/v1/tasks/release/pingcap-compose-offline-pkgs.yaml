@@ -31,7 +31,7 @@ spec:
       type: string
       default: "false"
     - name: registry
-      default: hub.pingcap.net
+      default: us-docker.pkg.dev/pingcap-testing-account/hub
     - name: tiup-mirror
       description: Product is http://tiup.pingcap.net:8987, Staging is http://tiup.pingcap.net:8988,
       default: http://tiup.pingcap.net:8988

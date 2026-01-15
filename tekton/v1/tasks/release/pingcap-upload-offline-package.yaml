@@ -25,7 +25,7 @@ spec:
       type: string
       default: amd64
     - name: oci-repo
-      default: "hub.pingcap.net/pingcap/offline-package"
+      default: "us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/offline-package"
     - name: dry-run
       default: "false"
   workspaces:

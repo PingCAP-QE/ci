@@ -131,7 +131,7 @@ function main() {
 
     check_version="$1"
     check_mirror="$2"
-    oci_registry="${3:-hub.pingcap.net}"
+    oci_registry="${3:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     fail_fast="${4:-false}"
 
     tiup mirror set $check_mirror

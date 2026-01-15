@@ -12,7 +12,7 @@ spec:
       type: string
       description: the version to wait for delivery.
     - name: oci-registry
-      default: hub.pingcap.net
+      default: us-docker.pkg.dev/pingcap-testing-account/hub
       description: The OCI registry stored the origin tarball files.
     - name: delivery-config
       default: "https://github.com/PingCAP-QE/artifacts/raw/main/packages/delivery.yaml"
