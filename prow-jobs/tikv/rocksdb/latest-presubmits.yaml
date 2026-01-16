@@ -10,8 +10,6 @@ presubmits:
     - <<: *brancher
       name: pull-rocksdb-test-arm
       decorate: true
-      always_run: false
-      optional: true
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity:
@@ -66,8 +64,6 @@ presubmits:
     - <<: *brancher
       name: pull-rocksdb-test-x86-debug-part1
       decorate: true
-      always_run: false
-      optional: true
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity:
@@ -121,8 +117,6 @@ presubmits:
     - <<: *brancher
       name: pull-rocksdb-test-x86-debug-encrypted-env
       decorate: true
-      always_run: false
-      optional: true
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity:
@@ -176,8 +170,6 @@ presubmits:
     - <<: *brancher
       name: pull-rocksdb-test-x86-debug-part2
       decorate: true
-      always_run: false
-      optional: true
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity:
@@ -237,8 +229,6 @@ presubmits:
     - <<: *brancher
       name: pull-rocksdb-test-x86-debug-part3
       decorate: true
-      always_run: false
-      optional: true
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity:
@@ -292,8 +282,6 @@ presubmits:
     - <<: *brancher
       name: pull-rocksdb-build-x86-release
       decorate: true
-      always_run: false
-      optional: true
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity:
