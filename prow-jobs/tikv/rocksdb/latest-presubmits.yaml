@@ -116,7 +116,7 @@ presubmits:
               limits:
                 cpu: "6"
                 memory: 8Gi
-    
+
     # x86 Debug Build and encrypted environment Test
     - <<: *brancher
       name: pull-rocksdb-test-x86-debug-encrypted-env
