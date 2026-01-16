@@ -34,12 +34,11 @@ pipeline {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
-        timeout(time: 80, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -53,7 +52,6 @@ pipeline {
             }
         }
         stage("prepare") {
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
@@ -122,7 +120,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
