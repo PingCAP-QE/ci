@@ -109,7 +109,8 @@ presubmits:
 
     - name: pull-build-next-gen
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       optional: true
       branches:
         - ^master$

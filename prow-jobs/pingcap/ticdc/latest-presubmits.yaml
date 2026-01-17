@@ -103,7 +103,8 @@ presubmits:
 
     - name: pull-build
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       branches:
         - ^master$
         - ^release-8\.5$
@@ -125,7 +126,8 @@ presubmits:
 
     - name: pull-check
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       branches:
         - ^master$
         - ^release-8\.5$
