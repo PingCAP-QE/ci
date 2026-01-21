@@ -23,13 +23,7 @@ final OCI_TAG_SCHEMA_REGISTRY = 'latest'
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE_BUILD
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         // internal mirror is 'hub-zot.pingcap.net/mirrors/hub'
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
@@ -39,9 +33,18 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE_BUILD
+                    defaultContainer 'golang'
+                }
+            }
+            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
+                    // Checkout
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -49,12 +52,7 @@ pipeline {
                             }
                         }
                     }
-                }
-            }
-        }
-        stage("prepare") {
-            steps {
-                dir(REFS.repo) {
+                    // Build cdc and tools
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-storage-integration')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -67,6 +65,7 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
+                    // Download other binaries
                     container("utils") {
                         dir("bin") {
                             script {
@@ -95,6 +94,7 @@ pipeline {
                             }
                         }
                     }
+                    // Cache for downstream test stages.
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                         sh label: "prepare", script: """
                             ls -alh ./bin
