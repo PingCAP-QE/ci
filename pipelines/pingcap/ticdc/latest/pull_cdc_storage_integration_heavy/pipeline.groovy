@@ -93,7 +93,7 @@ pipeline {
                             }
                         }
                     }
-                    // Cache for downstream test stages
+                    // Cache for downstream test stages.
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                         sh label: "prepare", script: """
                             ls -alh ./bin
