@@ -7,7 +7,7 @@ final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final CONSUMER_BINARY_CACHE_KEY = prow.getCacheKey('binary', REFS)
+final CACHE_KEY_CONSUMER_BINARY = prow.getCacheKey('binary', REFS)
 final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIDB = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
@@ -49,8 +49,8 @@ pipeline {
                         cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'binary')
                     }
                     // Build job-specific binaries
-                    lock(CONSUMER_BINARY_CACHE_KEY) {
-                        cache(path: "./bin", includes: '**/*', key: CONSUMER_BINARY_CACHE_KEY) {
+                    lock(CACHE_KEY_CONSUMER_BINARY) {
+                        cache(path: "./bin", includes: '**/*', key: CACHE_KEY_CONSUMER_BINARY) {
                             // build pulsar_consumer for integration test
                             // only build binarys if not exist, use the cached binarys if exist
                             sh label: "prepare", script: """
