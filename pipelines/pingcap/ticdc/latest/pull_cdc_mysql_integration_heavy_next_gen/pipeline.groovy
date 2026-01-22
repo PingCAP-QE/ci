@@ -9,7 +9,6 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final BINARY_CACHE_KEY = prow.getCacheKey('ng-binary', REFS)
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
@@ -47,6 +46,8 @@ pipeline {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
+                    // Build common binaries (no job-specific binaries needed for mysql)
+                    prow.prepareCommonBinariesWithCacheLock(REFS, 'ng-binary')
                     // Build binaries
                     lock(BINARY_CACHE_KEY) {
                         cache(path: "./bin", includes: '**/*', key: BINARY_CACHE_KEY) {
