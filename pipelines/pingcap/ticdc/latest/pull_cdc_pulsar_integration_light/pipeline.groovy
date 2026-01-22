@@ -45,7 +45,7 @@ pipeline {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
                     // Build common binaries
-                    prow.prepareCommonBinariesWithCacheLock(REFS, 'binary')
+                    cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'binary')
                     // Build job-specific binaries
                     lock(BINARY_CACHE_KEY) {
                         cache(path: "./bin", includes: '**/*', key: BINARY_CACHE_KEY) {

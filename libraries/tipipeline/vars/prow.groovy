@@ -32,20 +32,6 @@ def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, gitSshHost = 
     }
 }
 
-def prepareCommonBinariesWithCacheLock(refs, cacheType = 'binary') {
-    final cacheKey = getCacheKey(cacheType, refs, 'common')
-    lock(cacheKey) {
-        cache(path: "./bin", includes: '**/*', key: cacheKey) {
-            sh label: "build common binaries", script: """
-                [ -f ./bin/cdc ] || make cdc
-                [ -f ./bin/cdc.test ] || make integration_test_build
-                ls -alh ./bin
-                ./bin/cdc version
-            """
-        }
-    }
-}
-
 def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
     final remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (

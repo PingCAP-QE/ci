@@ -47,7 +47,7 @@ pipeline {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
                     // Build common binaries (no job-specific binaries needed for mysql)
-                    prow.prepareCommonBinariesWithCacheLock(REFS, 'ng-binary')
+                    cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'ng-binary')
                     // Download other binaries
                     container("utils") {
                         withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
