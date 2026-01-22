@@ -10,7 +10,7 @@ final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final BINARY_CACHE_KEY = prow.getCacheKey('ng-binary', REFS)
+final CONSUMER_BINARY_CACHE_KEY = prow.getCacheKey('ng-binary', REFS)
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
@@ -53,8 +53,8 @@ pipeline {
                         cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'ng-binary')
                     }
                     // Build job-specific binaries
-                    lock(BINARY_CACHE_KEY) {
-                        cache(path: "./bin", includes: '**/*', key: BINARY_CACHE_KEY) {
+                    lock(CONSUMER_BINARY_CACHE_KEY) {
+                        cache(path: "./bin", includes: '**/*', key: CONSUMER_BINARY_CACHE_KEY) {
                             // build kafka_consumer, storage_consumer for integration test
                             // only build binarys if not exist, use the cached binarys if exist
                             sh label: "prepare", script: """
