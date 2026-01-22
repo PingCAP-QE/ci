@@ -40,7 +40,6 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     // Checkout
