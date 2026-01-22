@@ -49,7 +49,9 @@ pipeline {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
                     // Build common binaries
-                    cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'ng-binary')
+                    script {
+                        cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'ng-binary')
+                    }
                     // Build job-specific binaries
                     lock(BINARY_CACHE_KEY) {
                         cache(path: "./bin", includes: '**/*', key: binaryCacheKey) {

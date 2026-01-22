@@ -44,7 +44,9 @@ pipeline {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
                     // Build common binaries (no job-specific binaries needed for mysql)
-                    cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'binary')
+                    script {
+                        cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'binary')
+                    }
                     // Download other binaries
                     container("utils") {
                         dir("bin") {
