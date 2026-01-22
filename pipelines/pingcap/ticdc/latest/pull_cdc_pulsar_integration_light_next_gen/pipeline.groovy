@@ -9,6 +9,8 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_CACHE_KEY = prow.getCacheKey('git', REFS)
+final BINARY_CACHE_KEY = prow.getCacheKey('ng-binary', REFS, 'cdc-pulsar-integration')
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
@@ -43,24 +45,28 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     // Checkout
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
+                    lock(GIT_CACHE_KEY) {
+                        cache(path: "./", includes: '**/*', key: GIT_CACHE_KEY, restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                            retry(2) {
+                                script {
+                                    prow.checkoutRefs(REFS)
+                                }
                             }
                         }
                     }
                     // Build binaries
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'cdc-pulsar-integration')) {
-                        // build cdc, pulsar_consumer, cdc.test for integration test
-                        // only build binarys if not exist, use the cached binarys if exist
-                        sh label: "prepare", script: """
-                            [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc_pulsar_consumer ] || make pulsar_consumer
-                            [ -f ./bin/cdc.test ] || make integration_test_build
-                            ls -alh ./bin
-                            ./bin/cdc version
-                        """
+                    lock(BINARY_CACHE_KEY) {
+                        cache(path: "./bin", includes: '**/*', key: BINARY_CACHE_KEY) {
+                            // build cdc, pulsar_consumer, cdc.test for integration test
+                            // only build binarys if not exist, use the cached binarys if exist
+                            sh label: "prepare", script: """
+                                [ -f ./bin/cdc ] || make cdc
+                                [ -f ./bin/cdc_pulsar_consumer ] || make pulsar_consumer
+                                [ -f ./bin/cdc.test ] || make integration_test_build
+                                ls -alh ./bin
+                                ./bin/cdc version
+                            """
+                        }
                     }
                     // Download other binaries
                     container("utils") {
