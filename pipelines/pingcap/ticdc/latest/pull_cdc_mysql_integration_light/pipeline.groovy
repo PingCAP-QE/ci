@@ -7,7 +7,6 @@ final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final GIT_CACHE_KEY = prow.getCacheKey('git', REFS)
 final BINARY_CACHE_KEY = prow.getCacheKey('binary', REFS, 'cdc-mysql-integration')
 final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIDB = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
@@ -42,14 +41,8 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     // Checkout
-                    lock(GIT_CACHE_KEY) {
-                        cache(path: "./", includes: '**/*', key: GIT_CACHE_KEY, restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                            retry(2) {
-                                script {
-                                    prow.checkoutRefs(REFS)
-                                }
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                     // Build cdc and tools
                     lock(BINARY_CACHE_KEY) {
