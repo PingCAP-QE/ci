@@ -47,20 +47,11 @@ pipeline {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
-                    // Build common binaries
                     script {
-                        cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'ng-binary')
-                    }
-                    // Build job-specific binaries
-                    lock(CACHE_KEY_CONSUMER_BINARY) {
-                        cache(path: "./bin", includes: '**/*', key: CACHE_KEY_CONSUMER_BINARY) {
-                            // build pulsar_consumer for integration test
-                            // only build binarys if not exist, use the cached binarys if exist
-                            sh label: "prepare", script: """
-                                [ -f ./bin/cdc_pulsar_consumer ] || make pulsar_consumer
-                                ls -alh ./bin
-                            """
-                        }
+                        // Build common binaries
+                        cdc.prepareIntegrationTestCommonBinariesWithCacheLock(REFS, 'ng-binary')
+                        // Build job-specific binaries
+                        cdc.prepareIntegrationTestPulsarConsumerBinariesWithCacheLock(REFS, 'ng-binary')
                     }
                     // Download other binaries
                     container("utils") {

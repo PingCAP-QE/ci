@@ -48,7 +48,7 @@ pipeline {
                     }
                     // Build common binaries (no job-specific binaries needed for mysql)
                     script {
-                        cdc.prepareCommonIntegrationTestBinariesWithCacheLock(REFS, 'binary')
+                        cdc.prepareIntegrationTestCommonBinariesWithCacheLock(REFS, 'binary')
                     }
                     // Download other binaries
                     container("utils") {
