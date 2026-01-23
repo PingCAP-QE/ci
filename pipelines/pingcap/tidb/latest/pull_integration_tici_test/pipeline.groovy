@@ -58,7 +58,7 @@ pipeline {
                                                 --pd=${otherComponentBranch} \
                                                 --tikv=${otherComponentBranch} \
                                                 --tiflash=${otherComponentBranch} \
-                                                --ticdc=${otherComponentBranch} \
+                                                --ticdc-new=${otherComponentBranch} \
                                                 --tici=${otherComponentBranch} \
                                                 --minio=${minioTag}
                                         """
