@@ -44,28 +44,36 @@ pipeline {
                         def minioTag = 'RELEASE.2025-07-23T15-54-02Z'
                         retry(3) {
                             dir('tests/integrationtest2/third_bin') {
-                                container("utils") {
-                                    sh label: 'download binary', script: """
-                                        script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                                        chmod +x \$script
-                                        \$script \
-                                            --pd=${otherComponentBranch} \
-                                            --tikv=${otherComponentBranch} \
-                                            --tiflash=${otherComponentBranch} \
-                                            --ticdc=${otherComponentBranch} \
-                                            --tici=${otherComponentBranch} \
-                                            --minio=${minioTag}
-                                    """
+                                cache(path: "./", includes: '**/*', key: "binary/tidb/integrationtest2/third_bin/${otherComponentBranch}/${minioTag}") {
+                                    container("utils") {
+                                        sh label: 'download binary', script: """
+                                            if [[ -x tici-server && -x tikv-server && -x pd-server && -x tiflash && -x cdc && -x minio && -x mc ]]; then
+                                                echo "third_bin cache hit; skip download."
+                                                exit 0
+                                            fi
+
+                                            script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                            chmod +x \$script
+                                            \$script \
+                                                --pd=${otherComponentBranch} \
+                                                --tikv=${otherComponentBranch} \
+                                                --tiflash=${otherComponentBranch} \
+                                                --ticdc=${otherComponentBranch} \
+                                                --tici=${otherComponentBranch} \
+                                                --minio=${minioTag}
+                                        """
+                                    }
+                                    sh '''
+                                        mv tiflash tiflash_dir
+                                        ln -s `pwd`/tiflash_dir/tiflash tiflash
+                                        ls -alh .
+                                        ./tikv-server -V
+                                        ./pd-server -V
+                                        ./tiflash --version
+                                        ./tici-server -V
+                                        ./cdc version
+                                    '''
                                 }
-                                sh '''
-                                    mv tiflash tiflash_dir
-                                    ln -s `pwd`/tiflash_dir/tiflash tiflash
-                                    ls -alh .
-                                    ./tikv-server -V
-                                    ./pd-server -V
-                                    ./tiflash --version
-                                    ./cdc version
-                                '''
                             }
                         }
                     }
