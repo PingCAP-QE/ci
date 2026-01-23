@@ -14,7 +14,7 @@ def checkoutPrivateRefsWithCacheLock(refs, credentialsId, timeout = 5, gitSshHos
 
 def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
     final cacheKey = getCacheKey('git', refs)
-    final restoreKeys = prow.getRestoreKeys('git', refs)
+    final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
         retry(2) {
             checkoutRefs(refs, timeout, credentialsId, gitBaseUrl, withSubmodule)
@@ -24,7 +24,7 @@ def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'h
 
 def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
     final cacheKey = getCacheKey('git', refs)
-    final restoreKeys = prow.getRestoreKeys('git', refs)
+    final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
         retry(2) {
             checkoutPrivateRefs(refs, credentialsId, timeout, gitSshHost, withSubmodule)
