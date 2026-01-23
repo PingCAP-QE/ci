@@ -71,6 +71,13 @@ function compute_tag_platform_suffix() {
     echo "${os}_${arch}"
 }
 
+function normalize_oci_tag() {
+    local tag="$1"
+    tag="${tag#@}"
+    tag="${tag//\//-}"
+    echo "$tag"
+}
+
 function main() {
     check_tools
     parse_cli_args "$@"
@@ -123,6 +130,12 @@ function main() {
         download_and_extract_with_path "$ticdc_new_oci_url" '^cdc-v.+.tar.gz$' cdc.tar.gz cdc
         chmod +x cdc
         echo "🎉 download TiCDC(new) success"
+    fi
+    if [[ -n "$TICI" ]]; then
+        echo "🚀 start download TiCI"
+        download_and_extract_with_path "$tici_oci_url" '^tici-v.+.tar.gz$' tici.tar.gz tici-server
+        chmod +x tici-server
+        echo "🎉 download TiCI success"
     fi
     if [[ -n "$MINIO" ]]; then
         echo "🚀 start download MinIO server and client"
@@ -197,6 +210,10 @@ function parse_cli_args() {
         TICDC_NEW="${i#*=}"
         shift # past argument=value
         ;;
+        -tici=*|--tici=*)
+        TICI="${i#*=}"
+        shift # past argument=value
+        ;;
         -minio=*|--minio=*)
         MINIO="${i#*=}"
         shift # past argument=value
@@ -238,6 +255,7 @@ function parse_cli_args() {
     [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
     [[ -n "${TICDC}" ]]         && echo "TICDC       = ${TICDC}"
     [[ -n "${TICDC_NEW}" ]]     && echo "TICDC_NEW   = ${TICDC_NEW}"
+    [[ -n "${TICI}" ]]          && echo "TICI        = ${TICI}"
     [[ -n "${MINIO}" ]]         && echo "MINIO       = ${MINIO}"
     [[ -n "${ETCDCTL}" ]]       && echo "ETCDCTL     = ${ETCDCTL}"
     [[ -n "${YCSB}" ]]          && echo "YCSB        = ${YCSB}"
@@ -252,6 +270,21 @@ function parse_cli_args() {
     # get the tag suffix by current runtime os and arch, it will be "[linux|darwin]_[amd64|arm64]" format.
     local tag_suffix=$(compute_tag_platform_suffix)
 
+    TIDB="$(normalize_oci_tag "${TIDB:-}")"
+    TIKV="$(normalize_oci_tag "${TIKV:-}")"
+    TIKV_WORKER="$(normalize_oci_tag "${TIKV_WORKER:-}")"
+    PD="$(normalize_oci_tag "${PD:-}")"
+    PD_CTL="$(normalize_oci_tag "${PD_CTL:-}")"
+    TIFLASH="$(normalize_oci_tag "${TIFLASH:-}")"
+    TICDC="$(normalize_oci_tag "${TICDC:-}")"
+    TICDC_NEW="$(normalize_oci_tag "${TICDC_NEW:-}")"
+    TICI="$(normalize_oci_tag "${TICI:-}")"
+    MINIO="$(normalize_oci_tag "${MINIO:-}")"
+    ETCDCTL="$(normalize_oci_tag "${ETCDCTL:-}")"
+    YCSB="$(normalize_oci_tag "${YCSB:-}")"
+    SCHEMA_REGISTRY="$(normalize_oci_tag "${SCHEMA_REGISTRY:-}")"
+    SYNC_DIFF_INSPECTOR="$(normalize_oci_tag "${SYNC_DIFF_INSPECTOR:-}")"
+
     registry_host="${OCI_ARTIFACT_HOST:-hub.pingcap.net}"
     registry_host_community="${OCI_ARTIFACT_HOST_COMMUNITY:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
@@ -262,6 +295,7 @@ function parse_cli_args() {
     pd_ctl_oci_url="${registry_host}/tikv/pd/package:${PD_CTL}_${tag_suffix}"
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
     ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
+    tici_oci_url="${registry_host}/pingcap/tici/package:${TICI}_${tag_suffix}"
 
     # third party or public test tools.
     minio_oci_url="${registry_host_community}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
