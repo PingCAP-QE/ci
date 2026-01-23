@@ -64,8 +64,17 @@ pipeline {
                                         """
                                     }
                                     sh '''
-                                        mv tiflash tiflash_dir
-                                        ln -s `pwd`/tiflash_dir/tiflash tiflash
+                                        mkdir -p tiflash_dir
+                                        if [[ -f tiflash && ! -L tiflash ]]; then
+                                            if [[ ! -f tiflash_dir/tiflash ]]; then
+                                                mv tiflash tiflash_dir/
+                                            else
+                                                rm -f tiflash
+                                            fi
+                                        fi
+                                        if [[ -f tiflash_dir/tiflash ]]; then
+                                            ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
+                                        fi
                                         ls -alh .
                                         ./tikv-server -V
                                         ./pd-server -V
