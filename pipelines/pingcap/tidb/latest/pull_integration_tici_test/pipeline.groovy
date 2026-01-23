@@ -64,13 +64,9 @@ pipeline {
                                         """
                                     }
                                     sh '''
-                                        mkdir -p tiflash_dir
-                                        if [[ -f tiflash && ! -L tiflash ]]; then
-                                            if [[ ! -f tiflash_dir/tiflash ]]; then
-                                                mv tiflash tiflash_dir/
-                                            else
-                                                rm -f tiflash
-                                            fi
+                                        if [[ -d tiflash && ! -L tiflash ]]; then
+                                            rm -rf tiflash_dir
+                                            mv tiflash tiflash_dir
                                         fi
                                         if [[ -f tiflash_dir/tiflash ]]; then
                                             ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
