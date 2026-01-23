@@ -41,13 +41,14 @@ pipeline {
                     script {
                         // Computes the branch name for downloading binaries based on the PR target branch and title.
                         def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
+                        def forceDownload = (REFS.pulls[0].title =~ /(?i)\bforce_download\s*=\s*1\b/)
                         def minioTag = 'RELEASE.2025-07-23T15-54-02Z'
                         retry(3) {
                             dir('tests/integrationtest2/third_bin') {
                                 cache(path: "./", includes: '**/*', key: "binary/tidb/integrationtest2/third_bin/${otherComponentBranch}/${minioTag}") {
                                     container("utils") {
                                         sh label: 'download binary', script: """
-                                            if [[ -x tici-server && -x tikv-server && -x pd-server && -x tiflash && -x cdc && -x minio && -x mc ]]; then
+                                            if [[ "${forceDownload ? "1" : "0"}" != "1" ]] && [[ -x tici-server && -x tikv-server && -x pd-server && -x tiflash && -x cdc && -x minio && -x mc ]]; then
                                                 echo "third_bin cache hit; skip download."
                                                 exit 0
                                             fi
