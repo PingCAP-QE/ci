@@ -50,8 +50,8 @@ pipeline {
                     // Build binaries
                     script {
                         cdc.prepareIntegrationTestCommonBinariesWithCacheLock(REFS, 'binary')
-                        cdc.prepareIntegrationTestKafkaBinariesWithCacheLock(REFS, 'binary')
-                        cdc.prepareIntegrationTestStorageBinariesWithCacheLock(REFS, 'binary')
+                        cdc.prepareIntegrationTestKafkaConsumerBinariesWithCacheLock(REFS, 'binary')
+                        cdc.prepareIntegrationTestStorageConsumerBinariesWithCacheLock(REFS, 'binary')
                     }
                     // Download other binaries
                     container("utils") {
