@@ -1,3 +1,8 @@
+def computeArtifactOciTagFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
+    def branchName = computeBranchFromPR(component, prTargetBranch, prTitle, trunkBranch)
+    return branchName.replaceAll('/', '-')
+}
+
 // compute component branch from pr info.
 def computeBranchFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     // pr title xxx | dep1=release-x.y

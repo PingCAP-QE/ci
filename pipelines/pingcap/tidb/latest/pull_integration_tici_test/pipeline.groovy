@@ -9,6 +9,9 @@ final SELF_DIR = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAM
 final POD_TEMPLATE_FILE = "${SELF_DIR}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+final OCI_TAG_OTHERS = component.computeArtifactOciTagFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
+
 prow.setPRDescription(REFS)
 pipeline {
     agent {
@@ -20,6 +23,10 @@ pipeline {
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
+    }
+    environment {
+        // internal mirror is 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     stages {
         stage('Checkout') {
@@ -37,49 +44,43 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir('tidb/tests/integrationtest2/third_bin') {
                     script {
-                        // Computes the branch name for downloading binaries based on the PR target branch and title.
-                        def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def minioTag = 'RELEASE.2025-07-23T15-54-02Z'
-                        retry(3) {
-                            dir('tests/integrationtest2/third_bin') {
-                                cache(path: "./", includes: '**/*', key: "binary/tidb/integrationtest2/third_bin/${otherComponentBranch}/${minioTag}") {
-                                    container("utils") {
-                                        sh label: 'download binary', script: """
-                                            if [[ -x tici-server && -x tikv-server && -x pd-server && -x tiflash && -x cdc && -x minio && -x mc ]]; then
-                                                echo "third_bin cache hit; skip download."
-                                                exit 0
-                                            fi
+                        retry(2) {
+                            container("utils") {
+                                sh label: 'download binary', script: """
+                                    if [[ -x tici-server && -x tikv-server && -x pd-server && -x tiflash && -x cdc && -x minio && -x mc ]]; then
+                                        echo "third_bin cache hit; skip download."
+                                        exit 0
+                                    fi
 
-                                            script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                                            chmod +x \$script
-                                            \$script \
-                                                --pd=${otherComponentBranch} \
-                                                --tikv=${otherComponentBranch} \
-                                                --tiflash=${otherComponentBranch} \
-                                                --ticdc-new=${otherComponentBranch} \
-                                                --tici=${otherComponentBranch} \
-                                                --minio=${minioTag}
-                                        """
-                                    }
-                                    sh '''
-                                        if [[ -d tiflash && ! -L tiflash ]]; then
-                                            rm -rf tiflash_dir
-                                            mv tiflash tiflash_dir
-                                        fi
-                                        if [[ -f tiflash_dir/tiflash ]]; then
-                                            ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
-                                        fi
-                                        ls -alh .
-                                        ./tikv-server -V
-                                        ./pd-server -V
-                                        ./tiflash --version
-                                        ./tici-server -V
-                                        ./cdc version
-                                    '''
-                                }
+                                    script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                    chmod +x \$script
+                                    \$script \
+                                        --pd=${OCI_TAG_OTHERS} \
+                                        --tikv=${OCI_TAG_OTHERS} \
+                                        --tiflash=${OCI_TAG_OTHERS} \
+                                        --ticdc-new=${OCI_TAG_OTHERS} \
+                                        --tici=${OCI_TAG_OTHERS} \
+                                        --minio=${OCI_TAG_MINIO}
+
+                                """
                             }
+                            sh '''
+                                if [[ -d tiflash && ! -L tiflash ]]; then
+                                    rm -rf tiflash_dir
+                                    mv tiflash tiflash_dir
+                                fi
+                                if [[ -f tiflash_dir/tiflash ]]; then
+                                    ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
+                                fi
+                                ls -alh .
+                                ./tikv-server -V
+                                ./pd-server -V
+                                ./tiflash --version
+                                ./tici-server -V
+                                ./cdc version
+                            '''
                         }
                     }
                 }
@@ -93,10 +94,8 @@ pipeline {
                 MINIO_MC_BIN = "third_bin/mc"
             }
             steps {
-                dir('tidb') {
-                    sh label: 'test', script: """
-                        cd tests/integrationtest2 && ./run-tests.sh -t tici/tici_integration
-                    """
+                dir('tidb/tests/integrationtest2') {
+                    sh label: 'test', script: './run-tests.sh -t tici/tici_integration'
                 }
             }
             post{

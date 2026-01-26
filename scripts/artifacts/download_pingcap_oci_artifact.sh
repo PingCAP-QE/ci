@@ -71,13 +71,6 @@ function compute_tag_platform_suffix() {
     echo "${os}_${arch}"
 }
 
-function normalize_oci_tag() {
-    local tag="$1"
-    tag="${tag#@}"
-    tag="${tag//\//-}"
-    echo "$tag"
-}
-
 function main() {
     check_tools
     parse_cli_args "$@"
@@ -269,22 +262,6 @@ function parse_cli_args() {
 
     # get the tag suffix by current runtime os and arch, it will be "[linux|darwin]_[amd64|arm64]" format.
     local tag_suffix=$(compute_tag_platform_suffix)
-
-    TIDB="$(normalize_oci_tag "${TIDB:-}")"
-    TIKV="$(normalize_oci_tag "${TIKV:-}")"
-    TIKV_WORKER="$(normalize_oci_tag "${TIKV_WORKER:-}")"
-    PD="$(normalize_oci_tag "${PD:-}")"
-    PD_CTL="$(normalize_oci_tag "${PD_CTL:-}")"
-    TIFLASH="$(normalize_oci_tag "${TIFLASH:-}")"
-    TICDC="$(normalize_oci_tag "${TICDC:-}")"
-    TICDC_NEW="$(normalize_oci_tag "${TICDC_NEW:-}")"
-    TICI="$(normalize_oci_tag "${TICI:-}")"
-    MINIO="$(normalize_oci_tag "${MINIO:-}")"
-    ETCDCTL="$(normalize_oci_tag "${ETCDCTL:-}")"
-    YCSB="$(normalize_oci_tag "${YCSB:-}")"
-    SCHEMA_REGISTRY="$(normalize_oci_tag "${SCHEMA_REGISTRY:-}")"
-    SYNC_DIFF_INSPECTOR="$(normalize_oci_tag "${SYNC_DIFF_INSPECTOR:-}")"
-
     registry_host="${OCI_ARTIFACT_HOST:-hub.pingcap.net}"
     registry_host_community="${OCI_ARTIFACT_HOST_COMMUNITY:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
