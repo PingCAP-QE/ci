@@ -96,6 +96,7 @@ presubmits:
       labels:
         master: "0"
       decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed      
       context: pull-integration-tici-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-tici-test(?: .*?)?$"
       rerun_command: "/test pull-integration-tici-test"
