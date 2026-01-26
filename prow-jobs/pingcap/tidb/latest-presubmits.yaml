@@ -1,4 +1,7 @@
 global_definitions:
+  ftsbrancher: &ftsbrancher
+    branches:
+      - ^feature/fts$
   brancher: &brancher
     branches:
       - ^master$
@@ -87,13 +90,12 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"
 
-    - <<: *brancher
+    - <<: *ftsbrancher
       name: pingcap/tidb/pull_integration_tici_test
       agent: jenkins
       labels:
         master: "0"
       decorate: false # need add this.
-      optional: true
       context: pull-integration-tici-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-tici-test(?: .*?)?$"
       rerun_command: "/test pull-integration-tici-test"
