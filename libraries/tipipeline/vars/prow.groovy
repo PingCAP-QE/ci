@@ -20,9 +20,13 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
         git config remote.origin.url ${remoteUrl}
         git config core.sparsecheckout true
 
-        # reset & clean
+        # reset & clean (worktree only)
         git reset --hard
         git clean -ffdx
+
+        # Prune stale PR refs from previous cached runs.
+        # These refs keep old PR commits reachable and make the cached .git grow run by run.
+        git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 50 git update-ref -d || true
 
         # fetch pull requests and target branch.
         timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
@@ -56,6 +60,19 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
             GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
             echo "✅ update submodules done"
         fi
+
+        # Git maintenance to keep cached workspaces bounded in size.
+        # Also run gc in submodules if present (workspace cache includes them).
+        (
+            git reflog expire --expire=now --all || true
+            git gc --prune=now || true
+            if [ -f .gitmodules ]; then
+                git submodule foreach --recursive '
+                    git reflog expire --expire=now --all || true
+                    git gc --prune=now || true
+                ' || true
+            fi
+        ) >/dev/null 2>&1 || true
 
         echo "✅ ~~~~~All done.~~~~~~"
     """
@@ -95,9 +112,13 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
             git config remote.origin.url ${remoteUrl}
             git config core.sparsecheckout true
 
-            # reset & clean
+            # reset & clean (worktree only)
             git reset --hard
             git clean -ffdx
+
+            # Prune stale PR refs from previous cached runs.
+            # These refs keep old PR commits reachable and make the cached .git grow run by run.
+            git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 50 git update-ref -d || true
 
             # fetch pull requests and target branch.
             timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
@@ -131,6 +152,19 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
                 GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
                 echo "✅ update submodules done"
             fi
+
+            # Git maintenance to keep cached workspaces bounded in size.
+            # Also run gc in submodules if present (workspace cache includes them).
+            (
+                git reflog expire --expire=now --all || true
+                git gc --prune=now || true
+                if [ -f .gitmodules ]; then
+                    git submodule foreach --recursive '
+                        git reflog expire --expire=now --all || true
+                        git gc --prune=now || true
+                    ' || true
+                fi
+            ) >/dev/null 2>&1 || true
 
             echo "✅ ~~~~~All done.~~~~~~"
         """
