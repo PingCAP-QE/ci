@@ -6,6 +6,8 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -17,7 +19,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -36,48 +38,52 @@ pipeline {
                 }
             }
         }
-        stage('Prepare') {
+        stage("Prepare") {
             steps {
-                dir('tidb') {
-                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    retry(3) {
-                        script {
-	                        def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
-	                        def artifactVerify = !isFeatureBranch
-	                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
-	                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
+                dir(REFS.repo) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'tidb-server')) {
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
+                    }
+                    container("utils") {
+                        dir("bin") {
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
+                            }
                         }
                     }
+                    sh label: 'check version', script: '''
+                        ls -alh bin/
+                        ./bin/tidb-server -V
+                        ./bin/tikv-server -V
+                        ./bin/pd-server -V
+                    '''
                 }
             }
         }
         stage('Tests') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    sh label: 'check version', script: """
-                    ls -alh bin/
-                    ./bin/tidb-server -V
-                    ./bin/tikv-server -V
-                    ./bin/pd-server -V
-                    """
-                    sh label: 'test graceshutdown', script: """
-                    cd tests/graceshutdown && make
-                    ./run-tests.sh
-                    """
-                    sh label: 'test globalkilltest', script: """
-                    cd tests/globalkilltest && make
-                    cp ${WORKSPACE}/tidb/bin/tikv-server ${WORKSPACE}/tidb/bin/pd-server ./bin/
-                    PD=./bin/pd-server  TIKV=./bin/tikv-server ./run-tests.sh
-                    """
+                dir(REFS.repo) {
+                    dir('tests/graceshutdown') {
+                        sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'
+                    }
+                    dir('tests/globalkilltest') {
+                        sh label: 'test globalkilltest', script: """
+                            cp -r ${WORKSPACE}/tidb/bin bin
+                            make && ./run-tests.sh
+                        """
+                    }
                 }
             }
             post{
                 failure {
                     script {
-                        println "Test failed, archive the log"
-                        archiveArtifacts artifacts: '/tmp/tidb_globalkilltest/*.log', fingerprint: true
-                        archiveArtifacts artifacts: '/tmp/tidb_gracefulshutdown/*.log', fingerprint: true
+                        archiveArtifacts(artifacts: '/tmp/tidb_globalkilltest/*.log', fingerprint: false)
+                        archiveArtifacts(artifacts: '/tmp/tidb_gracefulshutdown/*.log', fingerprint: false)
                     }
                 }
             }
