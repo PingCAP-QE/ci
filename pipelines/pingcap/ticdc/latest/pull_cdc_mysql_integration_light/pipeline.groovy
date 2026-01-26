@@ -19,13 +19,7 @@ final OCI_TAG_SCHEMA_REGISTRY = 'latest'
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE_BUILD
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         // internal mirror is 'hub-zot.pingcap.net/mirrors/hub'
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
@@ -35,32 +29,25 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            steps {
-                dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
-                    }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE_BUILD
+                    defaultContainer 'golang'
                 }
             }
-        }
-        stage("prepare") {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-mysql-integration')) {
-                        // build cdc, cdc.test for integration test
-                        // only build binarys if not exist, use the cached binarys if exist
-                        sh label: "prepare", script: """
-                            [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc.test ] || make integration_test_build
-                            ls -alh ./bin
-                            ./bin/cdc version
-                        """
+                    // Checkout
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
+                    // Build common binaries (no job-specific binaries needed for mysql)
+                    script {
+                        cdc.prepareIntegrationTestCommonBinariesWithCacheLock(REFS, 'binary')
+                    }
+                    // Download other binaries
                     container("utils") {
                         dir("bin") {
                             script {
@@ -89,6 +76,7 @@ pipeline {
                             }
                         }
                     }
+                    // Cache for downstream test stages.
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
                         sh label: "prepare", script: """
                             ls -alh ./bin

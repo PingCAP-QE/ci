@@ -37,28 +37,17 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     // Checkout
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
-                    // Build cdc and tools
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-pulsar-integration')) {
-                        // build cdc, pulsar_consumer, cdc.test for integration test
-                        // only build binarys if not exist, use the cached binarys if exist
-                        sh label: "prepare", script: """
-                            [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc_pulsar_consumer ] || make pulsar_consumer
-                            [ -f ./bin/cdc.test ] || make integration_test_build
-                            ls -alh ./bin
-                            ./bin/cdc version
-                        """
+                    script {
+                        // Build common binaries
+                        cdc.prepareIntegrationTestCommonBinariesWithCacheLock(REFS, 'binary')
+                        // Build job-specific binaries
+                        cdc.prepareIntegrationTestPulsarConsumerBinariesWithCacheLock(REFS, 'binary')
                     }
                     // Download other binaries
                     container("utils") {

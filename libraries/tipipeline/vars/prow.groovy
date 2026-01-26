@@ -1,3 +1,37 @@
+def checkoutRefsWithCacheLock(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
+    final lockResource = getCacheKey('git', refs)
+    lock(lockResource) {
+        checkoutRefsWithCache(refs, timeout, credentialsId, gitBaseUrl, withSubmodule)
+    }
+}
+
+def checkoutPrivateRefsWithCacheLock(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
+    final lockResource = getCacheKey('git', refs)
+    lock(lockResource) {
+        checkoutPrivateRefsWithCache(refs, credentialsId, timeout, gitSshHost, withSubmodule)
+    }
+}
+
+def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
+    final cacheKey = getCacheKey('git', refs)
+    final restoreKeys = getRestoreKeys('git', refs)
+    cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
+        retry(2) {
+            checkoutRefs(refs, timeout, credentialsId, gitBaseUrl, withSubmodule)
+        }
+    }
+}
+
+def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
+    final cacheKey = getCacheKey('git', refs)
+    final restoreKeys = getRestoreKeys('git', refs)
+    cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
+        retry(2) {
+            checkoutPrivateRefs(refs, credentialsId, timeout, gitSshHost, withSubmodule)
+        }
+    }
+}
+
 def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
     final remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
     final remoteRefSpec = (
