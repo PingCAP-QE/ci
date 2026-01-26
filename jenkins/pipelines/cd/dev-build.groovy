@@ -220,7 +220,7 @@ spec:
                     ImageForGcr = "gcr.io/pingcap-public/dbaas/$ShortImageRepoForGCR:$Version-$BUILD_NUMBER-dev"
 
                     if (params.IsHotfix.toBoolean()){
-                        Image = "hub.pingcap.net/$ProductForDocker:$Version-$BUILD_NUMBER"
+                        Image = "us-docker.pkg.dev/pingcap-testing-account/hotfix/$ProductForDocker:$Version-$BUILD_NUMBER"
                         if (params.Features != ""){
                             error "hotfix artifact but with extra features"
                         }
