@@ -3,10 +3,7 @@ def prepareIntegrationTestCommonBinariesWithCacheLock(refs, cacheType = 'binary'
     lock(cacheKey) {
         cache(path: "./bin", includes: 'cdc,cdc.test', key: cacheKey) {
             sh label: "build common binaries", script: """
-                [ -f ./bin/cdc ] || make cdc
-                [ -f ./bin/cdc.test ] || make integration_test_build
-                ls -alh ./bin
-                ./bin/cdc version
+                [ -f ./bin/cdc ] && [ -f ./bin/cdc.test ] || make integration_test_build_fast
             """
         }
     }
@@ -15,8 +12,9 @@ def prepareIntegrationTestCommonBinariesWithCacheLock(refs, cacheType = 'binary'
 def prepareIntegrationTestPulsarConsumerBinariesWithCacheLock(refs, cacheType = 'binary') {
     final cacheKey = prow.getCacheKey(cacheType, refs, 'it-pulsar-consumer')
     lock(cacheKey) {
-        cache(path: "./bin", includes: 'cdc_pulsar_consumer', key: cacheKey) {
+        cache(path: "./bin", includes: 'cdc_pulsar_consumer,oauth2_server', key: cacheKey) {
             sh '[ -f ./bin/cdc_pulsar_consumer ] || make pulsar_consumer'
+            sh '[ -f ./bin/oauth2-server ] || make oauth2_server'
         }
     }
 }
