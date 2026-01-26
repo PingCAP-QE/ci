@@ -16,8 +16,6 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
         git init
         git rev-parse --resolve-git-dir .git
 
-        git config user.email "ti-chi-bot@ci"
-        git config user.name "TiChiBot"
         git config --global user.email "ti-chi-bot@ci" && git config --global user.name "TiChiBot"
         git config remote.origin.url ${remoteUrl}
         git config core.sparsecheckout true
