@@ -6,8 +6,8 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -27,7 +27,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -41,7 +41,7 @@ pipeline {
         stage("Prepare") {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'tidb-server')) {
+                    cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS)) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     container("utils") {

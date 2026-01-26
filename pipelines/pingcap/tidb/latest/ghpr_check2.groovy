@@ -7,18 +7,12 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-ghpr_check2.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
@@ -27,9 +21,16 @@ pipeline {
         OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     stages {
-        stage('Checkout') {
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    defaultContainer 'golang'
+                }
+            }
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -37,13 +38,7 @@ pipeline {
                             }
                         }
                     }
-                }
-            }
-        }
-        stage("Prepare") {
-            steps {
-                dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                    cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS)) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     container("utils") {
