@@ -3,7 +3,7 @@ def prepareIntegrationTestCommonBinariesWithCacheLock(refs, cacheType = 'binary'
     lock(cacheKey) {
         cache(path: "./bin", includes: 'cdc,cdc.test', key: cacheKey) {
             sh label: "build common binaries", script: """
-                [ -f ./bin/cdc ] && [ -f ./bin/cdc.test ] || make integration_test_build_fast
+                [ -f ./bin/cdc ] && [ -f ./bin/cdc.test ] || make integration_test_build
             """
         }
     }
