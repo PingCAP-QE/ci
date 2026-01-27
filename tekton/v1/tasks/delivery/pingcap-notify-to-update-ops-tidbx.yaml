@@ -23,13 +23,19 @@ spec:
     - name: stage
       type: string
       description: stage name
+    - name: change_id
+      type: string
+      default: ""
+    - name: release_id
+      type: string
+      description: release request flow id
+      default: ""
   workspaces:
     - name: notify-config
       description: |
-        Configuration for GitHub authentication and issue URLs.
+        Configuration for notifications.
         Include files:
-        - GitHub token: <stage>_github_token
-        - GitHub issue URL: <stage>_github_issue_url
+        - Lark webhook URL: <stage>_lark_webhook
       readOnly: true
     - name: ops-config
       description: |
@@ -45,7 +51,12 @@ spec:
         - input: "$(params.stage)"
           operator: in
           values: ["prod"]
-      args: ["$(params.stage)", "$(params.images)", "/workspace/ops-tickets.txt"]
+      args:
+        - "$(params.stage)"
+        - "$(params.images)"
+        - "$(params.change_id)"
+        - "$(params.release_id)"
+        - "/workspace/ops-tickets.txt"
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -68,9 +79,11 @@ spec:
             local cluster_type="$4"
             local image_repo="$5"
             local image_tag="$6"
-            local api_base_url="$7"
-            local api_key="$8"
-            local save_file="$9"
+            local change_id="$7"
+            local release_id="$8"
+            local api_base_url="${9}"
+            local api_key="${10}"
+            local save_file="${11}"
 
             local api_url="$api_base_url/$component"
 
@@ -81,7 +94,9 @@ spec:
               --arg version "$component_version" \
               --arg base_image "$image_repo" \
               --arg tag "$image_tag" \
-              '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag, "policy": "immediate"}' > $payload_file
+              --arg change_id "$change_id" \
+              --arg release_id "$release_id" \
+              '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag, "policy": "immediate", "change_id": $change_id, "release_id": $release_id }' > "$payload_file"
 
             echo "🚀 Request to update the image for component $component@$component_version in stage $stage with: $image_repo:$image_tag"
             local response_file="/tmp/${component}-${component_version}-response.json"
@@ -92,7 +107,7 @@ spec:
               --header "Content-Type: application/json" \
               --data "@$payload_file" \
               --output "$response_file"
-            ops_instance_id=$(jq -r .instance_id $response_file)
+            ops_instance_id="$(jq -r .instance_id "$response_file")"
             ops_ticket_url="$(get_ops_instance_url $stage $ops_instance_id)"
             echo "✅ Requested image updating successfully for component $component@$component_version in stage $stage with: $image_repo:$image_tag, the Ops ticket URL is: $ops_ticket_url"
             echo "$component@$component_version in $stage stage: $ops_ticket_url" >> "$save_file"
@@ -102,39 +117,44 @@ spec:
           local stage="$1"
           local image="$2"
           local stage_config_file="$3"
-          local save_file="$4"
-          local api_base_url="$(jq -r '.api_base_url' $stage_config_file)"
-          local api_key="$(jq -r '.api_key' $stage_config_file)"
+          local change_id="$4"
+          local release_id="$5"
+          local save_file="$6"
+          local api_base_url="$(jq -r '.api_base_url' "$stage_config_file")"
+          local api_key="$(jq -r '.api_key' "$stage_config_file")"
 
           # split image name and tag
           local image_repo=${image%:*}
           local image_tag=${image##*:}
 
           # get the component name from image repo: the base name of the image repo
-          local components=$(jq -r --arg img "$image_repo" '.components | to_entries | map(select(.value.base_image==$img) | .key) | join(",")' $stage_config_file)
+          local components="$(jq -r --arg img "$image_repo" '.components | to_entries | map(select(.value.base_image==$img) | .key) | join(",")' "$stage_config_file")"
           if [ -z "$components" ]; then
             echo "🤷 No component matched to bump on the Ops platform, skip."
             return 0
           fi
 
           # get the component version from image tag(should return the vX.Y.Z part)
-          local component_version=$(echo $image_tag | cut -d'-' -f1)
+          local component_version="$(echo "$image_tag" | cut -d'-' -f1)"
 
           # loop the components
           IFS=',' read -ra components_array <<< "$components"
           for component in "${components_array[@]}"; do
-            cluster_type="$(jq -r ".components.${component}.cluster_type" $stage_config_file)"
-            make_ops_api_call "$stage" "$component" "$component_version" "$cluster_type" "$image_repo" "$image_tag" "$api_base_url" "$api_key" "$save_file"
+            cluster_type="$(jq -r ".components.${component}.cluster_type" "$stage_config_file")"
+            make_ops_api_call "$stage" "$component" "$component_version" "$cluster_type" "$image_repo" "$image_tag" "$change_id" "$release_id" "$api_base_url" "$api_key" "$save_file"
           done
         }
 
         function main() {
           stage="$1"
-          stage_config_file=$(workspaces.ops-config.path)/${stage}.json
+          stage_config_file="$(workspaces.ops-config.path)/${stage}.json"
           images="$(echo "$2" | jq -r '.[]')"
-          save_file="$3"
+          change_id="$3"
+          release_id="$4"
+          save_file="$5"
+          : > "$save_file"
           for image in $images; do
-            update_ops_config_for_image "$stage" "$image" "$stage_config_file" "$save_file"
+            update_ops_config_for_image "$stage" "$image" "$stage_config_file" "$change_id" "$release_id" "$save_file"
           done
 
           echo "🎉 Done!"
@@ -188,8 +208,8 @@ spec:
         image_delivery_message="$(generate_image_delivery_message "$1" "$2" "$3")"
         send_lark_notification "$image_delivery_message" "$lark_webhook_url"
 
-        # Send ops tickets notification if tickets file exists
-        if [ -f "$4" ]; then
+        # Send ops tickets notification if tickets file exists and non-empty
+        if [ -s "$4" ]; then
           ops_tickets_message="$(generate_ops_tickets_message "$1" "$4")"
           send_lark_notification "$ops_tickets_message" "$lark_webhook_url"
         fi
