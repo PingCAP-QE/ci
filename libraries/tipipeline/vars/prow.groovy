@@ -60,7 +60,7 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
 
         # Prune stale PR refs from previous cached runs.
         # These refs keep old PR commits reachable and make the cached .git grow run by run.
-        git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 50 git update-ref -d || true
+        git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 1 -I {} git update-ref -d "{}" || true
 
         # fetch pull requests and target branch.
         timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
@@ -152,7 +152,7 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.c
 
             # Prune stale PR refs from previous cached runs.
             # These refs keep old PR commits reachable and make the cached .git grow run by run.
-            git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 50 git update-ref -d || true
+            git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 1 -I {} git update-ref -d "{}" || true
 
             # fetch pull requests and target branch.
             timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
