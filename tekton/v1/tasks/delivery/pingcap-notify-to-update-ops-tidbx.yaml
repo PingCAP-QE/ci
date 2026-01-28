@@ -61,6 +61,42 @@ spec:
             fi
         }
 
+        function get_git_tag_metadata() {
+            local stage="$1"
+            local image_repo="$2"
+            local image_tag="$3"
+            local stage_config_file=$(workspaces.ops-config.path)/${stage}.json
+
+            # 1. get the github full repo from image repo.
+            # Look up in the stage config's .components map for an entry whose base_image matches $image_repo
+            local github_repo
+            github_repo=$(jq -r --arg img "$image_repo" '
+              .components
+              | to_entries
+              | map(select(.value.base_image == $img) | .value.github_repo)
+              | .[0] // empty
+            ' "$stage_config_file")
+
+            if [ -z "$github_repo" ]; then
+              echo "❌ Could not find github_repo for base_image: $image_repo in $stage_config_file" >&2
+              return 1
+            fi
+
+            # 2. call tibuild-v2 api to get the git tag metadata.
+            local api_base_url="$(jq -r '.tibuild_v2.api_base_url' $stage_config_file)"
+            local api_url="$api_base_url/hotfix/tidbx/tag"
+            local api_user="$(jq -r '.tibuild_v2.user' $stage_config_file)"
+            local api_password="$(jq -r '.tibuild_v2.password' $stage_config_file)"
+            curl -f \
+              --request GET \
+              --location \
+              --user "$api_user:$api_password" \
+              --get \
+              --data-urlencode "repo=$github_repo" \
+              --data-urlencode "tag=$image_tag" \
+              --url "$api_url"
+        }
+
         function make_ops_api_call() {
             local stage="$1"
             local component="$2"
@@ -68,11 +104,18 @@ spec:
             local cluster_type="$4"
             local image_repo="$5"
             local image_tag="$6"
-            local api_base_url="$7"
-            local api_key="$8"
-            local save_file="$9"
+            local github_repo="$7"
+            local api_base_url="$8"
+            local api_key="$9"
+            local save_file="$10"
 
             local api_url="$api_base_url/$component"
+
+            # get the tag metadata from github
+            local tag_metadata=$(get_git_tag_metadata "$github_repo" "$image_tag")
+            local release_id="$(echo "$tag_metadata" | jq -r '.release_id')"
+            local change_id="$(echo "$tag_metadata" | jq -r '.change_id')"
+            local author="$(echo "$tag_metadata" | jq -r '.author')"
 
             # prepare payload file
             local payload_file="/tmp/$component-$component_version.json"
@@ -81,7 +124,10 @@ spec:
               --arg version "$component_version" \
               --arg base_image "$image_repo" \
               --arg tag "$image_tag" \
-              '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag, "policy": "immediate"}' > $payload_file
+              --arg author "$author" \
+              --arg release_id "$release_id" \
+              --arg change_id "$change_id" \
+              '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag, "policy": "immediate", "author": $author, "release_id": $release_id, "change_id": $change_id}' > $payload_file
 
             echo "🚀 Request to update the image for component $component@$component_version in stage $stage with: $image_repo:$image_tag"
             local response_file="/tmp/${component}-${component_version}-response.json"
@@ -124,7 +170,8 @@ spec:
           IFS=',' read -ra components_array <<< "$components"
           for component in "${components_array[@]}"; do
             cluster_type="$(jq -r ".components.${component}.cluster_type" $stage_config_file)"
-            make_ops_api_call "$stage" "$component" "$component_version" "$cluster_type" "$image_repo" "$image_tag" "$api_base_url" "$api_key" "$save_file"
+            github_repo="$(jq -r ".components.${component}.github_repo" $stage_config_file)"
+            make_ops_api_call "$stage" "$component" "$component_version" "$cluster_type" "$image_repo" "$image_tag" "$github_repo" "$api_base_url" "$api_key" "$save_file"
           done
         }
 
