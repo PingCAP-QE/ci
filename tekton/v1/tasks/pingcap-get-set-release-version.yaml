@@ -89,7 +89,7 @@ spec:
         #!/bin/sh
         set -e
 
-        if echo "$(params.git-refspec)" | grep -E '^refs/pull/[0-9]+:pull/[0-9]+$'; then
+        if echo "$(params.git-refspec)" | grep -E '^refs/pull/[0-9]+(/.+)?:pull/[0-9]+$'; then
           # Extract the part after the colon
           ref=$(echo "$(params.git-refspec)" | awk -F: '{print $2}')
           echo -n "$ref" > $(results.build-ref.path)
