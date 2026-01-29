@@ -98,7 +98,7 @@ pipeline {
             post{
                 always {
                     dir('tidb/tests/integrationtest2') {
-                        junit(testResults: 'report/tici_tici_integration.xml', allowEmptyResults: true)
+                        junit(testResults: 'report/tici_*.xml', allowEmptyResults: true)
                     }
                 }
                 failure {
