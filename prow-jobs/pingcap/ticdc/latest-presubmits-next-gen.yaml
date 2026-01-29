@@ -18,7 +18,7 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen|next-gen-mysql|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light-next-gen"
       branches: *branches
       optional: true
@@ -28,7 +28,7 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
       context: pull-cdc-mysql-integration-heavy-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-next-gen|next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-next-gen|next-gen-mysql|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy-next-gen"
       branches: *branches
       optional: true
@@ -38,7 +38,7 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
       context: pull-cdc-kafka-integration-light-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-next-gen|next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-next-gen|next-gen-kafka|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light-next-gen"
       branches: *branches
       optional: true
@@ -48,7 +48,7 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
       context: pull-cdc-kafka-integration-heavy-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy-next-gen|next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy-next-gen|next-gen-kafka|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-heavy-next-gen"
       branches: *branches
       optional: true
@@ -59,7 +59,7 @@ presubmits:
       # run_before_merge: true
       context: pull-cdc-pulsar-integration-light-next-gen
       optional: true # TODO: change this after the job is ready
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light-next-gen|next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light-next-gen|next-gen-pulsar|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-pulsar-integration-light-next-gen"
       branches: *branches
 
@@ -68,7 +68,7 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
       context: pull-cdc-storage-integration-light-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-next-gen|next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-next-gen|next-gen-storage|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light-next-gen"
       branches: *branches
       optional: true
@@ -78,7 +78,7 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
       context: pull-cdc-storage-integration-heavy-next-gen
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy-next-gen|next-gen)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy-next-gen|next-gen-storage|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-heavy-next-gen"
       branches: *branches
       optional: true
