@@ -99,6 +99,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-tici-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-tici-test(?: .*?)?$"
+      optional: true
       rerun_command: "/test pull-integration-tici-test"
 
     - <<: *brancher
