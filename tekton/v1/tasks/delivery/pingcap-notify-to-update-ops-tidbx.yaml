@@ -104,16 +104,15 @@ spec:
             local cluster_type="$4"
             local image_repo="$5"
             local image_tag="$6"
-            local github_repo="$7"
-            local api_base_url="$8"
-            local api_key="$9"
-            local save_file="$10"
+            local api_base_url="$7"
+            local api_key="$8"
+            local save_file="$9"
 
             local api_url="$api_base_url/$component"
 
             # get the tag metadata from github
             local tag_metadata
-            if ! tag_metadata=$(get_git_tag_metadata "$stage" "$github_repo" "$image_tag"); then
+            if ! tag_metadata=$(get_git_tag_metadata "$stage" "$image_repo" "$image_tag"); then
               echo "⚠️ Warning: Failed to get git tag metadata, proceeding without it." >&2
               tag_metadata='{}'
             fi
@@ -134,6 +133,7 @@ spec:
               '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag, "policy": "immediate", "author": $author, "release_id": $release_id, "change_id": $change_id}' > $payload_file
 
             echo "🚀 Request to update the image for component $component@$component_version in stage $stage with: $image_repo:$image_tag"
+            cat $payload_file
             local response_file="/tmp/${component}-${component_version}-response.json"
             curl -f \
               --request POST \
@@ -174,8 +174,7 @@ spec:
           IFS=',' read -ra components_array <<< "$components"
           for component in "${components_array[@]}"; do
             cluster_type="$(jq -r ".components.${component}.cluster_type" $stage_config_file)"
-            github_repo="$(jq -r ".components.${component}.github_repo" $stage_config_file)"
-            make_ops_api_call "$stage" "$component" "$component_version" "$cluster_type" "$image_repo" "$image_tag" "$github_repo" "$api_base_url" "$api_key" "$save_file"
+            make_ops_api_call "$stage" "$component" "$component_version" "$cluster_type" "$image_repo" "$image_tag" "$api_base_url" "$api_key" "$save_file"
           done
         }
 
