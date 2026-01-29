@@ -64,6 +64,15 @@ presubmits:
       branches: *branches
 
     - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_pulsar_integration_heavy_next_gen
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-pulsar-integration-heavy-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-heavy-next-gen|next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-pulsar-integration-heavy-next-gen"
+      branches: *branches
+
+    - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_storage_integration_light_next_gen
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
