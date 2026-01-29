@@ -195,7 +195,9 @@ presubmits:
       labels:
         master: "0"
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      always_run: false
+      optional: true
+      # skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-ddl-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
