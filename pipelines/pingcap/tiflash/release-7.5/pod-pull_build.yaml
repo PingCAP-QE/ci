@@ -19,29 +19,29 @@ spec:
           memory: "48Gi"
           cpu: "16000m"
       volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
+        - mountPath: "/home/jenkins/agent/rust"
+          name: "volume-0"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/ccache"
+          name: "volume-1"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/dependency"
+          name: "volume-2"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+          name: "volume-4"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/proxy-cache"
+          name: "volume-5"
+          readOnly: false
+        - mountPath: "/tmp"
+          name: "volume-6"
+          readOnly: false
+        - mountPath: "/tmp-memfs"
+          name: "volume-7"
+          readOnly: false
     - name: jnlp
-      image: "jenkins/inbound-agent:3148.v532a_7e715ee3-1"
+      image: "jenkins/inbound-agent:3345.v03dee9b_f88fc-1"
       resources:
         requests:
           cpu: "500m"
@@ -50,27 +50,27 @@ spec:
           cpu: "500m"
           memory: "500Mi"
       volumeMounts:
-      - mountPath: "/home/jenkins/agent/rust"
-        name: "volume-0"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ccache"
-        name: "volume-1"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/dependency"
-        name: "volume-2"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-        name: "volume-4"
-        readOnly: false
-      - mountPath: "/home/jenkins/agent/proxy-cache"
-        name: "volume-5"
-        readOnly: false
-      - mountPath: "/tmp"
-        name: "volume-6"
-        readOnly: false
-      - mountPath: "/tmp-memfs"
-        name: "volume-7"
-        readOnly: false
+        - mountPath: "/home/jenkins/agent/rust"
+          name: "volume-0"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/ccache"
+          name: "volume-1"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/dependency"
+          name: "volume-2"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
+          name: "volume-4"
+          readOnly: false
+        - mountPath: "/home/jenkins/agent/proxy-cache"
+          name: "volume-5"
+          readOnly: false
+        - mountPath: "/tmp"
+          name: "volume-6"
+          readOnly: false
+        - mountPath: "/tmp-memfs"
+          name: "volume-7"
+          readOnly: false
     - name: util
       image: hub.pingcap.net/jenkins/ks3util
       args: ["sleep", "infinity"]
