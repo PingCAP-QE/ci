@@ -101,11 +101,10 @@ pipeline {
                             }
                         }
                         sh """
-                        git config --global --add safe.directory "*"
-                        git version
-                        git status
+                            git version
+                            git config --global --add safe.directory "*"
+                            git status
                         """
-                        git.setSshKey(GIT_CREDENTIALS_ID)
                         retry(2) {
                             prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
                             dir("contrib/tiflash-proxy") {
