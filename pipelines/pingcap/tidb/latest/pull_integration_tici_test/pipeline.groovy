@@ -92,10 +92,15 @@ pipeline {
             }
             steps {
                 dir('tidb/tests/integrationtest2') {
-                    sh label: 'test', script: './run-tests.sh -t tici/tici_integration'
+                    sh label: 'test', script: './run-tests.sh -t tici'
                 }
             }
             post{
+                always {
+                    dir('tidb/tests/integrationtest2') {
+                        junit(testResults: 'report/tici_tici_integration.xml', allowEmptyResults: true)
+                    }
+                }
                 failure {
                     script {
                         archiveArtifacts(artifacts: 'tidb/tests/integrationtest2/logs/*.log', allowEmptyArchive: true)
