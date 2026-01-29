@@ -112,10 +112,14 @@ spec:
             local api_url="$api_base_url/$component"
 
             # get the tag metadata from github
-            local tag_metadata=$(get_git_tag_metadata "$stage" "$github_repo" "$image_tag")
-            local release_id="$(echo "$tag_metadata" | jq -r '.release_id')"
-            local change_id="$(echo "$tag_metadata" | jq -r '.change_id')"
-            local author="$(echo "$tag_metadata" | jq -r '.author')"
+            local tag_metadata
+            if ! tag_metadata=$(get_git_tag_metadata "$stage" "$github_repo" "$image_tag"); then
+              echo "⚠️ Warning: Failed to get git tag metadata, proceeding without it." >&2
+              tag_metadata='{}'
+            fi
+            local release_id=$(echo "$tag_metadata" | jq -r '.release_id // ""')
+            local change_id=$(echo "$tag_metadata" | jq -r '.change_id // ""')
+            local author=$(echo "$tag_metadata" | jq -r '.author // ""')
 
             # prepare payload file
             local payload_file="/tmp/$component-$component_version.json"
