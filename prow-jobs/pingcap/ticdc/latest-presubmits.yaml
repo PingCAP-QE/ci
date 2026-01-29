@@ -65,7 +65,8 @@ presubmits:
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-pulsar-integration-heavy
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-heavy|heavy|all)(?: .*?)?$"
+      optional: true
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-heavy|pulsar|heavy|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-pulsar-integration-heavy"
       branches: *branches
 
