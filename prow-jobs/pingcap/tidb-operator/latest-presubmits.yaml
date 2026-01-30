@@ -4,6 +4,7 @@ global_definitions:
     - ^main$
   e2e_kind_branches: &e2e_kind_branches
     - ^release-1[.][0-9]+$
+    - ^release-1[.]x$ 
     - ^master$
   skip_if_only_changed: &skip_if_only_changed
     "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|OWNERS|OWNERS_ALIASES)$"
