@@ -116,8 +116,8 @@ spec:
               echo "⚠️ Warning: Failed to get git tag metadata, proceeding without it." >&2
               tag_metadata='{}'
             fi
-            local release_id=$(echo "$tag_metadata" | jq -r '.release_id // ""')
-            local change_id=$(echo "$tag_metadata" | jq -r '.change_id // ""')
+            local release_id=$(echo "$tag_metadata" | jq -r '.meta.ops_req.release_id // ""')
+            local change_id=$(echo "$tag_metadata" | jq -r '.meta.ops_req.change_id // ""')
             local author=$(echo "$tag_metadata" | jq -r '.author // ""')
 
             # prepare payload file
