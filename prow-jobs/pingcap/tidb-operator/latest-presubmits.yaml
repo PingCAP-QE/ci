@@ -4,7 +4,7 @@ global_definitions:
     - ^main$
   e2e_kind_branches: &e2e_kind_branches
     - ^release-1[.][0-9]+$
-    - ^release-1[.]x$ 
+    - ^release-1[.]x$
     - ^master$
   skip_if_only_changed: &skip_if_only_changed
     "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|OWNERS|OWNERS_ALIASES)$"
@@ -381,13 +381,13 @@ presubmits:
                   GINKGO_NODES=3 \
                   ./hack/e2e.sh -- --ginkgo.focus='TiDBCluster' --ginkgo.skip="\[TiDBCluster:\sBasic\]" || {
                   EXIT_CODE=$?
-                  
+
                   if [ $EXIT_CODE -eq 124 ]; then
                     echo "ERROR: Test execution timed out after 2 hours"
                   else
                     echo "ERROR: Test execution failed with exit code $EXIT_CODE"
                   fi
-                  
+
                   exit $EXIT_CODE
                 }
 
@@ -397,7 +397,7 @@ presubmits:
                 cp /kind-data/worker1/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker2/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker3/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
-                
+
                 if [ -n "$(ls -A /tmp/coverage-merge/*.cov 2>/dev/null)" ]; then
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
@@ -437,7 +437,7 @@ presubmits:
               limits:
                 memory: 24Gi
                 cpu: "3"
-    
+
     - name: pull-e2e-kind-dmcluster
       decorate: true
       decoration_config: *decoration_config
@@ -638,13 +638,13 @@ presubmits:
                   GINKGO_NODES=2 \
                   ./hack/e2e.sh -- --ginkgo.focus='DMCluster' || {
                   EXIT_CODE=$?
-                  
+
                   if [ $EXIT_CODE -eq 124 ]; then
                     echo "ERROR: Test execution timed out after 2 hours"
                   else
                     echo "ERROR: Test execution failed with exit code $EXIT_CODE"
                   fi
-                  
+
                   exit $EXIT_CODE
                 }
 
@@ -654,7 +654,7 @@ presubmits:
                 cp /kind-data/worker1/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker2/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker3/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
-                
+
                 if [ -n "$(ls -A /tmp/coverage-merge/*.cov 2>/dev/null)" ]; then
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
@@ -780,7 +780,7 @@ presubmits:
                 #!/usr/bin/env bash
                 set -ex
                 export DEBIAN_FRONTEND=noninteractive
-                
+
                 # Install basic tools
                 apt-get update
                 apt-get install -y --no-install-recommends \
@@ -898,13 +898,13 @@ presubmits:
                   GINKGO_NODES=2 \
                   ./hack/e2e.sh -- --ginkgo.focus='\[TiDBCluster:\sBasic\]' --install-dm-mysql=false || {
                   EXIT_CODE=$?
-                  
+
                   if [ $EXIT_CODE -eq 124 ]; then
                     echo "ERROR: Test execution timed out after 2 hours"
                   else
                     echo "ERROR: Test execution failed with exit code $EXIT_CODE"
                   fi
-                  
+
                   exit $EXIT_CODE
                 }
 
@@ -914,7 +914,7 @@ presubmits:
                 cp /kind-data/worker1/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker2/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker3/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
-                
+
                 if [ -n "$(ls -A /tmp/coverage-merge/*.cov 2>/dev/null)" ]; then
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
@@ -1161,13 +1161,13 @@ presubmits:
                   GINKGO_NODES=3 \
                   ./hack/e2e.sh -- --ginkgo.focus='Backup\sand\sRestore' || {
                   EXIT_CODE=$?
-                  
+
                   if [ $EXIT_CODE -eq 124 ]; then
                     echo "ERROR: Test execution timed out after 2 hours"
                   else
                     echo "ERROR: Test execution failed with exit code $EXIT_CODE"
                   fi
-                  
+
                   exit $EXIT_CODE
                 }
 
@@ -1177,7 +1177,7 @@ presubmits:
                 cp /kind-data/worker1/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker2/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker3/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
-                
+
                 if [ -n "$(ls -A /tmp/coverage-merge/*.cov 2>/dev/null)" ]; then
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
@@ -1424,13 +1424,13 @@ presubmits:
                   GINKGO_NODES=2 \
                   ./hack/e2e.sh -- --ginkgo.focus='\[Across\sKubernetes\]' --install-dm-mysql=false || {
                   EXIT_CODE=$?
-                  
+
                   if [ $EXIT_CODE -eq 124 ]; then
                     echo "ERROR: Test execution timed out after 2 hours"
                   else
                     echo "ERROR: Test execution failed with exit code $EXIT_CODE"
                   fi
-                  
+
                   exit $EXIT_CODE
                 }
 
@@ -1440,7 +1440,7 @@ presubmits:
                 cp /kind-data/worker1/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker2/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker3/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
-                
+
                 if [ -n "$(ls -A /tmp/coverage-merge/*.cov 2>/dev/null)" ]; then
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
@@ -1679,13 +1679,13 @@ presubmits:
                   GINKGO_NODES=1 \
                   ./hack/e2e.sh -- --ginkgo.focus='Scale\sin\ssimultaneously' || {
                   EXIT_CODE=$?
-                  
+
                   if [ $EXIT_CODE -eq 124 ]; then
                     echo "ERROR: Test execution timed out after 2 hours"
                   else
                     echo "ERROR: Test execution failed with exit code $EXIT_CODE"
                   fi
-                  
+
                   exit $EXIT_CODE
                 }
 
@@ -1695,7 +1695,7 @@ presubmits:
                 cp /kind-data/worker1/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker2/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker3/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
-                
+
                 if [ -n "$(ls -A /tmp/coverage-merge/*.cov 2>/dev/null)" ]; then
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
@@ -1934,13 +1934,13 @@ presubmits:
                   GINKGO_NODES=1 \
                   ./hack/e2e.sh -- --ginkgo.focus='\[Serial\]' --install-operator=false || {
                   EXIT_CODE=$?
-                  
+
                   if [ $EXIT_CODE -eq 124 ]; then
                     echo "ERROR: Test execution timed out after 2 hours"
                   else
                     echo "ERROR: Test execution failed with exit code $EXIT_CODE"
                   fi
-                  
+
                   exit $EXIT_CODE
                 }
 
@@ -1950,7 +1950,7 @@ presubmits:
                 cp /kind-data/worker1/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker2/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker3/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
-                
+
                 if [ -n "$(ls -A /tmp/coverage-merge/*.cov 2>/dev/null)" ]; then
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
@@ -2189,13 +2189,13 @@ presubmits:
                   GINKGO_NODES=1 \
                   ./hack/e2e.sh -- --ginkgo.focus='TiDBNGMonitoring' || {
                   EXIT_CODE=$?
-                  
+
                   if [ $EXIT_CODE -eq 124 ]; then
                     echo "ERROR: Test execution timed out after 2 hours"
                   else
                     echo "ERROR: Test execution failed with exit code $EXIT_CODE"
                   fi
-                  
+
                   exit $EXIT_CODE
                 }
 
@@ -2205,7 +2205,7 @@ presubmits:
                 cp /kind-data/worker1/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker2/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
                 cp /kind-data/worker3/coverage/*.cov /tmp/coverage-merge/ 2>/dev/null || true
-                
+
                 if [ -n "$(ls -A /tmp/coverage-merge/*.cov 2>/dev/null)" ]; then
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
