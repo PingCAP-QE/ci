@@ -8,9 +8,6 @@
 - `/pipelines` - Jenkins pipeline script implementations
 - `/tekton` - Tekton CI/CD static resources definitions
 - `/libraries` - Jenkins CI shared libraries
-- `/staging` - Staging environment for jobs and pipelines before production deployment
-  - `/staging/jobs` - Similar to `/jobs` but deployed to staging environment
-  - `/staging/pipelines` - Similar to `/pipelines` but deployed to staging environment
 - [Deprecated] `/jenkins/jobs` - Legacy CI job DSL files for old CI servers
 - [Deprecated] `/jenkins/pipelines` - Legacy pipeline scripts for old CI servers
 
