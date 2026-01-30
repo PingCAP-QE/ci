@@ -414,7 +414,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
-                    key: pingcap-tidb-operator
+                    key: tp-codecov-token
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run
@@ -671,7 +671,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
-                    key: pingcap-tidb-operator
+                    key: tp-codecov-token
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run
@@ -939,7 +939,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
-                    key: pingcap-tidb-operator
+                    key: tp-codecov-token
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run
@@ -1202,7 +1202,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
-                    key: pingcap-tidb-operator
+                    key: tp-codecov-token
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run
@@ -1457,7 +1457,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
-                    key: pingcap-tidb-operator
+                    key: tp-codecov-token
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run
@@ -1712,7 +1712,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
-                    key: pingcap-tidb-operator
+                    key: tp-codecov-token
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run
@@ -1967,7 +1967,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
-                    key: pingcap-tidb-operator
+                    key: tp-codecov-token
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run
@@ -2222,7 +2222,7 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: codecov-tokens
-                    key: pingcap-tidb-operator
+                    key: tp-codecov-token
             volumeMounts:
               - name: docker-sock-dir
                 mountPath: /var/run
