@@ -182,18 +182,7 @@ pipeline {
                                 script {
                                     if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
                                         sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
-                                        sh label: 'Send event to cloudevents server', script: """timeout 10 \
-                                            curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
-                                            --header "ce-id: \$(uuidgen)" \
-                                            --header "ce-source: \${JENKINS_URL}" \
-                                            --header 'ce-type: test-case-run-report' \
-                                            --header 'ce-repo: pingcap/tidb' \
-                                            --header 'ce-branch: ${TARGET_BRANCH_TIDB}' \
-                                            --header "ce-buildurl: \${BUILD_URL}" \
-                                            --header 'ce-specversion: 1.0' \
-                                            --header 'content-type: application/json; charset=UTF-8' \
-                                            --data @bazel-go-test-problem-cases.json || true
-                                        """
+                                        prow.sendTestCaseRunReport("pingcap/tidb", "${TARGET_BRANCH_TIDB}")
                                     }
                                 }
                             }

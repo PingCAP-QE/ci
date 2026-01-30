@@ -260,6 +260,22 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
     """
 }
 
+// send test case run report to cloudevents server
+def sendTestCaseRunReport(repo, branch, dataFile = 'bazel-go-test-problem-cases.json') {
+    sh label: 'Send event to cloudevents server', script: """timeout 10 \
+        curl --verbose --request POST --url https://internal2-do.pingcap.net/cloudevents-server/events \
+        --header "ce-id: \$(uuidgen)" \
+        --header "ce-source: \${JENKINS_URL}" \
+        --header 'ce-type: test-case-run-report' \
+        --header 'ce-repo: ${repo}' \
+        --header 'ce-branch: ${branch}' \
+        --header "ce-buildurl: \${BUILD_URL}" \
+        --header 'ce-specversion: 1.0' \
+        --header 'content-type: application/json; charset=UTF-8' \
+        --data @${dataFile} || true
+    """
+}
+
 // print PR info on pipeline run description.
 def setPRDescription(refs) {
     try {
