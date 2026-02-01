@@ -231,6 +231,14 @@ presubmits:
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
                   echo "Coverage merge completed"
+                  if [ -f ${ARTIFACTS}/coverage.txt ] && [ -n "${CODECOV_TOKEN:-}" ]; then
+                    echo "Uploading coverage to codecov..."
+                    GIT_COMMIT=$(git rev-parse HEAD)
+                    curl -fsSL https://codecov.io/bash -o /tmp/codecov.sh
+                    bash /tmp/codecov.sh -t ${CODECOV_TOKEN} -F e2e -n tidb-operator -f ${ARTIFACTS}/coverage.txt -C ${GIT_COMMIT} || true
+                  else
+                    echo "Skipping coverage upload (file not found or token not set)"
+                  fi
                 else
                   echo "No coverage files found, skipping merge and upload"
                 fi
@@ -486,6 +494,14 @@ presubmits:
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
                   echo "Coverage merge completed"
+                  if [ -f ${ARTIFACTS}/coverage.txt ] && [ -n "${CODECOV_TOKEN:-}" ]; then
+                    echo "Uploading coverage to codecov..."
+                    GIT_COMMIT=$(git rev-parse HEAD)
+                    curl -fsSL https://codecov.io/bash -o /tmp/codecov.sh
+                    bash /tmp/codecov.sh -t ${CODECOV_TOKEN} -F e2e -n tidb-operator -f ${ARTIFACTS}/coverage.txt -C ${GIT_COMMIT} || true
+                  else
+                    echo "Skipping coverage upload (file not found or token not set)"
+                  fi
                 else
                   echo "No coverage files found, skipping merge and upload"
                 fi
@@ -1266,6 +1282,14 @@ presubmits:
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
                   echo "Coverage merge completed"
+                  if [ -f ${ARTIFACTS}/coverage.txt ] && [ -n "${CODECOV_TOKEN:-}" ]; then
+                    echo "Uploading coverage to codecov..."
+                    GIT_COMMIT=$(git rev-parse HEAD)
+                    curl -fsSL https://codecov.io/bash -o /tmp/codecov.sh
+                    bash /tmp/codecov.sh -t ${CODECOV_TOKEN} -F e2e -n tidb-operator -f ${ARTIFACTS}/coverage.txt -C ${GIT_COMMIT} || true
+                  else
+                    echo "Skipping coverage upload (file not found or token not set)"
+                  fi
                 else
                   echo "No coverage files found, skipping merge and upload"
                 fi
@@ -1519,6 +1543,14 @@ presubmits:
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
                   echo "Coverage merge completed"
+                  if [ -f ${ARTIFACTS}/coverage.txt ] && [ -n "${CODECOV_TOKEN:-}" ]; then
+                    echo "Uploading coverage to codecov..."
+                    GIT_COMMIT=$(git rev-parse HEAD)
+                    curl -fsSL https://codecov.io/bash -o /tmp/codecov.sh
+                    bash /tmp/codecov.sh -t ${CODECOV_TOKEN} -F e2e -n tidb-operator -f ${ARTIFACTS}/coverage.txt -C ${GIT_COMMIT} || true
+                  else
+                    echo "Skipping coverage upload (file not found or token not set)"
+                  fi
                 else
                   echo "No coverage files found, skipping merge and upload"
                 fi
@@ -1772,6 +1804,14 @@ presubmits:
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
                   echo "Coverage merge completed"
+                  if [ -f ${ARTIFACTS}/coverage.txt ] && [ -n "${CODECOV_TOKEN:-}" ]; then
+                    echo "Uploading coverage to codecov..."
+                    GIT_COMMIT=$(git rev-parse HEAD)
+                    curl -fsSL https://codecov.io/bash -o /tmp/codecov.sh
+                    bash /tmp/codecov.sh -t ${CODECOV_TOKEN} -F e2e -n tidb-operator -f ${ARTIFACTS}/coverage.txt -C ${GIT_COMMIT} || true
+                  else
+                    echo "Skipping coverage upload (file not found or token not set)"
+                  fi
                 else
                   echo "No coverage files found, skipping merge and upload"
                 fi
@@ -2025,6 +2065,14 @@ presubmits:
                   echo "Merging coverage files..."
                   ./bin/gocovmerge /tmp/coverage-merge/*.cov > ${ARTIFACTS}/coverage.txt || true
                   echo "Coverage merge completed"
+                  if [ -f ${ARTIFACTS}/coverage.txt ] && [ -n "${CODECOV_TOKEN:-}" ]; then
+                    echo "Uploading coverage to codecov..."
+                    GIT_COMMIT=$(git rev-parse HEAD)
+                    curl -fsSL https://codecov.io/bash -o /tmp/codecov.sh
+                    bash /tmp/codecov.sh -t ${CODECOV_TOKEN} -F e2e -n tidb-operator -f ${ARTIFACTS}/coverage.txt -C ${GIT_COMMIT} || true
+                  else
+                    echo "Skipping coverage upload (file not found or token not set)"
+                  fi
                 else
                   echo "No coverage files found, skipping merge and upload"
                 fi
