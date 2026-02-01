@@ -6,6 +6,8 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-9.0-beta/pod-pull_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 pipeline {
     agent {
@@ -16,7 +18,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -55,14 +57,12 @@ pipeline {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     retry(3) {
                         sh label: 'download binary', script: """
-                            chmod +x \${WORKSPACE}/scripts/artifacts/*.sh
-                            \${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/tikv-server bin/
-                            mv third_bin/pd-server bin/
-                            ls -alh bin/
-                            chmod +x bin/*
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
+                            cd bin
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                            ls -alh .
+                            chmod +x ./*
+                            ./tikv-server -V
+                            ./pd-server -V
                         """
                     }
                 }
