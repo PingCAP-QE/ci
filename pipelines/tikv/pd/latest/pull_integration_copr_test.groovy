@@ -85,7 +85,7 @@ pipeline {
                         sh label: 'download tikv', script: """
                         ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tikv=${REFS.base_ref}
                         mkdir -p bin
-                        
+
                         mv pd-server bin/
                         ls -alh bin/
                         bin/pd-server -V

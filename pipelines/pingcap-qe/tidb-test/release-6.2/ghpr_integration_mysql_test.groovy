@@ -70,7 +70,7 @@ pipeline {
                     container("utils") {
                         sh label: 'download binary', script: """
                             ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            
+
 mv pd-server bin/
                             ls -alh bin/
                         """
@@ -117,7 +117,7 @@ mv pd-server bin/
                             }
                             dir('tidb-test/mysql_test') {
                                 sh """
-    
+
                                     mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                     ls -alh bin/
                                 """
