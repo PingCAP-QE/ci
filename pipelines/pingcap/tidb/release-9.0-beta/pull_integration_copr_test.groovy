@@ -17,8 +17,8 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         GITHUB_TOKEN = credentials('github-bot-token')
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -68,18 +68,18 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    container("golang") {
+                    container("utils") {
                         retry(2) {
                             sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
                             rm -rf bin/ && mkdir -p bin/
-                            mv third_bin/tikv-server bin/
-                            mv third_bin/pd-server bin/
+                            mkdir -p bin
+
+                            mv pd-server bin/
                             ls -alh bin/
                             chmod +x bin/*
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
+                            ./tikv-server -V
+                            ./pd-server -V
                             """
                         }
                     }
@@ -92,8 +92,8 @@ pipeline {
                 dir('tidb') {
                     sh label: 'check version', script: """
                     ls -alh bin/
-                    ./bin/tikv-server -V
-                    ./bin/pd-server -V
+                    ./tikv-server -V
+                    ./pd-server -V
                     """
                 }
                 dir('tikv-copr-test') {
