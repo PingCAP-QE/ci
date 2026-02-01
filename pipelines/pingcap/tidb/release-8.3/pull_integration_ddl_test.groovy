@@ -18,7 +18,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
@@ -71,10 +71,11 @@ pipeline {
                         sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
                         retry(3) {
                             sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/tikv-server bin/
-                                mv third_bin/pd-server bin/
+                                container("utils") {
+                        sh label: 'download binary', script: "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}"
+
+
+
                                 ls -alh bin/
                             """
                         }
@@ -87,8 +88,8 @@ pipeline {
                             mkdir -p bin
                             cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                             ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
+                            ./pd-server -V
+                            ./tikv-server -V
                             ./bin/tidb-server -V
                         """
                     }
@@ -119,8 +120,8 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                     sh """
                                         ls -alh bin/
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
+                                        ./pd-server -V
+                                        ./tikv-server -V
                                         ./bin/tidb-server -V
                                     """
                                     container("golang") {

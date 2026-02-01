@@ -17,7 +17,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 45, unit: 'MINUTES')
@@ -66,10 +66,12 @@ pipeline {
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
+                    }
+                    container("utils") {
                         sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/* bin/
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            
+mv pd-server bin/
                             ls -alh bin/
                         """
                     }
@@ -108,14 +110,14 @@ pipeline {
                                     sh label: "print version", script: """
                                         pwd && ls -alh
                                         ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
-                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
+                                        ls bin/pd-server && chmod +x bin/pd-server && ./pd-server -V
+                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./tikv-server -V
                                     """
                                 }
                             }
                             dir('tidb-test/mysql_test') {
                                 sh """
-                                    mkdir -p bin
+    
                                     mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                     ls -alh bin/
                                 """
