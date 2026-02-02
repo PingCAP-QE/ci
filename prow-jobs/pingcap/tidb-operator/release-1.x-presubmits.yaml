@@ -2,7 +2,6 @@ global_definitions:
   branches: &branches
     - ^release-1[.][0-9]+$
     - ^release-1[.]x$
-    - ^master$
   skip_if_only_changed: &skip_if_only_changed
     "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|OWNERS|OWNERS_ALIASES)$"
   decoration_config: &decoration_config
