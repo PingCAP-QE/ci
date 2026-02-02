@@ -108,7 +108,7 @@ pipeline {
                                             script: 'git rev-parse --show-toplevel 2>/dev/null || echo ""',
                                             returnStdout: true
                                         ).trim()
-                                        
+
                                         if (!gitRepoRoot || gitRepoRoot != currentDir) {
                                             echo "Git repository invalid or root mismatch, re-checking out..."
                                             sh 'rm -rf .git'
