@@ -103,6 +103,20 @@ pipeline {
                             }
                             dir('git-docs') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                    script {
+                                        def currentDir = pwd()
+                                        def gitRepoRoot = sh(
+                                            script: 'git rev-parse --show-toplevel 2>/dev/null || echo ""',
+                                            returnStdout: true
+                                        ).trim()
+                                        
+                                        if (!gitRepoRoot || gitRepoRoot != currentDir) {
+                                            echo "Git repository invalid or root mismatch, re-checking out..."
+                                            sh 'rm -rf .git'
+                                            sh 'git config --global --add safe.directory "*"'
+                                            prow.checkoutRefs(REFS, 10)
+                                        }
+                                    }
                                     sh label: "set git config", script: """
                                     git config --global --add safe.directory '*'
                                     git rev-parse --show-toplevel
