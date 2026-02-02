@@ -2,7 +2,7 @@ global_definitions:
   branches: &branches
     - ^master$
     - ^release-nextgen-\d+$
-    - ^release-8\.5$
+    - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
     - ^feature/.+
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   jenkins_job: &jenkins_job
@@ -94,7 +94,7 @@ presubmits:
       run_before_merge: true
       branches:
         - ^master$
-        - ^release-8\.5$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
       spec:
         containers:
           - name: check
@@ -117,7 +117,7 @@ presubmits:
       run_before_merge: true
       branches:
         - ^master$
-        - ^release-8\.5$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
       spec:
         containers:
           - name: build
@@ -140,7 +140,7 @@ presubmits:
       run_before_merge: true
       branches:
         - ^master$
-        - ^release-8\.5$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
       spec:
         containers:
           - name: check
@@ -154,7 +154,7 @@ presubmits:
     - name: pull-error-log-review
       branches:
         - ^master$
-        - ^release-8\.5$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
       decorate: true
       decoration_config:
         timeout: 20m
