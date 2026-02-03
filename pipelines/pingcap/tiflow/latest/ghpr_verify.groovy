@@ -9,14 +9,9 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-ghpr_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
@@ -25,36 +20,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
-        stage('Checkout') {
-            steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
-                    }
-                }
-            }
-        }
         stage('Tests') {
             matrix {
                 axes {
@@ -76,12 +41,15 @@ pipeline {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
-                            dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh label: "${TEST_CMD}", script: """
-                                        make ${TEST_CMD}
-                                    """
+                            dir("tiflow") {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                                    retry(2) {
+                                        script {
+                                            prow.checkoutRefs(REFS)
+                                        }
+                                    }
                                 }
+                                sh label: "${TEST_CMD}", script: "make ${TEST_CMD}"
                             }
                         }
                         post {
