@@ -36,7 +36,6 @@ pipeline {
                     }
                 }
                 stages {
-
                     stage("Test") {
                         environment {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
