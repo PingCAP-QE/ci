@@ -315,6 +315,15 @@ Deno.test("compute", () => {
       },
     },
     {
+      description: "feature branch - with '_' char",
+      gitVer: "v9.0.0-beta.1.pre-151-gb4c8f4dc8",
+      branches: ["feature/xxx_yyy"],
+      expect: {
+        version: "v9.0.0-feature.xxx-yyy",
+        newBuildTag: "v9.0.0-feature.xxx-yyy",
+      },
+    },
+    {
       description: "feature branch - alpha prerelease",
       gitVer: "v8.5.0-alpha-2-g1234567",
       branches: ["feature/fts"],

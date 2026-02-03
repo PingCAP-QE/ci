@@ -94,7 +94,9 @@ export function compute(
       const suffix = featureBranch
         .replace(/.*\bfeature\//, "feature/")
         .replaceAll("/", ".")
-        .replaceAll("-", ".");
+        // normalize underscores to dashes to match expected version/tag format
+        // NOTE: keep '-' as-is (do not convert to '.') because tests expect dashes to remain.
+        .replaceAll("_", "-");
       // Construct feature version, ignoring any existing prerelease (e.g., alpha, beta)
       const featureVersion = `v${rv.major}.${rv.minor}.${rv.patch}-${suffix}`;
       return {
