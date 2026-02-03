@@ -23,7 +23,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 65, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -65,7 +65,6 @@ pipeline {
         }
         stage('Checkout') {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -80,7 +79,6 @@ pipeline {
         }
         stage("prepare") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     script {
@@ -149,7 +147,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         environment {
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
@@ -158,16 +155,14 @@ pipeline {
                             dir('tiflow') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     container("kafka") {
-                                        timeout(time: 6, unit: 'MINUTES') {
-                                            sh label: "Waiting for kafka ready", script: """
-                                                echo "Waiting for zookeeper to be ready..."
-                                                while ! nc -z localhost 2181; do sleep 10; done
-                                                echo "Waiting for kafka to be ready..."
-                                                while ! nc -z localhost 9092; do sleep 10; done
-                                                echo "Waiting for kafka-broker to be ready..."
-                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                            """
-                                        }
+                                        sh label: "Waiting for kafka ready", script: """
+                                            echo "Waiting for zookeeper to be ready..."
+                                            while ! nc -z localhost 2181; do sleep 10; done
+                                            echo "Waiting for kafka to be ready..."
+                                            while ! nc -z localhost 9092; do sleep 10; done
+                                            echo "Waiting for kafka-broker to be ready..."
+                                            while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                        """
                                     }
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test

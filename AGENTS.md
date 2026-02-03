@@ -71,6 +71,23 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 - Pipeline scripts: `*.groovy`
 - Pod templates: `pod-*.yaml`
 
+## Development Guidelines
+
+### Git Commit Convention
+
+Follow the **Conventional Commits** specification for commit messages:
+
+- Spec: https://www.conventionalcommits.org/en/v1.0.0/
+- Format: `<type>(<scope>): <subject>`
+  - `type`: e.g. `feat`, `fix`, `docs`, `chore`, `ci`, `refactor`, `test`
+  - `scope`: optional but recommended for this repo (e.g. `prow`, `pipelines`, `jobs`, `tekton`, `tools`)
+  - `subject`: imperative, present tense (e.g. “add”, “fix”, “update”)
+
+Examples:
+- `ci(prow): add presubmit for tiflow lint`
+- `pipelines(tiflow): increase pipeline timeout`
+- `docs(agents): document Conventional Commits`
+
 ## Common Tasks for Agents
 
 ### 1. Adding/Modifying CI Jobs

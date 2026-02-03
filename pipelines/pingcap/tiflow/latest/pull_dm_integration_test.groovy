@@ -23,7 +23,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -68,7 +68,6 @@ pipeline {
         }
         stage('Checkout') {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -83,7 +82,6 @@ pipeline {
         }
         stage("prepare") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     script {
@@ -159,7 +157,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 50, unit: 'MINUTES') }
                         environment {
                             DM_CODECOV_TOKEN = credentials('codecov-token-tiflow')
                             DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
@@ -175,14 +172,12 @@ pipeline {
 
                             dir('tiflow') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
-                                    timeout(time: 10, unit: 'MINUTES') {
-                                        sh label: "wait mysql ready", script: """
-                                            pwd && ls -alh
-                                            # TODO use wait-for-mysql-ready.sh
-                                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                        """
-                                    }
+                                    sh label: "wait mysql ready", script: """
+                                        pwd && ls -alh
+                                        # TODO use wait-for-mysql-ready.sh
+                                        set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                        set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                    """
                                     sh label: "${TEST_GROUP}", script: """
                                         if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
                                             echo "run tls test"

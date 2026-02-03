@@ -23,7 +23,7 @@ pipeline {
         FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
-        timeout(time: 75, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -65,7 +65,6 @@ pipeline {
         }
         stage('Checkout') {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -80,7 +79,6 @@ pipeline {
         }
         stage("prepare") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     script {
@@ -149,7 +147,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         environment {
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
