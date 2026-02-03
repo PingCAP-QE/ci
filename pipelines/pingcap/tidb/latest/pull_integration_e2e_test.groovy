@@ -13,7 +13,13 @@ final OCI_TAG_TICDC_NEW = (REFS.base_ref == "feature/materialized_view" ? "relea
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent none
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
+        }
+    }
     environment {
         OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
@@ -21,14 +27,7 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
-        stage('Checkout & Prepare') {
-            agent {
-                kubernetes {
-                    namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
-                    defaultContainer 'golang'
-                }
-            }
+        stage('Checkout') {
             steps {
                 dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -38,10 +37,14 @@ pipeline {
                             }
                         }
                     }
-                    cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS)) {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
-                    }
-                    dir("bin") {
+                }
+            }
+        }
+        stage('Tests') {
+            options { timeout(time: 45, unit: 'MINUTES') }
+            steps {
+                dir("${REFS.repo}/tests/integrationtest2") {
+                    dir("third_bin") {
                         container("utils") {
                             script {
                                 retry(2) {
@@ -55,7 +58,6 @@ pipeline {
                                 }
                             }
                         }
-
                         sh '''
                             mv tiflash tiflash_dir
                             ln -s `pwd`/tiflash_dir/tiflash tiflash
@@ -65,33 +67,7 @@ pipeline {
                             ./tiflash --version
                         '''
                     }
-                    // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
-                            touch rev-${REFS.pulls[0].sha}
-                        """
-                    }
-                }
-            }
-        }
-        stage('Tests') {
-            agent {
-                kubernetes {
-                    namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
-                    defaultContainer 'golang'
-                }
-            }
-            options { timeout(time: 45, unit: 'MINUTES') }
-            steps {
-                dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "ls -l && ls -l bin"
-                    }
-
-                    sh label: 'test', script: """
-                        cd tests/integrationtest2 && ./run-tests.sh
-                    """
+                    sh './run-tests.sh'
                 }
             }
             post{
