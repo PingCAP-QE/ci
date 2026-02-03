@@ -64,7 +64,13 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][2]) // => release-X.Y
         }
     } else if (prTargetBranch =~ featureBranchReg) {
-        componentBranch = trunkBranch
+        // Special handling for feature/materialized_view branch，use the same feature branch for all components
+        // If the feature/materialized_view is no longer in use, clean up this logic
+        if (prTargetBranch == 'feature/materialized_view') {
+            componentBranch = prTargetBranch
+        } else {
+            componentBranch = trunkBranch
+        }
     }
 
     return componentBranch
