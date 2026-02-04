@@ -48,7 +48,17 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     } else if (prTargetBranch =~ releaseBranchReg ) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ releaseBranchReg)[0][1]) // => release-X.Y or release-X.Y-beta.M
     } else if (prTargetBranch =~ wipReleaseFeatureBranchReg ) {
-        componentBranch = String.format('release-%s', (prTargetBranch =~ wipReleaseFeatureBranchReg)[0][1]) // => release-X.Y
+        // Special handling for feature/materialized_view branch，use the same feature branch for all components
+        // If the feature/materialized_view is no longer in use, clean up this logic
+        if (prTargetBranch == 'feature/release-8.5-materialized-view') {
+            if (component == "ticdc") {
+                componentBranch = "release-8.5"
+            } else {
+                componentBranch = prTargetBranch
+            }
+        } else {
+            componentBranch = String.format('release-%s', (prTargetBranch =~ wipReleaseFeatureBranchReg)[0][1]) // => release-X.Y
+        }
     } else if (prTargetBranch =~ oldHotfixBranchReg) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ oldHotfixBranchReg)[0][1]) // => release-X.Y
     } else if (prTargetBranch =~ newHotfixBranchReg) {
@@ -58,15 +68,7 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
             componentBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][2]) // => release-X.Y
         }
     } else if (prTargetBranch =~ historyReleaseFeatureBranchReg) {
-        // Special handling for feature/materialized_view branch，use the same feature branch for all components
-        // If the feature/materialized_view is no longer in use, clean up this logic
-        if (prTargetBranch == 'feature/release-8.5-materialized-view') {
-            if (component == "ticdc") {
-                componentBranch = "release-8.5"
-            } else {
-                componentBranch = prTargetBranch
-            }
-        } else if (componentsSupportPatchReleaseBranch.contains(component)) {
+        if (componentsSupportPatchReleaseBranch.contains(component)) {
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][1]) // => release-X.Y.Z
         } else {
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][2]) // => release-X.Y
