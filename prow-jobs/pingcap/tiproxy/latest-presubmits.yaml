@@ -1,45 +1,114 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tiproxy:
-    - name: pingcap/tiproxy/ghpr_build
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+    - name: pull-build
+      agent: kubernetes
+      decorate: true # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
-      context: pull-build
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(build|all)(?: .*?)?$"
-      rerun_command: "/test build"
       branches:
         - .+
-    - name: pingcap/tiproxy/ghpr_check
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                set -euo pipefail
+                make
+            resources:
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 12Gi
+                cpu: "3"
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+    - name: pull-check
+      agent: kubernetes
+      decorate: true # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
-      context: pull-check
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(check|all)(?: .*?)?$"
-      rerun_command: "/test check"
       branches:
         - .+
-    - name: pingcap/tiproxy/ghpr_unit_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+      spec:
+        containers:
+          - name: check
+            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                set -euo pipefail
+                make lint build
+            resources:
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 12Gi
+                cpu: "3"
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+    - name: pull-unit-test
+      agent: kubernetes
+      decorate: true # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       run_before_merge: true
-      context: pull-unit-test
       skip_report: false
-      trigger: "(?m)^/test (?:.*? )?(unit-test|all)(?: .*?)?$"
-      rerun_command: "/test unit-test"
       branches:
         - .+
+      spec:
+        containers:
+          - name: unit-test
+            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                set -uo pipefail
+                make test
+                test_rc=$?
+                if [ -f coverage.dat ] && [ "${JOB_TYPE:-}" != "batch" ]; then
+                  codecov -f coverage.dat -F unit -r "pingcap/tiproxy" -C "${PULL_PULL_SHA}" -B "${PULL_BASE_REF}" --pr "${PULL_NUMBER}" -Z || true
+                fi
+                exit ${test_rc}
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-token
+                    key: pingcap-tiproxy
+            resources:
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 12Gi
+                cpu: "3"
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
     - name: pingcap/tiproxy/pull_mysql_connector_test
       agent: jenkins
       labels:
