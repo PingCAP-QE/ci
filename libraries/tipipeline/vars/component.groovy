@@ -58,19 +58,21 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
             componentBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][2]) // => release-X.Y
         }
     } else if (prTargetBranch =~ historyReleaseFeatureBranchReg) {
-        if (componentsSupportPatchReleaseBranch.contains(component)) {
+        // Special handling for feature/materialized_view branch，use the same feature branch for all components
+        // If the feature/materialized_view is no longer in use, clean up this logic
+        if (prTargetBranch == 'feature/release-8.5-materialized-view') {
+            if (component == "ticdc") {
+                componentBranch = "release-8.5"
+            } else {
+                componentBranch = prTargetBranch
+            }
+        } else if (componentsSupportPatchReleaseBranch.contains(component)) {
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][1]) // => release-X.Y.Z
         } else {
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][2]) // => release-X.Y
         }
     } else if (prTargetBranch =~ featureBranchReg) {
-        // Special handling for feature/materialized_view branch，use the same feature branch for all components
-        // If the feature/materialized_view is no longer in use, clean up this logic
-        if (prTargetBranch == 'feature/materialized_view') {
-            componentBranch = prTargetBranch
-        } else {
-            componentBranch = trunkBranch
-        }
+        componentBranch = trunkBranch
     }
 
     return componentBranch

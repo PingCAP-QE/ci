@@ -3,6 +3,7 @@ global_definitions:
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   branches: &branches
     - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+    - ^feature/release-8.5(.\d+)?-.+$
 
 presubmits:
   tikv/tikv:
