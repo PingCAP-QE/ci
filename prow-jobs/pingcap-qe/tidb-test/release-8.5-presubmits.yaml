@@ -1,75 +1,60 @@
+global_definitions:
+  branches: &branches
+    - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+    - ^feature/release-8.5(.\d+)?-.+$
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false # need add this.
+    labels:
+      master: "0"
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   PingCAP-QE/tidb-test:
-    - name: pingcap-qe/tidb-test/release-8.5/ghpr_build
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap-qe/tidb-test/release-8.5/ghpr_build
       skip_if_only_changed: "(\\.md)$"
       context: ci/build
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
-      branches:
-        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap-qe/tidb-test/release-8.5/ghpr_common_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap-qe/tidb-test/release-8.5/ghpr_common_test
       run_if_changed: "(jdbc8_test|jdbc_test)/.*"
       context: ci/common-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?common-test(?: .*?)?$"
       rerun_command: "/test common-test"
-      branches:
-        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_jdbc_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_jdbc_test
       run_if_changed: "(jdbc8_test|mybatis_test|jooq_test|tidb_jdbc_test)/.*"
       context: ci/integration-jdbc-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test integration-jdbc-test"
-      branches:
-        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_common_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_common_test
       run_if_changed: "randgen-test/.*"
       context: ci/integration-common-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-common-test(?: .*?)?$"
       rerun_command: "/test integration-common-test"
-      branches:
-        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_mysql_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap-qe/tidb-test/release-8.5/ghpr_integration_mysql_test
       run_if_changed: "mysql_test/.*"
       context: ci/integration-mysql-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?integration-mysql-test(?: .*?)?$"
       rerun_command: "/test integration-mysql-test"
-      branches:
-        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
-    - name: pingcap-qe/tidb-test/release-8.5/ghpr_mysql_test
-      agent: jenkins
-      labels:
-        master: "0"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap-qe/tidb-test/release-8.5/ghpr_mysql_test
       run_if_changed: "mysql_test/.*"
-      decorate: false # need add this.
       context: ci/mysql-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
-      branches:
-        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
+      branches: *branches
