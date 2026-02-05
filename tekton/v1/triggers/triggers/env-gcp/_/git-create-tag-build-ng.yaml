@@ -34,7 +34,7 @@ spec:
                     'memory': '12Gi',
                   },
                   'pingcap/ticdc': {
-                    'timeout': '20m',
+                    'timeout': '30m',
                     'sourceWsSize': '50Gi',
                     'cpu': '3',
                     'memory': '12Gi',

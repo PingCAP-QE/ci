@@ -32,7 +32,7 @@ spec:
                 {
                 'pingcap/monitoring': '30m',
                 'pingcap/ng-monitoring': '30m',
-                'pingcap/ticdc': '20m',
+                'pingcap/ticdc': '30m',
                 'pingcap/tidb': '45m',
                 'pingcap/tidb-dashboard': '40m',
                 'pingcap/tiflash': '2h',
