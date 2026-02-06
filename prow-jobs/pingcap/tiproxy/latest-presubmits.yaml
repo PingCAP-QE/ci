@@ -212,6 +212,3 @@ presubmits:
       rerun_command: "/test sqllogic-test"
       branches:
         - .+
-spec:
-  containers: []
-  initContainers: []

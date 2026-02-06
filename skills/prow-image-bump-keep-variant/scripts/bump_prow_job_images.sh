@@ -83,6 +83,7 @@ CURRENT_TAGS=()
 while IFS= read -r line; do
   [[ -n "$line" ]] && CURRENT_TAGS+=("$line")
 done < <(
+  # Only tag-form images are considered; digest-pinned images are skipped.
   while IFS= read -r file; do
     yq -r '.. | select(has("image")) | .image' "$file"
   done < <(list_yaml_files) 2>/dev/null \
@@ -119,13 +120,18 @@ for tag in "${CURRENT_TAGS[@]}"; do
 
   if [[ "$mode" == "gsha" ]]; then
     if [[ -n "$variant" ]]; then
-candidates=$(echo "$TAGS" | grep "-g[0-9a-fA-F]+-${v}")
+      candidates=$(echo "$TAGS" | awk -v v="$variant" '
+        match($0, /-g[0-9a-fA-F]+-/) {
+          var = substr($0, RSTART + RLENGTH)
+          if (var == v) print $0
+        }')
     else
       candidates=$(echo "$TAGS" | awk '/-g[0-9a-fA-F]+$/ {print $0}')
     fi
   elif [[ "$mode" == "legacy" ]]; then
     if [[ -n "$variant" ]]; then
-candidates=$(echo "$TAGS" | grep "^*-${v}" )
+      candidates=$(echo "$TAGS" | awk -v v="$variant" '
+        { pos = index($0, "-"); if (pos > 0) { var = substr($0, pos + 1); if (var == v) print $0 } }')
     else
       candidates=$(echo "$TAGS" | awk 'index($0, "-") == 0 {print $0}')
     fi
@@ -156,13 +162,21 @@ for mapping in "${LATEST_FOR_VARIANT[@]}"; do
 
   if [[ $DRY_RUN -eq 0 ]]; then
     # Replace only in containers/initContainers image fields
-    old_pat=$(printf '%s' "${IMAGE_REPO}:${old_tag}" | sed -E 's/[][\.^$*+?(){}|]/\\\\&/g')
-    new_pat=$(printf '%s' "${IMAGE_REPO}:${new_tag}")
-    rg -l --glob "${ROOT}/**/*.yaml" -F "${IMAGE_REPO}:${old_tag}" \
-      | while read -r file; do
-          # yq inplace: update only image fields
-          yq -i '(.. | select(has("containers")) | .containers[]?.image) |= sub("'"${old_pat}"'", "'"${new_pat}"'") | (.. | select(has("initContainers")) | .initContainers[]?.image) |= sub("'"${old_pat}"'", "'"${new_pat}"'")' "$file"
-        done
+    old_image="${IMAGE_REPO}:${old_tag}"
+    new_image="${IMAGE_REPO}:${new_tag}"
+    if command -v rg >/dev/null 2>&1; then
+      rg -l -g '*.yaml' -F "${old_image}" "${ROOT}" \
+        | while read -r file; do
+            # yq inplace: update only image fields
+            yq -i '(.. | select(has("containers")) | .containers[]?.image) |= (if . == "'"${old_image}"'" then "'"${new_image}"'" else . end) | (.. | select(has("initContainers")) | .initContainers[]?.image) |= (if . == "'"${old_image}"'" then "'"${new_image}"'" else . end)' "$file"
+          done
+    else
+      list_yaml_files | while read -r file; do
+        grep -Fq "${old_image}" "$file" || continue
+        # yq inplace: update only image fields
+        yq -i '(.. | select(has("containers")) | .containers[]?.image) |= (if . == "'"${old_image}"'" then "'"${new_image}"'" else . end) | (.. | select(has("initContainers")) | .initContainers[]?.image) |= (if . == "'"${old_image}"'" then "'"${new_image}"'" else . end)' "$file"
+      done
+    fi
   fi
   CHANGES=$((CHANGES+1))
  done
