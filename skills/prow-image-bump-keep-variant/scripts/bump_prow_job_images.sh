@@ -125,8 +125,7 @@ candidates=$(echo "$TAGS" | grep "-g[0-9a-fA-F]+-${v}")
     fi
   elif [[ "$mode" == "legacy" ]]; then
     if [[ -n "$variant" ]]; then
-      candidates=$(echo "$TAGS" | awk -v v="$variant" '
-        { pos = index($0, "-"); if (pos > 0) { var = substr($0, pos + 1); if (var == v) print $0 } }')
+candidates=$(echo "$TAGS" | grep "^*-${v}" )
     else
       candidates=$(echo "$TAGS" | awk 'index($0, "-") == 0 {print $0}')
     fi
