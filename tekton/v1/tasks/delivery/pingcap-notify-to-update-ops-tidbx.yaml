@@ -160,6 +160,13 @@ spec:
           local image_repo=${image%:*}
           local image_tag=${image##*:}
 
+          # Fast return if image_tag is not in format: vX.Y.Z-nextgen.YYDDMM.N
+          # Example: v1.2.3-nextgen.250101.1
+          if ! [[ "$image_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-nextgen\.[0-9]{6}\.[0-9]+$ ]]; then
+            echo "🤷 Image tag '$image_tag' is not in expected format vX.Y.Z-nextgen.YYDDMM.N, skip Ops update."
+            return 0
+          fi
+
           # get the component name from image repo: the base name of the image repo
           local components=$(jq -r --arg img "$image_repo" '.components | to_entries | map(select(.value.base_image==$img) | .key) | join(",")' $stage_config_file)
           if [ -z "$components" ]; then
