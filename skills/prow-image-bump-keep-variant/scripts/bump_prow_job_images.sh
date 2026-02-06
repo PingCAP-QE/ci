@@ -119,11 +119,7 @@ for tag in "${CURRENT_TAGS[@]}"; do
 
   if [[ "$mode" == "gsha" ]]; then
     if [[ -n "$variant" ]]; then
-      candidates=$(echo "$TAGS" | awk -v v="$variant" '
-        match($0, /-g[0-9a-fA-F]+-/) {
-          var = substr($0, RSTART + RLENGTH)
-          if (var == v) print $0
-        }')
+candidates=$(echo "$TAGS" | grep "-g[0-9a-fA-F]+-${v}")
     else
       candidates=$(echo "$TAGS" | awk '/-g[0-9a-fA-F]+$/ {print $0}')
     fi
