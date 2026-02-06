@@ -70,7 +70,6 @@ periodics:
             limits:
               memory: 24Gi
               cpu: "12"
-
   - name: periodic-daily-tidb-long-unit-test
     decorate: true # need add this.
     cron: "0 0 1 * *" # monthly
