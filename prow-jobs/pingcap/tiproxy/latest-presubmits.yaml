@@ -91,7 +91,7 @@ presubmits:
               - name: CODECOV_TOKEN
                 valueFrom:
                   secretKeyRef:
-                    name: codecov-token
+                    name: codecov-tokens
                     key: pingcap-tiproxy
             resources:
               requests:

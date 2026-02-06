@@ -27,13 +27,13 @@ presubmits:
               - name: CODECOV_TOKEN
                 valueFrom:
                   secretKeyRef:
-                    name: codecov-token
+                    name: codecov-tokens
                     key: pingcap-tiflow # format <ORG>-<REPO>
               # FIXME(wuhuizuo): should delete it when refactored the Makefile.
               - name: TICDC_CODECOV_TOKEN
                 valueFrom:
                   secretKeyRef:
-                    name: codecov-token
+                    name: codecov-tokens
                     key: pingcap-tiflow # format <ORG>-<REPO>
             volumeMounts: &volumeMounts
               - name: go-cache
