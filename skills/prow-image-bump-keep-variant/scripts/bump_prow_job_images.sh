@@ -97,23 +97,45 @@ if [[ ${#CURRENT_TAGS[@]} -eq 0 ]]; then
   exit 1
 fi
 
-# For each current tag, keep variant suffix after first '-' and find latest tag with same variant.
+# For each current tag, keep variant suffix after '-g<sha>' when present (or legacy first '-') and find latest tag with same variant.
 LATEST_FOR_VARIANT=()
 
-TAGS=$(list_tags "$IMAGE_REPO" | tr -d '\r')
+TAGS=$(list_tags "$IMAGE_REPO" | tr -d "\r")
 
 for tag in "${CURRENT_TAGS[@]}"; do
   variant=""
   base="$tag"
-  if [[ "$tag" == *-* ]]; then
+  mode="legacy"
+  if [[ "$tag" =~ ^(.*-g[0-9a-fA-F]+)(-(.*))?$ ]]; then
+    base="${BASH_REMATCH[1]}"
+    variant="${BASH_REMATCH[3]}"
+    mode="gsha"
+  elif [[ "$tag" == *-* ]]; then
     base="${tag%%-*}"
     variant="${tag#*-}"
+  else
+    mode="none"
   fi
 
-  if [[ -n "$variant" ]]; then
-    candidates=$(echo "$TAGS" | awk -v v="-$variant" '$0 ~ v"$" {print $0}')
+  if [[ "$mode" == "gsha" ]]; then
+    if [[ -n "$variant" ]]; then
+      candidates=$(echo "$TAGS" | awk -v v="$variant" '
+        match($0, /-g[0-9a-fA-F]+-/) {
+          var = substr($0, RSTART + RLENGTH)
+          if (var == v) print $0
+        }')
+    else
+      candidates=$(echo "$TAGS" | awk '/-g[0-9a-fA-F]+$/ {print $0}')
+    fi
+  elif [[ "$mode" == "legacy" ]]; then
+    if [[ -n "$variant" ]]; then
+      candidates=$(echo "$TAGS" | awk -v v="$variant" '
+        { pos = index($0, "-"); if (pos > 0) { var = substr($0, pos + 1); if (var == v) print $0 } }')
+    else
+      candidates=$(echo "$TAGS" | awk 'index($0, "-") == 0 {print $0}')
+    fi
   else
-    candidates=$(echo "$TAGS" | awk '$0 !~ /-/' )
+    candidates=$(echo "$TAGS" | awk 'index($0, "-") == 0 {print $0}')
   fi
 
   if [[ -z "$candidates" ]]; then
@@ -139,12 +161,12 @@ for mapping in "${LATEST_FOR_VARIANT[@]}"; do
 
   if [[ $DRY_RUN -eq 0 ]]; then
     # Replace only in containers/initContainers image fields
-    old_pat=$(printf '%s' "${IMAGE_REPO}:${old_tag}" | sed -E 's/[][.^$*+?(){}|]/\\\\&/g')
+    old_pat=$(printf '%s' "${IMAGE_REPO}:${old_tag}" | sed -E 's/[][\.^$*+?(){}|]/\\\\&/g')
     new_pat=$(printf '%s' "${IMAGE_REPO}:${new_tag}")
     rg -l --glob "${ROOT}/**/*.yaml" -F "${IMAGE_REPO}:${old_tag}" \
       | while read -r file; do
           # yq inplace: update only image fields
-          yq -i '(.spec.containers[]?.image, .spec.initContainers[]?.image) |= sub("'"${old_pat}"'", "'"${new_pat}"'")' "$file"
+          yq -i '(.. | select(has("containers")) | .containers[]?.image) |= sub("'"${old_pat}"'", "'"${new_pat}"'") | (.. | select(has("initContainers")) | .initContainers[]?.image) |= sub("'"${old_pat}"'", "'"${new_pat}"'")' "$file"
         done
   fi
   CHANGES=$((CHANGES+1))

@@ -29,7 +29,9 @@ skills/prow-image-bump-keep-variant/scripts/bump_prow_job_images.sh \
 ```
 
 Behavior:
-- Keeps tag variants by preserving everything after the first `-` in the old tag.
+- Keeps tag variants by preserving everything after the `-g<commit-sha>` segment when present.
+  - Example: `ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25` -> `...:v2026.2.1-<new>-go1.25`
+- For tags without `-g<commit-sha>`, preserves everything after the first `-` (legacy behavior).
   - Example: `docker:28.1-dind` -> `docker:28.2-dind`
 - If the old tag has no `-` variant, only the version changes.
 - Only updates `image:` lines that are under `containers:` or `initContainers:` blocks.
@@ -51,7 +53,7 @@ rg --glob 'prow-jobs/**/*.yaml' -n "image:" prow-jobs
 
 ## Notes and edge cases
 
-- Variant definition: everything after the first `-` in the tag.
+- Variant definition: everything after the `-g<commit-sha>` segment when present; otherwise everything after the first `-`.
 - If the image includes a registry with a port (e.g. `registry:5000/repo:tag`), the script still matches the repo name before the tag.
 - For multi-image updates, run the script once per image repo/version.
 - Requirements: `yq` plus either `crane` or `oras`.
