@@ -29,6 +29,10 @@ presubmits:
             image: rust:1.85.0
             command: ["/bin/sh", "-c"]
             env:
+              # Raft-engine lacks Cargo.lock, so we pin a nightly toolchain version here.
+              # This must be updated periodically to keep CI passing without forcing TiKV toolchain update.
+              - name: RUST_NIGHTLY
+                value: "nightly-2026-01-30"
               - name: RUST_BACKTRACE
                 value: "1"
               # - name: CARGO_HOME
@@ -38,8 +42,8 @@ presubmits:
                 set -ex
                 apt-get update; apt-get install -y cmake
                 rustup show
-                rustup toolchain install nightly-2025-04-03
-                rustup default nightly-2025-04-03
+                rustup toolchain install $RUST_NIGHTLY
+                rustup default $RUST_NIGHTLY
                 rustup component add rustfmt clippy rust-src
                 cargo install grcov
                 make format && git diff --exit-code
