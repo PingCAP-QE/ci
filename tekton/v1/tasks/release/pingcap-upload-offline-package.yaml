@@ -54,7 +54,7 @@ spec:
         bucket_name=$(cat $(workspaces.s3-secrets.path)/bucket_name)
 
         repo="$(params.oci-repo)"
-        dl_svr_url="https://internal-do.pingcap.net/dl"
+        dl_svr_url="https://internal2-do.pingcap.net/dl"
         FILE_SERVER_URL="http://fileserver.pingcap.net"
 
         tag="$(params.version)-$(params.edition)_$(params.os)_$(params.arch)"
