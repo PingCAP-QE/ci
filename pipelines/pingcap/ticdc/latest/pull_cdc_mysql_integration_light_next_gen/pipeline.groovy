@@ -135,8 +135,13 @@ pipeline {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tidb_cdc_test/
-                                    tar --warning=no-file-changed  -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
-                                    ls -alh  log-${TEST_GROUP}.tar.gz
+                                    log_files=\$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
+                                    if [ -n "\${log_files}" ]; then
+                                        tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \${log_files}
+                                        ls -alh log-${TEST_GROUP}.tar.gz
+                                    else
+                                        echo "No log files found under /tmp/tidb_cdc_test/, skip tar"
+                                    fi
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
