@@ -16,6 +16,7 @@ spec:
     - name: images
       type: string
       description: images list
+      default: "[]"
     - name: target_images
       type: string
       description: delivered target images list
@@ -28,8 +29,7 @@ spec:
       description: |
         Configuration for GitHub authentication and issue URLs.
         Include files:
-        - GitHub token: <stage>_github_token
-        - GitHub issue URL: <stage>_github_issue_url
+        - <stage>_lark_webhook: lark bot webhook url
       readOnly: true
     - name: ops-config
       description: |
