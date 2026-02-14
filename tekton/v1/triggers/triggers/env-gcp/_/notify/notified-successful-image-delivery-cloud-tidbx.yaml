@@ -56,3 +56,13 @@ spec:
               - name: ops-config
                 secret:
                   secretName: image-delivery-ops-config-tidbx
+        - apiVersion: tekton.dev/v1
+          kind: TaskRun
+          metadata:
+            generateName: pingcap-notify-to-add-image-records-to-tcms-
+          spec:
+            taskRef:
+              name: pingcap-notify-to-update-tcms-tidbx
+            params:
+              - name: images
+                value: $(tt.params.images)

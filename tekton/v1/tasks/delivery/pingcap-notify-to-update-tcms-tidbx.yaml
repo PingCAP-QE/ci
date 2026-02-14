@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: pingcap-notify-to-update-tcms-tidbx
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: delivery
+    tekton.dev/tags: tcms,cloud,tidbx
+    tekton.dev/displayName: "Notify to update TCMS for TiDB-X"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  params:
+    - name: images
+      type: string
+      description: images list
+      default: "[]"
+  stepTemplate:
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2026.2.1-3-gb0438c3
+  steps:
+    - name: push-image-tag-records
+      env:
+        - name: PUBLISHER_BASE_URL
+          value: https://do2.pingcap.net/publisher
+      args: ["$(params.images)"]
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        function make_api_call() {
+            local image="$1"
+            local api_url="$PUBLISHER_BASE_URL/tidbcloud/tidbx-component-image-builds"
+            curl -f \
+              --request POST \
+              --location "$api_url" \
+              --header "Content-Type: application/json" \
+              --data "{\"image\": \"${image}\"}"
+        }
+
+        function main() {
+          images="$(echo "$1" | jq -r '.[]')"
+          for image in $images; do
+            echo "🚀 Request to add the image '${image}' to tcms platform ..."
+            make_api_call "$image"
+            echo "✅ Added image '${image}' to tcms platform successfully."
+          done
+
+          echo "🎉 Done!"
+        }
+
+        main "$@"
