@@ -8,8 +8,8 @@ metadata:
   annotations:
     tekton.dev/pipelines.minVersion: "1.0.0"
     tekton.dev/categories: delivery
-    tekton.dev/tags: ops,cloud,tidbx
-    tekton.dev/displayName: "Notify to update ops config for TiDB-X"
+    tekton.dev/tags: tcms,cloud,tidbx
+    tekton.dev/displayName: "Notify to update TCMS for TiDB-X"
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
   params:
