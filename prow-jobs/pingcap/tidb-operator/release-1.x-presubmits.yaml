@@ -420,11 +420,11 @@ presubmits:
                 mountPath: /kind-data
             resources:
               requests:
-                memory: "8Gi"
-                cpu: "2"
+                memory: "16Gi"
+                cpu: "16"
               limits:
-                memory: "8Gi"
-                cpu: "2"
+                memory: "16Gi"
+                cpu: "16"
         containers:
           - name: e2e-runner
             image: ubuntu:22.04
@@ -534,10 +534,10 @@ presubmits:
             resources:
               requests:
                 memory: "16Gi"
-                cpu: "4"
+                cpu: "12"
               limits:
                 memory: "16Gi"
-                cpu: "4"
+                cpu: "12"
         containers:
           - name: e2e-runner
             image: ubuntu:22.04
@@ -648,10 +648,10 @@ presubmits:
             resources:
               requests:
                 memory: "16Gi"
-                cpu: "16"
+                cpu: "4"
               limits:
                 memory: "16Gi"
-                cpu: "16"
+                cpu: "4"
         containers:
           - name: e2e-runner
             image: ubuntu:22.04
