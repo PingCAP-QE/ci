@@ -118,9 +118,9 @@ spec:
       params:
         - name: filter
           value: >-
-            body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflash']
+            body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflash', 'tikv/tikv']
             &&
-            body.ref.matches('^refs/heads/feature/fts$')
+            body.ref.matches('^refs/heads/(feature/fts|release-fts-[0-9]+)$')
         - name: overlays
           value:
             - key: timeout
@@ -128,24 +128,28 @@ spec:
                 {
                 'pingcap/tidb': '1h',
                 'pingcap/tiflash': '3h',
+                'tikv/tikv': '3h',
                 }[body.repository.full_name]
             - key: source-ws-size
               expression: >-
                 {
                 'pingcap/tidb': '50Gi',
                 'pingcap/tiflash': '100Gi',
+                'tikv/tikv': '100Gi',
                 }[body.repository.full_name]
             - key: builder-resources-cpu
               expression: >-
                 {
                 'pingcap/tidb': '8',
                 'pingcap/tiflash': '16',
+                'tikv/tikv': '16',
                 }[body.repository.full_name]
             - key: builder-resources-memory
               expression: >-
                 {
                 'pingcap/tidb': '32Gi',
                 'pingcap/tiflash': '64Gi',
+                'tikv/tikv': '64Gi',
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push

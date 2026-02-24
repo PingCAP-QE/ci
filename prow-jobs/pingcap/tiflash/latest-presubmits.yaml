@@ -4,6 +4,7 @@ global_definitions:
     branches:
       - ^master$
       - ^feature/.+
+      - ^release-fts-[0-9]+$
     skip_branches: # skip feature branches based on released version.
       - ^feature/release-\d+\.\d+(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -40,6 +41,7 @@ presubmits:
     - name: pull-error-log-review
       branches:
         - ^master$
+        - ^release-fts-[0-9]+$
       decorate: true
       decoration_config:
         timeout: 20m

@@ -15,7 +15,7 @@ spec:
           value: >-
             body.repository.full_name == 'pingcap-inc/tici'
             &&
-            body.ref.matches('^refs/heads/master$')
+            body.ref.matches('^refs/heads/(master|release-fts-[0-9]+)$')
   bindings:
     - ref: github-branch-push
     - ref: gcp-classic-build-params
