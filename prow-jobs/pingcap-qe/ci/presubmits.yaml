@@ -2,6 +2,11 @@
 presubmits:
   PingCAP-QE/ci:
     - name: pull-verify-jenkins-pipelines
+      labels:
+        Owner: "wei.zheng"
+        Team: "QE"
+        Env: "CICD"
+        Component: "Jenkins"
       decorate: true
       max_concurrency: 1
       run_if_changed: pipelines/.*\.groovy
@@ -24,6 +29,11 @@ presubmits:
                 memory: 128Mi
                 cpu: 200m
     - name: pull-verify-prow-jobs
+      labels:
+        Owner: "wei.zheng"
+        Team: "QE"
+        Env: "CICD"
+        Component: "Jenkins"
       decorate: true
       extra_refs:
         - org: ti-community-infra
