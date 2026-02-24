@@ -2,7 +2,7 @@
 presubmits:
   PingCAP-QE/ci:
     - name: pull-verify-jenkins-pipelines
-      labels:
+      labels: &qe-cicd-labels
         Owner: "wei.zheng"
         Team: "QE"
         Env: "CICD"
@@ -29,11 +29,7 @@ presubmits:
                 memory: 128Mi
                 cpu: 200m
     - name: pull-verify-prow-jobs
-      labels:
-        Owner: "wei.zheng"
-        Team: "QE"
-        Env: "CICD"
-        Component: "Jenkins"
+      labels: *qe-cicd-labels
       decorate: true
       extra_refs:
         - org: ti-community-infra
