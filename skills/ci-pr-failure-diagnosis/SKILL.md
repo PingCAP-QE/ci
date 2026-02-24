@@ -12,7 +12,7 @@ Diagnose failing CI checks for a GitHub PR by identifying the failing checks, do
 - Do not paste full CI logs into the chat. Always download logs to a local file and inspect them in slices.
 - Prefer the bundled script `skills/ci-pr-failure-diagnosis/scripts/log_peek.py` for log slicing.
 - Prefer built-in CLIs (`gh`, `curl`) and repo conventions. Use ad-hoc shell pipelines only if the script cannot express the needed view.
-- Check tool availability before running commands: `command -v gh`, `command -v curl`, `command -v rg`, `command -v unzip`, `command -v gsutil`, `command -v kubectl`.
+- Check tool availability before running commands: `command -v gh`, `command -v curl`, `command -v unzip`
 
 ## Quick Workflow
 1. Resolve the PR (user-provided or current branch PR).
@@ -92,7 +92,6 @@ Common patterns:
 
 Log URL patterns:
 - Append `/build-log.txt` to the build URL.
-- For GCS paths `gs://.../build-log.txt`, use `gsutil cp` if available.
 
 Example:
 
