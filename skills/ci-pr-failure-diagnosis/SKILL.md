@@ -41,8 +41,8 @@ Use GitHub to list checks and failing contexts:
 ```bash
 gh pr view <PR> --json statusCheckRollup -q '
   .statusCheckRollup[]
-  | select(.conclusion != "SUCCESS")
-  | "\(.name)\t\(.conclusion)\t\(.detailsUrl)\t\(.targetUrl)"'
+  | select((.conclusion != "SUCCESS") and (.state != "SUCCESS"))
+  | "\(.name // .context)\t\(.conclusion // .state)\t\(.detailsUrl // .targetUrl)"'
 ```
 
 Interpretation:
