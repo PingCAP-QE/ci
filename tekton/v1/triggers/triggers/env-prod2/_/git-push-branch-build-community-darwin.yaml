@@ -118,9 +118,9 @@ spec:
       params:
         - name: filter
           value: >-
-            body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflash']
+            body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflash', 'tikv/tikv']
             &&
-            body.ref.matches('^refs/heads/feature/fts$')
+            body.ref.matches('^refs/heads/(feature/fts|release-fts-202602)$')
         - name: overlays
           value:
             - key: timeout

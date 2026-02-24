@@ -24,7 +24,7 @@ spec:
             'tikv/tikv',
             ]
             &&
-            body.ref.matches('^refs/heads/(main|master|feature/.+|release-[6-9][.][0-9]+(-beta[.][0-9]+)?)$')
+            body.ref.matches('^refs/heads/(main|master|feature/.+|release-[6-9][.][0-9]+(-beta[.][0-9]+)?|release-fts-[0-9]+)$')
         - name: overlays
           value:
             - key: timeout
