@@ -18,7 +18,7 @@ spec:
       description: URL of the image where the image from source should be copied to
   steps:
     - name: copy
-      image: gcr.io/go-containerregistry/crane:v0.20.3
+      image: gcr.io/go-containerregistry/crane:v0.21.1
       args:
         - copy
         - $(params.src-image-url)
