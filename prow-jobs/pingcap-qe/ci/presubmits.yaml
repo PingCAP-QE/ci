@@ -3,10 +3,10 @@ presubmits:
   PingCAP-QE/ci:
     - name: pull-verify-jenkins-pipelines
       labels: &qe-cicd-labels
-        Owner: "wei.zheng"
-        Team: "QE"
-        Env: "CICD"
-        Component: "Jenkins"
+        owner: "wei_zheng"
+        team: "qe"
+        env: "cicd"
+        component: "jenkins"
       decorate: true
       max_concurrency: 1
       run_if_changed: pipelines/.*\.groovy
