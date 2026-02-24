@@ -116,7 +116,6 @@ configMapGenerator:
       - ti-community-infra_configs_postsubmits.yaml=ti-community-infra/configs/postsubmits.yaml
       - ti-community-infra_configs_presubmits.yaml=ti-community-infra/configs/presubmits.yaml
       - ti-community-infra_periodics.yaml=ti-community-infra/periodics.yaml
-      - ti-community-infra_prow_postsubmits.yaml=ti-community-infra/prow/postsubmits.yaml
       - ti-community-infra_prow_presubmits.yaml=ti-community-infra/prow/presubmits.yaml
       - tidbcloud_cloud-storage-engine_latest-presubmits-next-gen.yaml=tidbcloud/cloud-storage-engine/latest-presubmits-next-gen.yaml
       - tikv_community_postsubmits.yaml=tikv/community/postsubmits.yaml
