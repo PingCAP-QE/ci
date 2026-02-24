@@ -143,7 +143,7 @@ spec:
           # hotfix branches
           MAJOR_MINOR_PATCH=$(echo "$RELEASE_VERSION" | grep -oE "^v[0-9]+[.][0-9]+[.][0-9]+")
           EXT_REVERSION=$(echo "$MAJOR_MINOR_PATCH" | sed -E 's/^v/release-/')
-        elif [[ $origin_ref =~ "^(master|main|feature/.*)$" ]]; then
+        elif [[ $origin_ref =~ "^(master|main|feature/.*|release-fts-[0-9]+)$" ]]; then
           # trunk and common feature branches.
           EXT_REVERSION="master"
         elif [[ $origin_ref =~ "^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$" ]]; then
