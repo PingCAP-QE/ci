@@ -116,17 +116,24 @@ def main():
     if args.head is None and args.tail is None and args.range is None and args.grep is None:
         args.tail = 200
 
-    if args.head is not None:
-        head(args.path, args.head)
-        return
-    if args.tail is not None:
-        tail(args.path, args.tail)
-        return
-    if args.range is not None:
-        start, end = args.range
-        slice_range(args.path, start, end)
-        return
-    grep(args.path, args.grep, args.context, args.ignore_case)
+    try:
+        if args.head is not None:
+            head(args.path, args.head)
+            return
+        if args.tail is not None:
+            tail(args.path, args.tail)
+            return
+        if args.range is not None:
+            start, end = args.range
+            slice_range(args.path, start, end)
+            return
+        grep(args.path, args.grep, args.context, args.ignore_case)
+    except FileNotFoundError:
+        sys.stderr.write(f"Error: File not found: {args.path}\n")
+        sys.exit(1)
+    except BrokenPipeError:
+        sys.stderr.close()
+        sys.exit(0)
 
 
 if __name__ == "__main__":
