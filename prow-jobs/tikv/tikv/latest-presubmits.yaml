@@ -4,7 +4,7 @@ global_definitions:
     branches:
       - ^master$
       - ^feature/.+
-      - ^release-fts-202602$
+      - ^release-fts-[0-9]+$
     skip_branches:
       - ^feature/release-\d+\.\d+(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"

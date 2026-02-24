@@ -2,12 +2,12 @@ global_definitions:
   ftsbrancher: &ftsbrancher
     branches:
       - ^feature/fts$
-      - ^release-fts-202602$
+      - ^release-fts-[0-9]+$
   brancher: &brancher
     branches:
       - ^master$
       - ^feature/.+
-      - ^release-fts-202602$
+      - ^release-fts-[0-9]+$
     skip_branches: # skip feature branches based on released version.
       - ^feature/release-\d+\.\d+(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"

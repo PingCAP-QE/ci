@@ -120,7 +120,7 @@ spec:
           value: >-
             body.repository.full_name in ['pingcap/tidb', 'pingcap/tiflash', 'tikv/tikv']
             &&
-            body.ref.matches('^refs/heads/(feature/fts|release-fts-202602)$')
+            body.ref.matches('^refs/heads/(feature/fts|release-fts-[0-9]+)$')
         - name: overlays
           value:
             - key: timeout
