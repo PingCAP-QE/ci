@@ -77,7 +77,7 @@ pipeline {
             }
         }
         stage("Test plugin") {
-            when { not { expression { REFS.base_ref ==~ /^feature[\/_].*/ } } } // skip for feature branches.
+            when { not { expression { REFS.base_ref ==~ /^feature[\/_].*/ || REFS.base_ref ==~ /^release-fts-[0-9]+$/ } } } // skip for feature and release-fts branches.
             steps {
                 dir('enterprise-plugin') {
                     cache(path: "./", includes: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
