@@ -12,6 +12,8 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
+final OCI_TAG_KES = 'v0.14.0'
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -63,7 +65,9 @@ pipeline {
                                             --pd-ctl=${OCI_TAG_PD} \
                                             --tikv=${OCI_TAG_TIKV} \
                                             --tiflash=${OCI_TAG_TIFLASH} \
-                                            --ycsb=${OCI_TAG_YCSB}
+                                            --ycsb=${OCI_TAG_YCSB} \
+                                            --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                            --kes=${OCI_TAG_KES}
                                     """
                                 }
                             }

@@ -11,6 +11,9 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
+final OCI_TAG_KES = 'v0.14.0'
+final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -45,7 +48,7 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     cache(path: "./bin", includes: 'tidb-lightning.test', key: prow.getCacheKey('binary', REFS, 'tidb-lightning.test')) {
-                        sh label: 'tidb-lightning.test', script: ' [ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test'
+                        sh label: 'tidb-lightning.test', script: ' [ -f ./bin/tidb-lightning-ctl.test ] || make build_for_lightning_integration_test'
                     }
                     dir("bin") {
                         container("utils") {
@@ -55,7 +58,10 @@ pipeline {
                                         ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
                                             --pd=${OCI_TAG_PD} \
                                             --tikv=${OCI_TAG_TIKV} \
-                                            --tiflash=${OCI_TAG_TIFLASH}
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                            --kes=${OCI_TAG_KES} \
+                                            --minio=${OCI_TAG_MINIO} \
                                     """
                                 }
                             }
