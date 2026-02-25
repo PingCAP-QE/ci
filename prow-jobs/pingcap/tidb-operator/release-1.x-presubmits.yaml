@@ -92,8 +92,8 @@ presubmits:
             args:
               - |
                 set -ex
-                [ -f hack/prow-e2e-kind.sh ] || { echo "hack/prow-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/prow-e2e-kind.sh --focus='TiDBCluster' --skip='\[TiDBCluster:\sBasic\]' --nodes=4 \
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='TiDBCluster' --skip='\[TiDBCluster:\sBasic\]' --nodes=4 \
                   --kind-cp-mem=2G --kind-cp-cpu=4096 --kind-wk-mem=16G --kind-wk-cpu=98304
             env:
               - name: CODECOV_TOKEN
@@ -205,8 +205,8 @@ presubmits:
             args:
               - |
                 set -ex
-                [ -f hack/prow-e2e-kind.sh ] || { echo "hack/prow-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/prow-e2e-kind.sh --focus='DMCluster' --nodes=2 \
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='DMCluster' --nodes=2 \
                   --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
             env:
               - name: CODECOV_TOKEN
@@ -318,8 +318,8 @@ presubmits:
             args:
               - |
                 set -ex
-                [ -f hack/prow-e2e-kind.sh ] || { echo "hack/prow-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/prow-e2e-kind.sh --focus='\[TiDBCluster:\sBasic\]' --nodes=2 \
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='\[TiDBCluster:\sBasic\]' --nodes=2 \
                   --extra-args='--install-dm-mysql=false' \
                   --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
             env:
@@ -432,8 +432,8 @@ presubmits:
             args:
               - |
                 set -ex
-                [ -f hack/prow-e2e-kind.sh ] || { echo "hack/prow-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/prow-e2e-kind.sh --focus='Backup\sand\sRestore' --nodes=2 \
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='Backup\sand\sRestore' --nodes=2 \
                   --kind-cp-mem=2G --kind-cp-cpu=1024 --kind-wk-mem=10G --kind-wk-cpu=49152
             env:
               - name: CODECOV_TOKEN
@@ -545,8 +545,8 @@ presubmits:
             args:
               - |
                 set -ex
-                [ -f hack/prow-e2e-kind.sh ] || { echo "hack/prow-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/prow-e2e-kind.sh --focus='\[Across\sKubernetes\]' --nodes=2 \
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='\[Across\sKubernetes\]' --nodes=2 \
                   --extra-args='--install-dm-mysql=false' \
                   --kind-cp-mem=8G --kind-cp-cpu=12288 --kind-wk-mem=8G --kind-wk-cpu=4096
             env:
@@ -659,8 +659,8 @@ presubmits:
             args:
               - |
                 set -ex
-                [ -f hack/prow-e2e-kind.sh ] || { echo "hack/prow-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/prow-e2e-kind.sh --focus='Scale\sin\ssimultaneously' --nodes=1 \
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='Scale\sin\ssimultaneously' --nodes=1 \
                   --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
             env:
               - name: CODECOV_TOKEN
@@ -772,8 +772,8 @@ presubmits:
             args:
               - |
                 set -ex
-                [ -f hack/prow-e2e-kind.sh ] || { echo "hack/prow-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/prow-e2e-kind.sh --focus='\[Serial\]' --nodes=1 --delete-namespace \
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='\[Serial\]' --nodes=1 --delete-namespace \
                   --extra-args='--install-operator=false' \
                   --kind-cp-mem=2G --kind-cp-cpu=2048 --kind-wk-mem=8G --kind-wk-cpu=16384
             env:
@@ -886,8 +886,8 @@ presubmits:
             args:
               - |
                 set -ex
-                [ -f hack/prow-e2e-kind.sh ] || { echo "hack/prow-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/prow-e2e-kind.sh --focus='TiDBNGMonitoring' --nodes=1 \
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='TiDBNGMonitoring' --nodes=1 \
                   --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
             env:
               - name: CODECOV_TOKEN
