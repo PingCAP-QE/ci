@@ -204,19 +204,20 @@ function main() {
         url="https://tiup-mirrors.pingcap.com/${tarball}"
         echo "Downloading ${url}"
         tmpdir="$(mktemp -d)"
+        trap 'rm -rf -- "$tmpdir"' EXIT
+
         curl -fSL "${url}" -o "${tmpdir}/${tarball}"
         echo "Extracting br from ${tarball} ..."
         tar -zxf "${tmpdir}/${tarball}" -C "${tmpdir}"
+
         # find the binary named 'br' inside the extracted tree
         found="$(find "${tmpdir}" -type f -name br | head -n 1 || true)"
         if [[ -z "${found}" ]]; then
-            echo "Error: br binary not found inside ${tarball}"
-            rm -rf "${tmpdir}"
+            echo "Error: br binary not found inside ${tarball}" >&2
             exit 1
         fi
         chmod +x "${found}"
         mv -v "${found}" brv4.0.8
-        rm -rf "${tmpdir}"
         echo "🎉 download br v4.0.8 success"
     fi
 }
