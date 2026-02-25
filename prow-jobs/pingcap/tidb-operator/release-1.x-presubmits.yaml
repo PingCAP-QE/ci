@@ -19,6 +19,18 @@ presubmits:
       always_run: false
       optional: true
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.kubernetes.io/instance-type
+                      operator: In
+                      values:
+                        - e2-highmem-8
+                        - e2-highmem-16
+                        - e2-standard-16
+                        - e2-standard-32
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -132,6 +144,18 @@ presubmits:
       always_run: false
       optional: true
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.kubernetes.io/instance-type
+                      operator: In
+                      values:
+                        - e2-highmem-8
+                        - e2-highmem-16
+                        - e2-standard-16
+                        - e2-standard-32
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -245,6 +269,18 @@ presubmits:
       always_run: false
       optional: true
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.kubernetes.io/instance-type
+                      operator: In
+                      values:
+                        - e2-highmem-8
+                        - e2-highmem-16
+                        - e2-standard-16
+                        - e2-standard-32
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -359,6 +395,18 @@ presubmits:
       always_run: false
       optional: true
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.kubernetes.io/instance-type
+                      operator: In
+                      values:
+                        - e2-highmem-8
+                        - e2-highmem-16
+                        - e2-standard-16
+                        - e2-standard-32
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -472,6 +520,18 @@ presubmits:
       always_run: false
       optional: true
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.kubernetes.io/instance-type
+                      operator: In
+                      values:
+                        - e2-highmem-8
+                        - e2-highmem-16
+                        - e2-standard-16
+                        - e2-standard-32
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -586,6 +646,18 @@ presubmits:
       always_run: false
       optional: true
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.kubernetes.io/instance-type
+                      operator: In
+                      values:
+                        - e2-highmem-8
+                        - e2-highmem-16
+                        - e2-standard-16
+                        - e2-standard-32
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -699,6 +771,18 @@ presubmits:
       always_run: false
       optional: true
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.kubernetes.io/instance-type
+                      operator: In
+                      values:
+                        - e2-highmem-8
+                        - e2-highmem-16
+                        - e2-standard-16
+                        - e2-standard-32
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -813,6 +897,18 @@ presubmits:
       always_run: false
       optional: true
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.kubernetes.io/instance-type
+                      operator: In
+                      values:
+                        - e2-highmem-8
+                        - e2-highmem-16
+                        - e2-standard-16
+                        - e2-standard-32
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
