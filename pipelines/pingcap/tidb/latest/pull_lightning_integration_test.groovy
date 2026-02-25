@@ -8,7 +8,7 @@ final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_lightning_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 
@@ -45,30 +45,31 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     cache(path: "./bin", includes: 'tidb-lightning.test', key: prow.getCacheKey('binary', REFS, 'tidb-lightning.test')) {
-                        sh label: 'tidb-server', script: ' [ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test'
+                        sh label: 'tidb-lightning.test', script: ' [ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test'
                     }
                     dir("bin") {
                         container("utils") {
                             script {
                                 retry(2) {
                                     sh label: "download tidb components", script: """
-                                        rm -rf ./*
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \\
-                                            --pd=${OCI_TAG_PD} \\
-                                            --tikv=${OCI_TAG_TIKV} \\
-                                            --tiflash=${OCI_TAG_TIFLASH}
-
-                                        mv tiflash tiflash_dir
-                                        ln -s tiflash_dir/tiflash tiflash
-
-                                        ls -alh .
-                                        ./pd-server -V
-                                        ./tikv-server -V
-                                        ./tiflash --version
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --pd=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --ycsb=${OCI_TAG_YCSB}
                                     """
                                 }
                             }
                         }
+                        sh """
+                            mv tiflash tiflash_dir
+                            ln -s tiflash_dir/tiflash tiflash
+
+                            ls -alh .
+                            ./pd-server -V
+                            ./tikv-server -V
+                            ./tiflash --version
+                        """
                     }
                     // cache workspace for matrix pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {

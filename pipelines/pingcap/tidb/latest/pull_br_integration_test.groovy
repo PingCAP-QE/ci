@@ -11,6 +11,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_YCSB = 'v1.0.3'
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -57,11 +58,11 @@ pipeline {
                             script {
                                 retry(2) {
                                     sh label: "download tidb components", script: """
-                                        rm -rf ./*
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \\
-                                            --pd=${OCI_TAG_PD} \\
-                                            --tikv=${OCI_TAG_TIKV} \\
-                                            --tiflash=${OCI_TAG_TIFLASH}
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --pd=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --ycsb=${OCI_TAG_YCSB}
                                     """
                                 }
                             }
