@@ -22,7 +22,6 @@
 
 import { ConfigLoader } from "./core/ConfigLoader.ts";
 import { Database } from "./core/Database.ts";
-import { TimeWindow } from "./core/types.ts";
 import { OwnerResolver } from "./core/OwnerResolver.ts";
 import { FlakyReporter } from "./core/FlakyReporter.ts";
 import { HtmlRenderer } from "./render/HtmlRenderer.ts";

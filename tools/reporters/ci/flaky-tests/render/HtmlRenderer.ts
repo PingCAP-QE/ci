@@ -476,11 +476,15 @@ ${rows}
       `Threshold: ${report.window.thresholdMs} ms`,
     ];
     const body = lines.join("\n");
+    const labels = ["flaky-test", "component/test"];
+    const params = new URLSearchParams();
+    params.set("title", title);
+    params.set("body", body);
+    params.set("labels", labels.join(","));
+    params.set("type", "Task");
     return `https://github.com/${encodeURIComponent(owner)}/${
       encodeURIComponent(repo)
-    }/issues/new?title=${encodeURIComponent(title)}&body=${
-      encodeURIComponent(body)
-    }`;
+    }/issues/new?${params.toString()}`;
   }
 
   private num(n: number): string {
