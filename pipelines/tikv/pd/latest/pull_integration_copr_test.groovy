@@ -17,7 +17,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -79,9 +79,15 @@ pipeline {
                     container("golang") {
                         sh label: 'pd-server', script: '[ -f bin/pd-server ] || make'
                         sh label: 'tikv-server', script: """
-                        chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                        ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --tikv=${REFS.base_ref}
-                        rm -rf third_bin/bin && mv third_bin/* bin/ && ls -alh bin/
+                        """
+                    }
+                    container("utils") {
+                        sh label: 'download tikv', script: """
+                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tikv=${REFS.base_ref}
+                        mkdir -p bin
+
+                        mv pd-server bin/
+                        ls -alh bin/
                         bin/pd-server -V
                         bin/tikv-server -V
                         """

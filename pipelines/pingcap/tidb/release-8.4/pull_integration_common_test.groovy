@@ -17,7 +17,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
@@ -68,14 +68,15 @@ pipeline {
                     container("golang") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                         retry(3) {
-                            sh label: 'download thirdparty binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/tikv-server bin/
-                                mv third_bin/pd-server bin/
-                                ./bin/tikv-server -V
-                                ./bin/pd-server -V
-                            """
+                            dir("bin") {
+                                container("utils") {
+                                    sh label: 'download binary', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                        ./tikv-server -V
+                                        ./pd-server -V
+                                    """
+                                }
+                            }
                         }
                     }
                 }

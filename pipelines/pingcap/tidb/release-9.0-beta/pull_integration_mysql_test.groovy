@@ -17,8 +17,8 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         GITHUB_TOKEN = credentials('github-bot-token')
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -67,12 +67,14 @@ pipeline {
                 dir('tidb') {
                     container("golang") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    }
+                    container("utils") {
                         retry(2) {
                             sh label: 'download binary', script: """
-                            chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                            mv third_bin/tikv-server bin/
-                            mv third_bin/pd-server bin/
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                            mkdir -p bin
+
+                            mv pd-server bin/
                             ls -alh bin/
                             chmod +x bin/*
                             """
@@ -87,8 +89,8 @@ pipeline {
                             cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                             ls -alh bin/
                             ./bin/tidb-server -V
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
+                            ./tikv-server -V
+                            ./pd-server -V
                         """
                     }
                 }
@@ -122,8 +124,8 @@ pipeline {
                                     sh label: 'print version', script: """
                                         ls -alh bin/
                                         ./bin/tidb-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/pd-server -V
+                                        ./tikv-server -V
+                                        ./pd-server -V
                                     """
                                     container("golang") {
                                         sh label: "test_store=${TEST_STORE} test_part=${TEST_PART}", script: """#!/usr/bin/env bash

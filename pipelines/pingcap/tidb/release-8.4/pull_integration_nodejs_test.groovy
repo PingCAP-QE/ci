@@ -15,7 +15,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 75, unit: 'MINUTES')
@@ -64,16 +64,16 @@ pipeline {
                 container('nodejs') {
                     dir('tidb') {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                        retry(2) {
-                            sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/tikv-server bin/
-                                mv third_bin/pd-server bin/
-                                rm -rf bin/bin
-                                ls -alh bin/
-                                chmod +x bin/*
-                            """
+                        dir("bin") {
+                            container("utils") {
+                                retry(2) {
+                                    sh label: 'download binary', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                        ls -alh
+                                        chmod +x *
+                                    """
+                                }
+                            }
                         }
                     }
                     dir('tidb-test') {
@@ -84,8 +84,8 @@ pipeline {
                                 cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
                                 ls -alh bin/
                                 ./bin/tidb-server -V
-                                ./bin/tikv-server -V
-                                ./bin/pd-server -V
+                                ./tikv-server -V
+                                ./pd-server -V
                             """
                         }
                     }
@@ -116,8 +116,8 @@ pipeline {
                                     sh label: 'print version', script: """
                                         ls -alh bin/
                                         ./bin/tidb-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/pd-server -V
+                                        ./tikv-server -V
+                                        ./pd-server -V
                                     """
                                     sh label: "${TEST_DIR} ", script: """#!/usr/bin/env bash
                                         export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
