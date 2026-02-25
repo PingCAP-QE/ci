@@ -50,9 +50,32 @@ function upload_kes() {
     done
 }
 
+# minio
+function upload_minio {
+    local repo_base_url="$1"
+    local repo="$repo_base_url/pingcap/third-party/minio"
+    local base_download_url="https://fileserver.pingcap.net/download/builds/minio/minio"
+
+    for version in RELEASE.2020-02-27T00-23-05Z; do
+        oci_tag="${version}_linux_amd64"
+        if oras manifest fetch "$repo:$oci_tag" >/dev/null 2>&1; then
+            echo "tag $oci_tag already exists in $repo." >&2
+            continue
+        fi
+
+        pushd "$(mktemp -d)"
+            wget "$base_download_url/${version}/minio"
+            wget "$base_download_url/${version}/mc"
+            chmod +x minio mc
+            oras push --artifact-type application/octet-stream $repo:$oci_tag minio mc
+        popd
+    done
+}
+
 function main() {
     upload_fake-gcs-server "$@"
     upload_kes "$@"
+    upload_minio "$@"
 }
 
 main "$@"
