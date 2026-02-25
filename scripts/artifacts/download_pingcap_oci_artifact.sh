@@ -181,6 +181,43 @@ function main() {
         fetch_file_from_oci_artifact "$kes_oci_url" kes
         chmod +x kes
         echo "🎉 download kes success"
+
+    if [[ -n "$BRV408" ]]; then
+        echo "🚀 start download br v4.0.8"
+        # determine os and arch used by the tiup mirror naming
+        os="$(uname | tr '[:upper:]' '[:lower:]')"
+        arch="$(uname -m)"
+        case "$arch" in
+            x86_64)
+                arch="amd64"
+                ;;
+            aarch64 | arm64)
+                arch="arm64"
+                ;;
+            *)
+                echo "Unsupported architecture: $arch"
+                exit 1
+                ;;
+        esac
+
+        tarball="br-v4.0.8-${os}-${arch}.tar.gz"
+        url="https://tiup-mirrors.pingcap.com/${tarball}"
+        echo "Downloading ${url}"
+        tmpdir="$(mktemp -d)"
+        curl -fSL "${url}" -o "${tmpdir}/${tarball}"
+        echo "Extracting br from ${tarball} ..."
+        tar -zxf "${tmpdir}/${tarball}" -C "${tmpdir}"
+        # find the binary named 'br' inside the extracted tree
+        found="$(find "${tmpdir}" -type f -name br | head -n 1 || true)"
+        if [[ -z "${found}" ]]; then
+            echo "Error: br binary not found inside ${tarball}"
+            rm -rf "${tmpdir}"
+            exit 1
+        fi
+        chmod +x "${found}"
+        mv -v "${found}" brv4.0.8
+        rm -rf "${tmpdir}"
+        echo "🎉 download br v4.0.8 success"
     fi
 }
 
@@ -251,6 +288,10 @@ function parse_cli_args() {
         KES="${i#*=}"
         shift # past argument=value
         ;;
+        -brv408|--brv408)
+        BRV408=YES
+        shift # past argument (no value)
+        ;;
         --default)
         DEFAULT=YES
         shift # past argument with no value
@@ -280,6 +321,7 @@ function parse_cli_args() {
     [[ -n "${SYNC_DIFF_INSPECTOR}" ]] && echo "SYNC_DIFF_INSPECTOR = ${SYNC_DIFF_INSPECTOR}"
     [[ -n "${FAKE_GCS_SERVER}" ]] && echo "FAKE_GCS_SERVER = ${FAKE_GCS_SERVER}"
     [[ -n "${KES}" ]] && echo "KES = ${KES}"
+    [[ -n "${BRV408}" ]] && echo "BRV408      = ${BRV408}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
