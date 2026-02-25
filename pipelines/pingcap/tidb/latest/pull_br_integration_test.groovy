@@ -60,6 +60,7 @@ pipeline {
                                     sh label: "download tidb components", script: """
                                         ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
                                             --pd=${OCI_TAG_PD} \
+                                            --pd-ctl=${OCI_TAG_PD} \
                                             --tikv=${OCI_TAG_TIKV} \
                                             --tiflash=${OCI_TAG_TIFLASH} \
                                             --ycsb=${OCI_TAG_YCSB}

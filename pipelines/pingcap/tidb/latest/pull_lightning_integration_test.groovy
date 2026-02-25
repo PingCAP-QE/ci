@@ -55,8 +55,7 @@ pipeline {
                                         ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
                                             --pd=${OCI_TAG_PD} \
                                             --tikv=${OCI_TAG_TIKV} \
-                                            --tiflash=${OCI_TAG_TIFLASH} \
-                                            --ycsb=${OCI_TAG_YCSB}
+                                            --tiflash=${OCI_TAG_TIFLASH}
                                     """
                                 }
                             }
@@ -73,7 +72,7 @@ pipeline {
                     }
                     // cache workspace for matrix pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "ls rev-${REFS.pulls[0].sha}"
+                        sh "touch rev-${REFS.pulls[0].sha}"
                     }
                 }
             }
@@ -100,12 +99,13 @@ pipeline {
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        chmod +x lightning/tests/*.sh
-                                        ./lightning/tests/run_group_lightning_tests.sh others
-                                        ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
-                                    """
+                                    sh "ls rev-${REFS.pulls[0].sha}"
                                 }
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    chmod +x lightning/tests/*.sh
+                                    ./lightning/tests/run_group_lightning_tests.sh others
+                                    ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
+                                """
                             }
                         }
                         post{
