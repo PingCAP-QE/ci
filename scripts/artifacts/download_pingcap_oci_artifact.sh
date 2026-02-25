@@ -176,6 +176,12 @@ function main() {
         chmod +x fake-gcs-server
         echo "🎉 download fake-gcs-server success"
     fi
+    if [[ -n "$KES" ]]; then
+        echo "🚀 start download kes"
+        fetch_file_from_oci_artifact "$kes_oci_url" kes
+        chmod +x kes
+        echo "🎉 download kes success"
+    fi
 }
 
 function parse_cli_args() {
@@ -241,6 +247,10 @@ function parse_cli_args() {
         FAKE_GCS_SERVER="${i#*=}"
         shift # past argument=value
         ;;
+        -kes=*|--kes=*)
+        KES="${i#*=}"
+        shift # past argument=value
+        ;;
         --default)
         DEFAULT=YES
         shift # past argument with no value
@@ -269,6 +279,7 @@ function parse_cli_args() {
     [[ -n "${SCHEMA_REGISTRY}" ]] && echo "SCHEMA_REGISTRY = ${SCHEMA_REGISTRY}"
     [[ -n "${SYNC_DIFF_INSPECTOR}" ]] && echo "SYNC_DIFF_INSPECTOR = ${SYNC_DIFF_INSPECTOR}"
     [[ -n "${FAKE_GCS_SERVER}" ]] && echo "FAKE_GCS_SERVER = ${FAKE_GCS_SERVER}"
+    [[ -n "${KES}" ]] && echo "KES = ${KES}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
@@ -296,6 +307,7 @@ function parse_cli_args() {
     ycsb_oci_url="${registry_host_community}/pingcap/go-ycsb/package:${YCSB}_${tag_suffix}"
     schema_registry_oci_url="${registry_host_community}/pingcap/third-party/schema-registry:${SCHEMA_REGISTRY}_${tag_suffix}"
     fake_gcs_server_oci_url="${registry_host_community}/pingcap/third-party/fake-gcs-server:${FAKE_GCS_SERVER}_${tag_suffix}"
+    kes_oci_url="${registry_host_community}/pingcap/third-party/kes:${KES}_${tag_suffix}"
 }
 
 function check_tools() {
