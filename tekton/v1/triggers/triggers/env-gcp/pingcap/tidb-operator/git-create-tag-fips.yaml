@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: tag-create-pingcap-tidb-operator
+  name: tag-create-pingcap-tidb-operator-fips
   labels:
     type: github-tag-create
     github-owner: pingcap
@@ -15,9 +15,7 @@ spec:
           value: >-
             body.repository.full_name == 'pingcap/tidb-operator'
             &&
-            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$')
-            &&
-            !body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+-fips$')
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+-fips$')
 
   bindings:
     - ref: github-tag-create
@@ -26,7 +24,7 @@ spec:
     - { name: builder-resources-memory, value: 12Gi }
     - { name: component, value: $(body.repository.name) }
     - { name: os, value: linux }
-    - { name: profile, value: release }
+    - { name: profile, value: fips }
     - { name: source-ws-size, value: 20Gi } # should >= 20Gi in GCP to use the storageclass.
     - { name: timeout, value: 30m }
 

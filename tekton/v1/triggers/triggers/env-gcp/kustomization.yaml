@@ -22,6 +22,7 @@ resources:
   - pingcap/ctl/artifact-push-on-harbor.yaml
   - pingcap/ticdc/git-create-tag.yaml
   - pingcap/ticdc/git-push-branch-build-hotfix.yaml
+  - pingcap/tidb-operator/git-create-tag-fips.yaml
   - pingcap/tidb-operator/git-create-tag.yaml
   - pingcap/tidb-operator/git-push.yaml
   - pingcap/tidb/git-push-branch-build.yaml
