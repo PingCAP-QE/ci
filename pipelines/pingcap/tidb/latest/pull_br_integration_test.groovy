@@ -67,7 +67,8 @@ pipeline {
                                             --tiflash=${OCI_TAG_TIFLASH} \
                                             --ycsb=${OCI_TAG_YCSB} \
                                             --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
-                                            --kes=${OCI_TAG_KES}
+                                            --kes=${OCI_TAG_KES} \
+                                            --brv408
                                     """
                                 }
                             }
