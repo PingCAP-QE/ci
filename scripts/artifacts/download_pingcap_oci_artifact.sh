@@ -19,6 +19,22 @@ function fetch_file_from_oci_artifact() {
     echo "$file"
 }
 
+function compute_oci_arch_suffix() {
+    local arch="$(uname -m)"
+    case "$arch" in
+        x86_64)
+            echo "amd64"
+            ;;
+        aarch64 | arm64)
+            echo "arm64"
+            ;;
+        *)
+            echo "Unsupported architecture: $arch"
+            exit 1
+            ;;
+    esac
+}
+
 function download() {
     local url=$1
     local to_match_file=$2
@@ -55,19 +71,7 @@ function download_and_extract_with_path() {
 
 function compute_tag_platform_suffix() {
     local os="$(uname | tr '[:upper:]' '[:lower:]')"
-    local arch="$(uname -m)"
-    case "$arch" in
-        x86_64)
-            arch="amd64"
-            ;;
-        aarch64 | arm64)
-            arch="arm64"
-            ;;
-        *)
-            echo "Unsupported architecture: $arch"
-            exit 1
-            ;;
-    esac
+    local arch="$(compute_oci_arch_suffix)"
     echo "${os}_${arch}"
 }
 
@@ -166,6 +170,12 @@ function main() {
         chmod +x sync_diff_inspector
         echo "🎉 download sync-diff-inspector success"
     fi
+    if [[ -n "$FAKE_GCS_SERVER" ]]; then
+        echo "🚀 start download fake-gcs-server"
+        download_and_extract_with_path "$fake_gcs_server_oci_url" '^fake-gcs-server_.+.tar.gz$' fake-gcs-server.tar.gz fake-gcs-server
+        chmod +x fake-gcs-server
+        echo "🎉 download fake-gcs-server success"
+    fi
 }
 
 function parse_cli_args() {
@@ -227,6 +237,10 @@ function parse_cli_args() {
         SYNC_DIFF_INSPECTOR="${i#*=}"
         shift # past argument=value
         ;;
+        -fake-gcs-server=*|--fake-gcs-server=*)
+        FAKE_GCS_SERVER="${i#*=}"
+        shift # past argument=value
+        ;;
         --default)
         DEFAULT=YES
         shift # past argument with no value
@@ -254,6 +268,7 @@ function parse_cli_args() {
     [[ -n "${YCSB}" ]]          && echo "YCSB        = ${YCSB}"
     [[ -n "${SCHEMA_REGISTRY}" ]] && echo "SCHEMA_REGISTRY = ${SCHEMA_REGISTRY}"
     [[ -n "${SYNC_DIFF_INSPECTOR}" ]] && echo "SYNC_DIFF_INSPECTOR = ${SYNC_DIFF_INSPECTOR}"
+    [[ -n "${FAKE_GCS_SERVER}" ]] && echo "FAKE_GCS_SERVER = ${FAKE_GCS_SERVER}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
@@ -273,13 +288,14 @@ function parse_cli_args() {
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
     ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
     tici_oci_url="${registry_host}/pingcap/tici/package:${TICI}_${tag_suffix}"
+    sync_diff_inspector_oci_url="${registry_host_community}/pingcap/tiflow/package:${SYNC_DIFF_INSPECTOR}_${tag_suffix}"
 
     # third party or public test tools.
     minio_oci_url="${registry_host_community}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
     etcd_oci_url="${registry_host_community}/pingcap/third-party/etcd:${ETCDCTL}_${tag_suffix}"
     ycsb_oci_url="${registry_host_community}/pingcap/go-ycsb/package:${YCSB}_${tag_suffix}"
     schema_registry_oci_url="${registry_host_community}/pingcap/third-party/schema-registry:${SCHEMA_REGISTRY}_${tag_suffix}"
-    sync_diff_inspector_oci_url="${registry_host_community}/pingcap/tiflow/package:${SYNC_DIFF_INSPECTOR}_${tag_suffix}"
+    fake_gcs_server_oci_url="${registry_host_community}/pingcap/third-party/fake-gcs-server:${FAKE_GCS_SERVER}_${tag_suffix}"
 }
 
 function check_tools() {
