@@ -97,6 +97,15 @@ function main() {
         chmod +x tikv-worker
         echo "🎉 download TiKV worker success"
     fi
+
+    if [[ -n "$TIKV_CTL" ]]; then
+        echo "🚀 start download tikv-ctl"
+        # tikv-ctl is provided in a separate tarball like "tikv-ctl-<version>-<os>-<arch>.tar.gz"
+        # extract the `tikv-ctl` binary from that tarball
+        download_and_extract_with_path "$tikv_ctl_oci_url" '^tikv-ctl-.*.tar.gz$' tikv-ctl.tar.gz tikv-ctl
+        chmod +x tikv-ctl
+        echo "🎉 download tikv-ctl success"
+    fi
     if [[ -n "$PD" ]]; then
         echo "🚀 start download PD server"
         download_and_extract_with_path "$pd_oci_url" '^pd-v.+.tar.gz$' pd.tar.gz pd-server
@@ -234,6 +243,10 @@ function parse_cli_args() {
         TIKV_WORKER="${i#*=}"
         shift # past argument=value
         ;;
+        -tikv-ctl=*|--tikv-ctl=*)
+        TIKV_CTL="${i#*=}"
+        shift # past argument=value
+        ;;
         -tiflash=*|--tiflash=*)
         TIFLASH="${i#*=}"
         shift # past argument=value
@@ -298,6 +311,7 @@ function parse_cli_args() {
     [[ -n "${TIDB}" ]]          && echo "TIDB        = ${TIDB}"
     [[ -n "${TIKV}" ]]          && echo "TIKV        = ${TIKV}"
     [[ -n "${TIKV_WORKER}" ]]   && echo "TIKV_WORKER = ${TIKV_WORKER}"
+    [[ -n "${TIKV_CTL}" ]]      && echo "TIKV_CTL    = ${TIKV_CTL}"
     [[ -n "${PD}" ]]            && echo "PD          = ${PD}"
     [[ -n "${PD_CTL}" ]]        && echo "PD_CTL      = ${PD_CTL}"
     [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
@@ -326,6 +340,7 @@ function parse_cli_args() {
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
     tikv_worker_oci_url="${registry_host}/tikv/tikv/package:${TIKV_WORKER}_${tag_suffix}"
+    tikv_ctl_oci_url="${registry_host}/tikv/tikv/package:${TIKV_CTL}_${tag_suffix}"
     pd_oci_url="${registry_host}/tikv/pd/package:${PD}_${tag_suffix}"
     pd_ctl_oci_url="${registry_host}/tikv/pd/package:${PD_CTL}_${tag_suffix}"
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
