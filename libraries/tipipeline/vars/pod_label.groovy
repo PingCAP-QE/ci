@@ -7,44 +7,46 @@ def withCiLabels(String podTemplateFile, def refs) {
             return podYaml
         }
 
-        def labels = buildCiLabels(refs)
-        if (labels.isEmpty()) {
+        def annotations = buildCiAnnotations(refs)
+        if (annotations.isEmpty()) {
             return podYaml
         }
 
         def metadata = (podSpec.metadata instanceof Map) ? podSpec.metadata : [:]
-        def existingLabels = (metadata.labels instanceof Map) ? metadata.labels : [:]
-        metadata.labels = existingLabels + labels
+        def existingAnnotations = (metadata.annotations instanceof Map) ? metadata.annotations : [:]
+        metadata.annotations = existingAnnotations + annotations
         podSpec.metadata = metadata
 
         return writeYaml(returnText: true, data: podSpec).trim()
     } catch (Exception e) {
-        log.warning("pod_label: failed to inject labels into ${podTemplateFile}: ${e.message}")
+        log.warning("pod_label: failed to inject annotations into ${podTemplateFile}: ${e.message}")
         return podYaml
     }
 }
 
-def buildCiLabels(def refs) {
+def buildCiAnnotations(def refs) {
     def prAuthor = null
     if (refs?.pulls && refs.pulls.size() > 0) {
         prAuthor = refs.pulls[0]?.author
     }
-    def owner = prAuthor ?: triggerUser()
-    def rawLabels = [
-        owner: owner,
-        org: refs?.org,
-        repo: refs?.repo,
-        env: 'cicd',
+    def author = prAuthor ?: triggerUser()
+    def rawAnnotations = [
+        ci_pingcap_com_label_inject: 'true',
+        ci_pingcap_com_job: env?.JOB_NAME,
+        ci_pingcap_com_author: author,
+        ci_pingcap_com_org: refs?.org,
+        ci_pingcap_com_repo: refs?.repo,
+        ci_pingcap_com_env: 'cicd',
     ]
 
-    def labels = [:]
-    rawLabels.each { key, value ->
+    def annotations = [:]
+    rawAnnotations.each { key, value ->
         def normalized = normalizeLabelValue(value)
         if (normalized) {
-            labels[key] = normalized
+            annotations[key] = normalized
         }
     }
-    return labels
+    return annotations
 }
 
 def triggerUser() {
