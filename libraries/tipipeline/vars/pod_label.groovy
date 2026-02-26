@@ -14,10 +14,7 @@ def withCiLabels(String podTemplateFile, def refs) {
 
         def metadata = (podSpec.metadata instanceof Map) ? podSpec.metadata : [:]
         def existingLabels = (metadata.labels instanceof Map) ? metadata.labels : [:]
-        def mergedLabels = [:]
-        mergedLabels.putAll(existingLabels)
-        mergedLabels.putAll(labels)
-        metadata.labels = mergedLabels
+        metadata.labels = existingLabels + labels
         podSpec.metadata = metadata
 
         return writeYaml(returnText: true, data: podSpec).trim()
@@ -74,11 +71,9 @@ def normalizeLabelValue(def value) {
     }
     def normalized = value.toString().toLowerCase()
     normalized = normalized.replaceAll('[^a-z0-9_-]', '_')
-    normalized = normalized.replaceAll('^[-_]+', '')
-    normalized = normalized.replaceAll('[-_]+$', '')
     if (normalized.length() > 63) {
         normalized = normalized.substring(0, 63)
-        normalized = normalized.replaceAll('[-_]+$', '')
     }
+    normalized = normalized.replaceAll('^[-_]+|[-_]+$', '')
     return normalized ? normalized : null
 }
