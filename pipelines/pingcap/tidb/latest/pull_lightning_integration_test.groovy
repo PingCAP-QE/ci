@@ -109,7 +109,9 @@ pipeline {
                                 }
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     chmod +x lightning/tests/*.sh
-                                    ./lightning/tests/run_group_lightning_tests.sh others
+                                    if [ "${TEST_GROUP}" = "G00" ]; then
+                                        ./lightning/tests/run_group_lightning_tests.sh others
+                                    fi
                                     ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
                                 """
                             }
