@@ -6,6 +6,10 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TICDC_NEW = (REFS.base_ref == "feature/materialized_view" ? "release-8.5" : component.computeArtifactOciTagFromPR('ticdc', REFS.base_ref, REFS.pulls[0].title, 'master'))
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -17,7 +21,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -25,7 +29,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -36,40 +40,39 @@ pipeline {
                 }
             }
         }
-        stage('Prepare') {
-            steps {
-                dir('tidb') {
-                    script {
-                        // Computes the branch name for downloading binaries based on the PR target branch and title.
-                        def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        retry(3) {
-                            sh label: 'download binary', script: """
-                                cd tests/integrationtest2 && ./download_integration_test_binaries.sh ${otherComponentBranch}
-                                ls -alh third_bin/
-                                ./third_bin/tikv-server -V
-                                ./third_bin/pd-server -V
-                                ./third_bin/tiflash --version
-                                ./third_bin/cdc version
-                            """
-                        }
-                    }
-                }
-            }
-        }
         stage('Tests') {
             options { timeout(time: 45, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    sh label: 'test', script: """
-                        cd tests/integrationtest2 && ./run-tests.sh
-                    """
+                dir("${REFS.repo}/tests/integrationtest2") {
+                    dir("third_bin") {
+                        container("utils") {
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --pd=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --ticdc-new=${OCI_TAG_TICDC_NEW}
+                                    """
+                                }
+                            }
+                        }
+                        sh '''
+                            mv tiflash tiflash_dir
+                            ln -s `pwd`/tiflash_dir/tiflash tiflash
+
+                            ./tikv-server -V
+                            ./pd-server -V
+                            ./tiflash --version
+                        '''
+                    }
+                    sh './run-tests.sh'
                 }
             }
             post{
                 failure {
-                    script {
-                        archiveArtifacts(artifacts: 'tidb/tests/integrationtest2/logs/*.log', allowEmptyArchive: true)
-                    }
+                    archiveArtifacts(artifacts: 'tidb/tests/integrationtest2/logs/*.log', allowEmptyArchive: true)
                 }
             }
         }

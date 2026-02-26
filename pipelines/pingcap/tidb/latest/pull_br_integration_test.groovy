@@ -8,28 +8,36 @@ final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_br_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
+final OCI_TAG_KES = 'v0.14.0'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 90, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    defaultContainer 'golang'
+                }
+            }
+            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -37,12 +45,7 @@ pipeline {
                             }
                         }
                     }
-                }
-            }
-        }
-        stage('Prepare') {
-            steps {
-                dir('tidb') {
+
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -51,6 +54,43 @@ pipeline {
                             [ -f ./bin/br.test ] || make build_for_br_integration_test
                             ls -alh ./bin
                             ./bin/tidb-server -V
+                        """
+                    }
+                    dir("bin") {
+                        container("utils") {
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --pd=${OCI_TAG_PD} \
+                                            --pd-ctl=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tikv-ctl=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --ycsb=${OCI_TAG_YCSB} \
+                                            --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                            --kes=${OCI_TAG_KES} \
+                                            --minio=${OCI_TAG_MINIO} \
+                                            --brv408
+                                    """
+                                }
+                            }
+                        }
+                        sh """
+                            mv tiflash tiflash_dir
+                            ln -s tiflash_dir/tiflash tiflash
+
+                            ls -alh .
+                            ./pd-server -V
+                            ./tikv-server -V
+                            ./tiflash --version
+                        """
+                    }
+
+                    // cache workspace for matrix pods
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
+                        sh """
+                            touch rev-${REFS.pulls[0].sha}
                         """
                     }
                 }
@@ -72,57 +112,14 @@ pipeline {
                     }
                 }
                 stages {
-                    stage('Prepare') {
-                        steps {
-                            dir("tidb") {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh 'ls -lh'
-                                }
-                            }
-                            dir("third_party_download") {
-                                script {
-                                    def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                    retry(2) {
-                                        sh label: "download third_party", script: """
-                                            chmod +x ${WORKSPACE}/tidb/br/tests/*.sh
-                                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh ${otherComponentBranch}
-                                            rm -rf bin/ && mkdir -p bin
-                                            mv third_bin/* bin/
-                                            ls -alh bin/
-                                            ./bin/pd-server -V
-                                            ./bin/tikv-server -V
-                                            ./bin/tiflash --version
-                                        """
-                                    }
-                                }
-                            }
-                            dir('tidb') {
-                                sh label: "check all tests added to group", script: """#!/usr/bin/env bash
-                                    chmod +x br/tests/*.sh
-                                    ./br/tests/run_group_br_tests.sh others
-                                """
-                                // build br.test for integration test
-                                // only build binarys if not exist, use the cached binarys if exist
-                                cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                                    sh label: "prepare", script: """
-                                        [ -f ./bin/tidb-server ] || (make failpoint-enable && make && make failpoint-disable)
-                                        [ -f ./bin/br.test ] || make build_for_br_integration_test
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                    """
-                                }
-                                sh label: "prepare", script: """
-                                    cp -r ../third_party_download/bin/* ./bin/
-                                    ls -alh ./bin
-                                """
-                            }
-                        }
-                    }
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
+                                    sh "ls rev-${REFS.pulls[0].sha}"
+                                }
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     chmod +x br/tests/*.sh
                                     ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
@@ -139,7 +136,7 @@ pipeline {
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
-                                dir('tidb'){
+                                dir(REFS.repo) {
                                     sh label: "upload coverage", script: """
                                         ls -alh /tmp/group_cover
                                         gocovmerge /tmp/group_cover/cov.* > coverage.txt
