@@ -50,12 +50,8 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     } else if (prTargetBranch =~ wipReleaseFeatureBranchReg ) {
         // Special handling for feature/materialized_view branch，use the same feature branch for all components
         // If the feature/materialized_view is no longer in use, clean up this logic
-        if (prTargetBranch == 'feature/release-8.5-materialized-view') {
-            if (component == "ticdc") {
-                componentBranch = "release-8.5"
-            } else {
-                componentBranch = prTargetBranch
-            }
+        if (prTargetBranch == 'feature/release-8.5-materialized-view' && component !== "ticdc") {
+            componentBranch = prTargetBranch
         } else {
             componentBranch = String.format('release-%s', (prTargetBranch =~ wipReleaseFeatureBranchReg)[0][1]) // => release-X.Y
         }

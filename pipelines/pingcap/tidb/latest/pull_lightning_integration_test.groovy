@@ -61,7 +61,7 @@ pipeline {
                                             --tiflash=${OCI_TAG_TIFLASH} \
                                             --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
                                             --kes=${OCI_TAG_KES} \
-                                            --minio=${OCI_TAG_MINIO} \
+                                            --minio=${OCI_TAG_MINIO}
                                     """
                                 }
                             }
