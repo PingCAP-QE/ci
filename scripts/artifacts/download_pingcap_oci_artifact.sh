@@ -102,7 +102,7 @@ function main() {
         echo "🚀 start download tikv-ctl"
         # tikv-ctl is provided in a separate tarball like "tikv-ctl-<version>-<os>-<arch>.tar.gz"
         # extract the `tikv-ctl` binary from that tarball
-        download_and_extract_with_path "$tikv_ctl_oci_url" '^tikv-ctl-.*.tar.gz$' tikv-ctl.tar.gz tikv-ctl
+        download_and_extract_with_path "$tikv_ctl_oci_url" '^tikv-ctl-.+.tar.gz$' tikv-ctl.tar.gz tikv-ctl
         chmod +x tikv-ctl
         echo "🎉 download tikv-ctl success"
     fi
