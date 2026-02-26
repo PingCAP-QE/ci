@@ -181,24 +181,13 @@ function main() {
         fetch_file_from_oci_artifact "$kes_oci_url" kes
         chmod +x kes
         echo "🎉 download kes success"
+    fi
 
     if [[ -n "$BRV408" ]]; then
         echo "🚀 start download br v4.0.8"
         # determine os and arch used by the tiup mirror naming
         os="$(uname | tr '[:upper:]' '[:lower:]')"
-        arch="$(uname -m)"
-        case "$arch" in
-            x86_64)
-                arch="amd64"
-                ;;
-            aarch64 | arm64)
-                arch="arm64"
-                ;;
-            *)
-                echo "Unsupported architecture: $arch"
-                exit 1
-                ;;
-        esac
+        arch="$(compute_oci_arch_suffix)"
 
         tarball="br-v4.0.8-${os}-${arch}.tar.gz"
         url="https://tiup-mirrors.pingcap.com/${tarball}"
