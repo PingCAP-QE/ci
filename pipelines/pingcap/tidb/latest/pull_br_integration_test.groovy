@@ -64,6 +64,7 @@ pipeline {
                                             --pd=${OCI_TAG_PD} \
                                             --pd-ctl=${OCI_TAG_PD} \
                                             --tikv=${OCI_TAG_TIKV} \
+                                            --tikv-ctl=${OCI_TAG_TIKV} \
                                             --tiflash=${OCI_TAG_TIFLASH} \
                                             --ycsb=${OCI_TAG_YCSB} \
                                             --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
