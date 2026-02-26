@@ -14,6 +14,7 @@ final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.ba
 final OCI_TAG_YCSB = 'v1.0.3'
 final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
 final OCI_TAG_KES = 'v0.14.0'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -69,6 +70,7 @@ pipeline {
                                             --ycsb=${OCI_TAG_YCSB} \
                                             --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
                                             --kes=${OCI_TAG_KES} \
+                                            --minio=${OCI_TAG_MINIO} \
                                             --brv408
                                     """
                                 }
