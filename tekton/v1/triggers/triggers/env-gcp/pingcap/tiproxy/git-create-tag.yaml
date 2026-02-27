@@ -16,7 +16,7 @@ spec:
           #   - vX.Y.Z`
           #   - `vX.Y.Z-alpha`, `vX.Y.Z-alpha.N`
           #   - `vX.Y.Z-beta`, `vX.Y.Z-beta.N`
-          #   - `vX.Y.Z-nextgen.######.N
+          #   - `vX.Y.Z-nextgen.######.N`
           value: >-
             body.repository.full_name == 'pingcap/tiproxy'
             &&
