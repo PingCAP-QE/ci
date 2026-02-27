@@ -10,3 +10,15 @@
 4. Test in staging after the PR is merged
 5. Create a new PR to move from staging to production
 6. Include test results and links in your PR
+
+## Recommended Checks Before Opening a PR
+
+If your changes include `pipelines/**/*.groovy`, run these checks locally first:
+
+1. Static validation:
+   - `JENKINS_URL=https://do.pingcap.net/jenkins .ci/verify-jenkins-pipelines.sh`
+2. Real replay validation:
+   - `JENKINS_USER=<user> JENKINS_TOKEN=<token> .ci/replay-jenkins-build.sh --auto-changed --jenkins-url https://do.pingcap.net/jenkins --verbose`
+
+For full command examples, behavior details (including `404` historical-build skip), and PR trigger workflow, see:
+- `docs/guides/CI.md` -> `Pre-PR Verification for Jenkins Pipeline Changes`

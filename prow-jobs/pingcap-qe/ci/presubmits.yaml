@@ -1,12 +1,60 @@
+global_definitions:
+  labels: &labels
+    owner: "wei_zheng"
+    team: "qe"
+    env: "cicd"
+    component: "jenkins"
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   PingCAP-QE/ci:
+    - name: pull-replay-jenkins-pipelines
+      labels: *labels
+      decorate: true
+      always_run: false
+      optional: true
+      max_concurrency: 1
+      trigger: "(?m)^/test (?:.*? )?pull-replay-jenkins-pipelines(?: .*?)?$"
+      rerun_command: "/test pull-replay-jenkins-pipelines"
+      run_if_changed: "^pipelines/.*\\.groovy$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: wbitt/network-multitool
+            env:
+              - name: JENKINS_URL
+                value: https://do.pingcap.net/jenkins-beta
+              - name: JENKINS_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-user
+              - name: JENKINS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-token
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                apk add --no-cache git jq ripgrep
+                .ci/replay-jenkins-build.sh \
+                  --auto-changed \
+                  --base-sha "${PULL_BASE_SHA:-}" \
+                  --head-sha "${PULL_PULL_SHA:-}" \
+                  --selector lastSuccessfulBuild \
+                  --max-replays 20 \
+                  --verbose \
+                  --timeout 7200 \
+                  --poll-interval 20
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
     - name: pull-verify-jenkins-pipelines
-      labels: &qe-cicd-labels
-        owner: "wei_zheng"
-        team: "qe"
-        env: "cicd"
-        component: "jenkins"
+      labels: *labels
       decorate: true
       max_concurrency: 1
       run_if_changed: pipelines/.*\.groovy
@@ -29,7 +77,7 @@ presubmits:
                 memory: 128Mi
                 cpu: 200m
     - name: pull-verify-prow-jobs
-      labels: *qe-cicd-labels
+      labels: *labels
       decorate: true
       extra_refs:
         - org: ti-community-infra
