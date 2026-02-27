@@ -7,9 +7,9 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
+final OCI_TAG_TICDC_NEW = component.computeArtifactOciTagFromPR('ticdc', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TICDC_NEW = (REFS.base_ref == "feature/materialized_view" ? "release-8.5" : component.computeArtifactOciTagFromPR('ticdc', REFS.base_ref, REFS.pulls[0].title, 'master'))
 
 prow.setPRDescription(REFS)
 pipeline {
