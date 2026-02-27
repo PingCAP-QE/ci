@@ -51,7 +51,11 @@ def buildCiAnnotationsList(def refs) {
 
 def triggerUser() {
     try {
-        return getTriggerUserFromBuild(currentBuild?.rawBuild)
+        def user = getTriggerUserFromBuild(currentBuild?.rawBuild)
+        if (!user) {
+            user = env?.BUILD_USER_ID ?: env?.BUILD_USER
+        }
+        return user
     } catch (Exception e) {
         log.warning("pod_label: failed to determine trigger user: ${e.message}")
         return null
