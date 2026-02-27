@@ -46,10 +46,6 @@ pipeline {
                         }
                     }
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                        sh label: "check all tests added to group", script: """
-                            #!/usr/bin/env bash
-                            chmod +x br/tests/*.sh
-                        """
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
@@ -121,10 +117,11 @@ pipeline {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls rev-${REFS.pulls[0].sha}"
                                 }
-                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """
-                                    #!/usr/bin/env bash
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     chmod +x br/tests/*.sh
-                                    ./br/tests/run_group.sh others # check all tests added to group
+                                    if [[ "${TEST_GROUP,,}" == "G00" ]]; then
+                                        ./br/tests/run_group.sh others # check all tests added to group
+                                    fi
                                     ./br/tests/run_group.sh ${TEST_GROUP}
                                 """
                             }

@@ -60,7 +60,7 @@ pipeline {
                         }
                         sh '''
                             mv tiflash tiflash_dir
-                            ln -s `pwd`/tiflash_dir/tiflash tiflash
+                            ln -s tiflash_dir/tiflash tiflash
 
                             ./tikv-server -V
                             ./pd-server -V
@@ -72,7 +72,9 @@ pipeline {
             }
             post{
                 failure {
-                    archiveArtifacts(artifacts: 'tidb/tests/integrationtest2/logs/*.log', allowEmptyArchive: true)
+                    dir(REFS.repo) {
+                        archiveArtifacts(artifacts: 'tests/integrationtest2/logs/*.log', allowEmptyArchive: true)
+                    }
                 }
             }
         }

@@ -58,21 +58,23 @@ pipeline {
                                 }
                             }
                         }
-                        sh """
+                        sh '''
                             mv tiflash tiflash_dir
                             ln -s tiflash_dir/tiflash tiflash
 
                             ./tikv-server -V
                             ./pd-server -V
                             ./tiflash --version
-                        """
+                        '''
                     }
                     sh './run-tests.sh'
                 }
             }
             post{
                 failure {
-                    archiveArtifacts(artifacts: "${REFS.repo}/tests/integrationtest2/logs/*.log", allowEmptyArchive: true)
+                    dir(REFS.repo) {
+                        archiveArtifacts(artifacts: 'tests/integrationtest2/logs/*.log', allowEmptyArchive: true)
+                    }
                 }
             }
         }
