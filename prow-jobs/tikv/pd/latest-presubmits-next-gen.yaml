@@ -3,6 +3,7 @@ global_definitions:
     branches:
       - ^master$
       - ^release-nextgen-\d+$
+      - ^feature/tidb-zero.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   affinity: &affinity
     nodeAffinity:

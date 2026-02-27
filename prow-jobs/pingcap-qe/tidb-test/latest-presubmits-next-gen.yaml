@@ -9,6 +9,7 @@ presubmits:
       optional: true
       branches:
         - ^master$
+        - ^feature/tidb-zero.*
       run_if_changed: "(jdbc8_test|mybatis_test|jooq_test|tidb_jdbc_test)/.*"
       context: non-block/pull-integration-jdbc-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test-next-gen(?: .*?)?$"
@@ -26,3 +27,4 @@ presubmits:
       rerun_command: "/test pull-integration-mysql-test-next-gen"
       branches:
         - ^master$
+        - ^feature/tidb-zero.*

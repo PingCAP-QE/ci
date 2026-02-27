@@ -4,6 +4,7 @@ global_definitions:
       - ^master$
       - ^release-nextgen-\d+$
       - ^feature/next[-]gen.*
+      - ^feature/tidb-zero.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   jenkins_job: &jenkins_job
     agent: jenkins
