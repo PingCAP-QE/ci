@@ -1,4 +1,3 @@
-# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 global_definitions:
   brancher: &brancher
     branches:
@@ -6,6 +5,7 @@ global_definitions:
       - ^release-[0-9]+[.][0-9]+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/pd:
     - <<: *brancher
