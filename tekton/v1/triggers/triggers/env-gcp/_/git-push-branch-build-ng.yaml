@@ -17,10 +17,9 @@ spec:
                 'pingcap/ticdc',
                 'pingcap/tidb',
                 'pingcap/tiflash',
-                'pingcap/tiproxy',
                 'tidbcloud/cloud-storage-engine',
                 'tikv/pd',
-              ] && body.ref.matches('^refs/heads/(release-nextgen-[0-9]+)$')
+              ] && body.ref.matches('^refs/heads/(release-nextgen-[0-9]+|feature/tidb-zero)$')
             ) || (
               body.repository.full_name in [
                 'pingcap/ticdc',
@@ -43,12 +42,6 @@ spec:
             - key: resource-config
               expression: >-
                 {
-                  'pingcap/tiproxy': {
-                    'timeout': '30m',
-                    'sourceWsSize': '20Gi',
-                    'cpu': '3',
-                    'memory': '12Gi',
-                  },
                   'pingcap/ticdc': {
                     'timeout': '30m',
                     'sourceWsSize': '50Gi',
@@ -87,15 +80,12 @@ spec:
                 'tikv'
                 :
                 body.repository.name
-            - key: profile
-              expression: >-
-                body.repository.full_name == 'pingcap/tiproxy' ? 'release' : 'next-gen'
 
   bindings:
     - ref: github-branch-push
     - ref: gcp-ng-build-params
     - { name: component, value: $(extensions.component) }
-    - { name: profile, value: $(extensions.profile) }
+    - { name: profile, value: next-gen }
     - { name: os, value: linux }
 
   template:
