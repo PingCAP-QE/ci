@@ -169,49 +169,24 @@ setup_auth_and_crumb() {
 
 api_get() {
     local url="$1"
-    if (( ${#CURL_AUTH[@]} )); then
-        curl -fsS "${CURL_AUTH[@]}" "$url"
-    else
-        curl -fsS "$url"
-    fi
+    curl -fsS "${CURL_AUTH[@]}" "$url"
 }
 
 api_get_with_status() {
     local url="$1"
     local body_file="$2"
     local status_code
-    if (( ${#CURL_AUTH[@]} )); then
-        status_code="$(curl -sS "${CURL_AUTH[@]}" -o "$body_file" -w '%{http_code}' "$url" || true)"
-    else
-        status_code="$(curl -sS -o "$body_file" -w '%{http_code}' "$url" || true)"
-    fi
+    status_code="$(curl -sS "${CURL_AUTH[@]}" -o "$body_file" -w '%{http_code}' "$url" || true)"
     printf '%s' "$status_code"
 }
 
 api_post_script_text() {
     local script_file="$1"
 
-    if (( ${#CURL_AUTH[@]} )) && (( ${#CURL_HEADERS[@]} )); then
-        curl -fsS "${CURL_AUTH[@]}" "${CURL_HEADERS[@]}" \
-            -X POST \
-            --data-urlencode "script@${script_file}" \
-            "${JENKINS_URL}/scriptText"
-    elif (( ${#CURL_AUTH[@]} )); then
-        curl -fsS "${CURL_AUTH[@]}" \
-            -X POST \
-            --data-urlencode "script@${script_file}" \
-            "${JENKINS_URL}/scriptText"
-    elif (( ${#CURL_HEADERS[@]} )); then
-        curl -fsS "${CURL_HEADERS[@]}" \
-            -X POST \
-            --data-urlencode "script@${script_file}" \
-            "${JENKINS_URL}/scriptText"
-    else
-        curl -fsS \
-            -X POST \
-            --data-urlencode "script@${script_file}" \
-            "${JENKINS_URL}/scriptText"
-    fi
+    curl -fsS "${CURL_AUTH[@]}" "${CURL_HEADERS[@]}" \
+        -X POST \
+        --data-urlencode "script@${script_file}" \
+        "${JENKINS_URL}/scriptText"
 }
 
 ensure_auth_for_replay() {
