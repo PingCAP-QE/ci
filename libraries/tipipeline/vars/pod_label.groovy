@@ -33,7 +33,12 @@ def withCiLabels(String podTemplateFile, def refs) {
     metadata.annotations = existingAnnotations + annotations
     podSpec.metadata = metadata
 
-    return writeYaml(returnText: true, data: podSpec).trim()
+    try {
+        return writeYaml(returnText: true, data: podSpec).trim()
+    } catch (Exception e) {
+        log.warning("pod_label: failed to render pod yaml in ${podTemplateFile}: ${e.message}, skip label injection")
+        return podYaml.toString().trim()
+    }
 }
 
 // For declarative pipelines: provide a YAML snippet with CI annotations.
@@ -42,21 +47,19 @@ def buildCiAnnotationsYaml(def refs) {
     if (annotations.isEmpty()) {
         return ''
     }
-    def lines = [
-        'apiVersion: v1',
-        'kind: Pod',
-        'metadata:',
-        '  annotations:',
+    def data = [
+        apiVersion: 'v1',
+        kind: 'Pod',
+        metadata: [
+            annotations: annotations,
+        ],
     ]
-    annotations.each { key, value ->
-        lines << "    ${key}: ${escapeYamlValue(value.toString())}"
+    try {
+        return writeYaml(returnText: true, data: data).trim()
+    } catch (Exception e) {
+        log.warning("pod_label: failed to build annotations yaml: ${e.message}")
+        return ''
     }
-    return lines.join('\n')
-}
-
-def escapeYamlValue(String value) {
-    def escaped = value.replace('\\', '\\\\').replace('"', '\\"')
-    return "\"${escaped}\""
 }
 
 // For declarative pipelines: build CI annotations map.
