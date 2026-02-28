@@ -12,7 +12,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 pipeline {
     agent none
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -72,7 +71,7 @@ pipeline {
                                     container(name: 'codecov') {
                                         sh label: "upload junit report to codecov", script: """
                                         JUNIT_REPORT=\$(ls *-junit-report.xml)
-                                        wget -q -O codecovcli http://fileserver.pingcap.net/download/cicd/tools/codecovcli_linux_amd64_v0.9.4
+                                        wget -q -O codecovcli https://cli.codecov.io/v0.9.4/linux/codecovcli
                                         chmod +x codecovcli
                                         git config --global --add safe.directory '*'
                                         ./codecovcli do-upload --report-type test_results --file \${JUNIT_REPORT} --branch origin/${REFS.base_ref} --sha ${REFS.base_sha}

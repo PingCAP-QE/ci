@@ -85,6 +85,12 @@ function main() {
         chmod +x tidb-server
         echo "🎉 download TiDB server success"
     fi
+    if [[ -n "$DUMPLING" ]]; then
+        echo "🚀 start download Dumpling"
+        download_and_extract_with_path "$dumpling_oci_url" '^dumpling-v.+.tar.gz$' dumpling.tar.gz dumpling
+        chmod +x dumpling
+        echo "🎉 download Dumpling success"
+    fi
     if [[ -n "$TIKV" ]]; then
         echo "🚀 start download TiKV server"
         download_and_extract_with_path "$tikv_oci_url" '^tikv-v.+.tar.gz$' tikv.tar.gz tikv-server
@@ -227,6 +233,10 @@ function parse_cli_args() {
         TIDB="${i#*=}"
         shift # past argument=value
         ;;
+        -dumpling=*|--dumpling=*)
+        DUMPLING="${i#*=}"
+        shift # past argument=value
+        ;;
         -pd=*|--pd=*)
         PD="${i#*=}"
         shift # past argument=value
@@ -309,6 +319,7 @@ function parse_cli_args() {
     done
 
     [[ -n "${TIDB}" ]]          && echo "TIDB        = ${TIDB}"
+    [[ -n "${DUMPLING}" ]]      && echo "DUMPLING    = ${DUMPLING}"
     [[ -n "${TIKV}" ]]          && echo "TIKV        = ${TIKV}"
     [[ -n "${TIKV_WORKER}" ]]   && echo "TIKV_WORKER = ${TIKV_WORKER}"
     [[ -n "${TIKV_CTL}" ]]      && echo "TIKV_CTL    = ${TIKV_CTL}"
@@ -337,6 +348,7 @@ function parse_cli_args() {
     registry_host="${OCI_ARTIFACT_HOST:-hub.pingcap.net}"
     registry_host_community="${OCI_ARTIFACT_HOST_COMMUNITY:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
+    dumpling_oci_url="${registry_host}/pingcap/tidb/package:${DUMPLING}_${tag_suffix}"
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
     tikv_worker_oci_url="${registry_host}/tikv/tikv/package:${TIKV_WORKER}_${tag_suffix}"
