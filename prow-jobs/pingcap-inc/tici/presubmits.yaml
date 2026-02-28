@@ -8,7 +8,7 @@ global_definitions:
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
   decoration_config: &decoration_config
-    timeout: 80m
+    timeout: 100m
     oauth_token_secret:
       name: github-token
       key: token
@@ -105,8 +105,8 @@ presubmits:
                 make ci-e2e
             resources:
               requests:
-                cpu: "6"
+                cpu: "8"
                 memory: 24Gi
               limits:
-                cpu: "6"
+                cpu: "8"
                 memory: 24Gi
