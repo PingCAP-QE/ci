@@ -5,6 +5,9 @@
 final K8S_NAMESPACE = "jenkins-pd"
 final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/latest/pod-pull_integration_realcluster_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 pipeline {
     agent {
@@ -15,7 +18,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -58,26 +61,28 @@ pipeline {
                 dir('pd') {
                     container("golang") {
                         sh label: 'pd-server', script: '[ -f bin/pd-server ] || WITH_RACE=1 RUN_CI=1 make pd-server-basic'
-                        script {
-                            def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
-                            def artifactVerify = !isFeatureBranch
-                            sh 'mkdir -p third_bin'
-                            retry(3) {
-                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
-                                sh 'mv bin/tidb-server third_bin/ || true'
-                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
-                                sh 'mv bin/tikv-server third_bin/ || true'
-                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tiflash', REFS.base_ref, REFS.pulls[0].title, 'centos7/tiflash.tar.gz', '', trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=true)
-                                sh '(mv tiflash/* third_bin/ && rm -rf tiflash) || true'
-                            }
-                            sh label: 'verify binaries', script: """
+                        sh 'mkdir -p third_bin'
+                    }
+                    container("utils") {
+                        dir("third_bin") {
+                            sh label: 'download peer component binaries', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                    --tidb=${OCI_TAG_TIDB} \
+                                    --tikv=${OCI_TAG_TIKV} \
+                                    --tiflash=${OCI_TAG_TIFLASH}
+                                chmod +x tidb-server tikv-server
+                                mv tiflash/* ./ && rm -rf tiflash
+                            """
+                        }
+                    }
+                    container("golang") {
+                        sh label: 'verify binaries', script: """
                             ls -alh third_bin/
                             bin/pd-server -V
                             third_bin/tikv-server -V
                             third_bin/tidb-server -V
                             third_bin/tiflash --version
-                            """
-                        }
+                        """
                     }
                 }
             }
