@@ -8,6 +8,8 @@ final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_kafka_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 pipeline {
     agent {
@@ -18,7 +20,10 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        // OCI artifact registry: hub.pingcap.net
+        // tikv-server: hub.pingcap.net/tikv/tikv/package:<tag>_linux_amd64
+        // pd-server:   hub.pingcap.net/tikv/pd/package:<tag>_linux_amd64
+        OCI_ARTIFACT_HOST = 'hub.pingcap.net'
     }
     options {
         timeout(time: 65, unit: 'MINUTES')
@@ -66,10 +71,20 @@ pipeline {
             steps {
                 dir('migration') {
                     cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
+                        container("utils") {
+                            sh label: 'download test binaries via OCI', script: """
+                                mkdir -p ./cdc/bin
+                                cd ./cdc/bin
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                    --tikv=${OCI_TAG_TIKV} \
+                                    --pd=${OCI_TAG_PD}
+                                chmod +x tikv-server pd-server
+                                ls -alh
+                            """
+                        }
                         container("golang") {
                             sh label: 'integration test prepare', script: """#!/usr/bin/env bash
                             cd cdc/
-                            make prepare_test_binaries
                             make check_third_party_binary
                             make integration_test_build
                             """
