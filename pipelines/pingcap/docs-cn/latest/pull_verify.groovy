@@ -11,9 +11,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 prow.setPRDescription(REFS)
 pipeline {
     agent none
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
