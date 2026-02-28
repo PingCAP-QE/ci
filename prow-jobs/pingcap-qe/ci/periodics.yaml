@@ -39,7 +39,7 @@ periodics:
           args:
             - |
               #!/usr/bin/env bash
-              set -euxo pipefail
+              set -euo pipefail
 
               script_url="https://github.com/PingCAP-QE/ci/raw/main/tools/reporters/ci/flaky-tests/main.ts"
               start_date=$(date -d "7 days ago" +%Y-%m-%d)
