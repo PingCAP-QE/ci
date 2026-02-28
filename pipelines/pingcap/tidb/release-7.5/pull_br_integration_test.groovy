@@ -119,7 +119,7 @@ pipeline {
                                 }
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     chmod +x br/tests/*.sh
-                                    if [[ "${TEST_GROUP,,}" == "G00" ]]; then
+                                    if [[ "${TEST_GROUP}" == "G00" ]]; then
                                         ./br/tests/run_group.sh others # check all tests added to group
                                     fi
                                     ./br/tests/run_group.sh ${TEST_GROUP}
