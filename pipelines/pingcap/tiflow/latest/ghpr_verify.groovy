@@ -13,7 +13,6 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 90, unit: 'MINUTES')
@@ -81,7 +80,7 @@ pipeline {
                                             def config = testConfigs[TEST_CMD]
                                             if (config && config.test_results_file) {
                                                 sh label: "upload junit report to codecov", script: """
-                                                    wget -q -O codecovcli http://fileserver.pingcap.net/download/cicd/tools/codecovcli_linux_amd64_v0.9.4
+                                                    wget -q -O codecovcli https://cli.codecov.io/v0.9.4/linux/codecovcli
                                                     chmod +x codecovcli
                                                     git config --global --add safe.directory '*'
                                                     ./codecovcli do-upload --report-type test_results --file ${config.test_results_file} --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number}
