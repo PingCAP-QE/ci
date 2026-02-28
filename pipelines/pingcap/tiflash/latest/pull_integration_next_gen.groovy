@@ -31,9 +31,6 @@ pipeline {
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
@@ -145,7 +142,7 @@ pipeline {
                     sh label: "license header check", script: """
                         echo "license check"
                         if [[ -f .github/licenserc.yml ]]; then
-                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
+                            oras pull hub.pingcap.net/pingcap/ci-tools/license-eye:v0.4.0 --output .
                             chmod +x license-eye
                             ./license-eye -c .github/licenserc.yml header check
                         else
