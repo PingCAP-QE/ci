@@ -17,7 +17,6 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         CI = "1"
     }
     options {
@@ -74,9 +73,18 @@ pipeline {
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh "touch ws-${BUILD_TAG}"
+                        sh "mkdir -p bin"
+                        dir("bin") {
+                            container("utils") {
+                                retry(2) {
+                                    sh label: 'download binary', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --tidb=master --pd=master --tikv=master
+                                    """
+                                }
+                            }
+                        }
                         sh label: 'prepare thirdparty binary', script: """
-                        chmod +x download_binary.sh
-                        ./download_binary.sh --tidb=master --pd=master --tikv=master
                         cp ../tiproxy/bin/tiproxy ./bin/
                         ls -alh bin/
                         ./bin/tidb-server -V
