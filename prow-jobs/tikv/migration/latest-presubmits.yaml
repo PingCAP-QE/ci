@@ -1,42 +1,68 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^main$
+      - ^cdc-release-.*$
+      - ^br-release-.*$
+  affinity: &affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    labels:
+      master: "0"
+    decorate: false
+
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/migration:
-    - name: tikv/migration/pull_integration_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+    - <<: [*brancher, *jenkins_job]
+      name: tikv/migration/pull_integration_test
       always_run: true
       context: pull-integration-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-test(?: .*?)?$"
       rerun_command: "/test pull-integration-test"
-      branches:
-        - ^main$
-        - ^cdc-release-.*$
-        - ^br-release-.*$
-    - name: tikv/migration/pull_integration_kafka_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+    - <<: [*brancher, *jenkins_job]
+      name: tikv/migration/pull_integration_kafka_test
       always_run: true
       context: pull-integration-kafka-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-kafka-test(?: .*?)?$"
       rerun_command: "/test pull-integration-kafka-test"
-      branches:
-        - ^main$
-        - ^cdc-release-.*$
-        - ^br-release-.*$
-    - name: tikv/migration/pull_unit_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+    - <<: *brancher
+      name: pull-unit-test
+      agent: kubernetes
+      decorate: true
       always_run: true
       context: pull-unit-test
       trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
       rerun_command: "/test pull-unit-test"
-      branches:
-        - ^main$
-        - ^cdc-release-.*$
-        - ^br-release-.*$
+      spec:
+        containers:
+          - name: test
+            # OCI path: ghcr.io/pingcap-qe/ci/base:<tag>-go1.21
+            image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-81-gec616ff-go1.21
+            command: [bash, -ce]
+            args:
+              - |
+                cd cdc/
+                make unit_test_in_verify_ci
+            env:
+              - name: TIKV_MIGRATION_CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-token-tikv-migration
+                    key: token
+            resources:
+              requests:
+                memory: 8Gi
+                cpu: "4"
+              limits:
+                memory: 8Gi
+                cpu: "4"
+        affinity: *affinity
