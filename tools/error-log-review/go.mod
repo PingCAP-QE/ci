@@ -1,9 +1,9 @@
 module github.com/PingCAP-QE/ci/tools/error-log-review
 
-go 1.24.0
+go 1.25.0
 
 require (
-	github.com/google/go-github/v83 v83.0.0
+	github.com/google/go-github/v84 v84.0.0
 	golang.org/x/oauth2 v0.35.0
 	gopkg.in/yaml.v3 v3.0.1
 )
