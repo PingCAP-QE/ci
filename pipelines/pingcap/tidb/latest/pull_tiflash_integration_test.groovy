@@ -6,6 +6,9 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_tiflash_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -17,7 +20,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -41,23 +44,23 @@ pipeline {
                 dir('tidb') {
                     sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'vector-search-test')) {
-                        script {
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                            // Note tiflash need extract all files in tiflash dir (extract tar.gz to tiflash dir)
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tiflash', REFS.base_ref, REFS.pulls[0].title, 'centos7/tiflash.tar.gz', '', trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=true)
-                            sh label: 'move tiflash', script: 'mv tiflash/* bin/ && rm -rf tiflash'
+                        container("utils") {
+                            dir("bin") {
+                                retry(3) {
+                                    sh label: 'download tidb components', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV} --tiflash=${OCI_TAG_TIFLASH}
+                                        mv tiflash/* . && rm -rf tiflash
+                                    """
+                                }
+                            }
                         }
                     }
                 }
                 dir('test-assets') {
                     cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/euclidean-hdf5") {
                         sh label: 'download test assets', script: """
-                        # wget https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
-                        # wget https://ann-benchmarks.com/mnist-784-euclidean.hdf5
-                        # Use internal file server to download test assets
-                        wget -q ${FILE_SERVER_URL}/download/ci-artifacts/tidb/vector-search-test/v20250521/fashion-mnist-784-euclidean.hdf5
-                        wget -q ${FILE_SERVER_URL}/download/ci-artifacts/tidb/vector-search-test/v20250521/mnist-784-euclidean.hdf5
+                        wget -q https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
+                        wget -q https://ann-benchmarks.com/mnist-784-euclidean.hdf5
                         """
                     }
                 }

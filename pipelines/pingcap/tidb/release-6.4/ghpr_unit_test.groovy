@@ -17,9 +17,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 60, unit: 'MINUTES')
     }
@@ -64,7 +61,7 @@ pipeline {
                     dir("tidb") {
                         sh label: "upload coverage to codecov", script: """
                         mv coverage.dat test_coverage/coverage.dat
-                        wget -q -O codecov ${FILE_SERVER_URL}/download/cicd/tools/codecov-v0.5.0
+                        wget -q -O codecov https://uploader.codecov.io/v0.5.0/linux/codecov
                         chmod +x codecov
                         ./codecov --flags unit --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
                         """
@@ -84,7 +81,7 @@ pipeline {
         always {
             container('report') {
                 sh """
-                    junitUrl="\${FILE_SERVER_URL}/download/tipipeline/test/report/\${JOB_NAME}/\${BUILD_NUMBER}/${REFS.pulls[0].sha}/report.xml"
+                    junitUrl=""
                     bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json "\${junitUrl}" || true
                 """
             }

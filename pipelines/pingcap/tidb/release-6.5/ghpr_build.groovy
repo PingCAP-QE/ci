@@ -18,9 +18,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
@@ -112,15 +109,10 @@ pipeline {
                                         filepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
                                         donepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/done"
                                         refspath="refs/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].number}/sha1"
-                                        curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
-                                        curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
-                                        curl -F \${refspath}=@sha1 \${FILE_SERVER_URL}/upload
                                         """
                                     sh label: 'upload to tidb-checker dir', script: """
                                         filepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
                                         donepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/done"
-                                        curl -F \${filepath}=@tidb-server.tar.gz \${FILE_SERVER_URL}/upload
-                                        curl -F \${donepath}=@done \${FILE_SERVER_URL}/upload
                                         """
                                 }
                             }
