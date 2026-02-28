@@ -57,6 +57,7 @@ function main() {
         chmod +x "${OCI_SCRIPT}"
         "${OCI_SCRIPT}" "${args[@]}"
         popd
+        chmod +x third_bin/*
     fi
 
     ls -alh third_bin/
