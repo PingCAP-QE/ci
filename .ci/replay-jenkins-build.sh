@@ -136,7 +136,7 @@ discover_changed_scripts() {
     fi
 
     log "collect changed pipeline files from ${base_sha}..${head_sha}"
-    git diff --name-only "$base_sha" "$head_sha" | rg '^pipelines/.*\.groovy$' || true
+    git diff --name-only "$base_sha" "$head_sha" | grep -E '^pipelines/.*\.groovy$' || true
 }
 
 setup_auth_and_crumb() {
@@ -516,7 +516,6 @@ validate_inputs() {
     require_bin curl
     require_bin jq
     require_bin git
-    require_bin rg
     require_bin base64
     require_bin sed
 
