@@ -20,7 +20,7 @@ spec:
                 'pingcap/tiproxy',
                 'tidbcloud/cloud-storage-engine',
                 'tikv/pd',
-              ] && body.ref.matches('^refs/heads/(release-nextgen-[0-9]+)$')
+              ] && body.ref.matches('^refs/heads/(release-nextgen-[0-9]+|feature/tidb-zero)$')
             ) || (
               body.repository.full_name in [
                 'pingcap/ticdc',
