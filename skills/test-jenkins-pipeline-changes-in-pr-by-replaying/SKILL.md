@@ -21,8 +21,9 @@ gh pr view --json number,url,headRefName
 2. Replay only `latest` jobs first.
 3. Update PR comment with task-item checklist and run URLs.
 4. Poll run status; check only successful items.
-5. Retry failed jobs until success or attempts exceed 3.
-6. Mark unresolved failures with root-cause notes.
+5. For failures, analyze root cause and try to fix it in changed scope first.
+6. Replay failed jobs again to verify the fix; continue until success or attempts exceed 3.
+7. Mark unresolved failures with root-cause notes.
 
 ## Step 1: Resolve replay scope
 Default behavior: auto-detect from current PR diff and keep only `latest` groovy pipelines:
@@ -91,6 +92,11 @@ Checklist policy:
 Retry failed jobs individually (with `--wait`) until:
 - success, or
 - attempts exceed 3 (initial + 3 retries max), whichever comes first.
+
+Before each retry:
+- inspect failure logs and classify infra/config/test failure,
+- attempt a targeted fix (prefer pod template YAML/config fix over unrelated groovy workaround),
+- replay again to confirm the fix effect.
 
 Example retry:
 
