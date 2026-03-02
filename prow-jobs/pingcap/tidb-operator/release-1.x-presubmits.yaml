@@ -230,7 +230,7 @@ presubmits:
               - |
                 set -ex
                 [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/run-e2e-kind.sh --focus='DMCluster' --nodes=1 \
+                exec bash ./hack/run-e2e-kind.sh --focus='DMCluster' --nodes=2 \
                   --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
             env:
               - name: CODECOV_TOKEN
@@ -606,7 +606,7 @@ presubmits:
               - |
                 set -ex
                 [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
-                exec bash ./hack/run-e2e-kind.sh --focus='\[Across\sKubernetes\]' --nodes=2 \
+                exec bash ./hack/run-e2e-kind.sh --focus='\[Across\sKubernetes\]' --nodes=1 \
                   --extra-args='--install-dm-mysql=false' \
                   --kind-cp-mem=8G --kind-cp-cpu=12288 --kind-wk-mem=8G --kind-wk-cpu=4096
             env:
