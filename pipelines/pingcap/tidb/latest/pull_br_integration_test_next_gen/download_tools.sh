@@ -33,71 +33,28 @@ function download_and_extract_with_path() {
     echo "✅ extracted ${path_in_archive} from ${file_path} ."
 }
 
-function download_tikv_importer() {
-    local file_server_url="$1"
-
-    tikv_importer_sha1="d9a90a49b23801369cf50d9e92bdc3ae1f62ade1"
-    url="${file_server_url}/download/builds/pingcap/importer/${tikv_importer_sha1}/centos7/importer.tar.gz"
-    download_and_extract_with_path "$url" "importer.tar.gz" "bin/tikv-importer"
-    mv -v bin/tikv-importer ./ && rmdir bin
-}
-
-function download_minio() {
-    local file_server_url="$1"
-
-    minio_download_url="${file_server_url}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/minio"
-    download "$minio_download_url" "minio"
-    minio_cli_url="${file_server_url}/download/builds/minio/minio/RELEASE.2020-02-27T00-23-05Z/mc"
-    download "$minio_cli_url" "mc"
-}
-
-function download_go_ycsb() {
-    local file_server_url="$1"
-
-    go_ycsb_download_url="${file_server_url}/download/builds/pingcap/go-ycsb/test-br/go-ycsb"
-    download "$go_ycsb_download_url" "go-ycsb"
-}
-
-function download_kes() {
-    local file_server_url="$1"
-
-    kes_url="${file_server_url}/download/kes"
-    download "$kes_url" "kes"
-}
-
-function download_fake_gcs_server() {
-    local file_server_url="$1"
-
-    fake_gcs_server_url="${file_server_url}/download/builds/fake-gcs-server"
-    download "$fake_gcs_server_url" "fake-gcs-server"
-}
-
-function download_brv() {
-    local file_server_url="$1"
-
-    brv_url="${file_server_url}/download/builds/brv4.0.8"
-    download "$brv_url" "brv4.0.8"
-}
-
 function download_localstack() {
-    local file_server_url="$1"
-
-    localstack_url="${file_server_url}/download/localstack-cli.tar.gz"
-    download_and_extract_with_path "$localstack_url" "localstack-cli.tar.gz" localstack
-    mv localstack localstack_dir
-    ln -s localstack_dir/localstack localstack
+    if [[ -f "localstack" ]]; then
+        echo "localstack already exists, skip download"
+        return
+    fi
+    localstack_url="https://github.com/localstack/localstack-cli/releases/download/v3.7.0/localstack-cli-3.7.0-linux-amd64-onefile.tar.gz"
+    echo "🚀 Downloading localstack from ${localstack_url}"
+    wget --retry-connrefused --waitretry=1 --read-timeout=20 --tries=5 -O "localstack-cli.tar.gz" "$localstack_url"
+    tar -xzf "localstack-cli.tar.gz"
+    rm -f "localstack-cli.tar.gz"
+    chmod +x localstack
+    echo "✅ Downloaded localstack"
 }
 
 function main() {
-    local file_server_url="$1"
-
-    # download_brv "$file_server_url"
-    # download_fake_gcs_server "$file_server_url"
-    # download_go_ycsb "$file_server_url"
-    # download_kes "$file_server_url"
-    download_localstack "$file_server_url"
-    # download_minio "$file_server_url"
-    download_tikv_importer "$file_server_url"
+    # download_brv
+    # download_fake_gcs_server
+    # download_go_ycsb
+    # download_kes
+    download_localstack
+    # download_minio
+    # download_tikv_importer (deprecated: tikv-importer is no longer needed)
 }
 
 main "$@"
