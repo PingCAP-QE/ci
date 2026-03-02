@@ -28,6 +28,7 @@ Options:
   --timeout <seconds>      Max wait seconds for queue/build completion. Default: 3600.
   --poll-interval <sec>    Poll interval in seconds. Default: 15.
   --max-replays <count>    Max replay count in --auto-changed mode. Default: 20.
+  --no-inline-pod-yaml     Keep yamlFile in replay script (default: inline local pod yaml).
   --verbose                Print detailed mapping and resolution logs.
   --dry-run                Print actions only.
   -h, --help               Show this help.
@@ -109,6 +110,89 @@ script_to_job_path() {
     job_path+="/job/${job}"
 
     printf '%s' "$job_path"
+}
+
+resolve_pod_template_file() {
+    local script_file="$1"
+    local dir
+    dir="$(dirname "$script_file")"
+    local base
+    base="$(basename "$script_file")"
+
+    if [[ "$base" == "pipeline.groovy" ]]; then
+        printf '%s/pod.yaml' "$dir"
+        return 0
+    fi
+
+    local name="${base%.groovy}"
+    if [[ -f "${dir}/pod-${name}.yaml" ]]; then
+        printf '%s/pod-%s.yaml' "$dir" "$name"
+        return 0
+    fi
+    if [[ -f "${dir}/pod.yaml" ]]; then
+        printf '%s/pod.yaml' "$dir"
+        return 0
+    fi
+    return 1
+}
+
+build_inline_script_with_pod_yaml() {
+    local script_file="$1"
+    local pod_template_file="$2"
+    local out_file="$3"
+    local pod_b64
+    pod_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
+
+    POD_B64="$pod_b64" python3 - "$script_file" "$out_file" <<'PY'
+import os
+import pathlib
+import re
+import sys
+
+src = pathlib.Path(sys.argv[1]).read_text()
+replacement = "yaml new String(java.util.Base64.decoder.decode('{}'), 'UTF-8')".format(os.environ["POD_B64"])
+dst = re.sub(r"\byamlFile\s+POD_TEMPLATE_FILE\b", replacement, src)
+if dst == src:
+    sys.exit(2)
+pathlib.Path(sys.argv[2]).write_text(dst)
+PY
+}
+
+prepare_script_for_replay() {
+    local script_file="$1"
+    REPLAY_SCRIPT_EFFECTIVE="$script_file"
+    REPLAY_SCRIPT_TEMP=""
+
+    if [[ "$INLINE_POD_YAML" != "true" ]]; then
+        return 0
+    fi
+
+    local pod_template_file=""
+    if ! pod_template_file="$(resolve_pod_template_file "$script_file")"; then
+        vlog "pod template not inferred for ${script_file}; keep yamlFile as-is"
+        return 0
+    fi
+    if [[ ! -f "$pod_template_file" ]]; then
+        vlog "pod template not found: ${pod_template_file}; keep yamlFile as-is"
+        return 0
+    fi
+
+    local temp_script
+    temp_script="$(mktemp)"
+    if build_inline_script_with_pod_yaml "$script_file" "$pod_template_file" "$temp_script"; then
+        REPLAY_SCRIPT_EFFECTIVE="$temp_script"
+        REPLAY_SCRIPT_TEMP="$temp_script"
+        vlog "inline pod yaml for replay: ${script_file} + ${pod_template_file}"
+        return 0
+    fi
+
+    local rc=$?
+    rm -f "$temp_script"
+    if [[ "$rc" == "2" ]]; then
+        vlog "no POD_TEMPLATE_FILE yamlFile usage in ${script_file}; keep script as-is"
+        return 0
+    fi
+    fatal "failed to inline pod yaml for replay script: ${script_file}"
 }
 
 job_url_to_full_name() {
@@ -338,6 +422,8 @@ replay_one() {
     REPLAY_LAST_RESULT=""
 
     [[ -f "$script_file" ]] || fatal "script file not found: ${script_file}"
+    prepare_script_for_replay "$script_file"
+    local replay_script_file="$REPLAY_SCRIPT_EFFECTIVE"
 
     local job_url=""
     local build_url=""
@@ -395,14 +481,19 @@ replay_one() {
 
     log "replay source build: ${build_url}"
     log "pipeline script file: ${script_file}"
+    if [[ "$replay_script_file" != "$script_file" ]]; then
+        vlog "effective replay script file: ${replay_script_file}"
+    fi
 
     if [[ "$DRY_RUN" == "true" ]]; then
+        [[ -n "$REPLAY_SCRIPT_TEMP" ]] && rm -f "$REPLAY_SCRIPT_TEMP"
         REPLAY_LAST_RESULT="dry-run"
         return 0
     fi
 
     local replay_build_url
-    replay_build_url="$(submit_replay "$build_url" "$script_file" "$TIMEOUT_SEC" "$POLL_INTERVAL_SEC")"
+    replay_build_url="$(submit_replay "$build_url" "$replay_script_file" "$TIMEOUT_SEC" "$POLL_INTERVAL_SEC")"
+    [[ -n "$REPLAY_SCRIPT_TEMP" ]] && rm -f "$REPLAY_SCRIPT_TEMP"
     log "replay build assigned: ${replay_build_url}"
 
     if [[ "$WAIT_BUILD" == "true" ]]; then
@@ -431,6 +522,7 @@ init_defaults() {
     POLL_INTERVAL_SEC=15
     DRY_RUN="false"
     MAX_REPLAYS=20
+    INLINE_POD_YAML="true"
     VERBOSE="false"
     JENKINS_URL="${JENKINS_URL:-https://do.pingcap.net/jenkins}"
     JENKINS_USER="${JENKINS_USER:-}"
@@ -493,6 +585,10 @@ parse_args() {
                 MAX_REPLAYS="$2"
                 shift 2
                 ;;
+            --no-inline-pod-yaml)
+                INLINE_POD_YAML="false"
+                shift
+                ;;
             --verbose)
                 VERBOSE="true"
                 shift
@@ -518,6 +614,9 @@ validate_inputs() {
     require_bin git
     require_bin rg
     require_bin base64
+    if [[ "$INLINE_POD_YAML" == "true" ]]; then
+        require_bin python3
+    fi
     require_bin sed
 
     JENKINS_URL="$(trim_trailing_slash "$JENKINS_URL")"
