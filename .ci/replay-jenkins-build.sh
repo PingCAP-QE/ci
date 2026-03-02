@@ -143,19 +143,24 @@ build_inline_script_with_pod_yaml() {
     local pod_b64
     pod_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
 
-    POD_B64="$pod_b64" python3 - "$script_file" "$out_file" <<'PY'
-import os
-import pathlib
-import re
-import sys
+    # Build the replacement string in shell and use awk to perform the substitution.
+    # If no substitution is performed, exit with status 2 to preserve previous behavior.
+    local repl
+    repl="yaml new String(java.util.Base64.decoder.decode(\"${pod_b64}\"), 'UTF-8')"
 
-src = pathlib.Path(sys.argv[1]).read_text()
-replacement = "yaml new String(java.util.Base64.decoder.decode('{}'), 'UTF-8')".format(os.environ["POD_B64"])
-dst = re.sub(r"\byamlFile\s+POD_TEMPLATE_FILE\b", replacement, src)
-if dst == src:
-    sys.exit(2)
-pathlib.Path(sys.argv[2]).write_text(dst)
-PY
+    awk -v repl="$repl" '
+    BEGIN { found=0 }
+    {
+        line = $0
+        # Use gensub to replace occurrences where yamlFile and POD_TEMPLATE_FILE appear as a token pair.
+        # The regex ensures word-like boundaries around the tokens.
+        new_line = gensub(/(^|[^[:alnum:]_])yamlFile[[:space:]]+POD_TEMPLATE_FILE([^[:alnum:]_]|$)/, "\\1" repl "\\2", "g", line)
+        if (new_line != line) found = 1
+        print new_line
+    }
+    END {
+        if (found == 0) exit 2
+    }' "$script_file" > "$out_file"
 }
 
 prepare_script_for_replay() {
@@ -615,7 +620,7 @@ validate_inputs() {
     require_bin rg
     require_bin base64
     if [[ "$INLINE_POD_YAML" == "true" ]]; then
-        require_bin python3
+        require_bin awk
     fi
     require_bin sed
 
