@@ -16,9 +16,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 15, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
@@ -106,28 +103,5 @@ pipeline {
             }
         }
 
-        // stage("Report Coverage") {
-        //     steps {
-        //         dir("pd") {
-        //             cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-        //                 sh label: 'Download coverage file', script: """
-        //                     for i in {0..10}; do
-        //                         wget http://fileserver.pingcap.net/download/covprofile_$i && break
-        //                         if [ -f covprofile_$i ]; then
-        //                             cat covprofile_$i >> covprofile
-        //                         fi
-        //                     done
-        //                     sed -i "/failpoint_binding/d" covprofile
-        //                     # only keep the first line(`mode: aomic`) of the coverage profile
-        //                     sed -i '2,${/mode: atomic/d;}' covprofile
-        //                 """
-        //                 // TODO: submit coverage to coveralls
-        //                 sh label: 'Submit coverage', script: """
-        //                     curl -X POST -d @covprofile -H 'Content-Type: text/plain' https://coveralls.io/api/v1/jobs
-        //                 """
-        //             }
-        //         }
-        //     }
-        // }
     }
 }
