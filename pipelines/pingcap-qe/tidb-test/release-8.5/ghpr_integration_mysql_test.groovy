@@ -7,6 +7,8 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-8.5/pod-ghpr_integration_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 pipeline {
     agent {
@@ -15,9 +17,6 @@ pipeline {
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'golang'
         }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 45, unit: 'MINUTES')
@@ -69,18 +68,21 @@ pipeline {
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'make'
-                        retry(2) {
-                            script {
-                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master")
-                                component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master")
+                        container("utils") {
+                            dir("bin") {
+                                retry(3) {
+                                    sh label: 'download tidb components', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
                             }
-                            sh label: "check binary", script: """
+                        }
+                        sh label: "check binary", script: """
                                 pwd && ls -alh
                                 ls bin/tidb-server && ./bin/tidb-server -V
                                 ls bin/pd-server && ./bin/pd-server -V
                                 ls bin/tikv-server && ./bin/tikv-server -V
                             """
-                        }
                     }
                 }
                 dir('tidb-test') {
