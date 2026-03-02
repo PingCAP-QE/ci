@@ -89,8 +89,8 @@ Checklist policy:
 - `[ ]` for `FAILURE`, `ABORTED`, `UNSTABLE`, `BUILDING`, or skipped.
 
 ## Step 5: Retry failures
-Retry failed jobs individually (with `--wait`) until:
 - success, or
+- the maximum number of retries (3) has been reached.
 - attempts exceed 3 (initial + 3 retries max), whichever comes first.
 
 Before each retry:
