@@ -63,16 +63,15 @@ pipeline {
                         dir("bin") {
                             retry(2) {
                                 sh label: "download third-party binaries", script: """
-                                    helper_script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
-                                    if grep -q -- '--dumpling=' "${helper_script}"; then
-                                        "${helper_script}" \
+                                    if grep -q -- '--dumpling=' "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"; then
+                                        "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" \
                                             --tidb=${OCI_TAG_TIDB} \
                                             --tikv=${OCI_TAG_TIKV} \
                                             --pd=${OCI_TAG_PD} \
                                             --dumpling=${OCI_TAG_DUMPLING}
                                     else
                                         # Replay may run with an older helper script checkout that lacks --dumpling.
-                                        "${helper_script}" \
+                                        "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" \
                                             --tidb=${OCI_TAG_TIDB} \
                                             --tikv=${OCI_TAG_TIKV} \
                                             --pd=${OCI_TAG_PD}
