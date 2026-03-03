@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Jenkins Pipeline Changes In PR By Replaying"
+  short_description: "Replay changed Jenkins pipelines and track PR testing status"
+  default_prompt: "Use $test-jenkins-pipeline-changes-in-pr-by-replaying to replay changed Jenkins pipeline jobs (latest first), monitor retries, and update PR comments with task-style status."

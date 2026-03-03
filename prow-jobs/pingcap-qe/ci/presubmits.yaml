@@ -25,7 +25,7 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://do.pingcap.net/jenkins-beta
+                value: https://do.pingcap.net/jenkins
               - name: JENKINS_USER
                 valueFrom:
                   secretKeyRef:
