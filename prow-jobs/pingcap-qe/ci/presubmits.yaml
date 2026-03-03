@@ -45,6 +45,7 @@ presubmits:
                   --base-sha "${PULL_BASE_SHA:-}" \
                   --head-sha "${PULL_PULL_SHA:-}" \
                   --selector lastSuccessfulBuild \
+                  --wait \
                   --max-replays 20 \
                   --verbose \
                   --timeout 7200 \
