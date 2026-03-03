@@ -95,12 +95,23 @@ presubmits:
             env:
               - name: ASSET_DIR
                 value: /cache
+              - name: OCI_ARTIFACT_HOST
+                value: us-docker.pkg.dev/pingcap-testing-account/hub
+              - name: TIUP_HOME
+                value: /root/.tiup
+              - name: TIFLASH_VERSION
+                value: v9.0.0-feature.fts
             args:
               - |
                 set -exo pipefail
                 echo "Preparing test assets..."
                 mkdir -p /cache
                 wget -qO - https://quickwit-datasets-public.s3.amazonaws.com/hdfs-logs-multitenants.json.gz | gzip -d - > /cache/hdfs-logs-multitenants.json
+                echo "Preparing TiFlash from OCI registry..."
+                oci_script=/tmp/download_pingcap_oci_artifact.sh; wget -qO "$oci_script" https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh || { echo "Failed to download OCI script"; exit 1; }
+                mkdir -p "${TIUP_HOME}/components/tiflash/${TIFLASH_VERSION}"
+                ( cd "${TIUP_HOME}/components/tiflash/${TIFLASH_VERSION}" && bash "$oci_script" --tiflash="${TIFLASH_VERSION}" )
+                echo "TiFlash ready in ${TIUP_HOME}/components/tiflash/${TIFLASH_VERSION}"
                 echo "Running tests..."
                 make ci-e2e
             resources:
