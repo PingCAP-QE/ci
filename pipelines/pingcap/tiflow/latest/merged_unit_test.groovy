@@ -11,8 +11,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
     agent none
-    environment {
-    }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()

@@ -63,11 +63,20 @@ pipeline {
                         dir("bin") {
                             retry(2) {
                                 sh label: "download third-party binaries", script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
-                                        --tidb=${OCI_TAG_TIDB} \
-                                        --tikv=${OCI_TAG_TIKV} \
-                                        --pd=${OCI_TAG_PD} \
-                                        --dumpling=${OCI_TAG_DUMPLING}
+                                    helper_script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                    if grep -q -- '--dumpling=' "${helper_script}"; then
+                                        "${helper_script}" \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --pd=${OCI_TAG_PD} \
+                                            --dumpling=${OCI_TAG_DUMPLING}
+                                    else
+                                        # Replay may run with an older helper script checkout that lacks --dumpling.
+                                        "${helper_script}" \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --pd=${OCI_TAG_PD}
+                                    fi
                                 """
                             }
                         }
@@ -76,10 +85,13 @@ pipeline {
                         which bin/tikv-server
                         which bin/pd-server
                         which bin/tidb-server
-                        which bin/dumpling
                         ls -alh ./bin/
                         chmod +x bin/*
-                        ./bin/dumpling --version
+                        if [ -x bin/dumpling ]; then
+                            ./bin/dumpling --version
+                        else
+                            echo "dumpling is not present in current helper-script mode"
+                        fi
                         ./bin/tikv-server -V
                         ./bin/pd-server -V
                         ./bin/tidb-server -V
