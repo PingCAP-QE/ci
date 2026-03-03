@@ -25,7 +25,7 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://do.pingcap.net/jenkins-beta
+                value: https://do.pingcap.net/jenkins
               - name: JENKINS_USER
                 valueFrom:
                   secretKeyRef:
@@ -45,6 +45,7 @@ presubmits:
                   --base-sha "${PULL_BASE_SHA:-}" \
                   --head-sha "${PULL_PULL_SHA:-}" \
                   --selector lastSuccessfulBuild \
+                  --wait \
                   --max-replays 20 \
                   --verbose \
                   --timeout 7200 \

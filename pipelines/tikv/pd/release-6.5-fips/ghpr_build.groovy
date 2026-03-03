@@ -17,7 +17,6 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         ENABLE_FIPS = 1
     }
     options {
@@ -64,27 +63,6 @@ pipeline {
                         WITH_RACE=1 make && mv bin/pd-server bin/pd-server-race
                         make
                     '''
-                }
-            }
-        }
-        stage("Upload") {
-            options {
-                timeout(time: 5, unit: 'MINUTES')
-            }
-            steps {
-                dir('pd') {
-                    sh label: "create pd-server tarball", script: """
-                        rm -rf .git
-                        tar czvf pd-server.tar.gz bin
-                        echo "pr/${REFS.pulls[0].sha}" > sha1
-                        """
-                    // FIXME(wuhuizuo): filepath is wrong, should renew to tikv/pd
-                    sh label: 'upload to pd dir', script: """
-                        filepath="builds/pingcap/pd/pr/${REFS.pulls[0].sha}/centos7/pd-server.tar.gz"
-                        refspath="refs/pingcap/pd/pr/${REFS.pulls[0].number}/sha1"
-                        curl -F \${filepath}=@pd-server.tar.gz \${FILE_SERVER_URL}/upload
-                        curl -F \${refspath}=@sha1 \${FILE_SERVER_URL}/upload
-                        """
                 }
             }
         }
