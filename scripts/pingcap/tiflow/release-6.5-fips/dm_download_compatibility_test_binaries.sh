@@ -38,8 +38,8 @@ branch=${1:-release-6.5-fips}
 MINIO_VERSION="RELEASE.2020-02-27T00-23-05Z"
 
 # All download links.
-sync_diff_inspector_download_url="http://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz"
-mydumper_download_url="http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz"
+sync_diff_inspector_download_url="http://download.pingcap.com/tidb-enterprise-tools-nightly-linux-amd64.tar.gz"
+mydumper_download_url="http://download.pingcap.com/tidb-enterprise-tools-latest-linux-amd64.tar.gz"
 
 gh_os_download_url="https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz"
 
