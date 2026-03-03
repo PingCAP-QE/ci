@@ -80,7 +80,7 @@ pipeline {
                             }
                             sh label: "ensure importer tools", script: """
                                 if [ ! -x importer ]; then
-                                    wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    wget --no-verbose -t 3 \
                                         -O tidb-enterprise-tools.tar.gz \
                                         https://fileserver.pingcap.net/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
                                     tar -xzf tidb-enterprise-tools.tar.gz
