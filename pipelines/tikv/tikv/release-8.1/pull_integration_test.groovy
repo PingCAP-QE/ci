@@ -8,7 +8,6 @@ final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/release-8.1/pod-pull_integration_
 final REFS = readJSON(text: params.JOB_SPEC).refs
 prow.setPRDescription(REFS)
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 pipeline {
@@ -51,7 +50,7 @@ pipeline {
                     container('utils') {
                         retry(2) {
                             sh label: 'download components', script: """
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV} --tidb=${OCI_TAG_TIDB}
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tidb=${OCI_TAG_TIDB}
                             """
                         }
                     }
@@ -116,7 +115,7 @@ pipeline {
                                     TIKV_PATH="${WORKSPACE}/tikv/bin/tikv-server" \
                                     TIDB_PATH="${WORKSPACE}/bin/tidb-server" \
                                     PD_PATH="${WORKSPACE}/bin/pd-server" \
-                                    OLD_BINARY="${WORKSPACE}/bin/tikv-server" \
+                                    OLD_BINARY="${WORKSPACE}/tikv/bin/tikv-server" \
                                     ${WORKSPACE}/scripts/tikv/tikv/run_compatible_tests.sh
                                 '''
                             }
