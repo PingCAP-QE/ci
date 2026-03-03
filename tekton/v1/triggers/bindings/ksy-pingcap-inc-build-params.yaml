@@ -1,0 +1,16 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: ksy-pingcap-inc-build-params # use in KSY clusters for pingcap-inc internal builds
+spec:
+  params:
+    - name: registry
+      value: us-docker.pkg.dev/pingcap-testing-account/internal/pingcap-inc
+    - name: boskos-server-url
+      value: http://boskos.ee-cd.svc
+    - name: publisher-url
+      value: https://publisher.pingcap.net
+    - name: git-instead-of
+      value: >-
+        https://github.com/ => http://git-cdn.cache.svc:8000/,
+        git@github.com: => http://git-cdn.cache.svc:8000/

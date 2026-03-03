@@ -11,3 +11,4 @@ resources:
   - harbor-image-push.yaml
   - ksy-classic-build-params.yaml
   - ksy-dev-build-params.yaml
+  - ksy-pingcap-inc-build-params.yaml
