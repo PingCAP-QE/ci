@@ -1,13 +1,13 @@
 global_definitions:
   brancher: &brancher
     branches:
-      - ^release-[0-9]+\.[0-9]+(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+      - ^release-.*$
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap-inc/tidb:
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_build
+      name: pingcap/tidb/release-8.5/pull_build
       agent: jenkins
       labels:
         master: "0"
@@ -18,7 +18,7 @@ presubmits:
       rerun_command: "/test build"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_check
+      name: pingcap/tidb/release-8.5/pull_check
       agent: jenkins
       labels:
         master: "0"
@@ -29,7 +29,7 @@ presubmits:
       rerun_command: "/test check-dev"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_check2
+      name: pingcap/tidb/release-8.5/pull_check2
       agent: jenkins
       labels:
         master: "0"
@@ -40,7 +40,7 @@ presubmits:
       rerun_command: "/test check-dev2"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_mysql_test
+      name: pingcap/tidb/release-8.5/pull_mysql_test
       agent: jenkins
       labels:
         master: "0"
@@ -51,7 +51,7 @@ presubmits:
       rerun_command: "/test mysql-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_unit_test
+      name: pingcap/tidb/release-8.5/pull_unit_test
       agent: jenkins
       labels:
         master: "0"
@@ -62,7 +62,7 @@ presubmits:
       rerun_command: "/test unit-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_unit_test_ddlv1
+      name: pingcap/tidb/release-8.5/pull_unit_test_ddlv1
       agent: jenkins
       labels:
         master: "0"
@@ -73,7 +73,7 @@ presubmits:
       rerun_command: "/test pull-unit-test-ddlv1"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_br_integration_test
+      name: pingcap/tidb/release-8.5/pull_br_integration_test
       agent: jenkins
       labels:
         master: "0"
@@ -84,7 +84,7 @@ presubmits:
       rerun_command: "/test pull-br-integration-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_lightning_integration_test
+      name: pingcap/tidb/release-8.5/pull_lightning_integration_test
       agent: jenkins
       labels:
         master: "0"
@@ -97,7 +97,7 @@ presubmits:
       rerun_command: "/test pull-lightning-integration-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_ddl_test
+      name: pingcap/tidb/release-8.5/pull_integration_ddl_test
       agent: jenkins
       labels:
         master: "0"
@@ -110,7 +110,7 @@ presubmits:
       rerun_command: "/test pull-integration-ddl-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_mysql_client_test
+      name: pingcap/tidb/release-8.5/pull_mysql_client_test
       agent: jenkins
       labels:
         master: "0"
@@ -123,7 +123,7 @@ presubmits:
       rerun_command: "/test pull-mysql-client-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_mysql_test
+      name: pingcap/tidb/release-8.5/pull_integration_mysql_test
       agent: jenkins
       labels:
         master: "0"
@@ -135,7 +135,7 @@ presubmits:
       rerun_command: "/test pull-integration-mysql-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_copr_test
+      name: pingcap/tidb/release-8.5/pull_integration_copr_test
       agent: jenkins
       labels:
         master: "0"
@@ -148,7 +148,7 @@ presubmits:
       rerun_command: "/test pull-integration-copr-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_jdbc_test
+      name: pingcap/tidb/release-8.5/pull_integration_jdbc_test
       agent: jenkins
       labels:
         master: "0"
@@ -161,7 +161,7 @@ presubmits:
       rerun_command: "/test pull-integration-jdbc-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_e2e_test
+      name: pingcap/tidb/release-8.5/pull_e2e_test
       agent: jenkins
       labels:
         master: "0"
@@ -174,7 +174,7 @@ presubmits:
       rerun_command: "/test pull-e2e-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_common_test
+      name: pingcap/tidb/release-8.5/pull_common_test
       agent: jenkins
       labels:
         master: "0"
@@ -187,7 +187,7 @@ presubmits:
       rerun_command: "/test pull-common-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_common_test
+      name: pingcap/tidb/release-8.5/pull_integration_common_test
       agent: jenkins
       labels:
         master: "0"
@@ -200,7 +200,7 @@ presubmits:
       rerun_command: "/test pull-integration-common-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_sqllogic_test
+      name: pingcap/tidb/release-8.5/pull_sqllogic_test
       agent: jenkins
       labels:
         master: "0"
@@ -213,7 +213,7 @@ presubmits:
       rerun_command: "/test pull-sqllogic-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_nodejs_test
+      name: pingcap/tidb/release-8.5/pull_integration_nodejs_test
       agent: jenkins
       labels:
         master: "0"
@@ -226,7 +226,7 @@ presubmits:
       rerun_command: "/test pull-integration-nodejs-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_python_orm_test
+      name: pingcap/tidb/release-8.5/pull_integration_python_orm_test
       agent: jenkins
       labels:
         master: "0"
@@ -239,7 +239,7 @@ presubmits:
       rerun_command: "/test pull-integration-python-orm-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_e2e_test
+      name: pingcap/tidb/release-8.5/pull_integration_e2e_test
       agent: jenkins
       labels:
         master: "0"
@@ -252,7 +252,7 @@ presubmits:
       rerun_command: "/test pull-integration-e2e-test"
 
     - <<: *brancher
-      name: pingcap-inc/tidb/release/pull_integration_tidb_tools_test
+      name: pingcap/tidb/release-8.5/pull_integration_tidb_tools_test
       agent: jenkins
       labels:
         master: "0"
