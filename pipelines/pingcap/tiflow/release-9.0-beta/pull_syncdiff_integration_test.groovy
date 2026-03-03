@@ -91,6 +91,11 @@ pipeline {
                             """
                         }
                     }
+                    script {
+                        if (!fileExists('bin/dumpling')) {
+                            component.fetchAndExtractArtifact('http://fileserver.pingcap.net', 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
+                        }
+                    }
                     sh label: "check", script: """
                         which bin/tikv-server
                         which bin/pd-server
