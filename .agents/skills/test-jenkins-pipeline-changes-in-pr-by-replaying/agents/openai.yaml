@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Jenkins Pipeline Changes In PR By Replaying"
+  short_description: "Replay changed Jenkins pipelines with dedup and live PR status"
+  default_prompt: "Use $test-jenkins-pipeline-changes-in-pr-by-replaying to replay changed Jenkins pipeline jobs with cross-branch dedup (prefer newest branch when diffs match), resolve job names from jobs DSL, auto-inline pod YAML when needed, monitor retries, and continuously update PR comments."
