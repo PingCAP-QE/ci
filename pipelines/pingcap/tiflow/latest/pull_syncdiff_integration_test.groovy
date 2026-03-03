@@ -85,7 +85,6 @@ pipeline {
                         which bin/pd-server
                         which bin/tidb-server
                         ls -alh ./bin/
-                        chmod +x bin/*
                         if [ -x bin/dumpling ]; then
                             ./bin/dumpling --version
                         else
