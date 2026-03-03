@@ -17,7 +17,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
         ENABLE_FIPS = 1
     }
     options {
@@ -68,23 +68,26 @@ pipeline {
             }
         }
         stage("Upload") {
+            environment {
+                HUB = credentials('harbor-pingcap')
+            }
             options {
                 timeout(time: 5, unit: 'MINUTES')
             }
             steps {
                 dir('pd') {
-                    sh label: "create pd-server tarball", script: """
-                        rm -rf .git
-                        tar czvf pd-server.tar.gz bin
-                        echo "pr/${REFS.pulls[0].sha}" > sha1
-                        """
-                    // FIXME(wuhuizuo): filepath is wrong, should renew to tikv/pd
-                    sh label: 'upload to pd dir', script: """
-                        filepath="builds/pingcap/pd/pr/${REFS.pulls[0].sha}/centos7/pd-server.tar.gz"
-                        refspath="refs/pingcap/pd/pr/${REFS.pulls[0].number}/sha1"
-                        curl -F \${filepath}=@pd-server.tar.gz \${FILE_SERVER_URL}/upload
-                        curl -F \${refspath}=@sha1 \${FILE_SERVER_URL}/upload
-                        """
+                    container('utils') {
+                        sh label: 'upload pd-server to OCI', script: """
+                            cp bin/pd-server ./pd-server
+                            tarball="pd-v0.0.0-pr-${REFS.pulls[0].number}.tar.gz"
+                            tar czvf "\${tarball}" pd-server
+                            oci_tag="pr-${REFS.pulls[0].number}_linux_amd64"
+                            oci_url="${OCI_ARTIFACT_HOST}/tikv/pd/package:\${oci_tag}"
+                            printenv HUB_PSW | oras login ${OCI_ARTIFACT_HOST} -u \${HUB_USR} --password-stdin
+                            oras push --artifact-type application/gzip "\${oci_url}" "\${tarball}"
+                            echo "✅ Uploaded pd-server to OCI: \${oci_url}"
+                            """
+                    }
                 }
             }
         }
