@@ -225,7 +225,9 @@ discover_changed_scripts() {
     fi
 
     log "collect changed pipeline files from ${base_sha}..${head_sha}"
-    git diff --name-only "$base_sha" "$head_sha" | rg '^pipelines/.*\.groovy$' || true
+    # Auto replay should only include scripts that still exist in the checkout.
+    # Exclude deleted paths to avoid failing on intentional pipeline removals.
+    git diff --name-only --diff-filter=ACMRTUXB "$base_sha" "$head_sha" | rg '^pipelines/.*\.groovy$' || true
 }
 
 setup_auth_and_crumb() {
