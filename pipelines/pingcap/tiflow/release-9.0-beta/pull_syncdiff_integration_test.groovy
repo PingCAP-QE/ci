@@ -78,12 +78,24 @@ pipeline {
                                     fi
                                 """
                             }
+                            sh label: "ensure importer tools", script: """
+                                if [ ! -x importer ]; then
+                                    wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                        -O tidb-enterprise-tools.tar.gz \
+                                        https://fileserver.pingcap.net/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
+                                    tar -xzf tidb-enterprise-tools.tar.gz
+                                    mv tidb-enterprise-tools/bin/loader ./
+                                    mv tidb-enterprise-tools/bin/importer ./
+                                    rm -rf tidb-enterprise-tools tidb-enterprise-tools.tar.gz
+                                fi
+                            """
                         }
                     }
                     sh label: "check", script: """
                         which bin/tikv-server
                         which bin/pd-server
                         which bin/tidb-server
+                        which bin/importer
                         ls -alh ./bin/
                         if [ -x bin/dumpling ]; then
                             ./bin/dumpling --version
