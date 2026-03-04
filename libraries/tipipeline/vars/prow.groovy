@@ -34,6 +34,27 @@ def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, gitSshHost = 
 
 def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
     final remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
+    _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
+}
+
+/*
+* Checkout refs from private repository.
+*
+* depended on plugins:
+*  - ssh-agent
+*/
+def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
+    final remoteUrl = "git@${gitSshHost}:${refs.org}/${refs.repo}.git"
+    sshagent(credentials: [credentialsId]) {
+        sh label: 'Know hosts', script: """
+            [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+            ssh-keyscan -t rsa,ecdsa,ed25519 ${gitSshHost} >> ~/.ssh/known_hosts
+        """
+        _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
+    }
+}
+
+def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
             (refs.pulls && refs.pulls.size() > 0) ? refs.pulls.collect {
@@ -43,7 +64,6 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
     ).join(' ')
 
     final pullsSHAs = refs.pulls.collect { it.sha }.join(' ')
-    // checkout base.
     sh label: 'Checkout and merge pull request(s) to target if exist', script: """#!/usr/bin/env bash
         set -e
         git --version
@@ -110,99 +130,6 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
 
         echo "✅ ~~~~~All done.~~~~~~"
     """
-}
-
-/*
-* Checkout refs from private repository.
-*
-* depended on plugins:
-*  - ssh-agent
-*/
-def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
-    final remoteUrl = "git@${gitSshHost}:${refs.org}/${refs.repo}.git"
-    final remoteRefSpec = (
-        ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
-            (refs.pulls && refs.pulls.size() > 0) ? refs.pulls.collect {
-                "+refs/pull/${it.number}/head:refs/remotes/origin/pr/${it.number}/head"
-            }: []
-        )
-    ).join(' ')
-
-    final pullsSHAs = refs.pulls.collect { it.sha }.join(' ')
-
-    sshagent(credentials: [credentialsId]) {
-        sh label: 'Know hosts', script: """
-            [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-            ssh-keyscan -t rsa,ecdsa,ed25519 ${gitSshHost} >> ~/.ssh/known_hosts
-        """
-        // checkout base.
-        sh label: 'Checkout and merge pull request(s) to target if exist', script: """#!/usr/bin/env bash
-            set -e
-            git --version
-            git init
-            git rev-parse --resolve-git-dir .git
-
-            git config --global user.email "ti-chi-bot@ci" && git config --global user.name "TiChiBot"
-            git config remote.origin.url ${remoteUrl}
-            git config core.sparsecheckout true
-
-            # reset & clean (worktree only)
-            git reset --hard
-            git clean -ffdx
-
-            # Prune stale PR refs from previous cached runs.
-            # These refs keep old PR commits reachable and make the cached .git grow run by run.
-            git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 1 -I {} git update-ref -d "{}" || true
-
-            # fetch pull requests and target branch.
-            timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
-
-            # checkout to refs.base_sha
-            git checkout -f origin/${refs.base_ref}
-
-            echo "🚧 Checkouting to base SHA:${refs.base_sha}..."
-            git checkout ${refs.base_sha}
-            echo "✅ Checked. 🎉"
-
-            echo "🧾 HEAD info:"
-            git rev-parse HEAD^{commit}
-            git log -n 3 --oneline
-
-            # merge pull requests to base if exist.
-            if [ -n "${pullsSHAs}" ]; then
-                echo "🚧 Pre-merge heads of pull requests to base SHA: ${refs.base_sha} ..."
-                git merge --no-edit ${pullsSHAs}
-
-                echo "🧾 Pre-merged result:"
-                git rev-parse HEAD^{commit}
-                git log -n 3 --oneline
-
-                echo "✅ Pre merged 🎉"
-            fi
-
-            git clean -ffdx
-            if [ "${withSubmodule}" == "true" ]; then
-                echo "📁 update submodules ..."
-                GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
-                echo "✅ update submodules done"
-            fi
-
-            # Git maintenance to keep cached workspaces bounded in size.
-            # Also run gc in submodules if present (workspace cache includes them).
-            (
-                git reflog expire --expire=now --all || true
-                git gc --prune=now || true
-                if [ -f .gitmodules ]; then
-                    git submodule foreach --recursive '
-                        git reflog expire --expire=now --all || true
-                        git gc --prune=now || true
-                    ' || true
-                fi
-            ) >/dev/null 2>&1 || true
-
-            echo "✅ ~~~~~All done.~~~~~~"
-        """
-    }
 }
 
 // get uniq cache save key by refs.
