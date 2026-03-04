@@ -60,13 +60,16 @@ def checkoutPublicRefs(refs, timeout = 5, withSubmodule = false, gitBaseUrl = 'h
 */
 def checkoutPrivateRefs(refs, credentialsId, timeout = 5, withSubmodule = false, gitSshHost = 'github.com') {
     def gitBaseUrl = ""
-    def knownHost = gitSshHost
-    if (gitSshHost?.trim()?.startsWith('http')) {
-        final host = new URL(gitSshHost).host
-        gitBaseUrl = "git@${host}"
-        knownHost = host
+    def knownHost = gitSshHost?.trim()
+    if (knownHost?.startsWith('http')) {
+        knownHost = knownHost.replaceFirst('^https?://', '')
+        knownHost = knownHost.replaceFirst('/.*$', '')
+    }
+    if (knownHost?.trim()) {
+        gitBaseUrl = "git@${knownHost}"
     } else {
-        gitBaseUrl = "git@${gitSshHost}"
+        knownHost = 'github.com'
+        gitBaseUrl = "git@${knownHost}"
     }
 
     final remoteUrl = "${gitBaseUrl}:${refs.org}/${refs.repo}.git"
