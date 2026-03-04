@@ -1,0 +1,136 @@
+global_definitions:
+  branches: &branches
+    - ^release-.*$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false # need add this.
+    max_concurrency: 2
+    labels:
+      master: "1"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap-inc/ticdc:
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_light
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-mysql-integration-light
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-light"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-mysql-integration-heavy
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-heavy"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_kafka_integration_light
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-kafka-integration-light
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-light"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_kafka_integration_heavy
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-kafka-integration-heavy
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-heavy"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_pulsar_integration_light
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-pulsar-integration-light
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-pulsar-integration-light"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_storage_integration_light
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-storage-integration-light
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-light"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_storage_integration_heavy
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-storage-integration-heavy
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-heavy"
+      branches: *branches
+
+    - name: pull-unit-test
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      branches:
+        - ^release-.*$
+      spec:
+        containers:
+          - name: check
+            image: &image ghcr.io/pingcap-qe/ci/base:v2025.12.7-3-g1c0b8cf-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make unit_test_in_verify_ci
+            resources:
+              requests:
+                memory: 24Gi
+                cpu: "12"
+              limits:
+                memory: 24Gi
+                cpu: "12"
+
+    - name: pull-build
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      branches:
+        - ^release-.*$
+      spec:
+        containers:
+          - name: build
+            image: *image
+            command: [bash, -ce]
+            args:
+              - |
+                make cdc
+            resources: &resources
+              requests:
+                memory: 12Gi
+                cpu: "6"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
+    - name: pull-check
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      branches:
+        - ^release-.*$
+      spec:
+        containers:
+          - name: check
+            image: *image
+            command: [bash, -ce]
+            args:
+              - |
+                make check
+            resources: *resources

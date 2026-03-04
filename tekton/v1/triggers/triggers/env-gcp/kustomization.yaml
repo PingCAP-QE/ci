@@ -16,8 +16,10 @@ resources:
   - _/github-tag-build-community-linux-fts.yaml
   - _/notify/notified-successful-image-delivery-cloud-tidbx.yaml
   - _/notify/notified-successful-image-delivery-tidbx.yaml
+  - pingcap-inc/ticdc/git-create-tag.yaml
   - pingcap-inc/tici/git-create-tag.yaml
   - pingcap-inc/tici/git-push.yaml
+  - pingcap-inc/tidb/git-create-tag.yaml
   - pingcap/advanced-statefulset/git-create-tag.yaml
   - pingcap/advanced-statefulset/git-push.yaml
   - pingcap/ctl/artifact-push-on-harbor.yaml

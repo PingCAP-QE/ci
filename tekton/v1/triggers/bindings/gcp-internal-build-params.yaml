@@ -1,0 +1,10 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: gcp-internal-build-params # only use in GCP clusters for internal builds
+spec:
+  params:
+    - name: registry
+      value: us-docker.pkg.dev/pingcap-testing-account/internal
+    - name: publisher-url
+      value: "https://do2.pingcap.net/publisher"
