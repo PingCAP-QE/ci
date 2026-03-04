@@ -56,7 +56,6 @@ presubmits:
       context: pull-cdc-storage-integration-light
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light"
-      branches: *branches
 
     - <<: [*jenkins_job, *brancher, *changer]
       name: pingcap/ticdc/pull_cdc_storage_integration_heavy
