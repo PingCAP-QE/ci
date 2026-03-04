@@ -79,7 +79,7 @@ pipeline {
                             git version
                             git status
                             """
-                            prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
+                            prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, gitBaseUrl = 'https://github.com', withSubmodule = true)
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"

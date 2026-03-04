@@ -17,7 +17,7 @@ def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'h
     final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
         retry(2) {
-            checkoutRefs(refs, timeout, credentialsId, gitBaseUrl, withSubmodule)
+            checkoutRefs(refs, credentialsId, timeout, gitBaseUrl, withSubmodule)
         }
     }
 }
@@ -27,13 +27,28 @@ def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, gitSshHost = 
     final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
         retry(2) {
-            checkoutPrivateRefs(refs, credentialsId, timeout, gitSshHost, withSubmodule)
+            checkoutPrivateRefs(refs, credentialsId, timeout, withSubmodule, gitSshHost)
         }
     }
 }
 
-def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
-    final remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
+def checkoutRefs(refs, credentialsId = '', timeout = 5, gitBaseUrl = 'https://github.com', withSubmodule = false) {
+    if (credentialsId?.trim()) {
+        checkoutPrivateRefs(refs, credentialsId, timeout, withSubmodule, gitBaseUrl)
+    } else {
+        checkoutPublicRefs(refs, timeout, withSubmodule, gitBaseUrl)
+    }
+}
+
+def checkoutPublicRefs(refs, timeout = 5, withSubmodule = false, gitBaseUrl = 'https://github.com') {
+    def remoteUrl = ""
+    // Whether the git base url param is a host format or a http url format.
+    if (gitBaseUrl ==~ /^[A-Za-z0-9.-]+(:\d+)?$/) {
+        remoteUrl = "https://${gitBaseUrl}/${refs.org}/${refs.repo}.git"
+    } else {
+        remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
+    }
+
     _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
 }
 
@@ -43,12 +58,22 @@ def checkoutRefs(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://gi
 * depended on plugins:
 *  - ssh-agent
 */
-def checkoutPrivateRefs(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
-    final remoteUrl = "git@${gitSshHost}:${refs.org}/${refs.repo}.git"
+def checkoutPrivateRefs(refs, credentialsId, timeout = 5, withSubmodule = false, gitSshHost = 'github.com') {
+    def gitBaseUrl = ""
+    def knownHost = gitSshHost
+    if (gitSshHost?.trim()?.startsWith('http')) {
+        final host = new URL(gitSshHost).host
+        gitBaseUrl = "git@${host}"
+        knownHost = host
+    } else {
+        gitBaseUrl = "git@${gitSshHost}"
+    }
+
+    final remoteUrl = "${gitBaseUrl}:${refs.org}/${refs.repo}.git"
     sshagent(credentials: [credentialsId]) {
         sh label: 'Know hosts', script: """
             [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-            ssh-keyscan -t rsa,ecdsa,ed25519 ${gitSshHost} >> ~/.ssh/known_hosts
+            ssh-keyscan -t rsa,ecdsa,ed25519 ${knownHost} >> ~/.ssh/known_hosts
         """
         _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
     }
