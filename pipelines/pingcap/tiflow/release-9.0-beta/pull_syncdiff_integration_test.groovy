@@ -45,7 +45,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         script {
                             retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, gitBaseUrl = 'https://github.com', withSubmodule = true)
+                                prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             }
                         }
                     }

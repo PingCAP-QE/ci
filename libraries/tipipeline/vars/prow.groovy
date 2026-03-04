@@ -17,7 +17,7 @@ def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'h
     final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
         retry(2) {
-            checkoutRefs(refs, credentialsId, timeout, gitBaseUrl, withSubmodule)
+            checkoutRefs(refs, credentialsId, timeout, withSubmodule, gitBaseUrl)
         }
     }
 }
@@ -32,7 +32,7 @@ def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, gitSshHost = 
     }
 }
 
-def checkoutRefs(refs, credentialsId = '', timeout = 5, gitBaseUrl = 'https://github.com', withSubmodule = false) {
+def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, gitBaseUrl = 'https://github.com') {
     if (credentialsId?.trim()) {
         checkoutPrivateRefs(refs, credentialsId, timeout, withSubmodule, gitBaseUrl)
     } else {

@@ -48,7 +48,7 @@ pipeline {
                         script {
                             git.setSshKey(GIT_CREDENTIALS_ID)
                             retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, gitBaseUrl = 'https://github.com', withSubmodule = true)
+                                prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             }
                         }
                     }

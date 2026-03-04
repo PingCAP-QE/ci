@@ -86,7 +86,7 @@ pipeline {
                             git status
                             """
                             git.setSshKey(GIT_CREDENTIALS_ID)
-                            prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, gitBaseUrl = 'https://github.com', withSubmodule = true)
+                            prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             // Get next-gen tiflash-proxy commit hash.
                             // For submodule, we need to enter the submodule directory and get the commit hash from there.
                             dir("contrib/tiflash-proxy-next-gen") {
