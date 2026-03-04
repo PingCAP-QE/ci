@@ -77,9 +77,9 @@ stage('Summary') {
     "Elapsed Time: `${duration}` Mins" + "\n" +
     "tidb-enterprise-tools Branch: `${TIDB_ENTERPRISE_TOOLS_BRANCH}`, Githash: `${tidb_enterprise_tools_sha1.take(7)}`" + "\n" +
     "tidb-enterprise-tools Binary Download URL:" + "\n" +
-    "http://download.pingcap.org/tidb-enterprise-tools-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
+    "http://download.pingcap.com/tidb-enterprise-tools-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
     "tidb-enterprise-tools Binary sha256   URL:" + "\n" +
-    "http://download.pingcap.org/tidb-enterprise-tools-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
+    "http://download.pingcap.com/tidb-enterprise-tools-${RELEASE_TAG}-linux-amd64.sha256" + "\n" +
     "tidb-enterprise-tools Docker Image: `pingcap/tidb-enterprise-tools:${RELEASE_TAG}`"
 
     if (currentBuild.result != "SUCCESS") {

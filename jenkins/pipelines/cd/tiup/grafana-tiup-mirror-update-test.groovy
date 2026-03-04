@@ -6,7 +6,7 @@ def download = { version, os, arch ->
         """
     }else {
         sh """
-        wget -qnc https://download.pingcap.org/grafana-${version}.${os}-${arch}.tar.gz
+        wget -qnc https://download.pingcap.com/grafana-${version}.${os}-${arch}.tar.gz
         """
     }
 }

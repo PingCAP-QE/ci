@@ -86,7 +86,7 @@ pipeline {
                         }
                     }
                     sh label: "download enterprise-tools-nightly", script: """
-                        wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools-nightly-linux-amd64.tar.gz https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
+                        wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools-nightly-linux-amd64.tar.gz https://download.pingcap.com/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
                         tar -xzf tidb-enterprise-tools-nightly-linux-amd64.tar.gz
                         mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/
                         rm -r tidb-enterprise-tools-nightly-linux-amd64

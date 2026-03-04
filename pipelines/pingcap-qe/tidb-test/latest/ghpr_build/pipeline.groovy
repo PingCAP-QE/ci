@@ -17,9 +17,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 30, unit: 'MINUTES')
     }
@@ -59,7 +56,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
                             }
                         }
                     }

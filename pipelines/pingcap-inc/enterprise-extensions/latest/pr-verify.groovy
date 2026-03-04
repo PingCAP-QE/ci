@@ -56,7 +56,7 @@ pipeline {
                 dir('tidb/pkg/extension/enterprise') {
                     retry(2) {
                         script {
-                            prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
                             sh """
                             git rev-parse --show-toplevel
                             git status -s .
