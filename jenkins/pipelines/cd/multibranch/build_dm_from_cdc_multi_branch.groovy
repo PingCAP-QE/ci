@@ -293,7 +293,7 @@ try {
                         }
                         if ((branch.startsWith("release-") && branch < "release-7.5") || (branch.startsWith("v") && branch < "v7.5")) {
                             sh """
-                            curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
+                            curl http://download.pingcap.com/mydumper-latest-linux-amd64.tar.gz | tar xz
                             mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
                             """
                         }
