@@ -53,7 +53,6 @@ presubmits:
 
     - <<: [*jenkins_job, *brancher, *changer]
       name: pingcap/ticdc/pull_cdc_storage_integration_light
-      skip_if_only_changed: *skip_if_only_changed
       context: pull-cdc-storage-integration-light
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light"
