@@ -28,7 +28,7 @@ def delivery = { arch ->
 
         #yes|cp -R /etc/.aws /root
 
-        aws s3 cp ${dst}.tar.gz s3://download.pingcap.org/${dst}.tar.gz --acl public-read
+        aws s3 cp ${dst}.tar.gz s3://download.pingcap.com/${dst}.tar.gz --acl public-read
         echo "upload $dst successed!"
         """
     }else {
@@ -42,7 +42,7 @@ def delivery = { arch ->
 
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
         upload.py ${dst}.tar.gz ${dst}.tar.gz
-        aws s3 cp ${dst}.tar.gz s3://download.pingcap.org/${dst}.tar.gz --acl public-read
+        aws s3 cp ${dst}.tar.gz s3://download.pingcap.com/${dst}.tar.gz --acl public-read
         echo "upload $dst successed!"
         """
     }
