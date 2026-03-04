@@ -1,0 +1,30 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-push-tikv-migration
+  labels:
+    type: github-branch-push
+    github-owner: tikv
+    github-repo: migration
+spec:
+  interceptors:
+    - name: filter on repo and branches
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name == 'tikv/migration'
+            &&
+            body.ref.matches('^refs/heads/main$')
+
+  bindings:
+    - ref: github-branch-push
+    - ref: gcp-classic-build-params
+    - { name: component, value: migration }
+    - { name: os, value: linux }
+    - { name: profile, value: release }
+    - { name: source-ws-size, value: 20Gi }
+    - { name: timeout, value: 60m }
+
+  template:
+    ref: build-component-linux
