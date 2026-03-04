@@ -2,93 +2,72 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^release-.*$
+  k8s_job: &k8s_job
+    decorate: true
+    decoration_config:
+      oauth_token_secret:
+        name: github-token
+        key: token
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false
+    labels:
+      master: "0"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap-inc/tidb:
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_build
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_check
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_check2
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_mysql_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_unit_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_unit_test_ddlv1
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-ddlv1(?: .*?)?$"
       rerun_command: "/test pull-unit-test-ddlv1"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_br_integration_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       context: pull-br-integration-test
       run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_lightning_integration_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       context: pull-lightning-integration-test
       always_run: false
       optional: true
@@ -96,12 +75,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
       rerun_command: "/test pull-lightning-integration-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_ddl_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-ddl-test
@@ -109,12 +84,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_mysql_client_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-mysql-client-test
@@ -122,24 +93,16 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
       rerun_command: "/test pull-mysql-client-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_mysql_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_copr_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-copr-test
@@ -147,12 +110,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_jdbc_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-jdbc-test
@@ -160,12 +119,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
       rerun_command: "/test pull-integration-jdbc-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_e2e_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-e2e-test
@@ -173,12 +128,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-e2e-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_common_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-common-test
@@ -186,12 +137,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
       rerun_command: "/test pull-common-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_common_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-common-test
@@ -199,12 +146,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
       rerun_command: "/test pull-integration-common-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_sqllogic_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-sqllogic-test
@@ -212,12 +155,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
       rerun_command: "/test pull-sqllogic-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_nodejs_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-nodejs-test
@@ -225,12 +164,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-nodejs-test(?: .*?)?$"
       rerun_command: "/test pull-integration-nodejs-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_python_orm_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-python-orm-test
@@ -238,12 +173,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
       rerun_command: "/test pull-integration-python-orm-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_e2e_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-e2e-test
@@ -251,12 +182,8 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-integration-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-integration-e2e-test"
 
-    - <<: *brancher
+    - <<: [*jenkins_job, *brancher]
       name: pingcap/tidb/release-8.5/pull_integration_tidb_tools_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-tidb-tools-test
