@@ -6,8 +6,9 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.5/pod-pull_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final GIT_CREDENTIALS_ID = ''
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
