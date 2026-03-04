@@ -41,7 +41,7 @@ pipeline {
                 dir(REFS.repo) {
                     // Checkout
                     script {
-                        prow.checkoutRefsWithCacheLock(REFS)
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                     script {
                         // Build common binaries
