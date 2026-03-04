@@ -10,6 +10,7 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TICDC_NEW = (REFS.base_ref == "feature/materialized_view" ? "release-8.5" : component.computeArtifactOciTagFromPR('ticdc', REFS.base_ref, REFS.pulls[0].title, 'master'))
+final GIT_CREDENTIALS_ID = ''
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -33,7 +34,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
                     }
