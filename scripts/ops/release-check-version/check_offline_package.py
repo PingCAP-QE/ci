@@ -18,7 +18,7 @@ def get_base_url(is_internal=None):
     Returns:
         tuple: (public_base_url, internal_base_url, use_internal)
     """
-    public_base_url = "https://download.pingcap.org"
+    public_base_url = "https://download.pingcap.com"
     internal_base_url = "http://fileserver.pingcap.net/download/release"
 
     # If is_internal is explicitly provided, use it

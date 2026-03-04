@@ -9,11 +9,6 @@ pipelineJob('pingcap/tidb/periodics_integration_test') {
     properties {
         // priority(0) // 0 fast than 1
         githubProjectUrl("https://github.com/pingcap/tidb")
-        pipelineTriggers {
-            triggers {
-                cron{ spec('0 * * * *') }
-            }
-        }
         disableConcurrentBuilds()
     }
 
