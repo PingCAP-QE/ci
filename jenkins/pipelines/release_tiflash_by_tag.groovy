@@ -55,9 +55,9 @@ catchError {
             """
 
             sh """
-             aws s3 cp ${target}.tar.gz s3://download.pingcap.org/${target}.tar.gz --acl public-read
-             aws s3 cp ${target}.sha256 s3://download.pingcap.org/${target}.sha256 --acl public-read
-             aws s3 cp ${target}.md5 s3://download.pingcap.org/${target}.md5 --acl public-read
+             aws s3 cp ${target}.tar.gz s3://download.pingcap.com/${target}.tar.gz --acl public-read
+             aws s3 cp ${target}.sha256 s3://download.pingcap.com/${target}.sha256 --acl public-read
+             aws s3 cp ${target}.md5 s3://download.pingcap.com/${target}.md5 --acl public-read
              """
             }
             stage('Push Docker Image') {
@@ -84,9 +84,9 @@ stage('Summary') {
     "Elapsed Time: `${duration}` Mins" + "\n" +
     "tiflash Branch: `${RELEASE_TAG}`, Githash: `${tiflash_sha1.take(7)}`" + "\n" +
     "tiflash Binary Download URL:" + "\n" +
-    "http://download.pingcap.org/tiflash-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
+    "http://download.pingcap.com/tiflash-${RELEASE_TAG}-linux-amd64.tar.gz" + "\n" +
     "tiflash Binary sha256   URL:" + "\n" +
-    "http://download.pingcap.org/tiflash-${RELEASE_TAG}-linux-amd64.sha256" + "\n"
+    "http://download.pingcap.com/tiflash-${RELEASE_TAG}-linux-amd64.sha256" + "\n"
 
     if (currentBuild.result != "SUCCESS") {
         slackSend channel: '#binary_publish', color: 'danger', teamDomain: 'pingcap', tokenCredentialId: 'slack-pingcap-token', message: "${slackmsg}"

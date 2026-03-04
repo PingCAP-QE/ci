@@ -154,7 +154,7 @@ catchError {
 
                 // tools
                 sh label: "download enterprise-tools-nightly", script: """
-                curl https://download.pingcap.org/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz
+                curl https://download.pingcap.com/tidb-enterprise-tools-nightly-linux-amd64.tar.gz | tar xz
                 mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/
                 rm -r tidb-enterprise-tools-nightly-linux-amd64
                 """

@@ -33,7 +33,7 @@ pipeline {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE_BUILD
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
                     defaultContainer 'golang'
                 }
             }
@@ -97,7 +97,7 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'golang'
                     }
                 }

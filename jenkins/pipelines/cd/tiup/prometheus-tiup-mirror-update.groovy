@@ -12,7 +12,7 @@ def download = { version, os, arch ->
         """
     }else {
         sh """
-        wget -qnc https://download.pingcap.org/prometheus-${version}.${os}-${arch}.tar.gz
+        wget -qnc https://download.pingcap.com/prometheus-${version}.${os}-${arch}.tar.gz
         """
     }
     def platform = ""

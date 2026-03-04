@@ -113,7 +113,7 @@ try {
                         mv dm/master/dm-master.toml ${target}/conf/
                         mv dm/worker/dm-worker.toml ${target}/conf/
                         mv LICENSE ${target}/
-                        curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
+                        curl http://download.pingcap.com/mydumper-latest-linux-amd64.tar.gz | tar xz
                         mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
                         tar -czvf ${target}.tar.gz ${target}
 
@@ -258,7 +258,7 @@ try {
                     mv dm/master/dm-master.toml ${target}/conf/
                     mv dm/worker/dm-worker.toml ${target}/conf/
                     mv LICENSE ${target}/
-                    # curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
+                    # curl http://download.pingcap.com/mydumper-latest-linux-amd64.tar.gz | tar xz
                     # mv mydumper-latest-linux-amd64/bin/mydumper ${target}/bin/ && rm -rf mydumper-latest-linux-amd64
                     tar -czvf ${target}.tar.gz ${target}
 
