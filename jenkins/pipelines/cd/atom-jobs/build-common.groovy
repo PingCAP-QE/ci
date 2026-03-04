@@ -513,7 +513,7 @@ if [[ -d "dm/dm/dm-ansible" ]]; then
 fi;
 
 if [[ ${ARCH} == "amd64" && ${RELEASE_TAG} < "v7.5.0" ]]; then
-    curl http://download.pingcap.org/mydumper-latest-linux-amd64.tar.gz | tar xz
+    curl http://download.pingcap.com/mydumper-latest-linux-amd64.tar.gz | tar xz
     mv mydumper-latest-linux-amd64/bin/mydumper bin/ && rm -rf mydumper-latest-linux-amd64
 fi;
 cp bin/* ${TARGET}/bin/

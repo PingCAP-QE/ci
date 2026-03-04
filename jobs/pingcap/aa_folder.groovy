@@ -32,7 +32,7 @@ folder('pingcap') {
                     cachingConfiguration {
                         // Determines the amount of time until the cache is refreshed.
                         // 0 means disable auto refresh
-                        refreshTimeMinutes(0)
+                        refreshTimeMinutes(60)
                         // Space separated list of versions to exclude from caching via substring search using .contains() method.
                         excludedVersionsStr('feature/ fix/ bugfix/')
                         //Space separated list of versions to include to allow caching via substring search using .contains() method. Ex: "release/ master".
