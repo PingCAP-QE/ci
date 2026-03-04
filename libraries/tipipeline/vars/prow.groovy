@@ -42,11 +42,11 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, gitBaseUrl = 'https://gi
 
 def checkoutPublicRefs(refs, timeout = 5, withSubmodule = false, gitBaseUrl = 'https://github.com') {
     def remoteUrl = ""
-    // Whether the git base url param is a host format or a http url format.
-    if (gitBaseUrl ==~ /^[A-Za-z0-9.-]+(:\d+)?$/) {
-        remoteUrl = "https://${gitBaseUrl}/${refs.org}/${refs.repo}.git"
-    } else {
+    // Whether the git base url param is a full URL or a hostname.
+    if (gitBaseUrl?.trim()?.startsWith('http')) {
         remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
+    } else {
+        remoteUrl = "https://${gitBaseUrl}/${refs.org}/${refs.repo}.git"
     }
 
     _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
