@@ -249,6 +249,7 @@ export async function main(args: string[]): Promise<number> {
     token: cli.githubToken,
     allowCreate: cli.issueCreate,
     allowReopen: cli.issueReopen,
+    allowComment: cli.issueComment,
     dryRun: cli.issueDryRun,
     labels: cli.issueLabels,
     repoOverride: cli.issueRepoOverride,

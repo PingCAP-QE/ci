@@ -115,6 +115,8 @@ Required permissions:
   - Enable creating new GitHub issues (default false).
 - --issue-reopen
   - Enable reopening closed GitHub issues (default false).
+- --issue-comment
+  - Enable adding comments to open/reopened issues (default false).
 - --issue-dry-run
   - Dry-run for issue create/reopen/label/comment (search still runs).
 - --issue-labels
@@ -176,7 +178,7 @@ Defaults:
 - When a GitHub token is provided, the reporter searches issues by title (branch is not part of the title).
 - New issues are created only with `--issue-create`; closed issues are reopened only with `--issue-reopen`.
 - The configured labels are applied to any matched/created issue.
-- For open or reopened issues, a comment is appended with the current window’s stats.
+- For open or reopened issues, a comment is appended with the current window’s stats only when `--issue-comment` is enabled.
 - Branch aggregation: all branches for the same (repo, suite, case) map to the same issue; branch-specific stats are added as comments.
 - Issue mutations (create/reopen/label/comment) are limited to the Top 10 flakiest cases; other cases are only searched and shown in the “By Case” table.
 - Dry-run: `--issue-dry-run` skips create/reopen/label/comment (search still runs).

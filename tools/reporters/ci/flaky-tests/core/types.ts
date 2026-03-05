@@ -66,6 +66,7 @@ export interface CliConfig {
   githubToken?: string;
   issueCreate: boolean;
   issueReopen: boolean;
+  issueComment: boolean;
   issueDryRun: boolean;
   issueRepoOverride?: string;
   issueLabels: string[];

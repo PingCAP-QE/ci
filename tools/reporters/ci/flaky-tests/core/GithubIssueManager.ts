@@ -5,6 +5,7 @@ interface IssueManagerOptions {
   token?: string;
   allowCreate: boolean;
   allowReopen: boolean;
+  allowComment: boolean;
   dryRun: boolean;
   labels: string[];
   repoOverride?: string;
@@ -124,6 +125,7 @@ export class GithubIssueManager {
   private readonly enabled: boolean;
   private readonly allowCreate: boolean;
   private readonly allowReopen: boolean;
+  private readonly allowComment: boolean;
   private readonly dryRun: boolean;
   private readonly labels: string[];
   private readonly repoOverride?: string;
@@ -137,6 +139,7 @@ export class GithubIssueManager {
       : undefined;
     this.allowCreate = !!opts.allowCreate;
     this.allowReopen = !!opts.allowReopen;
+    this.allowComment = !!opts.allowComment;
     this.dryRun = !!opts.dryRun;
     this.labels = opts.labels ?? [];
     this.repoOverride = opts.repoOverride;
@@ -298,7 +301,8 @@ export class GithubIssueManager {
     }
 
     const shouldComment =
-      !created && issue.state === "open" && this.allowCommentForStatus(status);
+      this.allowComment && !created && issue.state === "open" &&
+      this.allowCommentForStatus(status);
 
     if (!shouldComment) return;
 

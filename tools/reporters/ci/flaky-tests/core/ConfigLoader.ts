@@ -110,6 +110,7 @@ Options:
   --github-token <token>    GitHub token (or env GITHUB_TOKEN/GH_TOKEN)
   --issue-create            Enable creating new GitHub issues (default false)
   --issue-reopen            Enable reopening closed GitHub issues (default false)
+  --issue-comment           Enable adding comments to open/reopened issues (default false)
   --issue-dry-run           Dry-run GitHub issue create/reopen/label/comment
   --issue-labels <a,b,c>    Labels to apply, default "flaky-test,component/test"
   --issue-repo <owner/repo> Override repo for issue operations (validation mode)
@@ -167,6 +168,7 @@ Examples:
         "help",
         "issue-create",
         "issue-reopen",
+        "issue-comment",
         "issue-dry-run",
       ],
       alias: {
@@ -181,6 +183,7 @@ Examples:
         "issue-labels": "flaky-test,component/test",
         "issue-create": false,
         "issue-reopen": false,
+        "issue-comment": false,
         "issue-dry-run": false,
         "dry-run": false,
         verbose: false,
@@ -229,6 +232,7 @@ Examples:
         Deno.env.get("GH_TOKEN"),
       issueCreate: !!flags["issue-create"],
       issueReopen: !!flags["issue-reopen"],
+      issueComment: !!flags["issue-comment"],
       issueDryRun: !!flags["issue-dry-run"],
       issueRepoOverride: flags["issue-repo"],
       issueLabels: parseLabelList(flags["issue-labels"]),
