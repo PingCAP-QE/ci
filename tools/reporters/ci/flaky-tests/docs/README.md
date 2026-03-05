@@ -18,7 +18,7 @@ Given a date/time range, the reporter:
 - Aggregates into:
   - Top 10 flakiest cases
   - By Case
-    - Columns: owner, repo, branch, package (suite), case, flaky count, time-thresholded count, latest build, quick links (issue search/new)
+    - Columns: owner, repo, branch, package (suite), case, flaky count, time-thresholded count, latest build, issue link + status
   - By Team
     - Columns: owner, repo, branch, count of distinct flaky cases, count of distinct time-thresholded cases
   - By Suite
@@ -27,6 +27,7 @@ Given a date/time range, the reporter:
   - A YAML/JSON file (if provided), or
   - A DB table (all rows are loaded once), when no file is provided.
 - Outputs a single HTML file. Optionally writes a JSON file. Optionally emails the HTML.
+- Optionally syncs GitHub issues (search/create/reopen/labels/comments) and embeds links/status in the report.
 
 Notes about current owner-matching behavior:
 - Branch is not considered for matching (even if present in data). See “Team owner mapping” for details.
@@ -42,6 +43,7 @@ Notes about current owner-matching behavior:
 - Deno 1.45+ (https://deno.land)
 - Network access to your MySQL instance that hosts `problem_case_runs`
 - Optional: SMTP server access if you plan to email the report
+- Optional: GitHub token if you want issue sync (search/create/reopen/labels/comments)
 
 ---
 
@@ -107,6 +109,22 @@ Required permissions:
 - --email-subject
   - Email subject. Default: Flaky Report
 
+- --github-token
+  - GitHub token for issue operations (or env GITHUB_TOKEN/GH_TOKEN).
+- --issue-create
+  - Enable creating new GitHub issues (default false).
+- --issue-reopen
+  - Enable reopening closed GitHub issues (default false).
+- --issue-dry-run
+  - Dry-run for issue create/reopen/label/comment (search still runs).
+- --issue-labels
+  - Comma-separated labels to apply. Default: flaky-test,component/test
+- --issue-repo
+  - Override repo for issue operations (validation mode).
+- --issue-subscribe-text-file
+  - File containing the subscription help text placed before the first table.
+  - Default: "You can substitute the flaky test issues by TiRelease Bot with '/sub --repo=pingcap/tidb --label=flaky-test'"
+
 - --dry-run
   - Prints a summary and top cases to stdout; does not write files or send emails.
 - --verbose
@@ -117,6 +135,8 @@ Required permissions:
 Notes:
 - If both an owner map file and owner table are provided, the file is used exclusively.
 - --repo and --branch only filter the DB query; they do not affect owner resolution.
+- GitHub issue matching ignores branch; branch-specific stats are appended as comments.
+- When --issue-repo is set, issue titles include the original repo to avoid collisions.
 
 ---
 
@@ -142,8 +162,25 @@ SMTP (if emailing):
 - SMTP_SECURE
   - “true” or “false” (default true). When true, a TLS connection is used.
 
+GitHub:
+- GITHUB_TOKEN
+- GH_TOKEN
+
 Defaults:
 - THRESHOLD_MS (default 600000)
+
+---
+
+## GitHub issue integration
+
+- When a GitHub token is provided, the reporter searches issues by title (branch is not part of the title).
+- New issues are created only with `--issue-create`; closed issues are reopened only with `--issue-reopen`.
+- The configured labels are applied to any matched/created issue.
+- For open or reopened issues, a comment is appended with the current window’s stats.
+- Branch aggregation: all branches for the same (repo, suite, case) map to the same issue; branch-specific stats are added as comments.
+- Issue mutations (create/reopen/label/comment) are limited to the Top 10 flakiest cases; other cases are only searched and shown in the “By Case” table.
+- Dry-run: `--issue-dry-run` skips create/reopen/label/comment (search still runs).
+- Validation repo: `--issue-repo` targets a specific repo for all issue ops; titles include the original repo to avoid collisions.
 
 ---
 
@@ -168,6 +205,12 @@ Defaults:
     --email-to qa@example.com,eng-leads@example.com \
     --email-from ci-bot@example.com \
     --email-subject "Weekly Flaky Report"
+
+5) Sync GitHub issues (search + label + comment, optionally create/reopen):
+- deno run -A main.ts --range 7d \
+    --github-token "$GITHUB_TOKEN" \
+    --issue-create --issue-reopen \
+    --issue-labels flaky-test,component/test
 
 ---
 
@@ -283,18 +326,18 @@ HTML (default: flaky-report.html)
 - Sections:
   - Header KPIs:
     - Window, Repos, Suites, Cases, Flaky Cases, Threshold (ms), Time Thresholded Cases
+    - Subscription note for flaky issue updates (configurable via --issue-subscribe-text-file)
   - Top 10 Flakiest Cases
     - Ranks the top 10 by flakyCount desc, then thresholdedCount desc, then key alpha.
   - By Case
-    - Columns: Team Owner, Repo, Branch, Package, Case, Flaky Count, Time Thresholded Count, Latest Build, Issue Search, Create Issue
+    - Columns: Team Owner, Repo, Branch, Package, Case, Flaky Count, Time Thresholded Count, Latest Build, Issue (link + status)
   - By Team
     - Columns: Team Owner, Repo, Branch, Flaky Cases, Time Thresholded Cases
   - By Suite
     - Columns: Team Owner, Repo, Branch, Package, Flaky Cases, Time Thresholded Cases
 - Links:
   - “Latest Build” links to the most recent build_url in the window (best-effort).
-  - “Issue Search” links to a GitHub search using the case name.
-  - “Create Issue” opens a prefilled GitHub new issue link.
+  - “Issue” links to the matched/new/reopened GitHub issue if available; otherwise provides search/new links and shows status (open/new/reopened/closed/missing/disabled/error, dry-run annotated).
 
 JSON (via --json)
 - Keys:
@@ -304,6 +347,8 @@ JSON (via --json)
   - bySuite: [...]
   - byCase: [...]
   - topFlakyCases: [...]
+  - issueMeta: { subscriptionText, repoOverride, titleIncludesRepo, enabled, dryRun }
+  - byCase[].issue: { repo, number, url, state, status, dryRun, note }
 
 Email (via --email-to/--email-from)
 - Sends an HTML email (inline).
