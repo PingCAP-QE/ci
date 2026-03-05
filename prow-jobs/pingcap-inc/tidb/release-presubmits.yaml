@@ -2,6 +2,7 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^release-.*$
+      - ^feature/release-8[.]5[.]5-active-active$
   k8s_job: &k8s_job
     decorate: true
     decoration_config:
