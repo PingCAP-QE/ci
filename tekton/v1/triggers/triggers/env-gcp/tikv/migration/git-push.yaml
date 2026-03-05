@@ -13,8 +13,6 @@ spec:
       params:
         - name: filter
           value: >-
-            body.deleted != true
-            &&
             body.repository.full_name == 'tikv/migration'
             &&
             body.ref.matches('^refs/heads/main$')
