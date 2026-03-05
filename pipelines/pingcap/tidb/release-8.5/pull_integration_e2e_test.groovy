@@ -15,6 +15,9 @@ pipeline {
             defaultContainer 'golang'
         }
     }
+    environment {
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+    }
     options {
         timeout(time: 60, unit: 'MINUTES')
     }
