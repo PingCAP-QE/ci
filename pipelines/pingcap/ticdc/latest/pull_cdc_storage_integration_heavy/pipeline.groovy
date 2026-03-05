@@ -60,7 +60,7 @@ pipeline {
                                     sh label: "download tidb components", script: """
                                         export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
                                         chmod +x \$script
-                                        OCI_ARTIFACT_HOST=${REFS.org == 'pingcap-inc' ? 'hub-zot.pingcap.net/mirrors/internal' : 'us-docker.pkg.dev/pingcap-testing-account/hub'} \$script --tidb=${OCI_TAG_TIDB}
+                                        OCI_ARTIFACT_HOST=${REFS.org == 'pingcap-inc' ? 'us-docker.pkg.dev/pingcap-testing-account/internal' : 'us-docker.pkg.dev/pingcap-testing-account/hub'} \$script --tidb=${OCI_TAG_TIDB}
                                         \$script \
                                             --pd=${OCI_TAG_PD} \
                                             --pd-ctl=${OCI_TAG_PD} \
