@@ -9,8 +9,9 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.5/pod-pull_check2.ya
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-prow.setPRDescription(REFS)
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -47,7 +48,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
                     }
