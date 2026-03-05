@@ -8,6 +8,7 @@ final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.5/pod-pull_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final TIDB_TEST_BRANCH = REFS.org == 'pingcap-inc' ? 'release-8.5-20260121-v8.5.5' : REFS.base_ref
 
 // TODO(wuhuizuo): tidb-test should delivered by docker image.
 prow.setPRDescription(REFS)
@@ -54,11 +55,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                if (REFS.org == 'pingcap-inc') {
-                                    component.checkoutSingle('git@github.com:PingCAP-QE/tidb-test.git', 'release-8.5-20260121-v8.5.5', 'release-8.5-20260121-v8.5.5', GIT_CREDENTIALS_ID)
-                                } else {
-                                    component.checkoutSupportBatch('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, REFS, GIT_CREDENTIALS_ID)
-                                }
+                                component.checkoutSingle('git@github.com:PingCAP-QE/tidb-test.git', TIDB_TEST_BRANCH, TIDB_TEST_BRANCH, GIT_CREDENTIALS_ID)
                             }
                         }
                     }
