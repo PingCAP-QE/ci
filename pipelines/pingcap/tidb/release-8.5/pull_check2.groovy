@@ -13,38 +13,25 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    defaultContainer 'golang'
                 }
             }
-        }
-        stage('Checkout') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -52,21 +39,17 @@ pipeline {
                             }
                         }
                     }
-                }
-            }
-        }
-        stage("Prepare") {
-            steps {
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                    cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS)) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     container("utils") {
                         dir("bin") {
-                            retry(3) {
-                                sh label: 'download tidb components', script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                """
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
                             }
                         }
                     }
@@ -117,7 +100,9 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
-                        environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
+                        environment {
+                            CODECOV_TOKEN = credentials('codecov-token-tidb')
+                        }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
@@ -166,16 +151,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
