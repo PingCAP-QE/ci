@@ -22,21 +22,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
@@ -59,10 +44,6 @@ pipeline {
                 }
             }
             post {
-                success {
-                    dir(REFS.repo) {
-                    }
-                }
                 always {
                     dir(REFS.repo) {
                         archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
@@ -109,15 +90,6 @@ pipeline {
                     killall -9 -r tidb-server
                 """
             }
-        }
-    }
-    post {
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
