@@ -56,7 +56,11 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
                             script {
-                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                if (REFS.org == 'pingcap-inc') {
+                                    component.checkoutSingle('git@github.com:PingCAP-QE/tidb-test.git', 'release-8.5-20260121-v8.5.5', 'release-8.5-20260121-v8.5.5', GIT_CREDENTIALS_ID)
+                                } else {
+                                    component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                                }
                             }
                         }
                     }

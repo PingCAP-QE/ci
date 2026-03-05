@@ -7,10 +7,10 @@ final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final OCI_TAG_PD = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIDB = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIFLASH = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = REFS.org == 'pingcap-inc' ? REFS.base_ref : component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIDB = REFS.org == 'pingcap-inc' ? REFS.base_ref : component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = REFS.org == 'pingcap-inc' ? REFS.base_ref : component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = REFS.org == 'pingcap-inc' ? REFS.base_ref : component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
 final OCI_TAG_ETCD = 'v3.5.15'
@@ -21,8 +21,8 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        // internal mirror is 'hub-zot.pingcap.net/mirrors/hub'
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        // for pingcap-inc org, use internal mirror; for public repos, use public registry
+        OCI_ARTIFACT_HOST = REFS.org == 'pingcap-inc' ? 'hub-zot.pingcap.net/mirrors/internal' : 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
