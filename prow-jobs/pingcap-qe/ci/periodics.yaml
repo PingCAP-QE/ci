@@ -56,6 +56,7 @@ periodics:
                 --github-token="${GITHUB_TOKEN}" \
                 --issue-create \
                 --issue-reopen \
+                --issue-comment \
                 --issue-labels "${PARAM_ISSUE_LABELS}" \
                 --email-to="${PARAM_EMAIL_TO}" \
                 --email-cc="${PARAM_EMAIL_CC}" \
