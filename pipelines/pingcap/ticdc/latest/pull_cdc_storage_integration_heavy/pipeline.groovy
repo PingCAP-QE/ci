@@ -24,8 +24,8 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        // for pingcap-inc use hub mirror (tidb uses internal mirror); for public repos use public registry
-        OCI_ARTIFACT_HOST = REFS.org == 'pingcap-inc' ? 'hub-zot.pingcap.net/mirrors/hub' : 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        // internal mirror is 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
