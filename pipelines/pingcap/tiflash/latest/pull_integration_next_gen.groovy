@@ -140,19 +140,21 @@ pipeline {
                 expression { !build_cache_ready }
             }
             steps {
-                dir("${WORKSPACE}/tiflash") {
-                    // TODO: add license-eye to docker image
-                    sh label: "license header check", script: """
-                        echo "license check"
-                        if [[ -f .github/licenserc.yml ]]; then
-                            oras pull \${OCI_ARTIFACT_HOST}/pingcap/ci-tools/license-eye:v0.4.0_linux_amd64 --output .
-                            chmod +x license-eye
-                            ./license-eye -c .github/licenserc.yml header check
-                        else
-                            echo "skip license check"
-                            exit 0
-                        fi
-                    """
+                container('utils') {
+                    dir("${WORKSPACE}/tiflash") {
+                        // TODO: add license-eye to docker image
+                        sh label: "license header check", script: """
+                            echo "license check"
+                            if [[ -f .github/licenserc.yml ]]; then
+                                oras pull \${OCI_ARTIFACT_HOST}/pingcap/ci-tools/license-eye:v0.4.0_linux_amd64 --output .
+                                chmod +x license-eye
+                                ./license-eye -c .github/licenserc.yml header check
+                            else
+                                echo "skip license check"
+                                exit 0
+                            fi
+                        """
+                    }
                 }
             }
         }
