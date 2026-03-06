@@ -61,6 +61,17 @@ export interface CliConfig {
   // Behavior
   dryRun: boolean;
   verbose: boolean;
+
+  // GitHub issue integration
+  githubToken?: string;
+  issueCreate: boolean;
+  issueReopen: boolean;
+  issueComment: boolean;
+  issueMutationLimit: number;
+  issueDryRun: boolean;
+  issueRepoOverride?: string;
+  issueLabels: string[];
+  issueSubscribeTextPath?: string;
 }
 
 /**
@@ -147,6 +158,7 @@ export interface CaseAgg {
   latestBuildUrl?: string;
   latestReportTime?: Date;
   previousWeekFlakyCount?: number;
+  issue?: GithubIssueInfo;
 }
 
 /**
@@ -190,6 +202,34 @@ export interface ReportData {
   bySuite: SuiteAgg[];
   byCase: CaseAgg[];
   topFlakyCases: CaseAgg[];
+  issueMeta?: IssueMeta;
+}
+
+export type GithubIssueStatus =
+  | "open"
+  | "new"
+  | "reopened"
+  | "closed"
+  | "missing"
+  | "disabled"
+  | "error";
+
+export interface GithubIssueInfo {
+  repo: string;
+  number?: number;
+  url?: string;
+  state?: "open" | "closed";
+  status: GithubIssueStatus;
+  dryRun?: boolean;
+  note?: string;
+}
+
+export interface IssueMeta {
+  subscriptionText: string;
+  repoOverride?: string;
+  titleIncludesRepo?: boolean;
+  enabled?: boolean;
+  dryRun?: boolean;
 }
 
 /* --------------------------------- Constants -------------------------------- */

@@ -8,6 +8,11 @@ final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_ETCD = 'v3.5.15'
+final OCI_TAG_YCSB = 'v1.0.3'
 
 pipeline {
     agent {
@@ -18,7 +23,11 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        // OCI artifact registry: hub-zot.pingcap.net/mirrors/hub
+        // tidb-server: hub-zot.pingcap.net/mirrors/hub/pingcap/tidb/package:<tag>_linux_amd64
+        // tikv-server: hub-zot.pingcap.net/mirrors/hub/tikv/tikv/package:<tag>_linux_amd64
+        // pd-server:   hub-zot.pingcap.net/mirrors/hub/tikv/pd/package:<tag>_linux_amd64
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 65, unit: 'MINUTES')
@@ -66,10 +75,26 @@ pipeline {
             steps {
                 dir('migration') {
                     cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
+                        container("utils") {
+                            sh label: 'download test binaries via OCI', script: """
+                                mkdir -p ./cdc/scripts/bin
+                                cd ./cdc/scripts/bin
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                    --tidb=${OCI_TAG_TIDB} \
+                                    --tikv=${OCI_TAG_TIKV} \
+                                    --pd=${OCI_TAG_PD} \
+                                    --pd-ctl=${OCI_TAG_PD} \
+                                    --etcdctl=${OCI_TAG_ETCD} \
+                                    --ycsb=${OCI_TAG_YCSB}
+                                chmod +x tidb-server tikv-server pd-server pd-ctl etcdctl go-ycsb
+                                cd ../../
+                                touch prepare_test_binaries
+                                ls -alh
+                            """
+                        }
                         container("golang") {
                             sh label: 'integration test prepare', script: """#!/usr/bin/env bash
                             cd cdc/
-                            make prepare_test_binaries
                             make check_third_party_binary
                             make integration_test_build
                             """
