@@ -413,9 +413,9 @@ EOF
     fi
 
     if [[ -n "$source_build_url" ]]; then
-        vlog "scriptText source build: $(trim_trailing_slash "$source_build_url")"
+        vlog "🔍 scriptText source build: $(trim_trailing_slash "$source_build_url")"
     fi
-    vlog "scriptText queue URL: $(trim_trailing_slash "$queue_url")"
+    vlog "🛤️ scriptText queue URL: $(trim_trailing_slash "$queue_url")"
 
     local target_url
     target_url="$(wait_queue_to_build_url "$queue_url" "$timeout_sec" "$poll_sec")"
@@ -451,7 +451,7 @@ replay_one() {
         fi
 
         build_url="${job_url}/${SELECTOR}"
-        vlog "selected historical build from job URL: ${job_url} + ${SELECTOR}"
+        vlog "💼 selected historical build from job URL: ${job_url} + ${SELECTOR}"
     fi
 
     build_url="$(trim_trailing_slash "$build_url")"
@@ -483,11 +483,11 @@ replay_one() {
         [[ -n "$resolved_url" ]] || fatal "failed to resolve concrete build URL from ${build_url}"
 
         build_url="$(trim_trailing_slash "$resolved_url")"
-        vlog "resolved selector to concrete build URL: ${build_url}"
+        vlog "🧮 resolved selector to concrete build URL: ${build_url}"
     fi
 
-    log "replay source build: ${build_url}"
-    log "pipeline script file: ${script_file}"
+    log "🔍 replay source build: ${build_url}"
+    log "📃 pipeline script file: ${script_file}"
     if [[ "$replay_script_file" != "$script_file" ]]; then
         vlog "effective replay script file: ${replay_script_file}"
     fi
@@ -501,17 +501,16 @@ replay_one() {
     local replay_build_url
     replay_build_url="$(submit_replay "$build_url" "$replay_script_file" "$TIMEOUT_SEC" "$POLL_INTERVAL_SEC")"
     [[ -n "$REPLAY_SCRIPT_TEMP" ]] && rm -f "$REPLAY_SCRIPT_TEMP"
-    log "replay build assigned: ${replay_build_url}"
+    log "👉 replay build assigned: ${replay_build_url}"
 
     if [[ "$WAIT_BUILD" == "true" ]]; then
+        log "⌛️ waiting for build: ${replay_build_url} ..."
         if ! wait_build_result "$replay_build_url" "$TIMEOUT_SEC" "$POLL_INTERVAL_SEC"; then
-            printf 'replay failed: %s\n' "$replay_build_url" >&2
+            printf '☹️ replay failed: %s\n' "$replay_build_url" >&2
             REPLAY_LAST_RESULT="failed"
             return 1
         fi
-        printf 'replay success: %s\n' "$replay_build_url"
-    else
-        printf 'replay submitted: %s\n' "$replay_build_url"
+        printf '🎉 replay success: %s\n' "$replay_build_url"
     fi
     REPLAY_LAST_RESULT="submitted"
 }
