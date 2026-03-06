@@ -26,6 +26,9 @@ pipeline {
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
+    environment {
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+    }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()

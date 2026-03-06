@@ -32,6 +32,9 @@ pipeline {
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
+    environment {
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+    }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
@@ -272,7 +275,7 @@ pipeline {
                     sh label: "license header check", script: """
                         echo "license check"
                         if [[ -f .github/licenserc.yml ]]; then
-                            oras pull hub.pingcap.net/pingcap/ci-tools/license-eye:v0.4.0 --output .
+                            oras pull \${OCI_ARTIFACT_HOST}/pingcap/ci-tools/license-eye:v0.4.0_linux_amd64 --output .
                             chmod +x license-eye
                             ./license-eye -c .github/licenserc.yml header check
                         else

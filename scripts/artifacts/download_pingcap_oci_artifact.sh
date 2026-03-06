@@ -197,6 +197,12 @@ function main() {
         chmod +x kes
         echo "🎉 download kes success"
     fi
+    if [[ -n "$LICENSE_EYE" ]]; then
+        echo "🚀 start download license-eye"
+        fetch_file_from_oci_artifact "$license_eye_oci_url" '^license-eye$'
+        chmod +x license-eye
+        echo "🎉 download license-eye success"
+    fi
 
     if [[ -n "$BRV408" ]]; then
         echo "🚀 start download br v4.0.8"
@@ -301,6 +307,10 @@ function parse_cli_args() {
         KES="${i#*=}"
         shift # past argument=value
         ;;
+        -license-eye=*|--license-eye=*)
+        LICENSE_EYE="${i#*=}"
+        shift # past argument=value
+        ;;
         -brv408|--brv408)
         BRV408=YES
         shift # past argument (no value)
@@ -336,6 +346,7 @@ function parse_cli_args() {
     [[ -n "${SYNC_DIFF_INSPECTOR}" ]] && echo "SYNC_DIFF_INSPECTOR = ${SYNC_DIFF_INSPECTOR}"
     [[ -n "${FAKE_GCS_SERVER}" ]] && echo "FAKE_GCS_SERVER = ${FAKE_GCS_SERVER}"
     [[ -n "${KES}" ]] && echo "KES = ${KES}"
+    [[ -n "${LICENSE_EYE}" ]] && echo "LICENSE_EYE = ${LICENSE_EYE}"
     [[ -n "${BRV408}" ]] && echo "BRV408      = ${BRV408}"
 
     if [[ -n $1 ]]; then
@@ -367,6 +378,7 @@ function parse_cli_args() {
     schema_registry_oci_url="${registry_host_community}/pingcap/third-party/schema-registry:${SCHEMA_REGISTRY}_${tag_suffix}"
     fake_gcs_server_oci_url="${registry_host_community}/pingcap/third-party/fake-gcs-server:${FAKE_GCS_SERVER}_${tag_suffix}"
     kes_oci_url="${registry_host_community}/pingcap/third-party/kes:${KES}_${tag_suffix}"
+    license_eye_oci_url="${registry_host_community}/pingcap/ci-tools/license-eye:${LICENSE_EYE}_${tag_suffix}"
 }
 
 function check_tools() {
