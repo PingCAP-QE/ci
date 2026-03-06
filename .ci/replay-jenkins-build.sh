@@ -152,13 +152,13 @@ build_inline_script_with_pod_yaml() {
     BEGIN { found=0 }
     {
         line = $0
-        # Declarative form before ci-label migration.
-        if (line ~ /^[[:space:]]*yamlFile[[:space:]]+POD_TEMPLATE_FILE[[:space:]]*$/) {
-            sub(/yamlFile[[:space:]]+POD_TEMPLATE_FILE[[:space:]]*$/, repl, line)
+        # Declarative form before ci-label migration (allow trailing inline comments).
+        if (line ~ /^[[:space:]]*yamlFile[[:space:]]+POD_TEMPLATE_FILE([[:space:]]*#.*)?[[:space:]]*$/) {
+            sub(/yamlFile[[:space:]]+POD_TEMPLATE_FILE/, repl, line)
             found = 1
-        # Declarative form after ci-label migration.
-        } else if (line ~ /^[[:space:]]*yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\)[[:space:]]*$/) {
-            sub(/yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\)[[:space:]]*$/, repl, line)
+        # Declarative form after ci-label migration (allow trailing inline comments).
+        } else if (line ~ /^[[:space:]]*yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\)([[:space:]]*#.*)?[[:space:]]*$/) {
+            sub(/yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\)/, repl, line)
             found = 1
         }
         print line
