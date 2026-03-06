@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-9.0-beta/pod-pull_check2.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_CREDENTIALS_ID = ''
 prow.setPRDescription(REFS)
 
 pipeline {
@@ -45,7 +46,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
                     }

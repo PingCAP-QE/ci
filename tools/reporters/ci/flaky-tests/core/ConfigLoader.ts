@@ -61,6 +61,22 @@ function parseRangeShorthand(range: string): number | null {
   }
 }
 
+function parseLabelList(input: string | undefined): string[] {
+  const raw = String(input ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const label of raw) {
+    if (!seen.has(label)) {
+      seen.add(label);
+      out.push(label);
+    }
+  }
+  return out;
+}
+
 /* --------------------------------- Class ------------------------------------ */
 
 export class ConfigLoader {
@@ -91,6 +107,17 @@ Options:
   --email-to <a,b,c>        Optional recipients (comma-separated)
   --email-from <addr>       Sender address (required if emailing)
   --email-subject <text>    Email subject, default "Flaky Report"
+  --github-token <token>    GitHub token (or env GITHUB_TOKEN/GH_TOKEN)
+  --issue-create            Enable creating new GitHub issues (default false)
+  --issue-reopen            Enable reopening closed GitHub issues (default false)
+  --issue-comment           Enable adding comments to open/reopened issues (default false)
+  --issue-mutation-limit <n>
+                            Max cases allowed to create/reopen/comment (default 10)
+  --issue-dry-run           Dry-run GitHub issue create/reopen/label/comment
+  --issue-labels <a,b,c>    Labels to apply, default "flaky-test,component/test"
+  --issue-repo <owner/repo> Override repo for issue operations (validation mode)
+  --issue-subscribe-text-file <path>
+                            File with subscription help text (placed before first table)
   --dry-run                 Print summary, do not write or email
   --verbose                 Verbose logging
   --help                    Show this help
@@ -99,6 +126,7 @@ Environment:
   DB_URL | DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
   REPO, BRANCH
   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE
+  GITHUB_TOKEN, GH_TOKEN
   THRESHOLD_MS
 
 Examples:
@@ -131,8 +159,21 @@ Examples:
         "email-cc",
         "email-from",
         "email-subject",
+        "github-token",
+        "issue-labels",
+        "issue-mutation-limit",
+        "issue-repo",
+        "issue-subscribe-text-file",
       ],
-      boolean: ["dry-run", "verbose", "help"],
+      boolean: [
+        "dry-run",
+        "verbose",
+        "help",
+        "issue-create",
+        "issue-reopen",
+        "issue-comment",
+        "issue-dry-run",
+      ],
       alias: {
         h: "help",
         v: "verbose",
@@ -142,6 +183,12 @@ Examples:
         "owner-table": "flaky_owners",
         html: "flaky-report.html",
         "email-subject": "Flaky Report",
+        "issue-labels": "flaky-test,component/test",
+        "issue-create": false,
+        "issue-reopen": false,
+        "issue-comment": false,
+        "issue-mutation-limit": Deno.env.get("ISSUE_MUTATION_LIMIT") ?? "10",
+        "issue-dry-run": false,
         "dry-run": false,
         verbose: false,
       },
@@ -184,6 +231,20 @@ Examples:
       emailSubject: flags["email-subject"],
       dryRun: !!flags["dry-run"],
       verbose: !!flags["verbose"],
+      githubToken: flags["github-token"] ??
+        Deno.env.get("GITHUB_TOKEN") ??
+        Deno.env.get("GH_TOKEN"),
+      issueCreate: !!flags["issue-create"],
+      issueReopen: !!flags["issue-reopen"],
+      issueComment: !!flags["issue-comment"],
+      issueMutationLimit: Math.max(
+        1,
+        parseInt(String(flags["issue-mutation-limit"])) || 10,
+      ),
+      issueDryRun: !!flags["issue-dry-run"],
+      issueRepoOverride: flags["issue-repo"],
+      issueLabels: parseLabelList(flags["issue-labels"]),
+      issueSubscribeTextPath: flags["issue-subscribe-text-file"],
     };
 
     return { showHelp: !!flags.help, config: cfg };

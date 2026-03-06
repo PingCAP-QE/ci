@@ -17,9 +17,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 90, unit: 'MINUTES')
     }
@@ -46,7 +43,7 @@ pipeline {
                         script {
                             git.setSshKey(GIT_CREDENTIALS_ID)
                             retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             }
                         }
                     }
