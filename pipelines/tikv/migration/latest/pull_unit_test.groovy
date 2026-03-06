@@ -18,7 +18,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub.pingcap.net'
+        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
