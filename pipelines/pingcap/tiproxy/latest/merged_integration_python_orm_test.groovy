@@ -67,7 +67,6 @@ pipeline {
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh "touch ws-${BUILD_TAG}"
-                        sh "mkdir -p bin"
                         dir("bin") {
                             container("utils") {
                                 retry(2) {

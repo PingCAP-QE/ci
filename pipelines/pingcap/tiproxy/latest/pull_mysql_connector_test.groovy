@@ -69,7 +69,6 @@ pipeline {
                 }
                 dir('tidb-test') {
                         sh "touch ws-${BUILD_TAG}"
-                        sh "mkdir -p bin"
                         dir("bin") {
                             container("utils") {
                                 retry(2) {
