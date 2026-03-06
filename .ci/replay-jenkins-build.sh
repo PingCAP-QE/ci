@@ -149,16 +149,22 @@ build_inline_script_with_pod_yaml() {
     repl="yaml new String(java.util.Base64.decoder.decode(\"${pod_b64}\"), 'UTF-8')"
 
     awk -v repl="$repl" '
-    BEGIN { found=0 }
+    BEGIN {
+        found=0
+        # Core patterns for legacy/new declarative forms.
+        p1 = "yamlFile[[:space:]]+POD_TEMPLATE_FILE"
+        p2 = "yaml[[:space:]]+pod_label\\.withCiLabels\\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\\)"
+        suffix = "([[:space:]]*#.*)?[[:space:]]*$"
+    }
     {
         line = $0
         # Declarative form before ci-label migration (allow trailing inline comments).
-        if (line ~ /^[[:space:]]*yamlFile[[:space:]]+POD_TEMPLATE_FILE([[:space:]]*#.*)?[[:space:]]*$/) {
-            sub(/yamlFile[[:space:]]+POD_TEMPLATE_FILE/, repl, line)
+        if (line ~ ("^[[:space:]]*" p1 suffix)) {
+            sub(p1, repl, line)
             found = 1
         # Declarative form after ci-label migration (allow trailing inline comments).
-        } else if (line ~ /^[[:space:]]*yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\)([[:space:]]*#.*)?[[:space:]]*$/) {
-            sub(/yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\)/, repl, line)
+        } else if (line ~ ("^[[:space:]]*" p2 suffix)) {
+            sub(p2, repl, line)
             found = 1
         }
         print line
