@@ -143,20 +143,31 @@ build_inline_script_with_pod_yaml() {
     local pod_b64
     pod_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
 
-    # Build the replacement string in shell and use awk to perform the substitution.
+    # Build the replacement string in shell and use portable awk/sub() to perform the substitution.
     # If no substitution is performed, exit with status 2 to preserve previous behavior.
     local repl
     repl="yaml new String(java.util.Base64.decoder.decode(\"${pod_b64}\"), 'UTF-8')"
 
     awk -v repl="$repl" '
-    BEGIN { found=0 }
+    BEGIN {
+        found=0
+        # Core patterns for legacy/new declarative forms.
+        p1 = "yamlFile[[:space:]]+POD_TEMPLATE_FILE"
+        p2 = "yaml[[:space:]]+pod_label\\.withCiLabels\\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\\)"
+        suffix = "([[:space:]]*#.*)?[[:space:]]*$"
+    }
     {
         line = $0
-        # Use gensub to replace occurrences where yamlFile and POD_TEMPLATE_FILE appear as a token pair.
-        # The regex ensures word-like boundaries around the tokens.
-        new_line = gensub(/(^|[^[:alnum:]_])yamlFile[[:space:]]+POD_TEMPLATE_FILE([^[:alnum:]_]|$)/, "\\1" repl "\\2", "g", line)
-        if (new_line != line) found = 1
-        print new_line
+        # Declarative form before ci-label migration (allow trailing inline comments).
+        if (line ~ ("^[[:space:]]*" p1 suffix)) {
+            sub(p1, repl, line)
+            found = 1
+        # Declarative form after ci-label migration (allow trailing inline comments).
+        } else if (line ~ ("^[[:space:]]*" p2 suffix)) {
+            sub(p2, repl, line)
+            found = 1
+        }
+        print line
     }
     END {
         if (found == 0) exit 2
