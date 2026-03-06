@@ -237,8 +237,7 @@ pipeline {
                         sh label: "license header check", script: """
                             echo "license check"
                             if [[ -f .github/licenserc.yml ]]; then
-                                oras pull \${OCI_ARTIFACT_HOST}/pingcap/ci-tools/license-eye:v0.4.0_linux_amd64 --output .
-                                chmod +x license-eye
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --license-eye=v0.4.0
                                 ./license-eye -c .github/licenserc.yml header check
                             else
                                 echo "skip license check"

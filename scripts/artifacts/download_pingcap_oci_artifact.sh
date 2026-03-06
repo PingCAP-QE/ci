@@ -378,7 +378,7 @@ function parse_cli_args() {
     schema_registry_oci_url="${registry_host_community}/pingcap/third-party/schema-registry:${SCHEMA_REGISTRY}_${tag_suffix}"
     fake_gcs_server_oci_url="${registry_host_community}/pingcap/third-party/fake-gcs-server:${FAKE_GCS_SERVER}_${tag_suffix}"
     kes_oci_url="${registry_host_community}/pingcap/third-party/kes:${KES}_${tag_suffix}"
-    license_eye_oci_url="${registry_host_community}/pingcap/ci-tools/license-eye:${LICENSE_EYE}_${tag_suffix}"
+    license_eye_oci_url="${registry_host_community}/pingcap/third-party/license-eye:${LICENSE_EYE}_${tag_suffix}"
 }
 
 function check_tools() {
