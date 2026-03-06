@@ -131,7 +131,6 @@ pipeline {
                                     pwd && ls -alh ./bin
                                     ls -alh dm/tests/bin
                                     ./bin/tidb-server -V
-                                    ./bin/sync_diff_inspector -V
                                     ./bin/mydumper -V
                                 """
                             }
