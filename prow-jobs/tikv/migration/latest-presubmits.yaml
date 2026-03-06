@@ -25,16 +25,3 @@ presubmits:
       context: pull-integration-kafka-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-kafka-test(?: .*?)?$"
       rerun_command: "/test pull-integration-kafka-test"
-    - name: tikv/migration/pull_unit_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
-      always_run: true
-      context: pull-unit-test
-      trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
-      rerun_command: "/test pull-unit-test"
-      branches:
-        - ^main$
-        - ^cdc-release-.*$
-        - ^br-release-.*$
