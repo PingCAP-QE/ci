@@ -6,6 +6,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.5-with-kv-timeout-feature/pod-ghpr_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_CREDENTIALS_ID = ''
 
 pipeline {
     agent {
@@ -43,7 +44,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
                     }
