@@ -7,60 +7,51 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.5/pod-pull_check2.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 
+prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    defaultContainer 'golang'
                 }
             }
-        }
-        stage('Checkout') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
                     }
-                }
-            }
-        }
-        stage("Prepare") {
-            steps {
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                    cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS)) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
-                    script {
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
-                         component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
+                    container("utils") {
+                        dir("bin") {
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
+                            }
+                        }
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -109,7 +100,9 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
-                        environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
+                        environment {
+                            CODECOV_TOKEN = credentials('codecov-token-tidb')
+                        }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
@@ -158,20 +151,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        success {
-            // Upload check flag to fileserver
-            sh "echo done > done && curl -F ci_check/${JOB_NAME}/${REFS.pulls[0].sha}=@done ${FILE_SERVER_URL}/upload"
-        }
-
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
