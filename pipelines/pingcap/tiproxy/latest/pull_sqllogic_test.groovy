@@ -19,6 +19,9 @@ pipeline {
     environment {
         CI = "1"
     }
+    environment {
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+    }
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
