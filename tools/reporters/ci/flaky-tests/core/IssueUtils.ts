@@ -1,7 +1,7 @@
 import { CaseAgg, ReportData } from "./types.ts";
 
 export const DEFAULT_ISSUE_SUBSCRIBE_TEXT =
-  "You can substitute the flaky test issues by TiRelease Bot with '/sub --repo=pingcap/tidb --label=flaky-test'";
+  "You can send a private message to @TiReleaseBot or @ it in a group: issue watch repo=tidb labels=flaky-test action=label action_result=<component label>";
 
 export function parseRepo(repo: string): { owner: string; repo: string } | null {
   if (!repo) return null;

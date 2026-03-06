@@ -127,7 +127,7 @@ Required permissions:
   - Override repo for issue operations (validation mode).
 - --issue-subscribe-text-file
   - File containing the subscription help text placed before the first table.
-  - Default: "You can substitute the flaky test issues by TiRelease Bot with '/sub --repo=pingcap/tidb --label=flaky-test'"
+  - Default: "You can send a private message to @TiReleaseBot or @ it in a group: issue watch repo=tidb labels=flaky-test action=label action_result=<component label>"
 
 - --dry-run
   - Prints a summary and top cases to stdout; does not write files or send emails.
