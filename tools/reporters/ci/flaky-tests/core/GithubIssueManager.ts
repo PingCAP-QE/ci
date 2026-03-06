@@ -97,30 +97,66 @@ class GitHubClient {
     url: string,
     body?: Record<string, unknown>,
   ): Promise<unknown> {
-    if (this.opts?.verbose) {
-      console.debug(`[github] ${method} ${url}`);
-    }
-    const res = await fetch(url, {
-      method,
-      headers: {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        Authorization: `Bearer ${this.token}`,
-        "User-Agent": "flaky-reporter",
-        ...(body ? { "Content-Type": "application/json" } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const maxAttempts = 3;
+    const headers = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      Authorization: `Bearer ${this.token}`,
+      "User-Agent": "flaky-reporter",
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    };
 
-    if (!res.ok) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (this.opts?.verbose) {
+        console.debug(`[github] ${method} ${url} (attempt ${attempt})`);
+      }
+
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+      } catch (e: unknown) {
+        if (attempt < maxAttempts) {
+          await this.sleep(this.backoffMs(attempt));
+          continue;
+        }
+        throw e instanceof Error ? e : new Error(String(e));
+      }
+
+      if (res.ok) {
+        if (res.status === 204) return null;
+        return await res.json();
+      }
+
+      if (this.isRetryableStatus(res.status) && attempt < maxAttempts) {
+        await this.sleep(this.backoffMs(attempt));
+        continue;
+      }
+
       const text = await res.text();
       throw new Error(
         `GitHub API ${method} ${url} failed: ${res.status} ${res.statusText} ${text}`,
       );
     }
 
-    if (res.status === 204) return null;
-    return await res.json();
+    throw new Error(`GitHub API ${method} ${url} failed after retries`);
+  }
+
+  private isRetryableStatus(status: number): boolean {
+    return status === 429 || (status >= 500 && status <= 599);
+  }
+
+  private backoffMs(attempt: number): number {
+    const base = 500;
+    const max = 5000;
+    return Math.min(max, base * Math.pow(2, attempt - 1));
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

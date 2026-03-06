@@ -67,6 +67,7 @@ export interface CliConfig {
   issueCreate: boolean;
   issueReopen: boolean;
   issueComment: boolean;
+  issueMutationLimit: number;
   issueDryRun: boolean;
   issueRepoOverride?: string;
   issueLabels: string[];

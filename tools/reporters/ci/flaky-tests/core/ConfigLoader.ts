@@ -111,6 +111,8 @@ Options:
   --issue-create            Enable creating new GitHub issues (default false)
   --issue-reopen            Enable reopening closed GitHub issues (default false)
   --issue-comment           Enable adding comments to open/reopened issues (default false)
+  --issue-mutation-limit <n>
+                            Max cases allowed to create/reopen/comment (default 10)
   --issue-dry-run           Dry-run GitHub issue create/reopen/label/comment
   --issue-labels <a,b,c>    Labels to apply, default "flaky-test,component/test"
   --issue-repo <owner/repo> Override repo for issue operations (validation mode)
@@ -159,6 +161,7 @@ Examples:
         "email-subject",
         "github-token",
         "issue-labels",
+        "issue-mutation-limit",
         "issue-repo",
         "issue-subscribe-text-file",
       ],
@@ -184,6 +187,7 @@ Examples:
         "issue-create": false,
         "issue-reopen": false,
         "issue-comment": false,
+        "issue-mutation-limit": Deno.env.get("ISSUE_MUTATION_LIMIT") ?? "10",
         "issue-dry-run": false,
         "dry-run": false,
         verbose: false,
@@ -233,6 +237,10 @@ Examples:
       issueCreate: !!flags["issue-create"],
       issueReopen: !!flags["issue-reopen"],
       issueComment: !!flags["issue-comment"],
+      issueMutationLimit: Math.max(
+        1,
+        parseInt(String(flags["issue-mutation-limit"])) || 10,
+      ),
       issueDryRun: !!flags["issue-dry-run"],
       issueRepoOverride: flags["issue-repo"],
       issueLabels: parseLabelList(flags["issue-labels"]),

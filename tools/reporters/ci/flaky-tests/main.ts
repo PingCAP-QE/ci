@@ -62,6 +62,16 @@ export async function main(args: string[]): Promise<number> {
     return 0;
   }
 
+  if (
+    (cli.issueCreate || cli.issueReopen || cli.issueComment) &&
+    !cli.githubToken
+  ) {
+    console.error(
+      "GitHub token is required when --issue-create/--issue-reopen/--issue-comment is enabled.",
+    );
+    return 2;
+  }
+
   let window;
   try {
     window = loader.determineTimeWindow(cli);
@@ -263,9 +273,9 @@ export async function main(args: string[]): Promise<number> {
   const casesForIssue = report.byCase.filter((c: CaseAgg) =>
     (c.flakyCount || 0) > 0 || (c.thresholdedCount || 0) > 0
   );
-  const topCasesForIssue = report.topFlakyCases.filter((c: CaseAgg) =>
+  const topCasesForIssue = report.byCase.filter((c: CaseAgg) =>
     (c.flakyCount || 0) > 0 || (c.thresholdedCount || 0) > 0
-  );
+  ).slice(0, Math.max(1, cli.issueMutationLimit || 10));
   if (casesForIssue.length > 0) {
     await issueManager.sync(report, casesForIssue, topCasesForIssue);
   }

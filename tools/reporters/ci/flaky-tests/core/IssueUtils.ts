@@ -9,6 +9,8 @@ export function parseRepo(repo: string): { owner: string; repo: string } | null 
   if (parts.length !== 2) return null;
   const [owner, name] = parts;
   if (!owner || !name) return null;
+  const valid = /^[A-Za-z0-9_.-]+$/;
+  if (!valid.test(owner) || !valid.test(name)) return null;
   return { owner, repo: name };
 }
 

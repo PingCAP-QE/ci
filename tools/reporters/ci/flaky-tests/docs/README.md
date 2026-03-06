@@ -117,6 +117,8 @@ Required permissions:
   - Enable reopening closed GitHub issues (default false).
 - --issue-comment
   - Enable adding comments to open/reopened issues (default false).
+- --issue-mutation-limit
+  - Max cases allowed to create/reopen/comment. Default: 10.
 - --issue-dry-run
   - Dry-run for issue create/reopen/label/comment (search still runs).
 - --issue-labels
@@ -170,6 +172,7 @@ GitHub:
 
 Defaults:
 - THRESHOLD_MS (default 600000)
+- ISSUE_MUTATION_LIMIT (default 10)
 
 ---
 
@@ -181,7 +184,8 @@ Defaults:
 - For open or reopened issues, a comment is appended with the current window’s stats only when `--issue-comment` is enabled.
 - New issues set the issue type to `Task` (silently dropped if not permitted by GitHub).
 - Branch aggregation: all branches for the same (repo, suite, case) map to the same issue; branch-specific stats are added as comments.
-- Issue mutations (create/reopen/label/comment) are limited to the Top 10 flakiest cases; other cases are only searched and shown in the “By Case” table.
+- Issue mutations (create/reopen/label/comment) are limited to the top N flakiest cases (default 10); other cases are only searched and shown in the “By Case” table.
+- The mutation limit can be changed with `--issue-mutation-limit`.
 - Dry-run: `--issue-dry-run` skips create/reopen/label/comment (search still runs).
 - Validation repo: `--issue-repo` targets a specific repo for all issue ops; titles include the original repo to avoid collisions.
 
