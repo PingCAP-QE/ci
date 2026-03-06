@@ -53,7 +53,7 @@ function upload_kes() {
 # license-eye
 function upload_license_eye() {
     local repo_base_url="$1"
-    local repo="$repo_base_url/pingcap/ci-tools/license-eye"
+    local repo="$repo_base_url/pingcap/third-party/license-eye"
     for version in 0.4.0; do
         for arch in amd64 arm64; do
             oci_tag="v${version}_linux_${arch}"
