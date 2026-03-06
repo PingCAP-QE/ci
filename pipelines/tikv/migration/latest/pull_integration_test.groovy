@@ -20,10 +20,10 @@ pipeline {
         }
     }
     environment {
-        // OCI artifact registry: hub.pingcap.net
-        // tikv-server: hub.pingcap.net/tikv/tikv/package:<tag>_linux_amd64
-        // pd-server:   hub.pingcap.net/tikv/pd/package:<tag>_linux_amd64
-        OCI_ARTIFACT_HOST = 'hub.pingcap.net'
+        // OCI artifact registry: hub-zot.pingcap.net/mirrors/hub
+        // tikv-server: hub-zot.pingcap.net/mirrors/hub/tikv/tikv/package:<tag>_linux_amd64
+        // pd-server:   hub-zot.pingcap.net/mirrors/hub/tikv/pd/package:<tag>_linux_amd64
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 65, unit: 'MINUTES')
