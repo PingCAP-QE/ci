@@ -53,7 +53,11 @@ class GitHubClient {
     body: string,
   ): Promise<GitHubIssueApi> {
     const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues`;
-    const res = await this.request("POST", url, { title, body });
+    const res = await this.request("POST", url, {
+      title,
+      body,
+      type: "Task",
+    });
     return res as GitHubIssueApi;
   }
 

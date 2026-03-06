@@ -53,7 +53,7 @@ export function buildIssueBody(
     `Window: ${report.window.from} → ${report.window.to}`,
     `Threshold: ${report.window.thresholdMs} ms`,
     "",
-    "Note: This issue aggregates all branches; branch-specific updates are posted as comments.",
+    "Note: This issue is created for a specific branch; updates may be posted as comments.",
   ];
   return lines.join("\n");
 }

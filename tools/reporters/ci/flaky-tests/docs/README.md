@@ -179,6 +179,7 @@ Defaults:
 - New issues are created only with `--issue-create`; closed issues are reopened only with `--issue-reopen`.
 - The configured labels are applied to any matched/created issue.
 - For open or reopened issues, a comment is appended with the current window’s stats only when `--issue-comment` is enabled.
+- New issues set the issue type to `Task` (silently dropped if not permitted by GitHub).
 - Branch aggregation: all branches for the same (repo, suite, case) map to the same issue; branch-specific stats are added as comments.
 - Issue mutations (create/reopen/label/comment) are limited to the Top 10 flakiest cases; other cases are only searched and shown in the “By Case” table.
 - Dry-run: `--issue-dry-run` skips create/reopen/label/comment (search still runs).
