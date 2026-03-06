@@ -29,7 +29,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "0"
-      decorate: false
+      decorate: false # need add this.
       always_run: true
       context: pull-unit-test
       trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
