@@ -5,13 +5,13 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: download-sqllogic
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c"
       command:
         - /bin/sh
         - -c
         - |
           cd /git && \
-          wget http://fileserver.pingcap.net/download/builds/pingcap/case-data/sqllogic/sqllogictest_v20241212.tar.gz && \
+          oras pull hub-zot.pingcap.net/mirrors/hub/pingcap/case-data/sqllogic:v20241212 && \
           tar xzf sqllogictest_v20241212.tar.gz && \
           rm sqllogictest_v20241212.tar.gz
       volumeMounts:
