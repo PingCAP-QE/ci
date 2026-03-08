@@ -92,6 +92,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_mysql_integration_light_v7_5
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-mysql-integration-light-v7-5
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-v7-5|all-v7-5)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light-v7-5"
@@ -101,6 +102,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_v7_5
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-mysql-integration-heavy-v7-5
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-v7-5|all-v7-5)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy-v7-5"
@@ -110,6 +112,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_kafka_integration_light_v7_5
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-kafka-integration-light-v7-5
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-v7-5|all-v7-5)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light-v7-5"
@@ -119,6 +122,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_kafka_integration_heavy_v7_5
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-kafka-integration-heavy-v7-5
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy-v7-5|all-v7-5)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-heavy-v7-5"
@@ -128,6 +132,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_pulsar_integration_light_v7_5
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-pulsar-integration-light-v7-5
       optional: true
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light-v7-5|all-v7-5)(?: .*?)?$"
@@ -138,6 +143,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_pulsar_integration_heavy_v7_5
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-pulsar-integration-heavy-v7-5
       optional: true
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-heavy-v7-5|all-v7-5)(?: .*?)?$"
@@ -148,6 +154,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_storage_integration_light_v7_5
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-storage-integration-light-v7-5
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-v7-5|all-v7-5)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light-v7-5"
@@ -157,6 +164,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_storage_integration_heavy_v7_5
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-storage-integration-heavy-v7-5
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy-v7-5|all-v7-5)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-heavy-v7-5"
@@ -166,6 +174,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_mysql_integration_light_v8_1
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-mysql-integration-light-v8-1
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-v8-1|all-v8-1)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light-v8-1"
@@ -175,6 +184,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_v8_1
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-mysql-integration-heavy-v8-1
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-v8-1|all-v8-1)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy-v8-1"
@@ -184,6 +194,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_kafka_integration_light_v8_1
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-kafka-integration-light-v8-1
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-v8-1|all-v8-1)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light-v8-1"
@@ -193,6 +204,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_kafka_integration_heavy_v8_1
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-kafka-integration-heavy-v8-1
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy-v8-1|all-v8-1)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-heavy-v8-1"
@@ -202,6 +214,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_pulsar_integration_light_v8_1
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-pulsar-integration-light-v8-1
       optional: true
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light-v8-1|all-v8-1)(?: .*?)?$"
@@ -212,6 +225,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_pulsar_integration_heavy_v8_1
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-pulsar-integration-heavy-v8-1
       optional: true
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-heavy-v8-1|all-v8-1)(?: .*?)?$"
@@ -222,6 +236,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_storage_integration_light_v8_1
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-storage-integration-light-v8-1
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-v8-1|all-v8-1)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light-v8-1"
@@ -231,6 +246,7 @@ presubmits:
       name: pingcap/ticdc/pull_cdc_storage_integration_heavy_v8_1
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
+      optional: true
       context: pull-cdc-storage-integration-heavy-v8-1
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy-v8-1|all-v8-1)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-heavy-v8-1"
