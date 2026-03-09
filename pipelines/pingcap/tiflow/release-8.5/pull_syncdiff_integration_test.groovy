@@ -9,6 +9,8 @@ final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_DUMPLING = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -62,19 +64,11 @@ pipeline {
                         dir("bin") {
                             retry(2) {
                                 sh label: "download third-party binaries", script: """
-                                    if grep -q -- '--dumpling=' "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"; then
                                         "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" \
                                             --tidb=${OCI_TAG_TIDB} \
                                             --tikv=${OCI_TAG_TIKV} \
                                             --pd=${OCI_TAG_PD} \
                                             --dumpling=${OCI_TAG_DUMPLING}
-                                    else
-                                        # Replay may run with an older helper script checkout that lacks --dumpling.
-                                        "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" \
-                                            --tidb=${OCI_TAG_TIDB} \
-                                            --tikv=${OCI_TAG_TIKV} \
-                                            --pd=${OCI_TAG_PD}
-                                    fi
                                 """
                             }
                             sh label: "ensure importer tools", script: """
