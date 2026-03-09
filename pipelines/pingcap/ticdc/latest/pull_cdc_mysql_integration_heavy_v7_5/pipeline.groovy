@@ -10,11 +10,11 @@ final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final UPSTREAAM_BRANCH = 'v7.5.0'
-final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', UPSTREAAM_BRANCH, REFS.pulls[0].title, UPSTREAAM_BRANCH)
-final OCI_TAG_TIDB = REFS.org == 'pingcap-inc' ? UPSTREAAM_BRANCH.replaceAll('/', '-') : component.computeArtifactOciTagFromPR('tidb', UPSTREAAM_BRANCH, REFS.pulls[0].title, UPSTREAAM_BRANCH)
-final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', UPSTREAAM_BRANCH, REFS.pulls[0].title, UPSTREAAM_BRANCH)
-final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', UPSTREAAM_BRANCH, REFS.pulls[0].title, UPSTREAAM_BRANCH)
+final UPSTREAAM_BRANCH = 'release-7.5'
+final OCI_TAG_PD = UPSTREAAM_BRANCH
+final OCI_TAG_TIDB = UPSTREAAM_BRANCH
+final OCI_TAG_TIFLASH = UPSTREAAM_BRANCH
+final OCI_TAG_TIKV = UPSTREAAM_BRANCH
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
 final OCI_TAG_ETCD = 'v3.5.15'
