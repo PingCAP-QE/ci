@@ -117,6 +117,24 @@ presubmits:
                 done
                 docker info >/dev/null
 
+                if [[ -f .ci/integration_test.groovy ]]; then
+                  if [[ -f .ci/integration_test_native.sh ]]; then
+                    echo "found .ci/integration_test.groovy and .ci/integration_test_native.sh, running native script"
+                    chmod +x .ci/integration_test_native.sh
+                    export TICS_TAG="${TICS_TAG:-${PULL_BASE_REF:-master}}"
+                    export TIDB_BRANCH="${TIDB_BRANCH:-${PULL_BASE_REF:-master}}"
+                    export TIKV_BRANCH="${TIKV_BRANCH:-${PULL_BASE_REF:-master}}"
+                    export PD_BRANCH="${PD_BRANCH:-${PULL_BASE_REF:-master}}"
+                    export STORAGE_ENGINE="${STORAGE_ENGINE:-}"
+                    ./.ci/integration_test_native.sh
+                    exit 0
+                  fi
+
+                  echo "found legacy .ci/integration_test.groovy but .ci/integration_test_native.sh is missing" >&2
+                  echo "native prow cannot execute Jenkins Groovy; please provide .ci/integration_test_native.sh" >&2
+                  exit 1
+                fi
+
                 tics_tag="${TICS_TAG:-${PULL_BASE_REF:-master}}"
                 if [[ -z "${tics_tag}" || "${tics_tag}" == "raft" ]]; then
                   tics_tag="master"
