@@ -11,6 +11,7 @@ spec:
       params:
         - name: filter
           value: >-
+            (header.canonical('ce-paramGithubRepo') != '' ||
             body.repository.full_name in [
               'pingcap-inc/tici',
               'pingcap/ng-monitoring',
@@ -27,7 +28,7 @@ spec:
               'tidbcloud/tiflash-cse',
               'tikv/pd',
               'tikv/tikv'
-            ]
+            ])
             &&
             body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$')
             &&
