@@ -57,14 +57,14 @@ presubmits:
                 memory: 4Gi
         containers:
           - name: run-test
-            image: hub.pingcap.net/tiflash/docker:build-essential-java
+            image: ubuntu:22.04
             imagePullPolicy: Always
             command: [/bin/bash, -ce]
             env:
               - name: DOCKER_HOST
                 value: unix:///var/run/docker.sock
-              - name: FILE_SERVER_URL
-                value: http://fileserver.pingcap.net
+              - name: OCI_ARTIFACT_HOST
+                value: us-docker.pkg.dev/pingcap-testing-account/hub
             args:
               - |
                 set -euo pipefail
@@ -72,6 +72,32 @@ presubmits:
                 echo "repo=${REPO_OWNER}/${REPO_NAME} pr=${PULL_NUMBER:-unknown} base=${PULL_BASE_REF:-unknown}"
                 echo "pwd=$(pwd)"
                 git config --global --add safe.directory "*"
+
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update
+                apt-get install -y --no-install-recommends \
+                  ca-certificates \
+                  curl \
+                  docker-compose \
+                  docker.io \
+                  git \
+                  jq \
+                  maven \
+                  openjdk-17-jdk \
+                  python-is-python3 \
+                  python3 \
+                  tar \
+                  xz-utils
+                rm -rf /var/lib/apt/lists/*
+
+                ORAS_VERSION="1.2.3"
+                curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" \
+                  | tar -xz -C /usr/local/bin oras
+                chmod +x /usr/local/bin/oras
+
+                YQ_VERSION="v4.47.2"
+                curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
+                chmod +x /usr/local/bin/yq
 
                 if [[ -n "${PULL_PULL_SHA:-}" ]]; then
                   git fetch --depth=1 origin "${PULL_PULL_SHA}"
@@ -91,14 +117,11 @@ presubmits:
                 done
                 docker info >/dev/null
 
-                tics_tag="${TICS_TAG:-${PULL_BASE_REF:-raft}}"
-                echo "tics_tag=${tics_tag}"
-
-                archive_url="${FILE_SERVER_URL}/download/builds/pingcap/tiflash/cache/tiflash-m2-cache_latest.tar.gz"
-                if [[ ! -d /root/.m2/repository ]]; then
-                  mkdir -p /root/.m2
-                  curl -fsSL "${archive_url}" | tar -zx -C /root || true
+                tics_tag="${TICS_TAG:-${PULL_BASE_REF:-master}}"
+                if [[ -z "${tics_tag}" || "${tics_tag}" == "raft" ]]; then
+                  tics_tag="master"
                 fi
+                echo "tics_tag=${tics_tag}"
 
                 rm -rf /tmp/tispark
                 git clone --depth=1 --branch tiflash-ci-test https://github.com/pingcap/tispark.git /tmp/tispark
@@ -107,35 +130,70 @@ presubmits:
                   mvn install -Dmaven.test.skip=true
                 )
 
+                oci_script=/tmp/download_pingcap_oci_artifact.sh
+                curl -fsSL https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh -o "${oci_script}"
+                chmod +x "${oci_script}"
+
+                artifact_dir=/tmp/oci-artifacts
+                rm -rf "${artifact_dir}"
+                mkdir -p "${artifact_dir}"
+                (
+                  cd "${artifact_dir}"
+                  OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --tidb=master --tikv=master --pd=master
+                  resolved_tiflash_tag="${tics_tag}"
+                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --tiflash="${resolved_tiflash_tag}"; then
+                    echo "tiflash package tag '${resolved_tiflash_tag}' not found in OCI, fallback to master"
+                    resolved_tiflash_tag="master"
+                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --tiflash="${resolved_tiflash_tag}"
+                  fi
+                  echo "${resolved_tiflash_tag}" > .resolved_tiflash_tag
+                )
+                resolved_tiflash_tag="$(cat "${artifact_dir}/.resolved_tiflash_tag")"
+                echo "resolved_tiflash_tag=${resolved_tiflash_tag}"
+
+                mkdir -p integrated/binary/tidb integrated/binary/tikv integrated/binary/pd integrated/binary/tiflash
+                cp -f "${artifact_dir}/tidb-server" integrated/binary/tidb/tidb-server
+                cp -f "${artifact_dir}/tikv-server" integrated/binary/tikv/tikv-server
+                cp -f "${artifact_dir}/pd-server" integrated/binary/pd/pd-server
+                tar -czf integrated/binary/tiflash/tiflash.tar.gz -C "${artifact_dir}" tiflash
+
                 if [[ -f integrated/tests/ci/jenkins.sh ]]; then
-                  echo "run integrated/tests/ci/jenkins.sh in ops-ci image"
-                  docker run --rm \
-                    -e DOCKER_HOST=unix:///var/run/docker.sock \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    -v "$(pwd)":/workspace \
-                    -w /workspace/integrated \
-                    hub.pingcap.net/tiflash/ops-ci:v10 \
-                    /bin/bash -ce "tests/ci/jenkins.sh"
+                  echo "run integrated/tests/ci/jenkins.sh"
+                  (
+                    cd integrated
+                    /bin/bash tests/ci/jenkins.sh
+                  )
                 else
                   echo "skip integrated/tests/ci/jenkins.sh: file not found"
                 fi
 
                 cd tests/maven
+                sed -i 's#hub.pingcap.net/qa/pd:#pingcap/pd:#g' docker-compose.yaml
+                sed -i 's#hub.pingcap.net/qa/tikv:#pingcap/tikv:#g' docker-compose.yaml
+                sed -i 's#hub.pingcap.net/qa/tidb:#pingcap/tidb:#g' docker-compose.yaml
+                sed -i 's#hub.pingcap.net/tiflash/tiflash:#pingcap/tiflash:#g' docker-compose.yaml
+
+                maven_branch="master"
+                public_tiflash_tag="${resolved_tiflash_tag}"
+                if ! docker manifest inspect "pingcap/tiflash:${public_tiflash_tag}" >/dev/null 2>&1; then
+                  echo "public tiflash image tag '${public_tiflash_tag}' not found, fallback to master"
+                  public_tiflash_tag="master"
+                fi
 
                 pulled=0
                 for i in $(seq 1 20); do
-                  if docker pull "hub.pingcap.net/tiflash/tics:${tics_tag}"; then
+                  if docker pull "pingcap/tiflash:${public_tiflash_tag}"; then
                     pulled=1
                     break
                   fi
                   sleep 5
                 done
                 if [[ "${pulled}" -ne 1 ]]; then
-                  echo "failed to pull hub.pingcap.net/tiflash/tics:${tics_tag}" >&2
+                  echo "failed to pull pingcap/tiflash:${public_tiflash_tag}" >&2
                   exit 1
                 fi
 
-                if ! TAG="${tics_tag}" /bin/bash -xe run.sh; then
+                if ! BRANCH="${maven_branch}" TAG="${public_tiflash_tag}" /bin/bash -xe run.sh; then
                   while IFS= read -r -d '' file; do
                     echo "LOG: ${file}"
                     tail -n 500 "${file}" || true
