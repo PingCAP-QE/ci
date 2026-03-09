@@ -1,0 +1,156 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^release-.+$
+      - ^feature/.+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  decoration_config: &decoration_config
+    timeout: 3h
+    oauth_token_secret:
+      name: github-token
+      key: token
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap-inc/tiflash-scripts:
+    - <<: *brancher
+      name: pull-test
+      decorate: true
+      decoration_config: *decoration_config
+      always_run: true
+      context: pull-test
+      trigger: "(?m)^/test (?:.*? )?(pull-test)(?: .*?)?$"
+      rerun_command: "/test pull-test"
+      skip_if_only_changed: *skip_if_only_changed
+      max_concurrency: 3
+      spec:
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: docker-lib
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - dockerd-entrypoint.sh
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: docker-lib
+                mountPath: /var/lib/docker
+            resources:
+              requests:
+                cpu: "1"
+                memory: 4Gi
+              limits:
+                cpu: "1"
+                memory: 4Gi
+        containers:
+          - name: run-test
+            image: hub.pingcap.net/tiflash/docker:build-essential-java
+            imagePullPolicy: Always
+            command: [/bin/bash, -ce]
+            env:
+              - name: DOCKER_HOST
+                value: unix:///var/run/docker.sock
+              - name: FILE_SERVER_URL
+                value: http://fileserver.pingcap.net
+            args:
+              - |
+                set -euo pipefail
+
+                echo "repo=${REPO_OWNER}/${REPO_NAME} pr=${PULL_NUMBER:-unknown} base=${PULL_BASE_REF:-unknown}"
+                echo "pwd=$(pwd)"
+                git config --global --add safe.directory "*"
+
+                if [[ -n "${PULL_PULL_SHA:-}" ]]; then
+                  git fetch --depth=1 origin "${PULL_PULL_SHA}"
+                  git checkout -f "${PULL_PULL_SHA}"
+                fi
+
+                echo "wait for docker daemon..."
+                timeout_seconds=120
+                start_time=$(date +%s)
+                while ! docker info >/dev/null 2>&1; do
+                  current_time=$(date +%s)
+                  if (( current_time - start_time >= timeout_seconds )); then
+                    echo "docker daemon did not become ready in ${timeout_seconds}s" >&2
+                    exit 1
+                  fi
+                  sleep 3
+                done
+                docker info >/dev/null
+
+                tics_tag="${TICS_TAG:-${PULL_BASE_REF:-raft}}"
+                echo "tics_tag=${tics_tag}"
+
+                archive_url="${FILE_SERVER_URL}/download/builds/pingcap/tiflash/cache/tiflash-m2-cache_latest.tar.gz"
+                if [[ ! -d /root/.m2/repository ]]; then
+                  mkdir -p /root/.m2
+                  curl -fsSL "${archive_url}" | tar -zx -C /root || true
+                fi
+
+                rm -rf /tmp/tispark
+                git clone --depth=1 --branch tiflash-ci-test https://github.com/pingcap/tispark.git /tmp/tispark
+                (
+                  cd /tmp/tispark
+                  mvn install -Dmaven.test.skip=true
+                )
+
+                if [[ -f integrated/tests/ci/jenkins.sh ]]; then
+                  echo "run integrated/tests/ci/jenkins.sh in ops-ci image"
+                  docker run --rm \
+                    -e DOCKER_HOST=unix:///var/run/docker.sock \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v "$(pwd)":/workspace \
+                    -w /workspace/integrated \
+                    hub.pingcap.net/tiflash/ops-ci:v10 \
+                    /bin/bash -ce "tests/ci/jenkins.sh"
+                else
+                  echo "skip integrated/tests/ci/jenkins.sh: file not found"
+                fi
+
+                cd tests/maven
+
+                pulled=0
+                for i in $(seq 1 20); do
+                  if docker pull "hub.pingcap.net/tiflash/tics:${tics_tag}"; then
+                    pulled=1
+                    break
+                  fi
+                  sleep 5
+                done
+                if [[ "${pulled}" -ne 1 ]]; then
+                  echo "failed to pull hub.pingcap.net/tiflash/tics:${tics_tag}" >&2
+                  exit 1
+                fi
+
+                if ! TAG="${tics_tag}" /bin/bash -xe run.sh; then
+                  while IFS= read -r -d '' file; do
+                    echo "LOG: ${file}"
+                    tail -n 500 "${file}" || true
+                  done < <(find log -name '*.log' -type f -print0)
+                  exit 1
+                fi
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: docker-lib
+                mountPath: /var/lib/docker
+            resources:
+              requests:
+                cpu: "4"
+                memory: 12Gi
+              limits:
+                cpu: "4"
+                memory: 12Gi
