@@ -24,9 +24,13 @@ tekton/
 ├── OWNERS                      # Approval configuration
 ├── tests/                      # Test files for Tekton configurations
 ├── v0/                         # DEPRECATED - Legacy Tekton configurations
+│   ├── pipelines/              # Pipeline definitions
+│   ├── tasks/                  # Task definitions  
 │   ├── triggers/               # Trigger definitions and templates
 │   └── ...                     # Other v0 resources
 └── v1/                         # Current Tekton configurations
+    ├── pipelines/              # Pipeline definitions
+    ├── tasks/                  # Task definitions
     ├── triggers/               # Trigger configurations (see triggers/README.md)
     │   ├── bindings/           # Trigger bindings
     │   ├── templates/          # Trigger templates
@@ -37,13 +41,19 @@ tekton/
 
 ## Key Components
 
-### 1. Triggers
+### 1. Pipelines
+Complete CI/CD workflow definitions that orchestrate the execution of tasks in a specific order.
+
+### 2. Tasks
+Individual build steps or operations that can be composed into pipelines.
+
+### 3. Triggers
 Triggers handle GitHub events (pushes, PRs, tags) and Harbor image push events to initiate pipeline runs. See [v1/triggers/README.md](v1/triggers/README.md) for detailed information.
 
-### 2. Templates
+### 4. Templates
 Pipeline and trigger templates define reusable CI/CD workflows for different component types and build profiles.
 
-### 3. Bindings
+### 5. Bindings
 Trigger bindings extract and transform event data into pipeline parameters.
 
 ## Common Workflows
@@ -55,7 +65,7 @@ Trigger bindings extract and transform event data into pipeline parameters.
 - **Branch Creation**: Handles new branch setup
 
 ### Build Profiles
-- `release` - Standard release build, now always for commutnity release build.
+- `release` - Standard release build, now always for community release build.
 - `enterprise` - Enterprise version build
 - `community` - Community version build
 - `failpoint` - Build with failpoint enabled
