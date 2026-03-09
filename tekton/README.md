@@ -25,7 +25,7 @@ tekton/
 ├── tests/                      # Test files for Tekton configurations
 ├── v0/                         # DEPRECATED - Legacy Tekton configurations
 │   ├── pipelines/              # Pipeline definitions
-│   ├── tasks/                  # Task definitions  
+│   ├── tasks/                  # Task definitions
 │   ├── triggers/               # Trigger definitions and templates
 │   └── ...                     # Other v0 resources
 └── v1/                         # Current Tekton configurations
