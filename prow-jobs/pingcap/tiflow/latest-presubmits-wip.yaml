@@ -2,7 +2,7 @@
 presubmits:
   pingcap/tiflow:
     - name: wip-pull-check
-      cluster: gcp-prow-ksyun
+      cluster: default
       decorate: true # need add this.
       always_run: false # debug
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
