@@ -20,7 +20,7 @@ spec:
           name: volume-0
     - args:
         - cat
-      image: hub.pingcap.net/jenkins/golang-tini:1.23
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/golang-tini:1.23
       imagePullPolicy: Always
       name: golang
       resources:
@@ -105,14 +105,14 @@ spec:
         - mountPath: /tmp
           name: volume-0
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
           cpu: 100m
     - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/python3-requests:latest
       tty: true
       resources:
         limits:

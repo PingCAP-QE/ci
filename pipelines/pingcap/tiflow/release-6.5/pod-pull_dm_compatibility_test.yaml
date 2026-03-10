@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/centos7_golang-1.19:latest"
       tty: true
       resources:
         requests:
@@ -15,7 +15,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: mysql1
-      image: 'hub.pingcap.net/jenkins/mysql:5.7'
+      image: 'us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/mysql:5.7'
       tty: true
       resources:
         limits:
@@ -33,7 +33,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: 'hub.pingcap.net/jenkins/mysql:5.7'
+      image: 'us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/mysql:5.7'
       tty: true
       resources:
         limits:
@@ -53,14 +53,14 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
           cpu: 100m
     - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/python3-requests:latest
       tty: true
       resources:
         limits:

@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: init-mysql-config
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/rocky8_golang-1.23:latest"
       command:
         - sh
         - -c
@@ -17,7 +17,7 @@ spec:
           name: "mysql-config-volume"
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/rocky8_golang-1.23:latest"
       tty: true
       resources:
         limits:
@@ -28,7 +28,7 @@ spec:
           name: "mysql-config-volume"
           subPath: ".my.cnf"
     - name: mysql1
-      image: 'hub.pingcap.net/jenkins/mysql:5.7'
+      image: 'us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/mysql:5.7'
       tty: true
       resources:
         limits:
@@ -46,7 +46,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: 'hub.pingcap.net/jenkins/mysql:5.7'
+      image: 'us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/mysql:5.7'
       tty: true
       resources:
         limits:
@@ -66,7 +66,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/network-multitool
       tty: true
       resources:
         limits:
