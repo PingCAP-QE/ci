@@ -1,59 +1,6 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tiflow:
-    - name: wip-pull-check
-      cluster: default
-      decorate: true # need add this.
-      always_run: false # debug
-      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      branches:
-        - ^master$
-        - ^feature[_/].+
-      spec:
-        containers:
-          - name: check
-            image: &image ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
-            command: &command [bash, -ce]
-            args:
-              - |
-                make check
-            env: &env
-              - name: CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiflow # format <ORG>-<REPO>
-              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
-              - name: TICDC_CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiflow # format <ORG>-<REPO>
-            resources: &resources
-              requests:
-                memory: 12Gi
-                cpu: "3"
-              limits:
-                memory: 24Gi
-                cpu: "6"
-    - name: wip-pull-build
-      cluster: default
-      decorate: true # need add this.
-      always_run: false # debug
-      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      branches:
-        - ^master$
-        - ^feature[_/].+
-      spec:
-        containers:
-          - name: build
-            image: *image
-            command: *command
-            args:
-              - |
-                make build
-            env: *env
-            resources: *resources
     - name: wip-pull-unit-test-dm
       cluster: default
       decorate: true # need add this.
@@ -65,39 +12,34 @@ presubmits:
       spec:
         containers:
           - name: dm-unit-test
-            image: *image
-            command: *command
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
             args:
               - |
                 make dm_unit_test_in_verify_ci
                 codecov -Z --flags unit,dm -f /tmp/dm_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
                   --sha ${PULL_PULL_SHA} \
-                  --branch origin/pr/{PULL_NUMBER}
-            env: *env
-            resources: *resources
-    - name: wip-pull-unit-test-cdc
-      cluster: default
-      decorate: true # need add this.
-      always_run: false # debug
-      # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      branches:
-        - ^master$
-        - ^feature[_/].+
-      spec:
-        containers:
-          - name: cdc-unit-test
-            image: *image
-            command: *command
-            args:
-              - |
-                make unit_test_in_verify_ci
-                codecov -Z --flags unit,cdc -f /tmp/tidb_cdc_test/cov.unit.out \
-                  --pr ${PULL_NUMBER} \
-                  --sha ${PULL_PULL_SHA} \
-                  --branch origin/pr/{PULL_NUMBER}
-            env: *env
-            resources: *resources
+                  --branch origin/pr/${PULL_NUMBER}
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
+              - name: TICDC_CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+            resources:
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 24Gi
+                cpu: "6"
     - name: wip-pull-unit-test-engine
       cluster: default
       decorate: true # need add this.
@@ -109,14 +51,31 @@ presubmits:
       spec:
         containers:
           - name: engine-unit-test
-            image: *image
-            command: *command
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
             args:
               - |
                 make engine_unit_test_in_verify_ci
                 codecov -Z --flags unit,engine -f /tmp/engine_test/cov.unit.out \
                   --pr ${PULL_NUMBER} \
                   --sha ${PULL_PULL_SHA} \
-                  --branch origin/pr/{PULL_NUMBER}
-            env: *env
-            resources: *resources
+                  --branch origin/pr/${PULL_NUMBER}
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
+              - name: TICDC_CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+            resources:
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 24Gi
+                cpu: "6"
