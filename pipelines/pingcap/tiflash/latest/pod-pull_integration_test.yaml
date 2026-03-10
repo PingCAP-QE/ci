@@ -30,7 +30,7 @@ spec:
     env:
     - name: "DOCKER_HOST"
       value: "tcp://localhost:2375"
-    image: "hub.pingcap.net/jenkins/docker:build-essential-java"
+    image: "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/docker:build-essential-java"
     imagePullPolicy: "Always"
     name: "docker"
     resources:

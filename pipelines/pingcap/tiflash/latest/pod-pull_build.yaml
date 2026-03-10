@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:rocky8-llvm-17.0.6-v2"
+      image: "us-docker.pkg.dev/pingcap-testing-account/hub/tiflash/tiflash-llvm-base:rocky8-llvm-17.0.6-v2"
       imagePullPolicy: Always
       command:
         - "/bin/bash"
@@ -45,7 +45,7 @@ spec:
           name: "volume-8"
           readOnly: false
     - name: util
-      image: hub.pingcap.net/jenkins/ks3util
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/ks3util
       args: ["sleep", "infinity"]
       resources:
         requests:
@@ -55,7 +55,7 @@ spec:
           cpu: "500m"
           memory: "500Mi"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/network-multitool
       tty: true
       resources:
         limits:

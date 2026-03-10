@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64-llvm-17.0.6"
+      image: "us-docker.pkg.dev/pingcap-testing-account/hub/tiflash/tiflash-llvm-base:amd64-llvm-17.0.6"
       command:
         - "cat"
       tty: true
@@ -71,14 +71,14 @@ spec:
           name: "volume-8"
           readOnly: false
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
           cpu: 100m
     - name: util
-      image: hub.pingcap.net/jenkins/ks3util
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/ks3util
       args: ["sleep", "infinity"]
       resources:
         requests:
