@@ -18,8 +18,8 @@ presubmits:
               - |
                 make check
             env: &env
-              - name: GO_PROXY
-                value: http://goproxy.pingcap.net,direct
+              - name: GOPROXY
+                value: https://proxy.golang.org,direct
               - name: GOMODCACHE
                 value: /share/go/pkg/mod
               - name: GOCACHE
