@@ -34,7 +34,6 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {

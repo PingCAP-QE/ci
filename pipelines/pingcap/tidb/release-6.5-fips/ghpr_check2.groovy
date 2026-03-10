@@ -21,7 +21,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         ENABLE_FIPS = 1
     }
     stages {
@@ -139,10 +138,6 @@ pipeline {
         }
     }
     post {
-        success {
-            // Upload check flag to fileserver
-            sh "echo done > done && curl -F ci_check/${JOB_NAME}/${REFS.pulls[0].sha}=@done ${FILE_SERVER_URL}/upload"
-        }
 
         // TODO(wuhuizuo): put into container lifecyle preStop hook.
         always {
