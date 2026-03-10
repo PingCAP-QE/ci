@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: golang
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2025.12.28-2-g97bb688-go1.25"
+      tty: true
+      resources:
+        requests:
+          memory: 8Gi
+          cpu: "6"
+        limits:
+          memory: 8Gi
+          cpu: "6"
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      tty: true
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+        limits:
+          cpu: "1"
+          memory: 4Gi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64

@@ -27,7 +27,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -231,19 +231,20 @@ pipeline {
         }
         stage("License check") {
             steps {
-                dir("${WORKSPACE}/tiflash") {
-                    // TODO: add license-eye to docker image
-                    sh label: "license header check", script: """
-                        echo "license check"
-                        if [[ -f .github/licenserc.yml ]]; then
-                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
-                            chmod +x license-eye
-                            ./license-eye -c .github/licenserc.yml header check
-                        else
-                            echo "skip license check"
-                            exit 0
-                        fi
-                    """
+                container('utils') {
+                    dir("${WORKSPACE}/tiflash") {
+                        // TODO: add license-eye to docker image
+                        sh label: "license header check", script: """
+                            echo "license check"
+                            if [[ -f .github/licenserc.yml ]]; then
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --license-eye=v0.4.0
+                                ./license-eye -c .github/licenserc.yml header check
+                            else
+                                echo "skip license check"
+                                exit 0
+                            fi
+                        """
+                    }
                 }
             }
         }

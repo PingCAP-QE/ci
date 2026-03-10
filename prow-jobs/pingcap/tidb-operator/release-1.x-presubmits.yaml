@@ -593,10 +593,10 @@ presubmits:
                 mountPath: /kind-data
             resources:
               requests:
-                memory: "16Gi"
+                memory: "48Gi"
                 cpu: "12"
               limits:
-                memory: "16Gi"
+                memory: "48Gi"
                 cpu: "12"
         containers:
           - name: e2e-runner
@@ -608,7 +608,7 @@ presubmits:
                 [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
                 exec bash ./hack/run-e2e-kind.sh --focus='\[Across\sKubernetes\]' --nodes=1 \
                   --extra-args='--install-dm-mysql=false' \
-                  --kind-cp-mem=8G --kind-cp-cpu=12288 --kind-wk-mem=8G --kind-wk-cpu=4096
+                  --kind-cp-mem=4G --kind-cp-cpu=8192 --kind-wk-mem=12G --kind-wk-cpu=8192
             env:
               - name: CODECOV_TOKEN
                 valueFrom:
@@ -632,11 +632,11 @@ presubmits:
                 mountPath: /kind-data
             resources:
               requests:
-                memory: 16Gi
-                cpu: "4"
+                memory: 12Gi
+                cpu: "3"
               limits:
-                memory: 16Gi
-                cpu: "4"
+                memory: 12Gi
+                cpu: "3"
 
     - name: pull-e2e-kind-scale-simultaneously
       decorate: true
