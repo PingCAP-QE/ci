@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "ghcr.io/pingcap-qe/ci/base:v2024.10.8-81-gec616ff-go1.21"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21"
       tty: true
       resources:
         requests:
@@ -20,13 +20,6 @@ spec:
       resources:
         limits:
           memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: purelind/python3-requests:3.9.18-slim
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
           cpu: 100m
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
