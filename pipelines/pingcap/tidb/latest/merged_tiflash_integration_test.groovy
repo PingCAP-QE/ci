@@ -7,9 +7,10 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_tiflash_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final GIT_CREDENTIALS_ID = ''
-final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final PR_TITLE = (REFS.pulls?.size() ?: 0) > 0 ? REFS.pulls[0].title : ''
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, PR_TITLE, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, PR_TITLE, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, PR_TITLE, 'master')
 
 pipeline {
     agent {
