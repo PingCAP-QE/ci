@@ -13,7 +13,19 @@ Replay PR-changed Jenkins pipelines with four core rules:
 - Keep a single PR comment continuously updated with replay planning, progress, and final outcomes.
 
 ## Required Inputs
-- Ask for `JENKINS_USER` and `JENKINS_TOKEN` before replay.
+- Load Jenkins credentials from `.env` by default (no prompting, no helper scripts):
+  - Read `JENKINS_USER` and `JENKINS_TOKEN` directly from `.env` (supports both `KEY: value` and `KEY=value`).
+  - Only ask the user if `.env` is missing or the keys are not present.
+  - Never paste tokens into PR comments or logs, and avoid printing `.env` contents (don’t `cat` it).
+
+Example (read repo-root `.env`, don’t `source` it):
+
+```bash
+ENV_FILE="$(git rev-parse --show-toplevel)/.env"
+JENKINS_USER="$(rg -m1 '^JENKINS_USER[:=]' "$ENV_FILE" | sed -E 's/^JENKINS_USER[:=][[:space:]]*//')"
+JENKINS_TOKEN="$(rg -m1 '^JENKINS_TOKEN[:=]' "$ENV_FILE" | sed -E 's/^JENKINS_TOKEN[:=][[:space:]]*//')"
+export JENKINS_USER JENKINS_TOKEN
+```
 - Resolve PR number from current branch when not provided:
 
 ```bash
@@ -107,7 +119,7 @@ Tip: A pipeline under a `latest` directory does not mean the Jenkins job path co
 Replay each selected candidate with `.ci/replay-jenkins-build.sh`.
 
 ```bash
-JENKINS_USER='<user>' JENKINS_TOKEN='<token>' \
+# Assumes `JENKINS_USER` and `JENKINS_TOKEN` are already exported (from `.env`)
 .ci/replay-jenkins-build.sh \
   --script-file <pipeline.groovy> \
   --job-url <job_url_from_jobs_dsl> \
@@ -150,7 +162,7 @@ Recommended comment marker/template:
 Query each replay build URL:
 
 ```bash
-curl -fsS -u '<user>:<token>' '<build_url>/api/json?tree=building,result,url'
+curl -fsS -u "${JENKINS_USER}:${JENKINS_TOKEN}" '<build_url>/api/json?tree=building,result,url'
 ```
 
 ## Step 7: Retry failures
@@ -164,7 +176,7 @@ Before each retry:
 Example retry:
 
 ```bash
-JENKINS_USER='<user>' JENKINS_TOKEN='<token>' \
+# Assumes `JENKINS_USER` and `JENKINS_TOKEN` are already exported (from `.env`)
 .ci/replay-jenkins-build.sh \
   --script-file <failed-pipeline.groovy> \
   --jenkins-url https://do.pingcap.net/jenkins \
