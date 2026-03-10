@@ -23,8 +23,8 @@ presubmits:
                 make ci_fmt_check
                 make ci_test
             env:
-              - name: GO_PROXY
-                value: http://goproxy.pingcap.net,direct
+              - name: GOPROXY
+                value: https://proxy.golang.org,direct
               - name: CARGO_NET_GIT_FETCH_WITH_CLI
                 value: "true"
             resources:
