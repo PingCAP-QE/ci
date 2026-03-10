@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
     - name: runner
-      image: "hub.pingcap.net/jenkins/tikv-cached-release-6.1:latest"
+      image: "ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8"
       tty: true
       resources:
         requests:
@@ -15,7 +15,7 @@ spec:
       securityContext:
         privileged: true
     - name: golang
-      image: hub.pingcap.net/jenkins/centos7_golang-1.19:latest
+      image: golang:1.19
       tty: true
       resources:
         requests:

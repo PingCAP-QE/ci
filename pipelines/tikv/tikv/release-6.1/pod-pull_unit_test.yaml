@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
     - name: runner
-      image: "hub.pingcap.net/jenkins/tikv-cached-release-6.1:latest"
+      image: "ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8"
       tty: true
       command:
         - "/bin/sh"
@@ -24,22 +24,12 @@ spec:
         name: "volume-tmp"
         readOnly: false
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: wbitt/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
           cpu: 100m
-    - name: util
-      image: hub.pingcap.net/jenkins/ks3util
-      args: ["sleep", "infinity"]
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "500Mi"
-        limits:
-          cpu: "500m"
-          memory: "500Mi"
   volumes:
   - emptyDir:
       medium: ""

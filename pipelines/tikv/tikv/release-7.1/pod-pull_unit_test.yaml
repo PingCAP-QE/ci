@@ -3,7 +3,7 @@ kind: Pod
 spec:
   containers:
     - name: runner
-      image: "hub.pingcap.net/jenkins/tikv-cached-release-7.1:latest"
+      image: "ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8"
       tty: true
       command:
         - "/bin/sh"
@@ -24,7 +24,7 @@ spec:
         name: "volume-tmp"
         readOnly: false
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: wbitt/network-multitool
       tty: true
       resources:
         limits:
