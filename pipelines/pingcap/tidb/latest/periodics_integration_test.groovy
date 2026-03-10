@@ -150,10 +150,4 @@ pipeline {
             }
         }
     }
-    post {
-        // TODO: add failure notification
-        // failure {
-        //     // Send lark notification
-        // }
-    }
 }
