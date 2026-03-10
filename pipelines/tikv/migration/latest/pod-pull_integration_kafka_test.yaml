@@ -51,7 +51,7 @@ spec:
           name: volume-0
     - args:
         - cat
-      image: hub.pingcap.net/jenkins/golang-tini:1.21
+      image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-81-gec616ff-go1.21
       imagePullPolicy: Always
       name: golang
       resources:
@@ -66,7 +66,7 @@ spec:
         - mountPath: /tmp
           name: volume-0
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: wbitt/network-multitool
       tty: true
       resources:
         limits:

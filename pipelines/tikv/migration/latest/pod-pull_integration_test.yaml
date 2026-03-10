@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+      image: "ghcr.io/pingcap-qe/ci/base:v2024.10.8-81-gec616ff-go1.21"
       tty: true
       resources:
         requests:
@@ -15,14 +15,14 @@ spec:
           memory: 8Gi
           cpu: "4"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: wbitt/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
           cpu: 100m
     - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
+      image: purelind/python3-requests:3.9.18-slim
       tty: true
       resources:
         limits:
