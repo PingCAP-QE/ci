@@ -232,20 +232,20 @@ pipeline {
         }
         stage("License check") {
             steps {
-                container('utils') {
-                    dir("${WORKSPACE}/tiflash") {
-                        // TODO: add license-eye to docker image
-                        sh label: "license header check", script: """
-                            echo "license check"
-                            if [[ -f .github/licenserc.yml ]]; then
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --license-eye=v0.4.0
-                                ./license-eye -c .github/licenserc.yml header check
-                            else
-                                echo "skip license check"
-                                exit 0
-                            fi
-                        """
+                dir("${WORKSPACE}/tiflash") {
+                    container('utils') {
+                        sh label: "get license-eye tool", script: '${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --license-eye=v0.4.0'
                     }
+                    sh label: "license header check", script: """
+                        echo "license check"
+                        if [[ -f .github/licenserc.yml ]]; then
+                            chmod +x ./license-eye
+                            ./license-eye -c .github/licenserc.yml header check
+                        else
+                            echo "skip license check"
+                            exit 0
+                        fi
+                    """
                 }
             }
         }
