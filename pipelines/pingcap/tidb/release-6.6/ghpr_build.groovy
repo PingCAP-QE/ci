@@ -89,30 +89,6 @@ pipeline {
                                 }
                             }
                         }
-                        stage("Upload") {
-                            options {
-                                timeout(time: 5, unit: 'MINUTES')
-                            }
-                            steps {
-                                dir("tidb") {
-                                    sh label: "create tidb-server tarball", script: """
-                                        rm -rf .git
-                                        tar czvf tidb-server.tar.gz ./*
-                                        echo "pr/${REFS.pulls[0].sha}" > sha1
-                                        echo "done" > done
-                                        """
-                                    sh label: 'upload to tidb dir', script: """
-                                        filepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
-                                        donepath="builds/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].sha}/centos7/done"
-                                        refspath="refs/${GIT_FULL_REPO_NAME}/pr/${REFS.pulls[0].number}/sha1"
-                                        """
-                                    sh label: 'upload to tidb-checker dir', script: """
-                                        filepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/tidb-server.tar.gz"
-                                        donepath="builds/pingcap/tidb-check/pr/${REFS.pulls[0].sha}/centos7/done"
-                                        """
-                                }
-                            }
-                        }
                     }
                 }
                 stage("Build plugins") {
