@@ -27,7 +27,7 @@ presubmits:
                 make build
             env:
               - name: GO_PROXY
-                value: http://goproxy.apps.svc,direct
+                value: https://proxy.golang.org,direct
               - name: GOMODCACHE
                 value: /share/go/pkg/mod
             volumeMounts:
@@ -67,7 +67,7 @@ presubmits:
                 make check
             env:
               - name: GO_PROXY
-                value: http://goproxy.apps.svc,direct
+                value: https://proxy.golang.org,direct
               - name: GOMODCACHE
                 value: /share/go/pkg/mod
             volumeMounts:
@@ -107,7 +107,7 @@ presubmits:
                 make test
             env:
               - name: GO_PROXY
-                value: http://goproxy.apps.svc,direct
+                value: https://proxy.golang.org,direct
               - name: GOMODCACHE
                 value: /share/go/pkg/mod
             volumeMounts:
@@ -156,7 +156,7 @@ presubmits:
                 # KAFKA_ADDRS=127.0.0.1:9092 make integration-test
             env:
               - name: GO_PROXY
-                value: http://goproxy.apps.svc,direct
+                value: https://proxy.golang.org,direct
               - name: GOMODCACHE
                 value: /share/go/pkg/mod
             volumeMounts:
