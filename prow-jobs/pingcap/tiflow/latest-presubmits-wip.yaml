@@ -2,7 +2,7 @@
 presubmits:
   pingcap/tiflow:
     - name: wip-pull-check
-      cluster: gcp-prow-ksyun
+      cluster: default
       decorate: true # need add this.
       always_run: false # debug
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -12,18 +12,12 @@ presubmits:
       spec:
         containers:
           - name: check
-            image: &image hub.pingcap.net/ee/ci/base:v20230810-go1.21
+            image: &image ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
             command: &command [bash, -ce]
             args:
               - |
                 make check
             env: &env
-              - name: GO_PROXY
-                value: http://goproxy.pingcap.net,direct
-              - name: GOMODCACHE
-                value: /share/go/pkg/mod
-              - name: GOCACHE
-                value: /share/.cache/go-build
               - name: CODECOV_TOKEN
                 valueFrom:
                   secretKeyRef:
@@ -35,27 +29,15 @@ presubmits:
                   secretKeyRef:
                     name: codecov-tokens
                     key: pingcap-tiflow # format <ORG>-<REPO>
-            volumeMounts: &volumeMounts
-              - name: go-cache
-                mountPath: /share/.cache/go-build
-              - name: gomod-cache
-                mountPath: /share/go/pkg/mod
             resources: &resources
               requests:
                 memory: 12Gi
-                cpu: "4"
+                cpu: "3"
               limits:
-                memory: 16Gi
+                memory: 24Gi
                 cpu: "6"
-        volumes: &volumes
-          - name: go-cache
-            persistentVolumeClaim:
-              claimName: go-cache
-          - name: gomod-cache
-            persistentVolumeClaim:
-              claimName: gomod-cache
     - name: wip-pull-build
-      cluster: gcp-prow-ksyun
+      cluster: default
       decorate: true # need add this.
       always_run: false # debug
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -71,11 +53,9 @@ presubmits:
               - |
                 make build
             env: *env
-            volumeMounts: *volumeMounts
             resources: *resources
-        volumes: *volumes
     - name: wip-pull-unit-test-dm
-      cluster: gcp-prow-ksyun
+      cluster: default
       decorate: true # need add this.
       always_run: false # debug
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -95,11 +75,9 @@ presubmits:
                   --sha ${PULL_PULL_SHA} \
                   --branch origin/pr/{PULL_NUMBER}
             env: *env
-            volumeMounts: *volumeMounts
             resources: *resources
-        volumes: *volumes
     - name: wip-pull-unit-test-cdc
-      cluster: gcp-prow-ksyun
+      cluster: default
       decorate: true # need add this.
       always_run: false # debug
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -119,11 +97,9 @@ presubmits:
                   --sha ${PULL_PULL_SHA} \
                   --branch origin/pr/{PULL_NUMBER}
             env: *env
-            volumeMounts: *volumeMounts
             resources: *resources
-        volumes: *volumes
     - name: wip-pull-unit-test-engine
-      cluster: gcp-prow-ksyun
+      cluster: default
       decorate: true # need add this.
       always_run: false # debug
       # skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -143,6 +119,4 @@ presubmits:
                   --sha ${PULL_PULL_SHA} \
                   --branch origin/pr/{PULL_NUMBER}
             env: *env
-            volumeMounts: *volumeMounts
             resources: *resources
-        volumes: *volumes
