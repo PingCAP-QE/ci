@@ -34,53 +34,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-                script {
-                    // If build cache exists, skip the following build steps.
-                    // We probe cache existence by restoring into a temp dir and checking a sentinel file.
-                    try {
-                        dir("test-build-cache") {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')) {
-                                // if file README.md not exist, then build-cache-ready is false
-                                build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build')}"
-                                println "skip build..."
-                                // if build cache not ready, then throw error to avoid cache empty directory
-                                // for the same cache key, if throw error, will skip the cache step
-                                // the cache gets not stored if the key already exists or the inner-step has been failed
-                                if (!build_cache_ready) {
-                                    error "build cache not exist, start build..."
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        println "build cache not ready: ${e}"
-                    }
-
-                    // Provide a best-effort commit hash for later stages when checkout is skipped.
-                    if (REFS.pulls && REFS.pulls.size() > 0) {
-                        tiflash_commit_hash = REFS.pulls[0].sha
-                    } else {
-                        tiflash_commit_hash = REFS.base_sha
-                    }
-                    println "tiflash_commit_hash(from refs): ${tiflash_commit_hash}"
-                }
-            }
-        }
         stage('Checkout') {
             when {
                 expression { !build_cache_ready }
