@@ -143,20 +143,31 @@ build_inline_script_with_pod_yaml() {
     local pod_b64
     pod_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
 
-    # Build the replacement string in shell and use awk to perform the substitution.
+    # Build the replacement string in shell and use portable awk/sub() to perform the substitution.
     # If no substitution is performed, exit with status 2 to preserve previous behavior.
     local repl
     repl="yaml new String(java.util.Base64.decoder.decode(\"${pod_b64}\"), 'UTF-8')"
 
     awk -v repl="$repl" '
-    BEGIN { found=0 }
+    BEGIN {
+        found=0
+        # Core patterns for legacy/new declarative forms.
+        p1 = "yamlFile[[:space:]]+POD_TEMPLATE_FILE"
+        p2 = "yaml[[:space:]]+pod_label\\.withCiLabels\\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\\)"
+        suffix = "([[:space:]]*#.*)?[[:space:]]*$"
+    }
     {
         line = $0
-        # Use gensub to replace occurrences where yamlFile and POD_TEMPLATE_FILE appear as a token pair.
-        # The regex ensures word-like boundaries around the tokens.
-        new_line = gensub(/(^|[^[:alnum:]_])yamlFile[[:space:]]+POD_TEMPLATE_FILE([^[:alnum:]_]|$)/, "\\1" repl "\\2", "g", line)
-        if (new_line != line) found = 1
-        print new_line
+        # Declarative form before ci-label migration (allow trailing inline comments).
+        if (line ~ ("^[[:space:]]*" p1 suffix)) {
+            sub(p1, repl, line)
+            found = 1
+        # Declarative form after ci-label migration (allow trailing inline comments).
+        } else if (line ~ ("^[[:space:]]*" p2 suffix)) {
+            sub(p2, repl, line)
+            found = 1
+        }
+        print line
     }
     END {
         if (found == 0) exit 2
@@ -413,9 +424,9 @@ EOF
     fi
 
     if [[ -n "$source_build_url" ]]; then
-        vlog "scriptText source build: $(trim_trailing_slash "$source_build_url")"
+        vlog "🔍 scriptText source build: $(trim_trailing_slash "$source_build_url")"
     fi
-    vlog "scriptText queue URL: $(trim_trailing_slash "$queue_url")"
+    vlog "🛤️ scriptText queue URL: $(trim_trailing_slash "$queue_url")"
 
     local target_url
     target_url="$(wait_queue_to_build_url "$queue_url" "$timeout_sec" "$poll_sec")"
@@ -451,7 +462,7 @@ replay_one() {
         fi
 
         build_url="${job_url}/${SELECTOR}"
-        vlog "selected historical build from job URL: ${job_url} + ${SELECTOR}"
+        vlog "💼 selected historical build from job URL: ${job_url} + ${SELECTOR}"
     fi
 
     build_url="$(trim_trailing_slash "$build_url")"
@@ -483,11 +494,11 @@ replay_one() {
         [[ -n "$resolved_url" ]] || fatal "failed to resolve concrete build URL from ${build_url}"
 
         build_url="$(trim_trailing_slash "$resolved_url")"
-        vlog "resolved selector to concrete build URL: ${build_url}"
+        vlog "🧮 resolved selector to concrete build URL: ${build_url}"
     fi
 
-    log "replay source build: ${build_url}"
-    log "pipeline script file: ${script_file}"
+    log "🔍 replay source build: ${build_url}"
+    log "📃 pipeline script file: ${script_file}"
     if [[ "$replay_script_file" != "$script_file" ]]; then
         vlog "effective replay script file: ${replay_script_file}"
     fi
@@ -501,17 +512,16 @@ replay_one() {
     local replay_build_url
     replay_build_url="$(submit_replay "$build_url" "$replay_script_file" "$TIMEOUT_SEC" "$POLL_INTERVAL_SEC")"
     [[ -n "$REPLAY_SCRIPT_TEMP" ]] && rm -f "$REPLAY_SCRIPT_TEMP"
-    log "replay build assigned: ${replay_build_url}"
+    log "👉 replay build assigned: ${replay_build_url}"
 
     if [[ "$WAIT_BUILD" == "true" ]]; then
+        log "⌛️ waiting for build: ${replay_build_url} ..."
         if ! wait_build_result "$replay_build_url" "$TIMEOUT_SEC" "$POLL_INTERVAL_SEC"; then
-            printf 'replay failed: %s\n' "$replay_build_url" >&2
+            printf '☹️ replay failed: %s\n' "$replay_build_url" >&2
             REPLAY_LAST_RESULT="failed"
             return 1
         fi
-        printf 'replay success: %s\n' "$replay_build_url"
-    else
-        printf 'replay submitted: %s\n' "$replay_build_url"
+        printf '🎉 replay success: %s\n' "$replay_build_url"
     fi
     REPLAY_LAST_RESULT="submitted"
 }

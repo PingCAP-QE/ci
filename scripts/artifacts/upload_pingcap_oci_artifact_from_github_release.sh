@@ -50,6 +50,33 @@ function upload_kes() {
     done
 }
 
+# license-eye
+function upload_license_eye() {
+    local repo_base_url="$1"
+    local repo="$repo_base_url/pingcap/third-party/license-eye"
+    for version in 0.4.0; do
+        for arch in amd64 arm64; do
+            oci_tag="v${version}_linux_${arch}"
+            if oras manifest fetch "$repo:$oci_tag" >/dev/null 2>&1; then
+                echo "tag $oci_tag already exists in $repo." >&2
+                continue
+            fi
+
+            # GitHub asset names for skywalking-eyes releases are like:
+            #  - license-eye_0.4.0_linux_amd64.tar.gz
+            #  - license-eye_0.4.0_linux_arm64.tar.gz
+            file_name="license-eye_${version}_linux_${arch}.tar.gz"
+            download_url="https://github.com/apache/skywalking-eyes/releases/download/v${version}/${file_name}"
+            pushd "$(mktemp -d)"
+                wget -O "$file_name" "$download_url"
+                tar -xzf "$file_name" license-eye
+                chmod +x license-eye
+                oras push --artifact-type application/octet-stream $repo:$oci_tag license-eye
+            popd
+        done
+    done
+}
+
 # minio
 function upload_minio {
     local repo_base_url="$1"
@@ -75,6 +102,7 @@ function upload_minio {
 function main() {
     upload_fake-gcs-server "$@"
     upload_kes "$@"
+    upload_license_eye "$@"
     upload_minio "$@"
 }
 
