@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: hub.pingcap.net/jenkins/docs-cn-checker:v1.0.0
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/docs-cn-checker:v1.0.0
       tty: true
       resources:
         requests:
@@ -25,7 +25,7 @@ spec:
           memory: 2Gi
           cpu: "1"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: wbitt/network-multitool
       tty: true
       resources:
         limits:
