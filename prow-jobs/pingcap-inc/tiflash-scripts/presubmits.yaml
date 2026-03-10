@@ -25,44 +25,12 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       max_concurrency: 3
       spec:
-        volumes:
-          - name: docker-sock-dir
-            emptyDir: {}
-          - name: docker-lib
-            emptyDir: {}
-        initContainers:
-          - name: dind-daemon
-            image: docker:28.1-dind
-            restartPolicy: Always
-            command:
-              - /bin/sh
-              - -c
-              - dockerd-entrypoint.sh
-            env:
-              - name: DOCKER_TLS_CERTDIR
-                value: ""
-            securityContext:
-              privileged: true
-            volumeMounts:
-              - name: docker-sock-dir
-                mountPath: /var/run
-              - name: docker-lib
-                mountPath: /var/lib/docker
-            resources:
-              requests:
-                cpu: "1"
-                memory: 4Gi
-              limits:
-                cpu: "1"
-                memory: 4Gi
         containers:
           - name: run-test
-            image: ubuntu:22.04
+            image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2024.10.8-135-g43bfc3c-centos7
             imagePullPolicy: Always
             command: [/bin/bash, -ce]
             env:
-              - name: DOCKER_HOST
-                value: unix:///var/run/docker.sock
               - name: OCI_ARTIFACT_HOST
                 value: us-docker.pkg.dev/pingcap-testing-account/hub
             args:
@@ -73,22 +41,16 @@ presubmits:
                 echo "pwd=$(pwd)"
                 git config --global --add safe.directory "*"
 
-                export DEBIAN_FRONTEND=noninteractive
-                apt-get update
-                apt-get install -y --no-install-recommends \
-                  ca-certificates \
-                  curl \
-                  docker-compose \
-                  docker.io \
-                  git \
-                  jq \
-                  maven \
-                  openjdk-17-jdk \
-                  python-is-python3 \
-                  python3 \
-                  tar \
-                  xz-utils
-                rm -rf /var/lib/apt/lists/*
+                git submodule sync --recursive
+                git submodule update --init --recursive
+
+                yum install -y \
+                  ca-certificates curl wget git jq \
+                  tar xz bzip2 gzip \
+                  which nc lsof net-tools procps-ng psmisc \
+                  mariadb java-1.8.0-openjdk-headless \
+                  rsync openssh-clients \
+                  python
 
                 ORAS_VERSION="1.2.3"
                 curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" \
@@ -99,134 +61,160 @@ presubmits:
                 curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
                 chmod +x /usr/local/bin/yq
 
-                if [[ -n "${PULL_PULL_SHA:-}" ]]; then
-                  git fetch --depth=1 origin "${PULL_PULL_SHA}"
-                  git checkout -f "${PULL_PULL_SHA}"
-                fi
-
-                echo "wait for docker daemon..."
-                timeout_seconds=120
-                start_time=$(date +%s)
-                while ! docker info >/dev/null 2>&1; do
-                  current_time=$(date +%s)
-                  if (( current_time - start_time >= timeout_seconds )); then
-                    echo "docker daemon did not become ready in ${timeout_seconds}s" >&2
-                    exit 1
-                  fi
-                  sleep 3
-                done
-                docker info >/dev/null
-
-                if [[ -f .ci/integration_test.groovy ]]; then
-                  if [[ -f .ci/integration_test_native.sh ]]; then
-                    echo "found .ci/integration_test.groovy and .ci/integration_test_native.sh, running native script"
-                    chmod +x .ci/integration_test_native.sh
-                    export TICS_TAG="${TICS_TAG:-${PULL_BASE_REF:-master}}"
-                    export TIDB_BRANCH="${TIDB_BRANCH:-${PULL_BASE_REF:-master}}"
-                    export TIKV_BRANCH="${TIKV_BRANCH:-${PULL_BASE_REF:-master}}"
-                    export PD_BRANCH="${PD_BRANCH:-${PULL_BASE_REF:-master}}"
-                    export STORAGE_ENGINE="${STORAGE_ENGINE:-}"
-                    ./.ci/integration_test_native.sh
-                    exit 0
-                  fi
-
-                  echo "found legacy .ci/integration_test.groovy but .ci/integration_test_native.sh is missing" >&2
-                  echo "native prow cannot execute Jenkins Groovy; please provide .ci/integration_test_native.sh" >&2
-                  exit 1
-                fi
-
-                tics_tag="${TICS_TAG:-${PULL_BASE_REF:-master}}"
-                if [[ -z "${tics_tag}" || "${tics_tag}" == "raft" ]]; then
-                  tics_tag="master"
-                fi
-                echo "tics_tag=${tics_tag}"
-
-                rm -rf /tmp/tispark
-                git clone --depth=1 --branch tiflash-ci-test https://github.com/pingcap/tispark.git /tmp/tispark
-                (
-                  cd /tmp/tispark
-                  mvn install -Dmaven.test.skip=true
-                )
-
                 oci_script=/tmp/download_pingcap_oci_artifact.sh
                 curl -fsSL https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh -o "${oci_script}"
                 chmod +x "${oci_script}"
 
+                branch="${PULL_BASE_REF:-master}"
+                if [[ -z "${branch}" || "${branch}" == "raft" ]]; then
+                  branch="master"
+                fi
+                echo "branch=${branch}"
+
                 artifact_dir=/tmp/oci-artifacts
                 rm -rf "${artifact_dir}"
                 mkdir -p "${artifact_dir}"
+                download_component() {
+                  local component="$1"
+                  local tag="$2"
+                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --"${component}"="${tag}"; then
+                    echo "component=${component} tag=${tag} not found in OCI, fallback to master"
+                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --"${component}"=master
+                  fi
+                }
+
+                download_tidb() {
+                  local tag="$1"
+                  local candidates=(
+                    "${tag}-failpoint"
+                    "${tag}_failpoint"
+                    "${tag}-failpoints"
+                    "${tag}_failpoints"
+                    "${tag}"
+                  )
+                  local t=""
+                  for t in "${candidates[@]}"; do
+                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --tidb="${t}"; then
+                      echo "${t}" > "${artifact_dir}/.resolved_tidb_tag"
+                      return 0
+                    fi
+                  done
+                  return 1
+                }
+
                 (
                   cd "${artifact_dir}"
-                  OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --tidb=master --tikv=master --pd=master
-                  resolved_tiflash_tag="${tics_tag}"
-                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --tiflash="${resolved_tiflash_tag}"; then
-                    echo "tiflash package tag '${resolved_tiflash_tag}' not found in OCI, fallback to master"
-                    resolved_tiflash_tag="master"
-                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --tiflash="${resolved_tiflash_tag}"
+                  download_component tikv "${branch}"
+                  download_component pd "${branch}"
+                  download_component pd-ctl "${branch}"
+                  download_component tikv-ctl "${branch}"
+                  download_component tiflash "${branch}"
+                  if ! download_tidb "${branch}"; then
+                    echo "tidb tag '${branch}' not found in OCI (including failpoint candidates)" >&2
+                    exit 1
                   fi
-                  echo "${resolved_tiflash_tag}" > .resolved_tiflash_tag
                 )
-                resolved_tiflash_tag="$(cat "${artifact_dir}/.resolved_tiflash_tag")"
-                echo "resolved_tiflash_tag=${resolved_tiflash_tag}"
+                resolved_tidb_tag="$(cat "${artifact_dir}/.resolved_tidb_tag")"
+                echo "resolved_tidb_tag=${resolved_tidb_tag}"
 
                 mkdir -p integrated/binary/tidb integrated/binary/tikv integrated/binary/pd integrated/binary/tiflash
                 cp -f "${artifact_dir}/tidb-server" integrated/binary/tidb/tidb-server
                 cp -f "${artifact_dir}/tikv-server" integrated/binary/tikv/tikv-server
                 cp -f "${artifact_dir}/pd-server" integrated/binary/pd/pd-server
+                cp -f "${artifact_dir}/pd-ctl" integrated/binary/pd/pd-ctl
+                cp -f "${artifact_dir}/tikv-ctl" integrated/binary/tikv/tikv-ctl
                 tar -czf integrated/binary/tiflash/tiflash.tar.gz -C "${artifact_dir}" tiflash
+
+                # Prevent accidental downloads from download.pingcap.org (may be internal-only on GCP).
+                # The job should rely on OCI artifacts + bin.paths only.
+                if [[ -f integrated/conf/bin.urls ]]; then
+                  cp -f integrated/conf/bin.urls "${artifact_dir}/bin.urls.orig" || true
+                  : > integrated/conf/bin.urls
+                fi
+                if [[ -f integrated/conf/bin.urls.mac ]]; then
+                  : > integrated/conf/bin.urls.mac
+                fi
+
+                # Ensure OPS TI tests won't attempt to download from internal domains.
+                # The repo test script copies tests/ci/conf/bin.paths to integrated/conf/bin.paths.
+                # Add missing tools (pd_ctl/tikv_ctl) so ti.sh won't fall back to bin.urls (download.pingcap.org).
+                if ! grep -qE '^pd_ctl[[:space:]]' integrated/tests/ci/conf/bin.paths; then
+                  cat >> integrated/tests/ci/conf/bin.paths <<'EOF'
+                pd_ctl           pd-ctl                    {integrated}/binary/pd/pd-ctl
+                EOF
+                fi
+                if ! grep -qE '^tikv_ctl[[:space:]]' integrated/tests/ci/conf/bin.paths; then
+                  cat >> integrated/tests/ci/conf/bin.paths <<'EOF'
+                tikv_ctl         tikv-ctl                  {integrated}/binary/tikv/tikv-ctl
+                EOF
+                fi
+
+                # Disable internal mirror (fileserver.pingcap.net) by clearing the *hash* fields.
+                # With correct bin.paths, no download should happen; if something is missing, fail fast.
+                sed -i \
+                  -e "s/^tidb_branch=.*/tidb_branch='${branch}'/" -e "s/^tidb_hash=.*/tidb_hash=''/" \
+                  -e "s/^tikv_branch=.*/tikv_branch='${branch}'/" -e "s/^tikv_hash=.*/tikv_hash=''/" \
+                  -e "s/^pd_branch=.*/pd_branch='${branch}'/" -e "s/^pd_hash=.*/pd_hash=''/" \
+                  -e "s/^tiflash_branch=.*/tiflash_branch='${branch}'/" -e "s/^tiflash_hash=.*/tiflash_hash=''/" \
+                  integrated/tests/ci/conf/download.ti
+                echo "patched integrated/tests/ci/conf/download.ti:"
+                cat integrated/tests/ci/conf/download.ti
+
+                if [[ -n "${STORAGE_ENGINE:-}" ]]; then
+                  sed -i "s/storage_engine = \\\"dt\\\"/storage_engine = \\\"${STORAGE_ENGINE}\\\"/" integrated/conf/tiflash/config.toml
+                  echo "patched integrated/conf/tiflash/config.toml:"
+                  cat integrated/conf/tiflash/config.toml
+                fi
+
+                artifacts_dir="${ARTIFACTS:-/logs/artifacts}"
+                mkdir -p "${artifacts_dir}"
+
+                collect_logs() {
+                  local out="${artifacts_dir}/tiflash-scripts-ops-ti-logs"
+                  mkdir -p "${out}"
+                  # Collect ti logs (exclude data and tiflash/db to keep size reasonable).
+                  while IFS= read -r -d '' file; do
+                    local base="${file#/}"
+                    base="${base//\//_}"
+                    cp -f "${file}" "${out}/${base}" || true
+                  done < <(find /tmp/ti -type f -name '*.log' ! -path '*/data/*' ! -path '*/tiflash/db*' -print0 2>/dev/null || true)
+
+                  # Also store full /tmp/ti for debugging if it's not too large.
+                  if [[ -d /tmp/ti ]]; then
+                    tar -czf "${out}/tmp-ti.tar.gz" -C /tmp ti || true
+                  fi
+                }
 
                 if [[ -f integrated/tests/ci/jenkins.sh ]]; then
                   echo "run integrated/tests/ci/jenkins.sh"
+                  set +e
                   (
                     cd integrated
-                    /bin/bash tests/ci/jenkins.sh
+                    timeout 120m /bin/bash -xe tests/ci/jenkins.sh
                   )
+                  code="$?"
+                  set -e
+                  if [[ "${code}" -ne 0 ]]; then
+                    echo "OPS TI test failed, collecting logs..."
+                    collect_logs
+                    exit "${code}"
+                  fi
                 else
                   echo "skip integrated/tests/ci/jenkins.sh: file not found"
                 fi
-
-                cd tests/maven
-                sed -i 's#hub.pingcap.net/qa/pd:#pingcap/pd:#g' docker-compose.yaml
-                sed -i 's#hub.pingcap.net/qa/tikv:#pingcap/tikv:#g' docker-compose.yaml
-                sed -i 's#hub.pingcap.net/qa/tidb:#pingcap/tidb:#g' docker-compose.yaml
-                sed -i 's#hub.pingcap.net/tiflash/tiflash:#pingcap/tiflash:#g' docker-compose.yaml
-
-                maven_branch="master"
-                public_tiflash_tag="${resolved_tiflash_tag}"
-                if ! docker manifest inspect "pingcap/tiflash:${public_tiflash_tag}" >/dev/null 2>&1; then
-                  echo "public tiflash image tag '${public_tiflash_tag}' not found, fallback to master"
-                  public_tiflash_tag="master"
-                fi
-
-                pulled=0
-                for i in $(seq 1 20); do
-                  if docker pull "pingcap/tiflash:${public_tiflash_tag}"; then
-                    pulled=1
-                    break
-                  fi
-                  sleep 5
-                done
-                if [[ "${pulled}" -ne 1 ]]; then
-                  echo "failed to pull pingcap/tiflash:${public_tiflash_tag}" >&2
-                  exit 1
-                fi
-
-                if ! BRANCH="${maven_branch}" TAG="${public_tiflash_tag}" /bin/bash -xe run.sh; then
-                  while IFS= read -r -d '' file; do
-                    echo "LOG: ${file}"
-                    tail -n 500 "${file}" || true
-                  done < <(find log -name '*.log' -type f -print0)
-                  exit 1
-                fi
-            volumeMounts:
-              - name: docker-sock-dir
-                mountPath: /var/run
-              - name: docker-lib
-                mountPath: /var/lib/docker
             resources:
               requests:
-                cpu: "4"
-                memory: 12Gi
+                cpu: "12"
+                memory: 24Gi
               limits:
-                cpu: "4"
-                memory: 12Gi
+                cpu: "16"
+                memory: 32Gi
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
