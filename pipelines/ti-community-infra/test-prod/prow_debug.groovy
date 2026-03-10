@@ -12,15 +12,6 @@ pipeline {
     }
     options { skipDefaultCheckout() }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: '''
-                    printenv
-                    echo "-------------------------"
-                    ls -la
-                '''
-            }
-        }
         stage('Checkout') {
             when { expression { return params.JOB_SPEC } }
             steps {
