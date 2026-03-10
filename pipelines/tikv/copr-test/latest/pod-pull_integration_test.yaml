@@ -5,14 +5,14 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23"
       tty: true
       resources:
         limits:
           memory: 12Gi
           cpu: "20"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: wbitt/network-multitool
       tty: true
       resources:
         limits:
