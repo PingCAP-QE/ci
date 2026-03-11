@@ -7,9 +7,6 @@ global_definitions:
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   decoration_config: &decoration_config
     timeout: 3h
-    oauth_token_secret:
-      name: github-token
-      key: token
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -37,13 +34,6 @@ presubmits:
             args:
               - |
                 set -euo pipefail
-
-                echo "repo=${REPO_OWNER}/${REPO_NAME} pr=${PULL_NUMBER:-unknown} base=${PULL_BASE_REF:-unknown}"
-                echo "pwd=$(pwd)"
-                git config --global --add safe.directory "*"
-
-                git submodule sync --recursive
-                git submodule update --init --recursive
 
                 yum install -y \
                   ca-certificates curl wget git jq \
