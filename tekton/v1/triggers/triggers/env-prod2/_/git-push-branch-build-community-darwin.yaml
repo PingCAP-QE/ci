@@ -25,7 +25,7 @@ spec:
                 'tikv/tikv',
               ]
               &&
-              body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+(-beta[.][0-9]+|-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+)?)$')
+              body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+(-beta[.][0-9]+)?)$')
             ) || (
               body.repository.full_name in [ 'pingcap/tiproxy' ]
               &&
