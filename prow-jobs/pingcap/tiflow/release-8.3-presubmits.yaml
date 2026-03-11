@@ -3,6 +3,7 @@ global_definitions:
   branches: &branches
     - ^release-8\.3(\.\d+)?(-\d+)?(-v[\.\d]+)?$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed_cdc: &skip_if_only_changed_cdc "(^dm/|^engine/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
 
 presubmits:
   pingcap/tiflow:
@@ -12,7 +13,7 @@ presubmits:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_cdc
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
@@ -24,7 +25,7 @@ presubmits:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_cdc
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
@@ -36,7 +37,7 @@ presubmits:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_cdc
       run_before_merge: true
       context: pull-cdc-integration-pulsar-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
@@ -48,7 +49,7 @@ presubmits:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_cdc
       run_before_merge: true
       context: pull-cdc-integration-storage-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
