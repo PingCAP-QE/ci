@@ -44,7 +44,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_CMD'
-                        values 'check', "build", "dm_unit_test_in_verify_ci", "unit_test_in_verify_ci", "engine_unit_test_in_verify_ci"
+                        values "dm_unit_test_in_verify_ci", "engine_unit_test_in_verify_ci"
                     }
                 }
                 agent{
@@ -75,7 +75,6 @@ pipeline {
                                     script {
                                         def testConfigs = [
                                             dm_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
-                                            unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/tidb_cdc_test/cov.unit.out"],
                                             engine_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/engine_test/cov.unit_test.out"]
                                         ]
                                         def config = testConfigs[TEST_CMD]

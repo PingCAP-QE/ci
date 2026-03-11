@@ -6,6 +6,89 @@ global_definitions:
 
 presubmits:
   pingcap/tiflow:
+    - name: pull-check-8.5
+      cluster: default
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      spec:
+        containers:
+          - name: check
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make check
+            resources: &resources
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
+    - name: pull-build-8.5
+      cluster: default
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make build
+            resources: *resources
+
+    - name: pull-unit-test-cdc-8.5
+      cluster: default
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      spec:
+        containers:
+          - name: cdc-unit-test
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                # Preserve junit artifacts for Prow even when tests fail.
+                archive_junit_reports() {
+                  local report
+                  shopt -s globstar nullglob
+                  mkdir -p "${ARTIFACTS}" || return 0
+                  for report in ./**/*-junit-report.xml; do
+                    cp -f "$report" "${ARTIFACTS}/$(basename "$report")" || true
+                  done
+                }
+                trap archive_junit_reports EXIT
+
+                make unit_test_in_verify_ci
+                if [ -f /tmp/tidb_cdc_test/cov.unit.out ] && [ "${JOB_TYPE:-}" != "batch" ]; then
+                  codecov -f /tmp/tidb_cdc_test/cov.unit.out -F unit,cdc -r "pingcap/tiflow" -C "${PULL_PULL_SHA}" -B "${PULL_BASE_REF}" --pr "${PULL_NUMBER}" -Z || true
+                fi
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
+              - name: TICDC_CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+            resources:
+              requests:
+                memory: 24Gi
+                cpu: "6"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
     - name: pingcap/tiflow/release-8.5/pull_cdc_integration_kafka_test
       agent: jenkins
       labels:
