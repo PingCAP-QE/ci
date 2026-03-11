@@ -23,7 +23,7 @@ global_definitions:
 presubmits:
   pingcap-inc/tiflow:
     - <<: [*k8s_job, *brancher, *changer]
-      name: pull-check-8.5
+      name: pull-check
       spec:
         containers:
           - name: check
@@ -53,7 +53,7 @@ presubmits:
             resources: *resources
 
     - <<: [*k8s_job, *brancher, *changer]
-      name: pull-unit-test-cdc-8.5
+      name: pull-unit-test-cdc
       spec:
         containers:
           - name: cdc-unit-test
@@ -105,27 +105,3 @@ presubmits:
       context: pull-cdc-integration-storage-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-storage-test"
-
-    - <<: [*jenkins_job, *brancher, *changer]
-      name: pingcap/tiflow/release-8.5/pull_dm_compatibility_test
-      context: pull-dm-compatibility-test
-      trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
-      rerun_command: "/test pull-dm-compatibility-test"
-
-    - <<: [*jenkins_job, *brancher, *changer]
-      name: pingcap/tiflow/release-8.5/pull_dm_integration_test
-      context: pull-dm-integration-test
-      trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
-      rerun_command: "/test pull-dm-integration-test"
-
-    - <<: [*jenkins_job, *brancher, *changer]
-      name: pingcap/tiflow/release-8.5/pull_syncdiff_integration_test
-      context: pull-syncdiff-integration-test
-      trigger: "(?m)^/test (?:.*? )?(pull-syncdiff-integration-test|all)(?: .*?)?$"
-      rerun_command: "/test pull-syncdiff-integration-test"
-
-    - <<: [*jenkins_job, *brancher, *changer]
-      name: pingcap/tiflow/release-8.5/ghpr_verify
-      context: pull-verify
-      trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
-      rerun_command: "/test pull-verify"
