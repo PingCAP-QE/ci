@@ -23,47 +23,84 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       max_concurrency: 3
       spec:
-        containers:
-          - name: run-test
+        volumes:
+          - name: ci-cache
+            emptyDir: {}
+        initContainers:
+          - name: prepare-shared-cache
             image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2024.10.8-135-g43bfc3c-centos7
             imagePullPolicy: Always
             command: [/bin/bash, -ce]
             env:
               - name: OCI_ARTIFACT_HOST
                 value: us-docker.pkg.dev/pingcap-testing-account/hub
+            volumeMounts:
+              - name: ci-cache
+                mountPath: /ci-cache
             args:
               - |
                 set -euo pipefail
 
-                yum install -y \
-                  ca-certificates curl wget git jq \
-                  tar xz bzip2 gzip \
-                  which nc lsof net-tools procps-ng psmisc \
-                  mariadb java-1.8.0-openjdk-headless \
-                  rsync openssh-clients fio \
-                  python
+                missing_pkgs=()
+                append_pkg() {
+                  local pkg="$1"
+                  local item=""
+                  for item in "${missing_pkgs[@]:-}"; do
+                    if [[ "${item}" == "${pkg}" ]]; then
+                      return 0
+                    fi
+                  done
+                  missing_pkgs+=("${pkg}")
+                }
+
+                need_cmd_pkg() {
+                  local cmd="$1"
+                  local pkg="$2"
+                  if ! command -v "${cmd}" >/dev/null 2>&1; then
+                    append_pkg "${pkg}"
+                  fi
+                }
+
+                if ! rpm -q ca-certificates >/dev/null 2>&1; then
+                  append_pkg ca-certificates
+                fi
+                need_cmd_pkg curl curl
+                need_cmd_pkg tar tar
+                need_cmd_pkg xz xz
+                need_cmd_pkg bzip2 bzip2
+                need_cmd_pkg gzip gzip
+
+                if [[ "${#missing_pkgs[@]}" -gt 0 ]]; then
+                  echo "initContainer install missing packages: ${missing_pkgs[*]}"
+                  yum install -y "${missing_pkgs[@]}"
+                fi
 
                 ORAS_VERSION="1.2.3"
-                curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" \
-                  | tar -xz -C /usr/local/bin oras
-                chmod +x /usr/local/bin/oras
+                if ! command -v oras >/dev/null 2>&1; then
+                  curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" \
+                    | tar -xz -C /usr/local/bin oras
+                  chmod +x /usr/local/bin/oras
+                fi
 
                 YQ_VERSION="v4.47.2"
-                curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
-                chmod +x /usr/local/bin/yq
+                if ! command -v yq >/dev/null 2>&1; then
+                  curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
+                  chmod +x /usr/local/bin/yq
+                fi
 
-                oci_script=/tmp/download_pingcap_oci_artifact.sh
+                oci_script=/ci-cache/download_pingcap_oci_artifact.sh
                 curl -fsSL https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh -o "${oci_script}"
 
                 branch="${PULL_BASE_REF:-master}"
                 if [[ -z "${branch}" || "${branch}" == "raft" ]]; then
                   branch="master"
                 fi
-                echo "branch=${branch}"
+                echo "initContainer branch=${branch}"
 
-                artifact_dir=/tmp/oci-artifacts
+                artifact_dir=/ci-cache/artifacts
                 rm -rf "${artifact_dir}"
                 mkdir -p "${artifact_dir}"
+
                 download_component() {
                   local component="$1"
                   local tag="$2"
@@ -104,7 +141,167 @@ presubmits:
                     exit 1
                   fi
                 )
-                resolved_tidb_tag="$(cat "${artifact_dir}/.resolved_tidb_tag")"
+                echo "initContainer resolved_tidb_tag=$(cat "${artifact_dir}/.resolved_tidb_tag")"
+
+        containers:
+          - name: run-test
+            image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2024.10.8-135-g43bfc3c-centos7
+            imagePullPolicy: Always
+            command: [/bin/bash, -ce]
+            env:
+              - name: OCI_ARTIFACT_HOST
+                value: us-docker.pkg.dev/pingcap-testing-account/hub
+            volumeMounts:
+              - name: ci-cache
+                mountPath: /ci-cache
+            args:
+              - |
+                set -euo pipefail
+
+                missing_pkgs=()
+                append_pkg() {
+                  local pkg="$1"
+                  local item=""
+                  for item in "${missing_pkgs[@]:-}"; do
+                    if [[ "${item}" == "${pkg}" ]]; then
+                      return 0
+                    fi
+                  done
+                  missing_pkgs+=("${pkg}")
+                }
+
+                need_cmd_pkg() {
+                  local cmd="$1"
+                  local pkg="$2"
+                  if ! command -v "${cmd}" >/dev/null 2>&1; then
+                    append_pkg "${pkg}"
+                  fi
+                }
+
+                # Required by curl-based downloads with TLS.
+                if ! rpm -q ca-certificates >/dev/null 2>&1; then
+                  append_pkg ca-certificates
+                fi
+
+                need_cmd_pkg curl curl
+                need_cmd_pkg wget wget
+                need_cmd_pkg git git
+                need_cmd_pkg jq jq
+                need_cmd_pkg tar tar
+                need_cmd_pkg xz xz
+                need_cmd_pkg bzip2 bzip2
+                need_cmd_pkg gzip gzip
+                need_cmd_pkg which which
+                need_cmd_pkg lsof lsof
+                need_cmd_pkg mysql mariadb
+                need_cmd_pkg java java-1.8.0-openjdk-headless
+                need_cmd_pkg rsync rsync
+                need_cmd_pkg ssh openssh-clients
+                need_cmd_pkg fio fio
+                need_cmd_pkg python python
+
+                if ! command -v nc >/dev/null 2>&1; then
+                  append_pkg nmap-ncat
+                fi
+                if ! command -v ifconfig >/dev/null 2>&1 && ! command -v netstat >/dev/null 2>&1; then
+                  append_pkg net-tools
+                fi
+                if ! command -v ps >/dev/null 2>&1 || ! command -v top >/dev/null 2>&1; then
+                  append_pkg procps-ng
+                fi
+                if ! command -v killall >/dev/null 2>&1 && ! command -v fuser >/dev/null 2>&1; then
+                  append_pkg psmisc
+                fi
+
+                if [[ "${#missing_pkgs[@]}" -gt 0 ]]; then
+                  echo "install missing packages: ${missing_pkgs[*]}"
+                  yum install -y "${missing_pkgs[@]}"
+                else
+                  echo "all required OS packages already installed, skip yum install"
+                fi
+
+                branch="${PULL_BASE_REF:-master}"
+                if [[ -z "${branch}" || "${branch}" == "raft" ]]; then
+                  branch="master"
+                fi
+                echo "branch=${branch}"
+
+                shared_artifact_dir=/ci-cache/artifacts
+                artifact_dir="${shared_artifact_dir}"
+                cache_ready="true"
+                for required in tidb-server tikv-server pd-server pd-ctl tikv-ctl tiflash .resolved_tidb_tag; do
+                  if [[ ! -e "${shared_artifact_dir}/${required}" ]]; then
+                    cache_ready="false"
+                    break
+                  fi
+                done
+
+                if [[ "${cache_ready}" == "true" ]]; then
+                  echo "use shared artifacts from initContainer: ${shared_artifact_dir}"
+                  resolved_tidb_tag="$(cat "${shared_artifact_dir}/.resolved_tidb_tag")"
+                else
+                  echo "shared artifacts not ready, fallback to in-container OCI download"
+                  ORAS_VERSION="1.2.3"
+                  if ! command -v oras >/dev/null 2>&1; then
+                    curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" \
+                      | tar -xz -C /usr/local/bin oras
+                    chmod +x /usr/local/bin/oras
+                  fi
+
+                  YQ_VERSION="v4.47.2"
+                  if ! command -v yq >/dev/null 2>&1; then
+                    curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
+                    chmod +x /usr/local/bin/yq
+                  fi
+
+                  oci_script=/tmp/download_pingcap_oci_artifact.sh
+                  curl -fsSL https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh -o "${oci_script}"
+
+                  artifact_dir=/tmp/oci-artifacts
+                  rm -rf "${artifact_dir}"
+                  mkdir -p "${artifact_dir}"
+                  download_component() {
+                    local component="$1"
+                    local tag="$2"
+                    if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"="${tag}"; then
+                      echo "component=${component} tag=${tag} not found in OCI, fallback to master"
+                      OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"=master
+                    fi
+                  }
+
+                  download_tidb() {
+                    local tag="$1"
+                    local candidates=(
+                      "${tag}-failpoint"
+                      "${tag}_failpoint"
+                      "${tag}-failpoints"
+                      "${tag}_failpoints"
+                      "${tag}"
+                    )
+                    local t=""
+                    for t in "${candidates[@]}"; do
+                      if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --tidb="${t}"; then
+                        echo "${t}" > "${artifact_dir}/.resolved_tidb_tag"
+                        return 0
+                      fi
+                    done
+                    return 1
+                  }
+
+                  (
+                    cd "${artifact_dir}"
+                    download_component tikv "${branch}"
+                    download_component pd "${branch}"
+                    download_component pd-ctl "${branch}"
+                    download_component tikv-ctl "${branch}"
+                    download_component tiflash "${branch}"
+                    if ! download_tidb "${branch}"; then
+                      echo "tidb tag '${branch}' not found in OCI (including failpoint candidates)" >&2
+                      exit 1
+                    fi
+                  )
+                  resolved_tidb_tag="$(cat "${artifact_dir}/.resolved_tidb_tag")"
+                fi
                 echo "resolved_tidb_tag=${resolved_tidb_tag}"
 
                 mkdir -p integrated/binary/tidb integrated/binary/tikv integrated/binary/pd integrated/binary/tiflash
