@@ -114,3 +114,27 @@ presubmits:
               - |
                 make check
             resources: *resources
+    - <<: [*k8s_job, *brancher, *changer]
+      name: pull-unit-test-cdc
+      run_before_merge: true
+      spec:
+        containers:
+          - name: cdc-unit-test
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                # Preserve junit artifacts for Prow even when tests fail.
+                archive_junit_reports() {
+                  local report
+                  shopt -s globstar nullglob
+                  mkdir -p "${ARTIFACTS}" || return 0
+                  for report in ./**/*-junit-report.xml; do
+                    cp -f "$report" "${ARTIFACTS}/$(basename "$report")" || true
+                  done
+                }
+                trap archive_junit_reports EXIT
+
+                make unit_test_in_verify_ci
+
+            resources: *resources
