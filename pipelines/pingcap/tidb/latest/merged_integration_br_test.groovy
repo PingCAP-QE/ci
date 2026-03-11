@@ -7,6 +7,14 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_br_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final PR_TITLE = (REFS.pulls?.size() ?: 0) > 0 ? REFS.pulls[0].title : ''
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), PR_TITLE, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, PR_TITLE, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, PR_TITLE, 'master')
+final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
+final OCI_TAG_KES = 'v0.14.0'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
 pipeline {
     agent {
@@ -15,6 +23,9 @@ pipeline {
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'golang'
         }
+    }
+    environment {
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -37,18 +48,38 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            rm -rf third_bin/
-                            rm -rf bin/
-                            chmod +x ../tidb/br/tests/*.sh
-                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh ${REFS.base_ref}
-                            mkdir -p bin && mv third_bin/* bin/
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                        """
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: "download third_party", script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --pd=${OCI_TAG_PD} \
+                                        --pd-ctl=${OCI_TAG_PD} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --tikv-ctl=${OCI_TAG_TIKV} \
+                                        --tiflash=${OCI_TAG_TIFLASH} \
+                                        --ycsb=${OCI_TAG_YCSB} \
+                                        --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                        --kes=${OCI_TAG_KES} \
+                                        --minio=${OCI_TAG_MINIO} \
+                                        --brv408
+                                """
+                            }
+                        }
+                        sh label: "verify third_party", script: '''
+                            if [[ -d tiflash && ! -L tiflash ]]; then
+                                rm -rf tiflash_dir
+                                mv tiflash tiflash_dir
+                            fi
+                            if [[ -f tiflash_dir/tiflash ]]; then
+                                ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
+                            fi
+
+                            ls -alh .
+                            ./pd-server -V
+                            ./tikv-server -V
+                            ./tiflash --version
+                        '''
                     }
                 }
                 dir('tidb') {
