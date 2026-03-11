@@ -40,7 +40,7 @@ presubmits:
                   tar xz bzip2 gzip \
                   which nc lsof net-tools procps-ng psmisc \
                   mariadb java-1.8.0-openjdk-headless \
-                  rsync openssh-clients \
+                  rsync openssh-clients fio \
                   python
 
                 ORAS_VERSION="1.2.3"
@@ -67,9 +67,9 @@ presubmits:
                 download_component() {
                   local component="$1"
                   local tag="$2"
-                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --"${component}"="${tag}"; then
+                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"="${tag}"; then
                     echo "component=${component} tag=${tag} not found in OCI, fallback to master"
-                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --"${component}"=master
+                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"=master
                   fi
                 }
 
@@ -84,7 +84,7 @@ presubmits:
                   )
                   local t=""
                   for t in "${candidates[@]}"; do
-                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" "${oci_script}" --tidb="${t}"; then
+                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --tidb="${t}"; then
                       echo "${t}" > "${artifact_dir}/.resolved_tidb_tag"
                       return 0
                     fi
@@ -152,6 +152,12 @@ presubmits:
                   sed -i "s/storage_engine = \\\"dt\\\"/storage_engine = \\\"${STORAGE_ENGINE}\\\"/" integrated/conf/tiflash/config.toml
                   echo "patched integrated/conf/tiflash/config.toml:"
                   cat integrated/conf/tiflash/config.toml
+                fi
+
+                # Skip stale table IDs in syncing/show so fullstack does not hang when PD keeps old tiflash rules.
+                syncing_py="integrated/ops/ti.sh.cmds/syncing/show_syncing_table.py"
+                if [[ -f "${syncing_py}" ]]; then
+                  sed -i "/if s.find(' does not exist') >= 0:/{n;s/return/continue/;}" "${syncing_py}"
                 fi
 
                 artifacts_dir="${ARTIFACTS:-/logs/artifacts}"
