@@ -147,6 +147,17 @@ presubmits:
             command: [bash, -ce]
             args:
               - |
+                # Preserve junit artifacts for Prow even when tests fail.
+                archive_junit_reports() {
+                  local report
+                  shopt -s globstar nullglob
+                  mkdir -p "${ARTIFACTS}" || return 0
+                  for report in ./**/*-junit-report.xml; do
+                    cp -f "$report" "${ARTIFACTS}/$(basename "$report")" || true
+                  done
+                }
+                trap archive_junit_reports EXIT
+
                 make unit_test_in_verify_ci
                 if [ -f /tmp/tidb_cdc_test/cov.unit.out ] && [ "${JOB_TYPE:-}" != "batch" ]; then
                   codecov -f /tmp/tidb_cdc_test/cov.unit.out -F unit,cdc -r "pingcap/tiflow" -C "${PULL_PULL_SHA}" -B "${PULL_BASE_REF}" --pr "${PULL_NUMBER}" -Z || true
