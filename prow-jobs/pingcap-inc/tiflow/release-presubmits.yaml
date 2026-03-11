@@ -1,0 +1,131 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+    - ^release-.*$
+    - ^feature/release-8[.]5[.]5-active-active$
+  changer: &changer
+    skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false # need add this.
+    max_concurrency: 2
+    labels:
+      master: "0"
+    run_before_merge: true
+  k8s_job: &k8s_job
+    decorate: true
+    decoration_config:
+      oauth_token_secret:
+        name: github-token
+        key: token
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap-inc/tiflow:
+    - <<: [*k8s_job, *brancher, *changer]
+      name: pull-check-8.5
+      spec:
+        containers:
+          - name: check
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make check
+            resources: &resources
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
+    - <<: [*k8s_job, *brancher, *changer]
+      name: pull-build
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make build
+            resources: *resources
+
+    - <<: [*k8s_job, *brancher, *changer]
+      name: pull-unit-test-cdc-8.5
+      spec:
+        containers:
+          - name: cdc-unit-test
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                # Preserve junit artifacts for Prow even when tests fail.
+                archive_junit_reports() {
+                  local report
+                  shopt -s globstar nullglob
+                  mkdir -p "${ARTIFACTS}" || return 0
+                  for report in ./**/*-junit-report.xml; do
+                    cp -f "$report" "${ARTIFACTS}/$(basename "$report")" || true
+                  done
+                }
+                trap archive_junit_reports EXIT
+
+                make unit_test_in_verify_ci
+
+            resources:
+              requests:
+                memory: 24Gi
+                cpu: "6"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap/tiflow/release-8.5/pull_cdc_integration_kafka_test
+      context: pull-cdc-integration-kafka-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-kafka-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap/tiflow/release-8.5/pull_cdc_integration_mysql_test
+      context: pull-cdc-integration-mysql-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-mysql-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap/tiflow/release-8.5/pull_cdc_integration_pulsar_test
+      context: pull-cdc-integration-pulsar-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-pulsar-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap/tiflow/release-8.5/pull_cdc_integration_storage_test
+      context: pull-cdc-integration-storage-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-storage-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap/tiflow/release-8.5/pull_dm_compatibility_test
+      context: pull-dm-compatibility-test
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-dm-compatibility-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap/tiflow/release-8.5/pull_dm_integration_test
+      context: pull-dm-integration-test
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-dm-integration-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap/tiflow/release-8.5/pull_syncdiff_integration_test
+      context: pull-syncdiff-integration-test
+      trigger: "(?m)^/test (?:.*? )?(pull-syncdiff-integration-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-syncdiff-integration-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap/tiflow/release-8.5/ghpr_verify
+      context: pull-verify
+      trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
+      rerun_command: "/test pull-verify"
