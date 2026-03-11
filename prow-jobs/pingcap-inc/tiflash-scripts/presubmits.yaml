@@ -115,15 +115,13 @@ presubmits:
                 cp -f "${artifact_dir}/tikv-ctl" integrated/binary/tikv/tikv-ctl
                 tar -czf integrated/binary/tiflash/tiflash.tar.gz -C "${artifact_dir}" tiflash
 
-                # Prevent accidental downloads from download.pingcap.org (may be internal-only on GCP).
-                # The job should rely on OCI artifacts + bin.paths only.
-                if [[ -f integrated/conf/bin.urls ]]; then
-                  cp -f integrated/conf/bin.urls "${artifact_dir}/bin.urls.orig" || true
-                  : > integrated/conf/bin.urls
-                fi
-                if [[ -f integrated/conf/bin.urls.mac ]]; then
-                  : > integrated/conf/bin.urls.mac
-                fi
+                # Keep public fallback downloads, but switch domain from .org to .com.
+                for f in integrated/conf/bin.urls integrated/conf/bin.urls.mac; do
+                  if [[ -f "${f}" ]]; then
+                    sed -i 's#https://download.pingcap.org/#https://download.pingcap.com/#g' "${f}"
+                    sed -i 's#http://download.pingcap.org/#https://download.pingcap.com/#g' "${f}"
+                  fi
+                done
 
                 # Ensure OPS TI tests won't attempt to download from internal domains.
                 # The repo test script copies tests/ci/conf/bin.paths to integrated/conf/bin.paths.
