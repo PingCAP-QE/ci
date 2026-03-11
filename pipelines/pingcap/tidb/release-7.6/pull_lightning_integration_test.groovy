@@ -46,7 +46,7 @@ pipeline {
                     cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS, 'tidb-server')) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
-                    cache(path: "./bin", includes: 'tidb-lightning*', key: prow.getCacheKey('binary', REFS, 'tidb-lightning.test')) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'tidb-lightning.test')) {
                         sh label: 'tidb-lightning.test', script: ' [ -f ./bin/tidb-lightning-ctl.test ] || make build_for_lightning_integration_test'
                     }
                     dir("bin") {
