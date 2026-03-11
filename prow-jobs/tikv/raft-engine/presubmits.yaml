@@ -4,17 +4,12 @@ global_definitions:
 presubmits:
   tikv/raft-engine:
     - name: rust-nightly
-      cluster: gcp-prow-ksyun
       decorate: true
       # max_concurrency: 1
       skip_if_only_changed: "(\\.(md)|OWNERS|OWNERS_ALIASES)$"
       branches:
         - ^master$
       spec:
-        volumes:
-          - name: cargo-cache
-            persistentVolumeClaim:
-              claimName: cargo-home-linux-amd64
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -58,17 +53,12 @@ presubmits:
             #     mountPath: /cargo-cache
 
     - name: rust-stable
-      cluster: gcp-prow-ksyun
       decorate: true
       max_concurrency: 1
       always_run: false
       branches:
         - ^master$
       spec:
-        volumes:
-          - name: cargo-cache
-            persistentVolumeClaim:
-              claimName: cargo-home-linux-amd64
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
