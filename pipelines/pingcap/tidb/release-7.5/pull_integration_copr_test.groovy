@@ -7,6 +7,8 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-7.5/pod-pull_integration_copr_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 prow.setPRDescription(REFS)
 
 pipeline {
@@ -18,27 +20,13 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
@@ -69,11 +57,12 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    container("golang") {
-                        retry(2) {
-                            script {
-	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master")
-	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master")
+                    container("utils") {
+                        dir("bin") {
+                            retry(2) {
+                                sh label: 'download tidb components', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                """
                             }
                         }
                     }

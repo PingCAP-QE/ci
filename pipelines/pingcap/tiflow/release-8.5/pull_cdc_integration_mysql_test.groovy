@@ -4,18 +4,15 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_cdc_integration_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-def skipRemainingStages = false
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
@@ -27,44 +24,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
-        stage('Check diff files') {
-            steps {
-                container("golang") {
-                    script {
-                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                        def pattern = /(^dm\/|^engine\/).*$/
-                        println "pr_diff_files: ${pr_diff_files}"
-                        // if all diff files start with dm/, skip cdc integration test
-                        def matched = component.patternMatchAllFiles(pattern, pr_diff_files)
-                        if (matched) {
-                            println "matched, all diff files full path start with dm/ or engine/, current pr is dm/engine's pr(not related to ticdc), skip cdc integration test"
-                            currentBuild.result = 'SUCCESS'
-                            skipRemainingStages = true
-                            return
-                        }
-                    }
-                }
-            }
-        }
         stage('Checkout') {
-            when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
@@ -79,7 +39,6 @@ pipeline {
             }
         }
         stage("prepare") {
-            when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
@@ -127,7 +86,6 @@ pipeline {
                                 ./bin/pd-server -V
                                 ./bin/tikv-server -V
                                 ./bin/tiflash --version
-                                ./bin/sync_diff_inspector --version
                             """
                         }
                     }
@@ -157,7 +115,6 @@ pipeline {
         }
 
         stage('Tests') {
-            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {
@@ -169,7 +126,7 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'golang'
                     }
                 }

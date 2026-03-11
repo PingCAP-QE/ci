@@ -13,7 +13,6 @@ catchError {
         echo params.URL
         withCredentials([string(credentialsId: 'sre-bot-token', variable: 'TOKEN')]) {
             response = sh returnStdout: true, script: "curl -L -u sre-bot:${TOKEN} --silent ${params.URL}"
-            //response = sh returnStdout: true, script: "curl -L -u sre-bot:${TOKEN} --silent 'http://fileserver.pingcap.net/download/pingcap/qa/draft/release-test.json'"
         }
         echo response
         release_info = readJSON text: response

@@ -16,32 +16,11 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             parallel {
                 stage('tidb') {

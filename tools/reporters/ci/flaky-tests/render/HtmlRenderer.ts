@@ -1,4 +1,10 @@
 import { CaseAgg, ReportData } from "../core/types.ts";
+import {
+  buildIssueBody,
+  buildIssueTitle,
+  formatSuiteName as formatSuiteNameUtil,
+  parseRepo,
+} from "../core/IssueUtils.ts";
 
 /**
  * HtmlRenderer - renders a single-file HTML report from aggregated data.
@@ -60,6 +66,13 @@ html, body { margin: 0; padding: 0; }
 body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; margin: 16px; color: #111827; }
 h1, h2, h3 { margin: 0.6em 0 0.3em; }
 .meta { color: #6b7280; margin-bottom: 12px; }
+.subscription-note { margin: 8px 0 16px; padding: 8px 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; }
+.wow-legend { margin: 8px 0 16px; padding: 8px 10px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; }
+.wow-cell { font-weight: 600; text-align: left; }
+.wow-up { background: #fee2e2; color: #7f1d1d; }
+.wow-down { background: #dbeafe; color: #1e3a8a; }
+.wow-flat { background: #ffffff; color: #374151; }
+.wow-new { background: #fee2e2; color: #7f1d1d; }
 .kpi {
   display: inline-block;
   margin: 4px 16px 4px 0;
@@ -99,6 +112,13 @@ body { font-family: var(--sans); margin: 16px; color: #111827; }
 /* Headings and meta */
 h1, h2, h3 { margin: 0.6em 0 0.3em; }
 .meta { color: var(--muted); margin-bottom: 12px; }
+.subscription-note { margin: 8px 0 16px; padding: 8px 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; }
+.wow-legend { margin: 8px 0 16px; padding: 8px 10px; background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; }
+.wow-cell { font-weight: 600; text-align: left; }
+.wow-up { background: #fee2e2; color: #7f1d1d; }
+.wow-down { background: #dbeafe; color: #1e3a8a; }
+.wow-flat { background: #ffffff; color: #374151; }
+.wow-new { background: #fee2e2; color: #7f1d1d; }
 .kpi {
   display: inline-block;
   margin: 4px 16px 4px 0;
@@ -130,8 +150,9 @@ details .content { padding: 10px; }
 .rank-cell { position: relative; padding: 0; }
 .rank-cell .rank-label { position: relative; z-index: 1; display: block; padding: 6px 8px; text-align: right; font-variant-numeric: tabular-nums; }
 .rank-cell .rank-bar { position: absolute; top: 0; bottom: 0; left: 0; background: #f3f4f6; }
+.rank-cell .rank-bar--th { left: auto; right: 0; }
 .rank-cell .rank-bar--flaky { background: #fee2e2; } /* light red */
-.rank-cell .rank-bar--th { background: #dbeafe; } /* light blue */
+.rank-cell .rank-bar--th { background: #fee2e2; } /* light red */
     `.trim();
   }
 
@@ -155,6 +176,8 @@ details .content { padding: 10px; }
       this.num(report.summary.thresholdedCases)
     }</b></span>
 </div>
+${this.subscriptionNote(report)}
+${this.wowLegend()}
     `.trim();
   }
 
@@ -273,9 +296,11 @@ ${rows}
   }
 
   private sectionCase(report: ReportData): string {
-    const data = report.byCase.filter((x) =>
-      (x.flakyCount || 0) > 0 || (x.thresholdedCount || 0) > 0
-    );
+    const data = report.byCase.filter((x) => {
+      const flaky = x.flakyCount || 0;
+      const prev = x.previousWeekFlakyCount || 0;
+      return !(flaky === 0 && prev === 0);
+    });
     const maxFlaky = Math.max(1, ...data.map((x) => x.flakyCount || 0));
     const maxThresh = Math.max(1, ...data.map((x) => x.thresholdedCount || 0));
 
@@ -291,10 +316,8 @@ ${rows}
   <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
   ${this.rankCell(r.flakyCount ?? 0, flakyPct, "flaky")}
-  <td>${
-        this.weekOnWeekDiff(r.flakyCount ?? 0, r.previousWeekFlakyCount ?? 0)
-      }</td>
-  ${this.rankCell(r.thresholdedCount ?? 0, thPct, "th")}
+  ${this.wowCell(r.flakyCount ?? 0, r.previousWeekFlakyCount ?? 0)}
+  ${this.issueCell(report, r)}
   <td>${
         r.latestBuildUrl
           ? `<a href="${
@@ -302,12 +325,7 @@ ${rows}
           }" target="_blank" rel="noopener">link</a>`
           : `<span class="muted">N/A</span>`
       }</td>
-  <td><a href="${
-        escapeHtml(this.githubIssueSearchUrlForCase(r))
-      }" target="_blank" rel="noopener">search</a></td>
-  <td><a href="${
-        escapeHtml(this.githubNewIssueUrlForCase(report, r))
-      }" target="_blank" rel="noopener">new</a></td>
+  ${this.rankCell(r.thresholdedCount ?? 0, thPct, "th")}
 </tr>
 `.trim();
     }).join("\n");
@@ -324,10 +342,9 @@ ${rows}
       <th>Case</th>
       <th>Flaky Count</th>
       <th>Flaky WoW</th>
-      <th>Time Thresholded Count</th>
+      <th>Issue</th>
       <th>Latest Build</th>
-      <th>Issue Search</th>
-      <th>Create Issue</th>
+      <th>Time Thresholded Count</th>
     </tr>
   </thead>
   <tbody>
@@ -357,10 +374,8 @@ ${rows}
   <td class="mono">${escapeHtml(this.formatSuiteName(r.suite_name))}</td>
   <td class="mono small">${escapeHtml(r.case_name)}</td>
   ${this.rankCell(r.flakyCount ?? 0, flakyPct, "flaky")}
-  <td>${
-        this.weekOnWeekDiff(r.flakyCount ?? 0, r.previousWeekFlakyCount ?? 0)
-      }</td>
-  ${this.rankCell(r.thresholdedCount ?? 0, thPct, "th")}
+  ${this.wowCell(r.flakyCount ?? 0, r.previousWeekFlakyCount ?? 0)}
+  ${this.issueCell(report, r)}
   <td>${
         r.latestBuildUrl
           ? `<a href="${
@@ -368,12 +383,7 @@ ${rows}
           }" target="_blank" rel="noopener">link</a>`
           : `<span class="muted">N/A</span>`
       }</td>
-  <td><a href="${
-        escapeHtml(this.githubIssueSearchUrlForCase(r))
-      }" target="_blank" rel="noopener">search</a></td>
-  <td><a href="${
-        escapeHtml(this.githubNewIssueUrlForCase(report, r))
-      }" target="_blank" rel="noopener">new</a></td>
+  ${this.rankCell(r.thresholdedCount ?? 0, thPct, "th")}
 </tr>
 `.trim();
     }).join("\n");
@@ -391,10 +401,9 @@ ${rows}
       <th>Case</th>
       <th>Flaky Count</th>
       <th>Flaky WoW</th>
-      <th>Time Thresholded Count</th>
+      <th>Issue</th>
       <th>Latest Build</th>
-      <th>Issue Search</th>
-      <th>Create Issue</th>
+      <th>Time Thresholded Count</th>
     </tr>
   </thead>
   <tbody>
@@ -410,7 +419,7 @@ ${rows}
     variant: "flaky" | "th",
   ): string {
     if (this.email) {
-      const barColor = variant === "flaky" ? "#fee2e2" : "#dbeafe";
+      const barColor = variant === "flaky" ? "#fee2e2" : "#fee2e2";
       const barBase = "#f3f4f6";
       const border = "#e5e7eb";
 
@@ -419,12 +428,13 @@ ${rows}
       const filledWidth = Math.round((pct / 100) * width);
 
       // Inline-friendly bar: "count | [####.....]" using nested spans with fixed pixel width
+      const barAlign = variant === "th" ? "right" : "left";
       return `
 <td>
   <span style="font-variant-numeric: tabular-nums; min-width: 24px; display: inline-block; text-align: right; margin-right: 6px;">${
         this.num(count)
       }</span>
-  <span style="display:inline-block; width:${width}px; height:12px; background:${barBase}; border:1px solid ${border}; border-radius:3px; vertical-align:middle; overflow:hidden;">
+  <span style="display:inline-block; width:${width}px; height:12px; background:${barBase}; border:1px solid ${border}; border-radius:3px; vertical-align:middle; overflow:hidden; text-align:${barAlign};">
     <span style="display:inline-block; height:100%; width:${filledWidth}px; background:${barColor};"></span>
   </span>
 </td>
@@ -442,45 +452,57 @@ ${rows}
     `.trim();
   }
 
-  private githubIssueSearchUrlForCase(r: CaseAgg): string {
-    const [
-      owner,
-      repo,
-    ] = (r.repo || "").split("/");
-    if (!owner || !repo) return "#";
-    const terms = [`"${r.case_name}"`].filter(Boolean).join(" ");
-    return `https://github.com/${encodeURIComponent(owner)}/${
-      encodeURIComponent(repo)
-    }/issues?q=${encodeURIComponent(`${terms} in:title is:issue`)}`;
+  private issueCell(report: ReportData, r: CaseAgg): string {
+    const statusRaw = this.issueStatusLabel(r);
+    const status = escapeHtml(statusRaw);
+    const showStatus = statusRaw !== "";
+    const suffix = showStatus ? ` <span class="muted">(${status})</span>` : "";
+    if (r.issue?.url) {
+      const label = r.issue.number ? `#${r.issue.number}` : "link";
+      return `<td><a href="${escapeHtml(r.issue.url)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>${suffix}</td>`;
+    }
+    const searchUrl = this.githubIssueSearchUrlForCase(report, r);
+    const newUrl = this.githubNewIssueUrlForCase(report, r);
+    if (searchUrl === "#" && newUrl === "#") {
+      return `<td><span class="muted">N/A${showStatus ? ` (${status})` : ""}</span></td>`;
+    }
+    return `<td><a href="${escapeHtml(searchUrl)}" target="_blank" rel="noopener">search</a> | <a href="${escapeHtml(newUrl)}" target="_blank" rel="noopener">new</a>${suffix}</td>`;
+  }
+
+  private issueStatusLabel(r: CaseAgg): string {
+    const status = r.issue?.status;
+    if (status === "closed" || status === "reopened" || status === "new") {
+      return status;
+    }
+    return "";
+  }
+
+  private issueRepoForCase(report: ReportData, r: CaseAgg): string {
+    return report.issueMeta?.repoOverride ?? r.repo;
+  }
+
+  private githubIssueSearchUrlForCase(report: ReportData, r: CaseAgg): string {
+    const issueRepo = this.issueRepoForCase(report, r);
+    const parsed = parseRepo(issueRepo);
+    if (!parsed) return "#";
+    const title = buildIssueTitle(r, {
+      includeRepo: report.issueMeta?.titleIncludesRepo,
+    });
+    const terms = [`"${title}"`].filter(Boolean).join(" ");
+    return `https://github.com/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}/issues?q=${encodeURIComponent(`${terms} in:title is:issue`)}`;
   }
 
   private githubNewIssueUrlForCase(report: ReportData, r: CaseAgg): string {
-    const [owner, repo] = (r.repo || "").split("/");
-    if (!owner || !repo) return "#";
-    const title = `Flaky test: ${r.case_name} in ${
-      this.formatSuiteName(r.suite_name)
-    }`;
-    const lines = [
-      "Automated flaky test report.",
-      "",
-      `- Package: ${this.formatSuiteName(r.suite_name)}`,
-      `- Case: ${r.case_name}`,
-      `- Branch: ${r.branch}`,
-      `- Flaky Count: ${r.flakyCount ?? 0}`,
-      `- Time Thresholded Count: ${r.thresholdedCount ?? 0}`,
-      r.latestBuildUrl
-        ? `- Latest Build: ${r.latestBuildUrl}`
-        : `- Latest Build: N/A`,
-      "",
-      `Window: ${report.window.from} → ${report.window.to}`,
-      `Threshold: ${report.window.thresholdMs} ms`,
-    ];
-    const body = lines.join("\n");
-    return `https://github.com/${encodeURIComponent(owner)}/${
-      encodeURIComponent(repo)
-    }/issues/new?title=${encodeURIComponent(title)}&body=${
-      encodeURIComponent(body)
-    }`;
+    const issueRepo = this.issueRepoForCase(report, r);
+    const parsed = parseRepo(issueRepo);
+    if (!parsed) return "#";
+    const title = buildIssueTitle(r, {
+      includeRepo: report.issueMeta?.titleIncludesRepo,
+    });
+    const body = buildIssueBody(report, r, {
+      includeRepo: report.issueMeta?.titleIncludesRepo,
+    });
+    return `https://github.com/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
   }
 
   private num(n: number): string {
@@ -490,12 +512,53 @@ ${rows}
   }
 
   private formatSuiteName(s: string): string {
-    if (s && s.startsWith("//")) {
-      const noPrefix = s.slice(2);
-      const [pkg] = noPrefix.split(":");
-      return pkg;
+    return formatSuiteNameUtil(s);
+  }
+
+  private subscriptionNote(report: ReportData): string {
+    const text = report.issueMeta?.subscriptionText?.trim();
+    if (!text) return "";
+    const html = escapeHtml(text).replaceAll("\n", "<br />");
+    return `<div class="subscription-note">${html}</div>`;
+  }
+
+  private wowCell(current: number, previous: number): string {
+    const diff = current - previous;
+    const label = escapeHtml(this.weekOnWeekDiff(current, previous));
+    let variant: "new" | "up" | "down" | "flat" = "flat";
+    if (diff === 0) {
+      variant = "flat";
+    } else if (diff > 0 && previous === 0) {
+      variant = "new";
+    } else if (diff > 0) {
+      variant = "up";
+    } else {
+      variant = "down";
     }
-    return s;
+
+    if (this.email) {
+      const styles: Record<string, string> = {
+        up: "background:#fee2e2;color:#7f1d1d;font-weight:600;text-align:left;",
+        down: "background:#dbeafe;color:#1e3a8a;font-weight:600;text-align:left;",
+        flat: "background:#ffffff;color:#374151;font-weight:600;text-align:left;",
+        new: "background:#fee2e2;color:#7f1d1d;font-weight:600;text-align:left;",
+      };
+      return `<td style="${styles[variant]}">${label}</td>`;
+    }
+
+    return `<td class="wow-cell wow-${variant}">${label}</td>`;
+  }
+
+  private wowLegend(): string {
+    return `
+<div class="wow-legend">
+  <span class="muted">Flaky WoW:</span>
+  <span>↔️ no change</span>
+  <span>• 🧨 new this week (last week 0)</span>
+  <span>• ⬆️ increase vs last week</span>
+  <span>• ⬇️ decrease vs last week</span>
+</div>
+    `.trim();
   }
 
   /**
@@ -504,10 +567,10 @@ ${rows}
   private weekOnWeekDiff(current: number, previous: number): string {
     const diff = current - previous;
     if (diff === 0) {
-      return "0";
+      return "↔️";
     } else if (diff > 0) {
       if (previous === 0) {
-        return `🆕`;
+        return `🧨`;
       } else {
         return `⬆️${Math.round((diff / previous) * 100)}%`;
       }

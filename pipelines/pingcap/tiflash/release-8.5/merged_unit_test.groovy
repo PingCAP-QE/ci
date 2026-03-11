@@ -27,33 +27,13 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    hostname
-                    df -h
-                    free -hm
-                    gcc --version
-                    cmake --version
-                    clang --version
-                    ccache --version
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {

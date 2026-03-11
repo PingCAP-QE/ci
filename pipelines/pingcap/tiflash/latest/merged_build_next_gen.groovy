@@ -33,33 +33,13 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    hostname
-                    df -h
-                    free -hm
-                    gcc --version
-                    cmake --version
-                    clang --version
-                    ccache --version
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
@@ -274,12 +254,13 @@ pipeline {
         stage("License check") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    // TODO: add license-eye to docker image
+                    container('utils') {
+                        sh label: "get license-eye tool", script: '${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --license-eye=v0.4.0'
+                    }
                     sh label: "license header check", script: """
                         echo "license check"
                         if [[ -f .github/licenserc.yml ]]; then
-                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
-                            chmod +x license-eye
+                            chmod +x ./license-eye
                             ./license-eye -c .github/licenserc.yml header check
                         else
                             echo "skip license check"

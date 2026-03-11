@@ -19,7 +19,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       run_before_merge: true
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(^dm/|^engine/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
       context: pull-cdc-integration-kafka-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-kafka-test"
@@ -31,7 +31,7 @@ presubmits:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      skip_if_only_changed: "(^dm/|^engine/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"

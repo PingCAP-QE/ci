@@ -16,28 +16,14 @@ pipeline {
             defaultContainer 'golang'
         }
     }
+
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -69,9 +55,17 @@ pipeline {
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh "touch ws-${BUILD_TAG}"
+                        dir("bin") {
+                            container("utils") {
+                                retry(2) {
+                                    sh label: 'download binary', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --tidb=master --pd=master --tikv=master
+                                    """
+                                }
+                            }
+                        }
                         sh label: 'prepare thirdparty binary', script: """
-                        chmod +x download_binary.sh
-                        ./download_binary.sh --tidb=master --pd=master --tikv=master
                         cp ../tiproxy/bin/tiproxy ./bin/
                         ls -alh bin/
                         ./bin/tidb-server -V

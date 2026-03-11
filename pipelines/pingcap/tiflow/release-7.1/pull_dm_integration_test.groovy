@@ -15,7 +15,7 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
@@ -27,23 +27,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} -c golang -- bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Check diff files') {
             steps {
                 container("golang") {
@@ -166,7 +149,7 @@ pipeline {
                     kubernetes {
                         label "dm-it-${UUID.randomUUID().toString()}"
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'golang'
                     }
                 }

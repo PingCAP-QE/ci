@@ -17,31 +17,11 @@ pipeline {
             defaultContainer 'runner'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 45, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    python3 -V
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "branch ${REFS.base_ref}: ${REFS.base_sha}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {

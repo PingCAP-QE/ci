@@ -1,6 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('tikv/migration/pull_unit_test') {
+pipelineJob('pingcap/tiflow/release-8.5/pull_syncdiff_integration_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -11,14 +10,13 @@ pipelineJob('tikv/migration/pull_unit_test') {
         stringParam("JOB_SPEC")
     }
     properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/tikv/migration")
+        githubProjectUrl("https://github.com/pingcap/tiflow")
     }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/tikv/migration/latest/pull_unit_test.groovy")
+            scriptPath("pipelines/pingcap/tiflow/release-8.5/pull_syncdiff_integration_test.groovy")
             scm {
                 git{
                     remote {

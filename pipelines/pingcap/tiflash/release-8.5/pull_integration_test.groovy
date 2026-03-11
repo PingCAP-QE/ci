@@ -26,57 +26,13 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    hostname
-                    df -h
-                    free -hm
-                    gcc --version
-                    cmake --version
-                    clang --version
-                    ccache --version
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-                script {
-                    // test build cache, if cache is exist, then skip the following build steps
-                    try {
-                        dir("test-build-cache") {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'it-build')){
-                                // if file README.md not exist, then build-cache-ready is false
-                                build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('binary', REFS, 'it-build')}"
-                                println "skip build..."
-                                // if build cache not ready, then throw error to avoid cache empty directory
-                                // for the same cache key, if throw error, will skip the cache step
-                                // the cache gets not stored if the key already exists or the inner-step has been failed
-                                if (!build_cache_ready) {
-                                    error "build cache not exist, start build..."
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        println "build cache not ready: ${e}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             when {
                 expression { !build_cache_ready }
@@ -300,12 +256,13 @@ pipeline {
             }
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    // TODO: add license-eye to docker image
+                    container('utils') {
+                        sh label: "get license-eye tool", script: '${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --license-eye=v0.4.0'
+                    }
                     sh label: "license header check", script: """
                         echo "license check"
                         if [[ -f .github/licenserc.yml ]]; then
-                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
-                            chmod +x license-eye
+                            chmod +x ./license-eye
                             ./license-eye -c .github/licenserc.yml header check
                         else
                             echo "skip license check"

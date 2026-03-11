@@ -1,6 +1,6 @@
 # struct ref: https://pkg.go.dev/k8s.io/test-infra/prow/config#Periodic
 periodics:
-  - name: pingcap/tidb/latest/periodics_integration_test
+  - name: pingcap/tidb/periodics_integration_test
     agent: jenkins
     labels:
       master: "0" # Jenkins master instance to run this job (0 = default master)
@@ -74,7 +74,7 @@ periodics:
               make gotest_in_verify_ci
 
               # upload coverage report
-              # wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+              # wget -q -O codecov https://uploader.codecov.io/v0.5.0/linux/codecov
               # chmod +x codecov
               # ./codecov --flags unit --file test_coverage/tidb_cov.unit_test.out --sha ${COMMIT_SHA} --slug pingcap/tidb
           resources:

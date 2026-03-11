@@ -3,16 +3,100 @@ global_definitions:
   branches: &branches
     - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed_non_ticdc_files: &skip_if_only_changed_non_ticdc_files "(^dm/|^engine/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
 
 presubmits:
   pingcap/tiflow:
+    - name: pull-check-8.5
+      cluster: default
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      spec:
+        containers:
+          - name: check
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make check
+            resources: &resources
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
+    - name: pull-build-8.5
+      cluster: default
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make build
+            resources: *resources
+
+    - name: pull-unit-test-cdc-8.5
+      cluster: default
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      spec:
+        containers:
+          - name: cdc-unit-test
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                # Preserve junit artifacts for Prow even when tests fail.
+                archive_junit_reports() {
+                  local report
+                  shopt -s globstar nullglob
+                  mkdir -p "${ARTIFACTS}" || return 0
+                  for report in ./**/*-junit-report.xml; do
+                    cp -f "$report" "${ARTIFACTS}/$(basename "$report")" || true
+                  done
+                }
+                trap archive_junit_reports EXIT
+
+                make unit_test_in_verify_ci
+                if [ -f /tmp/tidb_cdc_test/cov.unit.out ] && [ "${JOB_TYPE:-}" != "batch" ]; then
+                  codecov -f /tmp/tidb_cdc_test/cov.unit.out -F unit,cdc -r "pingcap/tiflow" -C "${PULL_PULL_SHA}" -B "${PULL_BASE_REF}" --pr "${PULL_NUMBER}" -Z || true
+                fi
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
+              - name: TICDC_CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tiflow # format <ORG>-<REPO>
+            resources:
+              requests:
+                memory: 24Gi
+                cpu: "6"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
     - name: pingcap/tiflow/release-8.5/pull_cdc_integration_kafka_test
       agent: jenkins
       labels:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
@@ -25,7 +109,7 @@ presubmits:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
@@ -38,7 +122,7 @@ presubmits:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-pulsar-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
@@ -51,7 +135,7 @@ presubmits:
         master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-storage-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
@@ -82,6 +166,18 @@ presubmits:
       context: pull-dm-integration-test
       trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
       rerun_command: "/test pull-dm-integration-test"
+      branches: *branches
+
+    - name: pingcap/tiflow/release-8.5/pull_syncdiff_integration_test
+      agent: jenkins
+      labels:
+        master: "0"
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-syncdiff-integration-test
+      trigger: "(?m)^/test (?:.*? )?(pull-syncdiff-integration-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-syncdiff-integration-test"
       branches: *branches
 
     - name: pingcap/tiflow/release-8.5/ghpr_verify

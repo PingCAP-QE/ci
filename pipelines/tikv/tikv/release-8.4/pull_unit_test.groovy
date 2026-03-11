@@ -27,27 +27,6 @@ pipeline {
         skipDefaultCheckout()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    env
-                    hostname
-                    df -h
-                    free -hm
-                    gcc --version
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {

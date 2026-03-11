@@ -34,7 +34,6 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -47,7 +46,7 @@ pipeline {
                     cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS, 'tidb-server')) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
-                    cache(path: "./bin", includes: 'tidb-lightning*', key: prow.getCacheKey('binary', REFS, 'tidb-lightning.test')) {
+                    cache(path: "./bin", includes: includes: '**/*', key: prow.getCacheKey('binary', REFS, 'tidb-lightning.test')) {
                         sh label: 'tidb-lightning.test', script: '''
                             [ -f ./bin/tidb-lightning.test ] &&
                             [ -f ./bin/tidb-lightning-ctl.test ] &&

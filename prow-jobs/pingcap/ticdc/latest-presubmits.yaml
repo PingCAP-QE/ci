@@ -88,6 +88,58 @@ presubmits:
       rerun_command: "/test pull-cdc-storage-integration-heavy"
       branches: *branches
 
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_light_v7_5
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: false
+      optional: true
+      context: pull-cdc-mysql-integration-light-v7-5
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-v7-5|all-v7-5)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-light-v7-5"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_v7_5
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: false
+      optional: true
+      context: pull-cdc-mysql-integration-heavy-v7-5
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-v7-5|all-v7-5)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-heavy-v7-5"
+      branches: *branches
+
+
+
+
+
+
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_light_v8_1
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: false
+      optional: true
+      context: pull-cdc-mysql-integration-light-v8-1
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-v8-1|all-v8-1)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-light-v8-1"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_v8_1
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: false
+      optional: true
+      context: pull-cdc-mysql-integration-heavy-v8-1
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-v8-1|all-v8-1)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-heavy-v8-1"
+      branches: *branches
+
+
+
+
+
+
+
     - name: pull-unit-test
       decorate: true # need add this.
       # skip_if_only_changed: *skip_if_only_changed

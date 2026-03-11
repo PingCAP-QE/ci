@@ -15,7 +15,7 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
@@ -27,23 +27,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} -c golang -- bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Check diff files') {
             steps {
                 container("golang") {
@@ -124,7 +107,7 @@ pipeline {
                         // only build binarys if not exist, use the cached binarys if exist
                         // TODO: how to update cached binarys if needed
                         sh label: "prepare", script: """
-                            if [[ ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
+                            if [[ ! -f "bin/sync_diff_inspector" || ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
                                 echo "Building binaries..."
                                 make dm_integration_test_build
                                 mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
@@ -166,7 +149,7 @@ pipeline {
                     kubernetes {
                         label "dm-it-${UUID.randomUUID().toString()}"
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'golang'
                     }
                 }
