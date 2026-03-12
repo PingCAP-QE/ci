@@ -49,12 +49,6 @@ color-green "Download binaries..."
         --ycsb="${YCSB_VERSION}" \
         --etcdctl="${ETCD_VERSION}" \
         --sync-diff-inspector="${SYNC_DIFF_VERSION}"
-
-    # Flatten tiflash directory so tiflash binary is directly accessible
-    if [ -d tiflash ]; then
-        mv tiflash/* .
-        rm -rf tiflash
-    fi
 )
 
 # jq - download from GitHub releases

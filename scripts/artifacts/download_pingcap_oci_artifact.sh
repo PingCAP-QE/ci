@@ -69,6 +69,27 @@ function download_and_extract_with_path() {
     echo "✅ extracted ${path_in_archive} from ${file_path} ."
 }
 
+function prepare_tiflash_layout() {
+    local extracted_dir="tiflash"
+    local normalized_dir="tiflash_dir"
+    local normalized_binary="${normalized_dir}/tiflash"
+
+    if [[ -d "${extracted_dir}" && ! -L "${extracted_dir}" ]]; then
+        rm -rf "${normalized_dir}"
+        mv -v "${extracted_dir}" "${normalized_dir}"
+    fi
+
+    if [[ ! -f "${normalized_binary}" ]]; then
+        echo "Error: expected TiFlash binary at ${normalized_binary}" >&2
+        exit 1
+    fi
+
+    chmod +x "${normalized_binary}"
+    rm -rf "${extracted_dir}"
+    ln -sfn "${normalized_binary}" "${extracted_dir}"
+    echo "✅ prepared TiFlash binary symlink layout: ${extracted_dir} -> ${normalized_binary}"
+}
+
 function compute_tag_platform_suffix() {
     local os="$(uname | tr '[:upper:]' '[:lower:]')"
     local arch="$(compute_oci_arch_suffix)"
@@ -127,7 +148,7 @@ function main() {
     if [[ -n "$TIFLASH" ]]; then
         echo "🚀 start download TiFlash"
         download_and_extract_with_path "$tiflash_oci_url" '^tiflash-v.+.tar.gz$' tiflash.tar.gz tiflash
-        chmod +x tiflash/tiflash
+        prepare_tiflash_layout
         ls -alh tiflash
         echo "🎉 download TiFlash success"
     fi
