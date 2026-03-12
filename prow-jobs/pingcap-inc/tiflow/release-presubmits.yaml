@@ -14,6 +14,7 @@ global_definitions:
     run_before_merge: true
   k8s_job: &k8s_job
     decorate: true
+    clone_uri: git@github.com:pingcap-inc/tiflow.git
     decoration_config:
       oauth_token_secret:
         name: github-token
