@@ -346,9 +346,9 @@ pipeline {
                         cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'ut-build')) {
                             // Fallback for cases where build_cache_ready was not set before this stage.
                             build_cache_ready = build_cache_ready || (sh(
-                                script: "test -x tests/.build/tiflash && echo 'true' || echo 'false'",
-                                returnStdout: true
-                            ).trim() == 'true')
+                                script: "test -x tests/.build/tiflash",
+                                returnStatus: true
+                            ) == 0)
 
                             if (build_cache_ready) {
                                 println "build cache exist, restore from cache key: ${prow.getCacheKey('binary', REFS, 'ut-build')}"
