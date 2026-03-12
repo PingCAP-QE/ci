@@ -44,7 +44,7 @@ pipeline {
                 dir(REFS.repo) {
                     // Checkout
                     script {
-                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                     // Build binaries
                     script {
