@@ -102,10 +102,9 @@ function download_tidb_loader_latest() {
 
     download_url_file "${download_url}" "${archive_name}"
     echo "📂 extract loader from ${archive_name} ..."
-    tar -xzf "${archive_name}" "${archive_root}/bin/loader"
-    mv -v "${archive_root}/bin/loader" ./
+    tar -xzf "${archive_name}" --strip-components=2 "${archive_root}/bin/loader"
     chmod +x loader
-    rm -rf "${archive_root}" "${archive_name}"
+    rm "${archive_name}"
     echo "✅ extracted loader from ${archive_name}"
 }
 
