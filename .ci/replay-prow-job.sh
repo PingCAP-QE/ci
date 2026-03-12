@@ -45,7 +45,8 @@ Pod mode options:
                               Source checkout method for pod mode. Default: github.
   --git-url <url>             Git URL used when checkout-mode=github.
   --git-ref <ref|sha>         Git ref used when checkout-mode=github. Default: PULL_PULL_SHA or PULL_BASE_REF.
-  --git-clone-depth <n>       Clone depth for github mode. Default: 1.
+  --git-clone-depth <n>       Clone depth for github mode. Use 0 for full clone. Default: 1.
+  --git-submodules            Run `git submodule update --init --recursive` in pod after github clone.
   --git-token-secret <name:key>
                               Optional secret to inject REPLAY_GIT_TOKEN in pod for private repo clone.
   --pod-workdir <path>        Workdir inside pod for github clone. Default: /workspace/src.
@@ -136,6 +137,7 @@ CHECKOUT_MODE="github"
 GIT_URL=""
 GIT_REF=""
 GIT_CLONE_DEPTH="1"
+GIT_SUBMODULES="false"
 GIT_TOKEN_SECRET=""
 POD_WORKDIR="/workspace/src"
 WORKSPACE="$(pwd)"
@@ -201,6 +203,10 @@ while [[ $# -gt 0 ]]; do
         --git-clone-depth)
             GIT_CLONE_DEPTH="$2"
             shift 2
+            ;;
+        --git-submodules)
+            GIT_SUBMODULES="true"
+            shift
             ;;
         --git-token-secret)
             GIT_TOKEN_SECRET="$2"
@@ -524,6 +530,7 @@ run_pod_mode() {
         printf 'export REPLAY_GIT_URL=%q\n' "${effective_git_url}"
         printf 'export REPLAY_GIT_REF=%q\n' "${effective_git_ref}"
         printf 'export REPLAY_GIT_CLONE_DEPTH=%q\n' "${GIT_CLONE_DEPTH}"
+        printf 'export REPLAY_GIT_SUBMODULES=%q\n' "${GIT_SUBMODULES}"
         printf 'export REPLAY_GIT_WORKDIR=%q\n' "${POD_WORKDIR}"
         if [[ -n "$host_git_token" ]]; then
             printf 'export REPLAY_GIT_TOKEN=%q\n' "${host_git_token}"
@@ -572,19 +579,55 @@ if [[ "${REPLAY_CHECKOUT_MODE:-github}" == "github" ]]; then
 
   rm -rf "${REPLAY_GIT_WORKDIR}"
   mkdir -p "$(dirname "${REPLAY_GIT_WORKDIR}")"
-  git clone --depth "${REPLAY_GIT_CLONE_DEPTH}" "${clone_url}" "${REPLAY_GIT_WORKDIR}"
+  if [[ "${REPLAY_GIT_CLONE_DEPTH}" == "0" ]]; then
+    git clone "${clone_url}" "${REPLAY_GIT_WORKDIR}"
+  else
+    git clone --depth "${REPLAY_GIT_CLONE_DEPTH}" "${clone_url}" "${REPLAY_GIT_WORKDIR}"
+  fi
   cd "${REPLAY_GIT_WORKDIR}"
 
   if [[ -n "${PULL_PULL_SHA:-}" ]]; then
-    git fetch --depth=1 origin "${PULL_PULL_SHA}"
+    if [[ "${REPLAY_GIT_CLONE_DEPTH}" == "0" ]]; then
+      git fetch origin "${PULL_PULL_SHA}"
+    else
+      git fetch --depth=1 origin "${PULL_PULL_SHA}"
+    fi
     git checkout -f "${PULL_PULL_SHA}"
   elif [[ -n "${REPLAY_GIT_REF:-}" ]]; then
-    git fetch --depth=1 origin "${REPLAY_GIT_REF}" || true
+    if [[ "${REPLAY_GIT_CLONE_DEPTH}" == "0" ]]; then
+      git fetch origin "${REPLAY_GIT_REF}" || true
+    else
+      git fetch --depth=1 origin "${REPLAY_GIT_REF}" || true
+    fi
     if git rev-parse --verify -q FETCH_HEAD >/dev/null 2>&1; then
       git checkout -f FETCH_HEAD
     else
       git checkout -f "${REPLAY_GIT_REF}"
     fi
+  fi
+
+  if [[ "${REPLAY_GIT_CLONE_DEPTH}" == "0" ]]; then
+    git fetch --tags --force origin || true
+  else
+    git fetch --tags --force --depth=1 origin || true
+  fi
+
+  if [[ "${REPLAY_GIT_SUBMODULES:-false}" == "true" ]]; then
+    # Optional: skip specific submodules in replay by setting
+    # REPLAY_GIT_SUBMODULE_SKIP_PATHS as comma-separated paths.
+    if [[ -n "${REPLAY_GIT_SUBMODULE_SKIP_PATHS:-}" ]]; then
+      IFS=',' read -r -a _skip_paths <<<"${REPLAY_GIT_SUBMODULE_SKIP_PATHS}"
+      for _path in "${_skip_paths[@]}"; do
+        [[ -n "${_path}" ]] || continue
+        git config "submodule.${_path}.update" none
+      done
+    fi
+
+    if [[ -n "${REPLAY_GIT_TOKEN:-}" && "${REPLAY_GIT_URL}" == https://github.com/* ]]; then
+      git config --global url."https://x-access-token:${REPLAY_GIT_TOKEN}@github.com/".insteadOf "git@github.com:"
+    fi
+
+    git submodule update --init --recursive
   fi
 else
   cd /workspace
