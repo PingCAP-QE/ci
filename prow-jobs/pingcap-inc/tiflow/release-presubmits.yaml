@@ -14,10 +14,13 @@ global_definitions:
     run_before_merge: true
   k8s_job: &k8s_job
     decorate: true
+    clone_uri: git@github.com:pingcap-inc/tiflow.git
     decoration_config:
       oauth_token_secret:
         name: github-token
         key: token
+      ssh_key_secrets:
+        - github-ssh-secret
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -28,15 +31,9 @@ presubmits:
         containers:
           - name: check
             image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
-            env: &env
-              - name: GOPRIVATE
-                value: github.com/pingcap-inc/
             command: [bash, -ce]
             args:
               - |
-                # Configure Git to use the token for private module fetching
-                git config --global url."https://x-access-token:$(cat /secrets/oauth/token)@github.com/pingcap-inc/".insteadOf "https://github.com/pingcap-inc/"
-
                 make check
             resources: &resources
               requests:
@@ -45,9 +42,6 @@ presubmits:
               limits:
                 memory: 24Gi
                 cpu: "6"
-            volumeMounts:
-              - mountPath: /secrets/oauth/
-                name: github-token
 
     - <<: [*k8s_job, *brancher, *changer]
       name: pull-build
@@ -56,12 +50,8 @@ presubmits:
           - name: build
             image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
             command: [bash, -ce]
-            env: *env
             args:
               - |
-                # Configure Git to use the token for private module fetching
-                git config --global url."https://x-access-token:$(cat /secrets/oauth/token)@github.com/pingcap-inc/".insteadOf "https://github.com/pingcap-inc/"
-
                 make build
             resources: *resources
 
@@ -72,7 +62,6 @@ presubmits:
           - name: cdc-unit-test
             image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
             command: [bash, -ce]
-            env: *env
             args:
               - |
                 # Preserve junit artifacts for Prow even when tests fail.
@@ -85,9 +74,6 @@ presubmits:
                   done
                 }
                 trap archive_junit_reports EXIT
-
-                # Configure Git to use the token for private module fetching
-                git config --global url."https://x-access-token:$(cat /secrets/oauth/token)@github.com/pingcap-inc/".insteadOf "https://github.com/pingcap-inc/"
 
                 make unit_test_in_verify_ci
 

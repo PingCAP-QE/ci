@@ -14,10 +14,13 @@ global_definitions:
     run_before_merge: true
   k8s_job: &k8s_job
     decorate: true
+    clone_uri: git@github.com:pingcap-inc/ticdc.git
     decoration_config:
       oauth_token_secret:
         name: github-token
         key: token
+      ssh_key_secrets:
+        - github-ssh-secret
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -72,14 +75,8 @@ presubmits:
           - name: check
             image: &image ghcr.io/pingcap-qe/ci/base:v2025.12.7-3-g1c0b8cf-go1.25
             command: [bash, -ce]
-            env: &env
-              - name: GOPRIVATE
-                value: github.com/pingcap-inc/
             args:
               - |
-                # Configure Git to use the token for private module fetching
-                git config --global url."https://x-access-token:$(cat /secrets/oauth/token)@github.com/pingcap-inc/".insteadOf "https://github.com/pingcap-inc/"
-
                 make unit_test_in_verify_ci
             resources:
               requests:
@@ -97,12 +94,8 @@ presubmits:
           - name: build
             image: *image
             command: [bash, -ce]
-            env: *env
             args:
               - |
-                # Configure Git to use the token for private module fetching
-                git config --global url."https://x-access-token:$(cat /secrets/oauth/token)@github.com/pingcap-inc/".insteadOf "https://github.com/pingcap-inc/"
-
                 make cdc
             resources: &resources
               requests:
@@ -120,11 +113,7 @@ presubmits:
           - name: check
             image: *image
             command: [bash, -ce]
-            env: *env
             args:
               - |
-                # Configure Git to use the token for private module fetching
-                git config --global url."https://x-access-token:$(cat /secrets/oauth/token)@github.com/pingcap-inc/".insteadOf "https://github.com/pingcap-inc/"
-
                 make check
             resources: *resources
