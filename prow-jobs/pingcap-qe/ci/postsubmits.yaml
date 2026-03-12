@@ -1,10 +1,8 @@
 global_definitions:
-  branches: &branches
-    - ^main$
   jenkins_job: &jenkins_job
     agent: jenkins
     labels:
-      master: "0"
+      master: "1"
     decorate: false # need add this.
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
@@ -12,6 +10,8 @@ postsubmits:
   PingCAP-QE/ci:
     - <<: *jenkins_job
       name: seed
+      run_if_changed: "^jobs/.*\\.groovy"
       context: seed
       max_concurrency: 1
-      branches: *branches
+      branches:
+        - ^main$
