@@ -344,6 +344,12 @@ pipeline {
                             chown -R 1000:1000 ./
                         """
                         cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'ut-build')) {
+                            // Fallback for cases where build_cache_ready was not set before this stage.
+                            build_cache_ready = build_cache_ready || (sh(
+                                script: "test -x tests/.build/tiflash && echo 'true' || echo 'false'",
+                                returnStdout: true
+                            ).trim() == 'true')
+
                             if (build_cache_ready) {
                                 println "build cache exist, restore from cache key: ${prow.getCacheKey('binary', REFS, 'ut-build')}"
                                 sh """
@@ -356,7 +362,7 @@ pipeline {
                                 sh label: "clean git repo", script: """
                                 git status
                                 git show --oneline -s
-                                mkdir tests/.build
+                                mkdir -p tests/.build
                                 cp -r ${WORKSPACE}/install/* tests/.build/
                                 rm -rf .git
                                 rm -rf contrib
