@@ -77,6 +77,41 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
+    - name: pull-replay-prow-jobs
+      labels: *labels
+      decorate: true
+      always_run: false
+      optional: true
+      max_concurrency: 1
+      trigger: "(?m)^/test (?:.*? )?pull-replay-prow-jobs(?: .*?)?$"
+      rerun_command: "/test pull-replay-prow-jobs"
+      run_if_changed: "^prow-jobs/.*\\.(yaml|yml)$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: wbitt/network-multitool
+            env:
+              - name: REPLAY_SUBMODULE_SKIP_PATHS
+                value: contrib/tiflash-proxy-next-gen
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                apk add --no-cache git jq ruby kubectl
+                .ci/replay-changed-prow-jobs.sh \
+                  --base-sha "${PULL_BASE_SHA:-}" \
+                  --head-sha "${PULL_PULL_SHA:-}" \
+                  --namespace prow-test-pods \
+                  --max-replays 3 \
+                  --max-jobs-per-file 3 \
+                  --run-timeout 3600 \
+                  --pod-ready-timeout 300 \
+                  --git-submodules
+            resources:
+              limits:
+                memory: 512Mi
+                cpu: 500m
     - name: pull-verify-prow-jobs
       labels: *labels
       decorate: true
