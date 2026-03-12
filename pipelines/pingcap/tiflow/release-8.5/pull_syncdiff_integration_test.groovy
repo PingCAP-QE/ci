@@ -54,16 +54,15 @@ pipeline {
                                             --dumpling=${OCI_TAG_DUMPLING}
                                 """
                             }
-                            sh label: "ensure importer tools", script: """
-                                if [ ! -x importer ]; then
-                                    wget --no-verbose -t 3 \
-                                        -O tidb-enterprise-tools.tar.gz \
-                                        https://fileserver.pingcap.net/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
-                                    tar -xzf tidb-enterprise-tools.tar.gz
-                                    mv tidb-enterprise-tools/bin/loader ./
-                                    mv tidb-enterprise-tools/bin/importer ./
-                                    rm -rf tidb-enterprise-tools tidb-enterprise-tools.tar.gz
-                                fi
+                            sh label: "ensure loader", script: """
+                                "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" --loader
+                            """
+                        }
+                    }
+                    dir("bin") {
+                        retry(2) {
+                            sh label: "ensure importer", script: """
+                                "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" --importer=release-8.5
                             """
                         }
                     }
