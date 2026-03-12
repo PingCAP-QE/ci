@@ -63,12 +63,6 @@ function main() {
             --minio="${MINIO_VERSION}" \
             --ycsb="${YCSB_VERSION}" \
             --etcdctl="${ETCD_VERSION}"
-
-        # Flatten tiflash directory so tiflash binary is directly in third_bin/
-        if [ -d tiflash ]; then
-            mv tiflash/* .
-            rm -rf tiflash
-        fi
     )
 
     chmod a+x third_bin/*

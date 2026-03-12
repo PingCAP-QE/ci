@@ -57,7 +57,7 @@ pipeline {
                                     # First download binary using the release branch script
                                     ./scripts/download-integration-test-binaries.sh release-7.5
                                     # remove binarys of tidb-server, pd-server, tikv-server, tiflash
-                                    rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/lib*
+                                    rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/tiflash_dir bin/lib*
 
                                     # Then download and replace other components with exact versions
                                     cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ./

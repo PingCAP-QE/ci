@@ -53,9 +53,6 @@ pipeline {
                                     --tidb=${OCI_TAG_TIDB} \
                                     --tikv=${OCI_TAG_TIKV} \
                                     --tiflash=${OCI_TAG_TIFLASH}
-                                chmod +x tidb-server tikv-server
-                                mv tiflash tiflash_dir
-                                ln -s tiflash_dir/tiflash tiflash
                             """
                         }
                     }

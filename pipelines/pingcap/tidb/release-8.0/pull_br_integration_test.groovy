@@ -76,9 +76,6 @@ pipeline {
                             }
                         }
                         sh """
-                            mv tiflash tiflash_dir
-                            ln -s tiflash_dir/tiflash tiflash
-
                             ls -alh .
                             ./pd-server -V
                             ./tikv-server -V

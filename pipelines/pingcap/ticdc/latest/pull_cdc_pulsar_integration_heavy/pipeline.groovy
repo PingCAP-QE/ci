@@ -68,11 +68,6 @@ pipeline {
                                             --etcdctl=${OCI_TAG_ETCD} \
                                             --ycsb=${OCI_TAG_YCSB} \
                                             --schema-registry=${OCI_TAG_SCHEMA_REGISTRY}
-
-                                        ls -d tiflash
-                                        mv tiflash tiflash-dir
-                                        mv tiflash-dir/* .
-                                        rm -rf tiflash-dir
                                     """
                                 }
                             }

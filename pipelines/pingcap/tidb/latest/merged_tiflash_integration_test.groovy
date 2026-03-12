@@ -50,14 +50,10 @@ pipeline {
                             dir("bin") {
                                 retry(3) {
                                     sh label: 'download tidb components', script: """
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV} --tiflash=${OCI_TAG_TIFLASH}
-                                        if [[ -d tiflash && ! -L tiflash ]]; then
-                                            mv tiflash tiflash_dir
-                                        fi
-                                        if [[ -d tiflash_dir ]]; then
-                                            rm -f tiflash
-                                            ln -s `pwd`/tiflash_dir/tiflash tiflash
-                                        fi
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --pd=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH}
                                     """
                                 }
                             }
