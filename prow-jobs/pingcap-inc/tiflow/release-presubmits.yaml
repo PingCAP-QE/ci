@@ -100,25 +100,25 @@ presubmits:
                 cpu: "6"
 
     - <<: [*jenkins_job, *brancher, *changer]
-      name: pingcap/tiflow/release-8.5/pull_cdc_integration_kafka_test
+      name: pingcap-inc/tiflow/release-8.5/pull_cdc_integration_kafka_test
       context: pull-cdc-integration-kafka-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-kafka-test"
 
     - <<: [*jenkins_job, *brancher, *changer]
-      name: pingcap/tiflow/release-8.5/pull_cdc_integration_mysql_test
+      name: pingcap-inc/tiflow/release-8.5/pull_cdc_integration_mysql_test
       context: pull-cdc-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-mysql-test"
 
     - <<: [*jenkins_job, *brancher, *changer]
-      name: pingcap/tiflow/release-8.5/pull_cdc_integration_pulsar_test
+      name: pingcap-inc/tiflow/release-8.5/pull_cdc_integration_pulsar_test
       context: pull-cdc-integration-pulsar-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-pulsar-test"
 
     - <<: [*jenkins_job, *brancher, *changer]
-      name: pingcap/tiflow/release-8.5/pull_cdc_integration_storage_test
+      name: pingcap-inc/tiflow/release-8.5/pull_cdc_integration_storage_test
       context: pull-cdc-integration-storage-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-storage-test"
