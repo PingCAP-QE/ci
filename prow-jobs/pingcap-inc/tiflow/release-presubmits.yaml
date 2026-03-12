@@ -16,9 +16,6 @@ global_definitions:
     decorate: true
     clone_uri: git@github.com:pingcap-inc/tiflow.git
     decoration_config:
-      oauth_token_secret:
-        name: github-token
-        key: token
       ssh_key_secrets:
         - github-ssh-secret
 
