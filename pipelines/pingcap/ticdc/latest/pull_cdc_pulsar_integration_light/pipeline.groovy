@@ -8,7 +8,7 @@ final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIDB = REFS.org == 'pingcap-inc' ? REFS.base_ref.replaceAll('/', '-') : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
@@ -57,8 +57,8 @@ pipeline {
                                     sh label: "download tidb components", script: """
                                         export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
                                         chmod +x \$script
-                                        OCI_ARTIFACT_HOST=${REFS.org == 'pingcap-inc' ? 'us-docker.pkg.dev/pingcap-testing-account/internal' : 'us-docker.pkg.dev/pingcap-testing-account/hub'} \$script --tidb=${OCI_TAG_TIDB}
                                         \$script \
+                                            --tidb=${OCI_TAG_TIDB} \
                                             --pd=${OCI_TAG_PD} \
                                             --pd-ctl=${OCI_TAG_PD} \
                                             --tikv=${OCI_TAG_TIKV} \

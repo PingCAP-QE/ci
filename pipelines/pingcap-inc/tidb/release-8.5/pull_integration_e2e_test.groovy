@@ -1,0 +1,93 @@
+// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
+// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+// should triggerd for release-8.5 branches
+@Library('tipipeline') _
+
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/tidb/release-8.5/pod-pull_integration_e2e_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TICDC = component.computeArtifactOciTagFromPR('ticdc', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
+
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+
+prow.setPRDescription(REFS)
+pipeline {
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
+        }
+    }
+    environment {
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+    }
+    options {
+        timeout(time: 60, unit: 'MINUTES')
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                dir('tidb') {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        retry(2) {
+                            script {
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Prepare') {
+            steps {
+                dir('tidb/tests/integrationtest2/third_bin') {
+                    script {
+                        retry(3) {
+                            container('utils') {
+                                sh label: 'download binary', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --pd=${OCI_TAG_PD} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --tiflash=${OCI_TAG_TIFLASH}
+                                """
+                                sh label: 'download ticdc binary', script: """
+                                    # download ticdc
+                                    OCI_ARTIFACT_HOST=us-docker.pkg.dev/pingcap-testing-account/internal \
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --ticdc-new=${OCI_TAG_TICDC}
+                                """
+                            }
+                            sh label: 'verify binaries', script: '''
+                                ls -alh .
+                                ./tikv-server -V
+                                ./pd-server -V
+                                ./tiflash --version
+                                ./cdc version
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+        stage('Tests') {
+            options { timeout(time: 45, unit: 'MINUTES') }
+            steps {
+                dir('tidb/tests/integrationtest2') {
+                    sh label: 'test', script: './run-tests.sh'
+                }
+            }
+            post{
+                failure {
+                    script {
+                        println "Test failed, archive the log"
+                        archiveArtifacts artifacts: 'tidb/tests/integrationtest2/logs', fingerprint: true
+                    }
+                }
+            }
+        }
+    }
+}
