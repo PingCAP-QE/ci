@@ -108,21 +108,6 @@ function download_tidb_loader_latest() {
     echo "✅ extracted loader from ${archive_name}"
 }
 
-function build_tidb_importer() {
-    local version="$1"
-
-    if [[ -x importer ]]; then
-        echo "importer already exists, skip build"
-        return
-    fi
-
-    echo "🚀 Building importer from github.com/pingcap/tidb/cmd/importer@${version}"
-    GOBIN="$(pwd)" GOWORK=off GO111MODULE=on \
-        go install "github.com/pingcap/tidb/cmd/importer@${version}"
-    chmod +x importer
-    echo "✅ Built importer from github.com/pingcap/tidb/cmd/importer@${version}"
-}
-
 function main() {
     parse_cli_args "$@"
     check_tools
@@ -256,11 +241,6 @@ function main() {
         download_tidb_loader_latest
         echo "🎉 download TiDB loader(latest) success"
     fi
-    if [[ -n "$IMPORTER" ]]; then
-        echo "🚀 start build TiDB importer(${IMPORTER})"
-        build_tidb_importer "${IMPORTER}"
-        echo "🎉 build TiDB importer(${IMPORTER}) success"
-    fi
 
     if [[ -n "$BRV408" ]]; then
         echo "🚀 start download br v4.0.8"
@@ -373,10 +353,6 @@ function parse_cli_args() {
         LOADER=YES
         shift # past argument (no value)
         ;;
-        -importer=*|--importer=*)
-        IMPORTER="${i#*=}"
-        shift # past argument=value
-        ;;
         -brv408|--brv408)
         BRV408=YES
         shift # past argument (no value)
@@ -414,7 +390,6 @@ function parse_cli_args() {
     [[ -n "${KES}" ]] && echo "KES = ${KES}"
     [[ -n "${LICENSE_EYE}" ]] && echo "LICENSE_EYE = ${LICENSE_EYE}"
     [[ -n "${LOADER}" ]] && echo "LOADER = ${LOADER}"
-    [[ -n "${IMPORTER}" ]] && echo "IMPORTER = ${IMPORTER}"
     [[ -n "${BRV408}" ]] && echo "BRV408      = ${BRV408}"
 
     if [[ -n $1 ]]; then
@@ -450,22 +425,9 @@ function parse_cli_args() {
 }
 
 function check_tools() {
-    if [[ -n "$TIDB" || -n "$DUMPLING" || -n "$TIKV" || -n "$TIKV_WORKER" || -n "$TIKV_CTL" || -n "$PD" || -n "$PD_CTL" || -n "$TIFLASH" || -n "$TICDC" || -n "$TICDC_NEW" || -n "$TICI" || -n "$MINIO" || -n "$ETCDCTL" || -n "$YCSB" || -n "$SCHEMA_REGISTRY" || -n "$SYNC_DIFF_INSPECTOR" || -n "$FAKE_GCS_SERVER" || -n "$KES" || -n "$LICENSE_EYE" ]]; then
-        command -v oras >/dev/null || { echo "Error: 'oras' not found"; exit 1; }
-        command -v yq >/dev/null || { echo "Error: 'yq' not found"; exit 1; }
-    fi
-
-    if [[ -n "$TIDB" || -n "$DUMPLING" || -n "$TIKV" || -n "$TIKV_WORKER" || -n "$TIKV_CTL" || -n "$PD" || -n "$PD_CTL" || -n "$TIFLASH" || -n "$TICDC" || -n "$TICDC_NEW" || -n "$TICI" || -n "$ETCDCTL" || -n "$YCSB" || -n "$SCHEMA_REGISTRY" || -n "$SYNC_DIFF_INSPECTOR" || -n "$FAKE_GCS_SERVER" || -n "$LOADER" || -n "$BRV408" ]]; then
-        command -v tar >/dev/null || { echo "Error: 'tar' not found"; exit 1; }
-    fi
-
-    if [[ -n "$IMPORTER" ]]; then
-        command -v go >/dev/null || { echo "Error: 'go' not found"; exit 1; }
-    fi
-
-    if [[ -n "$LOADER" || -n "$BRV408" ]]; then
-        command -v curl >/dev/null || { echo "Error: 'curl' not found"; exit 1; }
-    fi
+    command -v oras >/dev/null || { echo "Error: 'oras' not found"; exit 1; }
+    command -v yq >/dev/null || { echo "Error: 'yq' not found"; exit 1; }
+    command -v tar >/dev/null || { echo "Error: 'tar' not found"; exit 1; }
 }
 
 main "$@"

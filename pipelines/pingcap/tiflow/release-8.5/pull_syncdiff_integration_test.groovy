@@ -59,13 +59,6 @@ pipeline {
                             """
                         }
                     }
-                    dir("bin") {
-                        retry(2) {
-                            sh label: "ensure importer", script: """
-                                "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" --importer=release-8.5
-                            """
-                        }
-                    }
                     script {
                         if (!fileExists('bin/dumpling')) {
                             component.fetchAndExtractArtifact('http://fileserver.pingcap.net', 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
@@ -75,7 +68,6 @@ pipeline {
                         which bin/tikv-server
                         which bin/pd-server
                         which bin/tidb-server
-                        which bin/importer
                         ls -alh ./bin/
                         if [ -x bin/dumpling ]; then
                             ./bin/dumpling --version
@@ -92,6 +84,7 @@ pipeline {
                     export MYSQL_PORT=3306
                     make failpoint-enable
                     make sync-diff-inspector
+                    make importer
                     make failpoint-disable
                     cd sync_diff_inspector && ln -sf ../bin . && ./tests/run.sh
                     """
