@@ -25,7 +25,7 @@ presubmits:
         affinity: *affinity
         containers:
           - name: build
-            image: hub.pingcap.net/ee/ci/base:v20230803-go1.19.12
+            image: ghcr.io/pingcap-qe/cd/builders/pd:v2024.10.8-91-g6221afa-centos7-go1.19
             command: [bash, -ce]
             args:
               - |
