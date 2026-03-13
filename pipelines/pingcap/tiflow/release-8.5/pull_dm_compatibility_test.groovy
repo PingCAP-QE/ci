@@ -56,7 +56,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
+                                prow.checkoutRefs(REFS)
                             }
                         }
                     }
@@ -71,9 +71,7 @@ pipeline {
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
-                                git fetch origin ${REFS.base_ref}:local
-                                git checkout local
-                                git rev-parse HEAD
+                                git checkout ${REFS.base_ref}
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous
