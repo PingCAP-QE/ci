@@ -45,6 +45,8 @@ presubmits:
       context: pull-mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
+      labels:
+        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_unit_test
