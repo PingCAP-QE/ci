@@ -51,7 +51,7 @@ spec:
     - name: bazel-out-merged
       emptyDir: {}
     - name: bazel-rc
-      secret: # 可以换成 configmap
+      secret:
         secretName: bazel
     - name: containerinfo
       downwardAPI:
