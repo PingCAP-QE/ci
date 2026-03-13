@@ -31,13 +31,6 @@ spec:
       volumeMounts:
         - name: test-data
           mountPath: /git
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
   volumes:
     - name: test-data
       emptyDir: {}

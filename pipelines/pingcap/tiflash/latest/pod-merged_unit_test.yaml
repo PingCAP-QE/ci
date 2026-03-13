@@ -37,13 +37,6 @@ spec:
         - mountPath: "/tmp-memfs"
           name: "volume-8"
           readOnly: false
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
     - name: util
       image: hub.pingcap.net/jenkins/ks3util
       args: ["sleep", "infinity"]
