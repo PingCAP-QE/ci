@@ -15,7 +15,7 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
@@ -74,7 +74,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 stages {
@@ -106,15 +106,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
