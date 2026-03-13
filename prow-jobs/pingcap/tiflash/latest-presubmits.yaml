@@ -38,34 +38,6 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-integration-test)(?: .*?)?$"
 
-    - <<: *brancher
-      agent: jenkins
-      labels:
-        master: "0"
-      context: pull-regression-test
-      decorate: false
-      name: pingcap/tiflash/pull_regression_test
-      always_run: false
-      optional: true
-      rerun_command: "/run-regression-test"
-      skip_if_only_changed: *skip_if_only_changed
-      skip_report: false
-      trigger: "(?mi)^/run-regression-test(?:\\s.*)?$"
-
-    - <<: *brancher
-      agent: jenkins
-      labels:
-        master: "0"
-      context: pull-schrodinger-test
-      decorate: false
-      name: pingcap/tiflash/pull_schrodinger_test
-      always_run: false
-      optional: true
-      rerun_command: "/run-schrodinger-test"
-      skip_if_only_changed: *skip_if_only_changed
-      skip_report: false
-      trigger: "(?mi)^/run-schrodinger-test(?:\\s.*)?$"
-
     - &pull_sanitizer_asan_job
       <<: *brancher
       name: pull-sanitizer-asan
@@ -73,8 +45,8 @@ presubmits:
       always_run: false
       optional: true
       skip_if_only_changed: *skip_if_only_changed
-      trigger: "(?mi)^/run-sanitizer-test-asan(?:\\s.*)?$"
-      rerun_command: "/run-sanitizer-test-asan"
+      trigger: "(?m)^/test (?:.*? )?(pull-sanitizer-asan)(?: .*?)?$"
+      rerun_command: "/test pull-sanitizer-asan"
       spec:
         containers:
           - name: run-sanitizer
@@ -164,8 +136,8 @@ presubmits:
       always_run: false
       optional: true
       skip_if_only_changed: *skip_if_only_changed
-      trigger: "(?mi)^/run-sanitizer-test-tsan(?:\\s.*)?$"
-      rerun_command: "/run-sanitizer-test-tsan"
+      trigger: "(?m)^/test (?:.*? )?(pull-sanitizer-tsan)(?: .*?)?$"
+      rerun_command: "/test pull-sanitizer-tsan"
       spec:
         containers:
           - name: run-sanitizer
