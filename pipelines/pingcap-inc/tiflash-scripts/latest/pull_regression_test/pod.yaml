@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: runner
+      image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2024.10.8-135-g43bfc3c-centos7
+      tty: true
+      resources:
+        requests:
+          cpu: "4"
+          memory: 12Gi
+        limits:
+          cpu: "16"
+          memory: 24Gi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64

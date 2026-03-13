@@ -21,7 +21,7 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_regression_test') {
         stringParam("notify", "false")
         stringParam("idleMinutes", "5")
         stringParam("pipeline", "")
-        stringParam("FILE_SERVER_URL", "https://fileserver.pingcap.net")
+        stringParam("FILE_SERVER_URL", "https://download.pingcap.com")
         stringParam("ghprbTargetBranch", "")
         stringParam("ghprbCommentBody", "")
         stringParam("ghprbActualCommit", "")
@@ -34,7 +34,7 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_regression_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/tiflash-scripts/latest/pull_regression_test.groovy")
+            scriptPath("pipelines/pingcap-inc/tiflash-scripts/latest/pull_regression_test/pipeline.groovy")
             scm {
                 git{
                     remote {

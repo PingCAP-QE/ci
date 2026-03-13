@@ -6,7 +6,7 @@ currentBuild.description = "${desc} branch=${branch} version=${version} testcase
 
 
 def label = "tiflash-schrodinger-test-v11"
-def cloud = "kubernetes-ksyun"
+def cloud = "kubernetes-ng"
 
 if ( idleMinutes != "5") {
     println "pod idleMinutes is not default 5 minutes\n use unique pod label to debug"
@@ -17,11 +17,11 @@ if ( idleMinutes != "5") {
 
 
 def run_with_pod(Closure body) {
-    def cloud = "kubernetes-ksyun"
+    def cloud = "kubernetes-ng"
     def label = "${JOB_NAME}-${BUILD_NUMBER}"
     def namespace = "jenkins-tiflash-schrodinger"
     def pod_go_docker_image = 'hub.pingcap.net/jenkins/centos7_golang-1.16:latest'
-    def jnlp_docker_image = "jenkins/inbound-agent:3148.v532a_7e715ee3-10"
+    def jnlp_docker_image = "jenkins/inbound-agent:4.3-4"
     podTemplate(label: label,
             cloud: cloud,
             namespace: namespace,
@@ -34,7 +34,7 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '8000m', resourceRequestMemory: '12Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-
+                            
                     )
             ],
             volumes: [
@@ -91,7 +91,7 @@ run_with_pod {
                 pd_commit_hash = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/master/sha1").trim()
             }
         }
-
+        
     }
 
     schrodingerTest.runSchrodingerTest4(cloud, branch, version, tidb_commit_hash, tikv_commit_hash, pd_commit_hash, tiflash_commit_hash, testcase, maxRunTime, notify, idleMinutes)

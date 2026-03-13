@@ -22,7 +22,7 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_schrodinger_test') {
         stringParam("tikv_commit_hash", "")
         stringParam("pd_commit_hash", "")
         stringParam("tiflash_commit_hash", "")
-        stringParam("FILE_SERVER_URL", "https://fileserver.pingcap.net")
+        stringParam("FILE_SERVER_URL", "https://download.pingcap.com")
     }
     properties {
         githubProjectUrl("https://github.com/pingcap-inc/tiflash-scripts")
@@ -31,7 +31,7 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_schrodinger_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/tiflash-scripts/latest/pull_schrodinger_test.groovy")
+            scriptPath("pipelines/pingcap-inc/tiflash-scripts/latest/pull_schrodinger_test/pipeline.groovy")
             scm {
                 git{
                     remote {
