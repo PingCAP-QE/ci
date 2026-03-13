@@ -111,6 +111,62 @@ infer_base_ref() {
   echo "master"
 }
 
+resolve_job_agent() {
+  local file="$1"
+  local repo="$2"
+  local kind="$3"
+  local name="$4"
+
+  ruby -ryaml -e '
+file = ARGV[0]
+repo = ARGV[1]
+kind = ARGV[2]
+name = ARGV[3]
+
+cfg = YAML.load_file(file) || {}
+jobs = []
+
+case kind
+when "presubmit"
+  h = cfg["presubmits"] || {}
+  if !repo.empty?
+    arr = h[repo] || []
+    arr.each { |j| jobs << j if j.is_a?(Hash) }
+  else
+    h.each_value do |arr|
+      next unless arr.is_a?(Array)
+      arr.each { |j| jobs << j if j.is_a?(Hash) }
+    end
+  end
+when "postsubmit"
+  h = cfg["postsubmits"] || {}
+  if !repo.empty?
+    arr = h[repo] || []
+    arr.each { |j| jobs << j if j.is_a?(Hash) }
+  else
+    h.each_value do |arr|
+      next unless arr.is_a?(Array)
+      arr.each { |j| jobs << j if j.is_a?(Hash) }
+    end
+  end
+when "periodic"
+  arr = cfg["periodics"] || []
+  arr.each { |j| jobs << j if j.is_a?(Hash) }
+else
+  puts ""
+  exit 0
+end
+
+job = jobs.find { |j| j["name"].to_s == name.to_s }
+if job.nil?
+  puts ""
+else
+  agent = job["agent"]
+  puts(agent.nil? || agent.to_s.empty? ? "kubernetes" : agent.to_s)
+end
+' "$file" "$repo" "$kind" "$name"
+}
+
 collect_changed_files() {
   local base_sha="$1"
   local head_sha="$2"
@@ -322,6 +378,7 @@ done
 require_bin git
 require_bin bash
 require_bin sort
+require_bin ruby
 
 if [[ -z "${HEAD_SHA}" ]]; then
   HEAD_SHA="$(git rev-parse HEAD)"
@@ -372,6 +429,15 @@ while IFS= read -r file; do
     [[ -n "${job_name}" ]] || continue
     # avoid recursive replay of this automation job itself.
     if [[ "${job_name}" == "pull-replay-prow-jobs" ]]; then
+      continue
+    fi
+    agent="$(resolve_job_agent "${file}" "${repo}" "${job_type}" "${job_name}")"
+    if [[ -z "${agent}" ]]; then
+      vlog "skip unresolved job (cannot resolve agent): file=${file} job=${job_name} type=${job_type} repo=${repo:-<auto>}"
+      continue
+    fi
+    if [[ "${agent}" == "jenkins" ]]; then
+      vlog "skip jenkins job: file=${file} job=${job_name}"
       continue
     fi
     echo "${file}|${job_name}|${job_type}|${repo}|${base_ref}" >> "${targets_file}"
