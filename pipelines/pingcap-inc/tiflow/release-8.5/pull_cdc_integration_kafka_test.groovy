@@ -52,10 +52,12 @@ pipeline {
                         dir("bin") {
                             script {
                                 retry(2) {
-                                    sh label: "download tidb components", script: """
-                                        export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
-                                        chmod +x \$script
+                                    sh label: "download tidb", script: """
+                                        script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
                                         OCI_ARTIFACT_HOST=us-docker.pkg.dev/pingcap-testing-account/internal \$script --tidb=${OCI_TAG_TIDB}
+                                    """
+                                    sh label: "download other tidb components", script: """
+                                        script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
                                         \$script \
                                             --pd=${OCI_TAG_PD} \
                                             --pd-ctl=${OCI_TAG_PD} \
