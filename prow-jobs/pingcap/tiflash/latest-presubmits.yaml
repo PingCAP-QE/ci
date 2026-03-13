@@ -8,8 +8,6 @@ global_definitions:
     skip_branches: # skip feature branches based on released version.
       - ^feature/release-\d+\.\d+(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-  decoration_config: &decoration_config
-    timeout: 8h
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -44,7 +42,6 @@ presubmits:
       <<: *brancher
       name: pull-sanitizer-asan
       decorate: true
-      decoration_config: *decoration_config
       always_run: false
       optional: true
       skip_if_only_changed: *skip_if_only_changed
@@ -136,7 +133,6 @@ presubmits:
       <<: *brancher
       name: pull-sanitizer-tsan
       decorate: true
-      decoration_config: *decoration_config
       always_run: false
       optional: true
       skip_if_only_changed: *skip_if_only_changed
