@@ -28,7 +28,7 @@ periodics:
   - name: periodic-reporter-flaky-tests-tidb
     decorate: true # need add this.
     cron: "0 6 * * 5" # Run weekly at 14:00 UTC+8 (which is 6:00 UTC) every Friday
-    hidden: true
+    # hidden: true
     spec:
       activeDeadlineSeconds: 300
       containers:
@@ -53,10 +53,7 @@ periodics:
                 --to ${end_date} \
                 --threshold-ms ${PARAM_CASE_THRESHOLD_MS} \
                 --db-url=${PARAM_DSN} \
-                --issue-create \
-                --issue-reopen \
-                --issue-comment \
-                --issue-labels "${PARAM_ISSUE_LABELS}" \
+                $PARAM_ISSUE_OPS_OPTIONS --issue-labels "${PARAM_ISSUE_LABELS}" \
                 --email-to="${PARAM_EMAIL_TO}" \
                 --email-cc="${PARAM_EMAIL_CC}" \
                 --email-from="${SMTP_USER}" \
@@ -68,6 +65,8 @@ periodics:
               value: master
             - name: PARAM_CASE_THRESHOLD_MS
               value: "100000"
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-reopen --issue-comment
             - name: PARAM_ISSUE_LABELS
               value: "component/test,flaky-test,severity/critical"
             - name: PARAM_DSN
@@ -119,7 +118,7 @@ periodics:
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
     cron: "0 6 * * 5" # Run weekly at 14:00 UTC+8 (which is 6:00 UTC) every Friday
-    hidden: true
+    # hidden: true
     spec:
       activeDeadlineSeconds: 300
       containers:
@@ -131,6 +130,8 @@ periodics:
               value: release-8.5
             - name: PARAM_CASE_THRESHOLD_MS
               value: "100000"
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-comment
             - name: PARAM_ISSUE_LABELS
               value: "component/test,flaky-test,severity/critical,affects-8.5"
             - name: PARAM_DSN
