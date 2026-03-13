@@ -5,7 +5,7 @@ spec:
     runAsUser: 0
   containers:
     - name: nodejs
-      image: "hub.pingcap.net/ee/ci/base:v20230810-go1.23.0"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25"
       tty: true
       resources:
         requests:
@@ -15,14 +15,14 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: wbitt/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
           cpu: 100m
     - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
+      image: purelind/python3-requests:3.9.18-slim
       tty: true
       resources:
         limits:
