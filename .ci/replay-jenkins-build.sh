@@ -224,6 +224,7 @@ job_url_to_full_name() {
 discover_changed_scripts() {
     local base_sha="$1"
     local head_sha="$2"
+    local diff_range=""
 
     if [[ -z "$base_sha" || -z "$head_sha" ]]; then
         if git rev-parse --verify -q origin/main >/dev/null 2>&1; then
@@ -235,10 +236,13 @@ discover_changed_scripts() {
         fi
     fi
 
-    log "collect changed pipeline files from ${base_sha}..${head_sha}"
+    # Use three-dot diff to match PR semantics and avoid counting changes only
+    # from the base branch when head has not been rebased to base tip.
+    diff_range="${base_sha}...${head_sha}"
+    log "collect changed pipeline files from ${diff_range}"
     # Auto replay should only include scripts that still exist in the checkout.
     # Exclude deleted paths to avoid failing on intentional pipeline removals.
-    git diff --name-only --diff-filter=ACMRTUXB "$base_sha" "$head_sha" | rg '^pipelines/.*\.groovy$' || true
+    git diff --name-only --diff-filter=ACMRTUXB "${diff_range}" | rg '^pipelines/.*\.groovy$' || true
 }
 
 setup_auth_and_crumb() {
