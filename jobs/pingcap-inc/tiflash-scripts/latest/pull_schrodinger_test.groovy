@@ -14,7 +14,7 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_schrodinger_test') {
         stringParam("desc", "TiFlash schrodinger test")
         stringParam("branch", "master")
         stringParam("version", "latest")
-        stringParam("testcase", "")
+        stringParam("testcase", "schrodinger/bank")
         stringParam("maxRunTime", "120")
         stringParam("notify", "false")
         stringParam("idleMinutes", "5")

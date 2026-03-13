@@ -127,6 +127,7 @@ pipeline {
                         need_cmd_pkg python python
                         need_cmd_pkg java java-1.8.0-openjdk-headless
                         need_cmd_pkg timeout coreutils
+                        need_cmd_pkg fio fio
                         need_cmd_pkg mysql mariadb
                         need_cmd_pkg lsof lsof
                         if ! command -v ifconfig >/dev/null 2>&1 && ! command -v netstat >/dev/null 2>&1; then

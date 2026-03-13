@@ -40,7 +40,7 @@ pipeline {
                     def desc = params.getOrDefault("desc", "TiFlash schrodinger test")
                     def branch = params.getOrDefault("branch", "${REFS.base_ref ?: 'master'}")
                     def version = params.getOrDefault("version", "latest")
-                    def testcase = params.getOrDefault("testcase", "")
+                    def testcase = params.getOrDefault("testcase", "schrodinger/bank")
                     def maxRunTime = params.getOrDefault("maxRunTime", "120")
                     def commentBody = params.getOrDefault("ghprbCommentBody", "")
                     def targetBranch = params.getOrDefault("ghprbTargetBranch", "")
@@ -62,6 +62,9 @@ pipeline {
                     }
                     if (version == null || version.trim() == "") {
                         version = "latest"
+                    }
+                    if (testcase == null || testcase.trim() == "") {
+                        testcase = "schrodinger/bank"
                     }
                     if (maxRunTime == null || maxRunTime.trim() == "") {
                         maxRunTime = "120"
@@ -134,6 +137,7 @@ pipeline {
                         need_cmd_pkg python python
                         need_cmd_pkg java java-1.8.0-openjdk-headless
                         need_cmd_pkg timeout coreutils
+                        need_cmd_pkg fio fio
                         need_cmd_pkg mysql mariadb
                         need_cmd_pkg lsof lsof
                         if ! command -v ifconfig >/dev/null 2>&1 && ! command -v netstat >/dev/null 2>&1; then
