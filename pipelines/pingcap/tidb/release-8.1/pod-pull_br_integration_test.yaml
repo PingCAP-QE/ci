@@ -31,13 +31,6 @@ spec:
         limits:
           memory: 128Mi
           cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
