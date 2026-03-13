@@ -92,9 +92,6 @@ presubmits:
         containers:
           - name: main
             image: wbitt/network-multitool
-            env:
-              - name: REPLAY_SUBMODULE_SKIP_PATHS
-                value: contrib/tiflash-proxy-next-gen
             command: [bash, -ceo, pipefail]
             args:
               - |

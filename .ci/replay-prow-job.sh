@@ -198,6 +198,32 @@ infer_base_ref_from_file() {
     echo "master"
 }
 
+default_submodule_skip_paths_for_repo() {
+    local repo="$1"
+    case "$repo" in
+        pingcap/tiflash|pingcap-inc/tiflash-scripts)
+            echo "contrib/tiflash-proxy-next-gen"
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+extra_env_has_key() {
+    local target_key="$1"
+    local pair k
+    for pair in "${EXTRA_ENVS[@]:-}"; do
+        [[ -n "$pair" ]] || continue
+        [[ "$pair" == *=* ]] || continue
+        k="${pair%%=*}"
+        if [[ "$k" == "$target_key" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 resolve_job_agent() {
     local file="$1"
     local repo="$2"
@@ -694,6 +720,7 @@ auto_replay_changed_jobs() {
     while IFS='|' read -r file job_name job_type repo base_ref; do
         local cmd=()
         local pair=""
+        local skip_paths=""
 
         cmd=(bash "${script_path}"
             --mode "${MODE}"
@@ -722,8 +749,16 @@ auto_replay_changed_jobs() {
             cmd+=(--set-env "${pair}")
         done
         cmd+=(--set-env "PULL_BASE_REF=${base_ref}")
-        if [[ -n "${REPLAY_SUBMODULE_SKIP_PATHS:-}" ]]; then
-            cmd+=(--set-env "REPLAY_GIT_SUBMODULE_SKIP_PATHS=${REPLAY_SUBMODULE_SKIP_PATHS}")
+        if extra_env_has_key "REPLAY_GIT_SUBMODULE_SKIP_PATHS"; then
+            :
+        elif [[ -n "${REPLAY_SUBMODULE_SKIP_PATHS:-}" ]]; then
+            skip_paths="${REPLAY_SUBMODULE_SKIP_PATHS}"
+        else
+            skip_paths="$(default_submodule_skip_paths_for_repo "${repo}")"
+        fi
+        if [[ -n "${skip_paths}" ]]; then
+            vlog "apply submodule skip paths for repo=${repo}: ${skip_paths}"
+            cmd+=(--set-env "REPLAY_GIT_SUBMODULE_SKIP_PATHS=${skip_paths}")
         fi
 
         if [[ "${MODE}" == "pod" ]]; then
