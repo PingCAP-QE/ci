@@ -16,7 +16,6 @@ presubmits:
               - make
               - test
     - name: pull-build-images
-      cluster: gcp-prow-ksyun
       decorate: true
       always_run: false
       branches:
