@@ -14,13 +14,6 @@ spec:
         limits:
           memory: 8Gi
           cpu: "4"
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
     - name: mysql
       image: hub.pingcap.net/jenkins/mysql:5.7
       tty: true
