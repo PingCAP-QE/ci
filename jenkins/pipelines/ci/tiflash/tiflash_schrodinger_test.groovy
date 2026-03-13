@@ -34,7 +34,7 @@ def run_with_pod(Closure body) {
                             resourceRequestCpu: '8000m', resourceRequestMemory: '12Gi',
                             command: '/bin/sh -c', args: 'cat',
                             envVars: [containerEnvVar(key: 'GOPATH', value: '/go')],
-                            
+
                     )
             ],
             volumes: [
@@ -91,7 +91,7 @@ run_with_pod {
                 pd_commit_hash = sh(returnStdout: true, script: "curl ${FILE_SERVER_URL}/download/refs/pingcap/pd/master/sha1").trim()
             }
         }
-        
+
     }
 
     schrodingerTest.runSchrodingerTest4(cloud, branch, version, tidb_commit_hash, tikv_commit_hash, pd_commit_hash, tiflash_commit_hash, testcase, maxRunTime, notify, idleMinutes)
