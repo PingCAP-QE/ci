@@ -10,7 +10,7 @@ global_definitions:
     decorate: false # need add this.
     max_concurrency: 2
     labels:
-      master: "0"
+      master: "1"
     run_before_merge: true
   k8s_job: &k8s_job
     decorate: true
