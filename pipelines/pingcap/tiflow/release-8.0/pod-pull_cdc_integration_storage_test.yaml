@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/centos7_golang-1.21:latest"
       tty: true
       resources:
         requests:
@@ -15,7 +15,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/network-multitool
       tty: true
       resources:
         limits:

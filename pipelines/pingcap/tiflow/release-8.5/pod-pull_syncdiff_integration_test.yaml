@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: hub.pingcap.net/jenkins/rocky8_golang-1.25:latest
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/rocky8_golang-1.25:latest
       tty: true
       env:
         - name: GOPATH
@@ -18,7 +18,7 @@ spec:
           memory: 8Gi
           cpu: "4"
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/network-multitool
       tty: true
       resources:
         limits:
@@ -35,7 +35,7 @@ spec:
           cpu: "1"
           memory: 4Gi
     - name: mysql
-      image: "hub.pingcap.net/jenkins/mysql:8.0.43"
+      image: "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/mysql:8.0.43"
       tty: true
       args:
         - "--server-id=1"

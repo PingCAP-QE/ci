@@ -18,7 +18,7 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - image: hub.pingcap.net/jenkins/rocky9_golang-1.19:fips
+    - image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/rocky9_golang-1.19:fips
       imagePullPolicy: Always
       args:
         - cat
@@ -105,14 +105,14 @@ spec:
         - mountPath: /tmp
           name: volume-0
     - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/network-multitool
       tty: true
       resources:
         limits:
           memory: 128Mi
           cpu: 100m
     - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
+      image: us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/python3-requests:latest
       tty: true
       resources:
         limits:
