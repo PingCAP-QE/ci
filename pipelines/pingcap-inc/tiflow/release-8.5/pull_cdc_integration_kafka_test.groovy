@@ -98,10 +98,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        environment {
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
-                        }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
