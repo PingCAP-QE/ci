@@ -36,7 +36,7 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -84,7 +84,7 @@ pipeline {
                         '''
                     }
                 }
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
                         sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                             chmod +x br/tests/*.sh
@@ -127,7 +127,7 @@ pipeline {
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
@@ -146,7 +146,7 @@ pipeline {
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
-                                dir('tidb'){
+                                dir(REFS.repo){
                                     sh label: "upload coverage", script: """
                                         ls -alh /tmp/group_cover
                                         gocovmerge /tmp/group_cover/cov.* > coverage.txt

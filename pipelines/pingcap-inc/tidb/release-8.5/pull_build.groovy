@@ -53,7 +53,7 @@ pipeline {
         }
         stage("Build tidb-server enterprise edition") {
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     sh "make enterprise-prepare enterprise-server-build && ./bin/tidb-server -V"
                 }
             }

@@ -105,7 +105,7 @@ pipeline {
                         }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
@@ -121,13 +121,13 @@ pipeline {
                         }
                         post {
                             always {
-                                dir('tidb') {
+                                dir(REFS.repo) {
                                     // archive test report to Jenkins.
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                                 }
                             }
                             unsuccessful {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     sh label: "archive log", script: """
                                     str="$SCRIPT_AND_ARGS"
                                     logs_dir="logs_\${str// /_}"
@@ -141,7 +141,7 @@ pipeline {
                                 }
                             }
                             success {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     script {
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                                     }

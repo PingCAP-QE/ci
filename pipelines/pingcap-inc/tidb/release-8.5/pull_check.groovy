@@ -25,7 +25,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         script {
                             git.setSshKey(GIT_CREDENTIALS_ID)
@@ -41,20 +41,20 @@ pipeline {
             environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh script: 'make gogenerate check integrationtest'
                 }
             }
             post {
                 success {
-                    dir("tidb") {
+                    dir(REFS.repo) {
                         script {
                             prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                         }
                     }
                 }
                 unsuccessful {
-                    dir("tidb") {
+                    dir(REFS.repo) {
                         sh label: "archive log", script: """
                         logs_dir='test_logs'
                         mkdir -p \${logs_dir}
