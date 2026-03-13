@@ -9,22 +9,22 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/tidb/release-8.5/pod-pull_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-// TODO(wuhuizuo): tidb-test should delivered by docker image.
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    defaultContainer 'golang'
+                }
+            }
             steps {
                 dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -33,6 +33,9 @@ pipeline {
                                 prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
+                    }
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap-inc/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                 }
                 dir("tidb-test") {
@@ -43,21 +46,7 @@ pipeline {
                             }
                         }
                     }
-                }
-            }
-        }
-        stage('Prepare') {
-            steps {
-                dir(REFS.repo) {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap-inc/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
-                    }
-                }
-                dir('tidb-test') {
                     sh "git branch && git status"
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
-                    }
                 }
             }
         }
@@ -85,7 +74,7 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}") {
                                     sh 'ls mysql_test' // if cache missed, fail it(should not miss).
                                     dir('mysql_test') {
                                         sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh  1 ${PART}'
