@@ -96,42 +96,9 @@ function compute_tag_platform_suffix() {
     echo "${os}_${arch}"
 }
 
-function download_url_file() {
-    local url=$1
-    local file_path=$2
-    if [[ -f "${file_path}" ]]; then
-        echo "file $(basename "${file_path}") already exists, skip download"
-        return
-    fi
-
-    command -v curl >/dev/null || { echo "Error: 'curl' not found"; exit 1; }
-    echo "🚀 Downloading file from ${url}"
-    curl --fail --location --retry 3 --retry-delay 1 --retry-connrefused \
-        --output "${file_path}" "${url}"
-    echo "✅ Downloaded, saved in ${file_path}"
-}
-
-function download_tidb_loader_latest() {
-    local archive_name="tidb-enterprise-tools-latest-linux-amd64.tar.gz"
-    local archive_root="tidb-enterprise-tools-latest-linux-amd64"
-    local download_url="http://download.pingcap.com/${archive_name}"
-
-    if [[ -x loader ]]; then
-        echo "loader already exists, skip download"
-        return
-    fi
-
-    download_url_file "${download_url}" "${archive_name}"
-    echo "📂 extract loader from ${archive_name} ..."
-    tar -xzf "${archive_name}" --strip-components=2 "${archive_root}/bin/loader"
-    chmod +x loader
-    rm "${archive_name}"
-    echo "✅ extracted loader from ${archive_name}"
-}
-
 function main() {
-    parse_cli_args "$@"
     check_tools
+    parse_cli_args "$@"
 
     if [[ -n "$TIDB" ]]; then
         echo "🚀 start download TiDB server"
@@ -257,11 +224,6 @@ function main() {
         chmod +x license-eye
         echo "🎉 download license-eye success"
     fi
-    if [[ -n "$LOADER" ]]; then
-        echo "🚀 start download TiDB loader(latest)"
-        download_tidb_loader_latest
-        echo "🎉 download TiDB loader(latest) success"
-    fi
 
     if [[ -n "$BRV408" ]]; then
         echo "🚀 start download br v4.0.8"
@@ -370,10 +332,6 @@ function parse_cli_args() {
         LICENSE_EYE="${i#*=}"
         shift # past argument=value
         ;;
-        -loader|--loader)
-        LOADER=YES
-        shift # past argument (no value)
-        ;;
         -brv408|--brv408)
         BRV408=YES
         shift # past argument (no value)
@@ -410,7 +368,6 @@ function parse_cli_args() {
     [[ -n "${FAKE_GCS_SERVER}" ]] && echo "FAKE_GCS_SERVER = ${FAKE_GCS_SERVER}"
     [[ -n "${KES}" ]] && echo "KES = ${KES}"
     [[ -n "${LICENSE_EYE}" ]] && echo "LICENSE_EYE = ${LICENSE_EYE}"
-    [[ -n "${LOADER}" ]] && echo "LOADER = ${LOADER}"
     [[ -n "${BRV408}" ]] && echo "BRV408      = ${BRV408}"
 
     if [[ -n $1 ]]; then
