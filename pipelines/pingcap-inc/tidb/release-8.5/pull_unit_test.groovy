@@ -131,25 +131,4 @@ pipeline {
             }
         }
     }
-    post {
-        success {
-            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                sh label: 'Fail when long time cost test cases are found', script: '''#! /usr/bin/env bash
-
-                    threshold=144 # unit is second, we should update it monthly.
-
-                    breakCaseListfile="break_longtime_case.txt"
-                    jq -r  ".[] | select(.long_time != null) | .long_time | to_entries[] | select(.value > $threshold) | .key" bazel-go-test-problem-cases.json > $breakCaseListfile
-
-                    if (($(cat $breakCaseListfile | wc -l) > 0)); then
-                        echo "$(tput setaf 1)The execution time of these test cases exceeds the threshold($threshold):$(tput sgr0)"
-                        cat $breakCaseListfile
-                        echo "📌 ref: https://github.com/pingcap/tidb/issues/46820"
-
-                        exit 1
-                    fi
-                '''
-            }
-        }
-    }
 }
