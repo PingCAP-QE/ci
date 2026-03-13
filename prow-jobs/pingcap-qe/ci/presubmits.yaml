@@ -99,7 +99,9 @@ presubmits:
             args:
               - |
                 apk add --no-cache git jq ruby kubectl
-                .ci/replay-changed-prow-jobs.sh \
+                .ci/replay-prow-job.sh \
+                  --auto-changed \
+                  --mode pod \
                   --base-sha "${PULL_BASE_SHA:-}" \
                   --head-sha "${PULL_PULL_SHA:-}" \
                   --namespace prow-test-pods \
