@@ -1,18 +1,18 @@
-def checkoutRefsWithCacheLock(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
+def checkoutRefsWithCacheLock(refs, timeout = 5, credentialsId = '', withSubmodule = false, gitBaseUrl = 'https://github.com') {
     final lockResource = getCacheKey('git', refs)
     lock(lockResource) {
-        checkoutRefsWithCache(refs, timeout, credentialsId, gitBaseUrl, withSubmodule)
+        checkoutRefsWithCache(refs, timeout, credentialsId, withSubmodule, gitBaseUrl)
     }
 }
 
-def checkoutPrivateRefsWithCacheLock(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
+def checkoutPrivateRefsWithCacheLock(refs, credentialsId, timeout = 5, withSubmodule = false, gitSshHost = 'github.com') {
     final lockResource = getCacheKey('git', refs)
     lock(lockResource) {
-        checkoutPrivateRefsWithCache(refs, credentialsId, timeout, gitSshHost, withSubmodule)
+        checkoutPrivateRefsWithCache(refs, credentialsId, timeout, withSubmodule, gitSshHost)
     }
 }
 
-def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
+def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', withSubmodule = false, gitBaseUrl = 'https://github.com') {
     final cacheKey = getCacheKey('git', refs)
     final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
@@ -22,7 +22,7 @@ def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'h
     }
 }
 
-def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
+def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, withSubmodule = false, gitSshHost = 'github.com') {
     final cacheKey = getCacheKey('git', refs)
     final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
