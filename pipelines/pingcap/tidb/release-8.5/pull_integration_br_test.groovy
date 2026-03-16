@@ -74,7 +74,8 @@ pipeline {
                                 mv tiflash tiflash_dir
                             fi
                             if [[ -f tiflash_dir/tiflash ]]; then
-                                ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
+                                # Use a relative symlink so copied workspace is still valid in matrix pods.
+                                ln -sfn tiflash_dir/tiflash tiflash
                             fi
 
                             ls -alh .
@@ -101,7 +102,10 @@ pipeline {
                     }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
                         sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
+                            cp -rL ../third_party_download/bin/* ./bin/
+                            if [[ -x ./bin/tiflash_dir/tiflash ]]; then
+                                ln -sfn tiflash_dir/tiflash ./bin/tiflash
+                            fi
                             ls -alh ./bin
                         """
                     }
