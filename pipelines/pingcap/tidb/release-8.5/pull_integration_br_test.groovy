@@ -49,42 +49,6 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir("third_party_download") {
-                    dir("bin") {
-                        container("utils") {
-                            retry(2) {
-                                sh label: "download third_party", script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
-                                        --pd=${OCI_TAG_PD} \
-                                        --pd-ctl=${OCI_TAG_PD} \
-                                        --tikv=${OCI_TAG_TIKV} \
-                                        --tikv-ctl=${OCI_TAG_TIKV} \
-                                        --tiflash=${OCI_TAG_TIFLASH} \
-                                        --ycsb=${OCI_TAG_YCSB} \
-                                        --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
-                                        --kes=${OCI_TAG_KES} \
-                                        --minio=${OCI_TAG_MINIO} \
-                                        --brv408
-                                """
-                            }
-                        }
-                        sh label: "verify third_party", script: '''
-                            if [[ -d tiflash && ! -L tiflash ]]; then
-                                rm -rf tiflash_dir
-                                mv tiflash tiflash_dir
-                            fi
-                            if [[ -f tiflash_dir/tiflash ]]; then
-                                # Use a relative symlink so copied workspace is still valid in matrix pods.
-                                ln -sfn tiflash_dir/tiflash tiflash
-                            fi
-
-                            ls -alh .
-                            ./pd-server -V
-                            ./tikv-server -V
-                            ./tiflash --version
-                        '''
-                    }
-                }
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
                         sh label: "check all tests added to group", script: """#!/usr/bin/env bash
@@ -100,13 +64,34 @@ pipeline {
                             ./bin/tidb-server -V
                         """
                     }
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: "download tidb components", script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --pd=${OCI_TAG_PD} \
+                                        --pd-ctl=${OCI_TAG_PD} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --tikv-ctl=${OCI_TAG_TIKV} \
+                                        --tiflash=${OCI_TAG_TIFLASH} \
+                                        --ycsb=${OCI_TAG_YCSB} \
+                                        --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                        --kes=${OCI_TAG_KES} \
+                                        --minio=${OCI_TAG_MINIO} \
+                                        --brv408
+                                """
+                            }
+                        }
+                        sh label: "verify third_party", script: """
+                            ls -alh .
+                            ./pd-server -V
+                            ./tikv-server -V
+                            ./tiflash --version
+                        """
+                    }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
-                        sh label: "prepare", script: """
-                            cp -rL ../third_party_download/bin/* ./bin/
-                            if [[ -x ./bin/tiflash_dir/tiflash ]]; then
-                                ln -sfn tiflash_dir/tiflash ./bin/tiflash
-                            fi
-                            ls -alh ./bin
+                        sh label: "prepare workspace cache", script: """
+                            touch rev-${REFS.pulls[0].sha}
                         """
                     }
                 }
