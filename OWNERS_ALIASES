@@ -12,6 +12,7 @@ aliases:
   sig-approvers-ee: # approvers for engineering efficiency scopes.
     - wuhuizuo
     - purelind
+    - dillon-zheng
 
   sig-approvers-raft-engine: # approvers for raft-engine project.
     - LykxSassinator
