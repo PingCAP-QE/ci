@@ -15,28 +15,30 @@ final OCI_TAG_YCSB = 'v1.0.3'
 final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
 final OCI_TAG_KES = 'v0.14.0'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
+
 prow.setPRDescription(REFS)
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 180, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    defaultContainer 'golang'
+                }
+            }
+            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
@@ -44,17 +46,8 @@ pipeline {
                             }
                         }
                     }
-                }
-            }
-        }
-        stage('Prepare') {
-            steps {
-                dir('tidb') {
+
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
-                        sh label: "check all tests added to group", script: """#!/usr/bin/env bash
-                            chmod +x br/tests/*.sh
-                            ./br/tests/run_group_br_tests.sh others
-                        """
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
@@ -66,31 +59,35 @@ pipeline {
                     }
                     dir("bin") {
                         container("utils") {
-                            retry(2) {
-                                sh label: "download tidb components", script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
-                                        --pd=${OCI_TAG_PD} \
-                                        --pd-ctl=${OCI_TAG_PD} \
-                                        --tikv=${OCI_TAG_TIKV} \
-                                        --tikv-ctl=${OCI_TAG_TIKV} \
-                                        --tiflash=${OCI_TAG_TIFLASH} \
-                                        --ycsb=${OCI_TAG_YCSB} \
-                                        --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
-                                        --kes=${OCI_TAG_KES} \
-                                        --minio=${OCI_TAG_MINIO} \
-                                        --brv408
-                                """
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --pd=${OCI_TAG_PD} \
+                                            --pd-ctl=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tikv-ctl=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --ycsb=${OCI_TAG_YCSB} \
+                                            --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                            --kes=${OCI_TAG_KES} \
+                                            --minio=${OCI_TAG_MINIO} \
+                                            --brv408
+                                    """
+                                }
                             }
                         }
-                        sh label: "verify third_party", script: """
+                        sh """
                             ls -alh .
                             ./pd-server -V
                             ./tikv-server -V
                             ./tiflash --version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
-                        sh label: "prepare workspace cache", script: """
+
+                    // cache workspace for matrix pods
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
+                        sh """
                             touch rev-${REFS.pulls[0].sha}
                         """
                     }
@@ -116,17 +113,18 @@ pipeline {
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
-                            dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
+                            dir(REFS.repo) {
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
+                                    sh "ls rev-${REFS.pulls[0].sha}"
+                                }
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x br/tests/*.sh
                                         ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
                                     """
-                                }
                             }
                         }
                         post{
-                            always {
+                            failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/backup_restore_test
                                     tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")
@@ -135,7 +133,7 @@ pipeline {
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
-                                dir('tidb'){
+                                dir(REFS.repo) {
                                     sh label: "upload coverage", script: """
                                         ls -alh /tmp/group_cover
                                         gocovmerge /tmp/group_cover/cov.* > coverage.txt
