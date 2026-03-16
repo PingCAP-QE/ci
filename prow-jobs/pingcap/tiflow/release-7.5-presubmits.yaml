@@ -3,7 +3,7 @@ global_definitions:
   branches: &branches
     - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-  skip_if_only_changed_non_ticdc_files: &skip_if_only_changed_non_ticdc_files "(^dm/|^engine/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
+  skip_if_only_changed_non_ticdc_files: &skip_if_only_changed_non_ticdc_files "(^dm/|^engine/|^cmd/dm-[^/]+/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
 
 presubmits:
   pingcap/tiflow:
