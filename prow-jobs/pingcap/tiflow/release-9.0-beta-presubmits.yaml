@@ -4,7 +4,7 @@ global_definitions:
     - ^release-9\.0-beta\.\d+$
     - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-  skip_if_only_changed_non_ticdc_files: &skip_if_only_changed_non_ticdc_files "(^dm/|^engine/|^cmd/dm-(master|worker|syncer|ctl)/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
+  skip_if_only_changed_non_ticdc_files: &skip_if_only_changed_non_ticdc_files "(^dm/|^engine/|^cmd/dm-[^/]+/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
 
 presubmits:
   pingcap/tiflow:
