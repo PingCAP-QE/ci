@@ -154,6 +154,11 @@ presubmits:
             command: [bash, -ce]
             args:
               - |
+                # TEMP: force Go patch toolchain to avoid mixed go1.25.5/go1.25.8 artifacts.
+                # TODO: remove after ticdc unit-test image/env is consistently on go1.25.8.
+                export GOTOOLCHAIN=go1.25.8
+                export GOCACHE=/tmp/go-build-pull-unit-test
+                go clean -cache
                 make unit_test_in_verify_ci
             resources:
               requests:
