@@ -52,7 +52,7 @@ pipeline {
                                     # TODO: remove after ghpr_verify golang image/env is fully upgraded to go1.25.8.
                                     export GOTOOLCHAIN=go1.25.8
                                     export GOCACHE=/tmp/go-build-${TEST_CMD}
-                                    rm -rf "\$GOCACHE"
+                                    go clean -cache
 
                                     go version
                                     go env GOTOOLCHAIN GOROOT GOCACHE
