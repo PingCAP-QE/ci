@@ -24,6 +24,8 @@ presubmits:
       context: pull-build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
+      labels:
+        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_check
