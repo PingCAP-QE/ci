@@ -57,7 +57,7 @@ Deno.test("compute", () => {
       gitVer: "v8.5.4-release.1",
       branches: ["release-8.5"],
       expect: {
-        version: "v8.5.4-release.1", // will publish packages/images with v8.5.4-pre version.
+        version: "v8.5.4-release.1",
       },
     },
     {
