@@ -46,19 +46,7 @@ pipeline {
                                         }
                                     }
                                 }
-                                sh label: "${TEST_CMD}", script: """
-                                    set -euo pipefail
-                                    # TEMP: hard-code toolchain to avoid mixed go1.25.6/go1.25.8 compile errors in CI.
-                                    # TODO: remove after ghpr_verify golang image/env is fully upgraded to go1.25.8.
-                                    export GOTOOLCHAIN=go1.25.8
-                                    export GOCACHE=/tmp/go-build-${TEST_CMD}
-                                    rm -rf "\$GOCACHE"
-
-                                    go version
-                                    go env GOTOOLCHAIN GOROOT GOCACHE
-
-                                    make ${TEST_CMD}
-                                """
+                                sh label: "${TEST_CMD}", script: "make ${TEST_CMD}"
                             }
                         }
                         post {
