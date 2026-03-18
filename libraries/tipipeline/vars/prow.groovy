@@ -208,7 +208,26 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
         fi
 
         if [ -f \$coverageFile ]; then
-            wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+            # Prefer GCS mirror with Workload Identity token; fallback to legacy fileserver.
+            codecov_url="https://storage.googleapis.com/pingcap-ci-bazel-mirror-static-us-central1/download/cicd/tools/codecov-v0.5.0"
+            codecov_legacy_url="http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0"
+            token_api="http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
+            downloaded="false"
+            access_token=\$(curl -fsS --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 20 \
+                -H "Metadata-Flavor: Google" "\${token_api}" 2>/dev/null | sed -n 's/.*"access_token":"\\([^"]*\\)".*/\\1/p')
+            if [ -n "\${access_token}" ]; then
+                if curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 120 \
+                    -H "Authorization: Bearer \${access_token}" \
+                    -o codecov "\${codecov_url}"; then
+                    downloaded="true"
+                else
+                    echo "WARN: Failed to download codecov from GCS mirror, fallback to legacy fileserver."
+                fi
+            fi
+            if [ "\${downloaded}" != "true" ]; then
+                curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 60 \
+                    -o codecov "\${codecov_legacy_url}"
+            fi
             chmod +x codecov
             ./codecov --rootDir . --flags ${flags} --file \${coverageFile} ${codecovGitOptions}
         fi
