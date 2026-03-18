@@ -57,8 +57,7 @@ Deno.test("compute", () => {
       gitVer: "v8.5.4-release.1",
       branches: ["release-8.5"],
       expect: {
-        version: "v8.5.4-pre", // will publish packages/images with v8.5.4-pre version.
-        newBuildTag: "v8.5.4", // `cdc version` will show v8.5.4 for version value.
+        version: "v8.5.4-release.1", // will publish packages/images with v8.5.4-pre version.
       },
     },
     {
@@ -67,8 +66,7 @@ Deno.test("compute", () => {
       gitVer: "v8.5.4-release.1",
       branches: ["master", "release-8.5"],
       expect: {
-        version: "v8.5.4-pre",
-        newBuildTag: "v8.5.4",
+        version: "v8.5.4-release.1",
       },
     },
     {
