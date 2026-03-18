@@ -20,7 +20,7 @@ spec:
           memory: 32Gi
           cpu: "8"
       volumeMounts:
-        - mountPath: /home/jenkins/.tidb/tmp
+        - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
         - name: bazel-rc
           mountPath: /data/

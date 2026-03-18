@@ -33,6 +33,8 @@ presubmits:
       context: pull-check-dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
+      labels:
+        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_check2
@@ -40,6 +42,8 @@ presubmits:
       context: pull-check-dev2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
+      labels:
+        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_mysql_test
