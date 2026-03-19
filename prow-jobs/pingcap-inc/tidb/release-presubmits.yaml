@@ -13,7 +13,7 @@ global_definitions:
     agent: jenkins
     decorate: false
     labels:
-      master: "0"
+      master: "1" # run on GCP
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -24,8 +24,6 @@ presubmits:
       context: pull-build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
-      labels:
-        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_check
@@ -33,8 +31,6 @@ presubmits:
       context: pull-check-dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
-      labels:
-        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_check2
@@ -42,8 +38,6 @@ presubmits:
       context: pull-check-dev2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
-      labels:
-        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_mysql_test
@@ -51,8 +45,6 @@ presubmits:
       context: pull-mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
-      labels:
-        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_unit_test
