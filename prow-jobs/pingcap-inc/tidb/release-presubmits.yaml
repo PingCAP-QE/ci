@@ -13,7 +13,7 @@ global_definitions:
     agent: jenkins
     decorate: false
     labels:
-      master: "0"
+      master: "1" # run on GCP
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -45,8 +45,6 @@ presubmits:
       context: pull-mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
-      labels:
-        master: "1" # run on GCP
 
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_unit_test

@@ -208,7 +208,34 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
         fi
 
         if [ -f \$coverageFile ]; then
-            wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+            # Prefer GCS mirror with Workload Identity token; fallback to legacy fileserver.
+            codecov_url="https://storage.googleapis.com/pingcap-ci-bazel-mirror-static-us-central1/download/cicd/tools/codecov-v0.5.0"
+            codecov_legacy_url="http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0"
+            token_api="http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
+            token_json=\$(curl -fsS --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 20 \
+                -H "Metadata-Flavor: Google" "\${token_api}" 2>/dev/null || true)
+            access_token=""
+            if [ -n "\${token_json}" ]; then
+                if command -v python3 >/dev/null 2>&1; then
+                    access_token=\$(printf '%s' "\${token_json}" | \
+                        python3 -c 'import json,sys; print(json.load(sys.stdin).get("access_token",""))' 2>/dev/null || true)
+                else
+                    echo "WARN: python3 not found; fallback to sed token parser."
+                fi
+                if [ -z "\${access_token}" ]; then
+                    access_token=\$(printf '%s' "\${token_json}" | \
+                        sed -n 's/.*"access_token":"\\([^"]*\\)".*/\\1/p' | head -n1 || true)
+                fi
+            fi
+            if [ -n "\${access_token}" ] && curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 120 \
+                -H "Authorization: Bearer \${access_token}" \
+                -o codecov "\${codecov_url}"; then
+                echo "INFO: Downloaded codecov from GCS mirror."
+            else
+                echo "WARN: Could not download codecov from GCS mirror; fallback to legacy fileserver."
+                curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 60 \
+                    -o codecov "\${codecov_legacy_url}"
+            fi
             chmod +x codecov
             ./codecov --rootDir . --flags ${flags} --file \${coverageFile} ${codecovGitOptions}
         fi

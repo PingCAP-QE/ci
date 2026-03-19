@@ -19,14 +19,14 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     stages {
         stage('Checkout & Prepare') {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     defaultContainer 'golang'
                 }
             }
@@ -53,6 +53,21 @@ pipeline {
                             }
                         }
                     }
+
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+
+                    # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
+
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
@@ -95,7 +110,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 stages {
@@ -112,7 +127,6 @@ pipeline {
 
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh """
-                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                                 git diff .
                                 git status
                                 """
