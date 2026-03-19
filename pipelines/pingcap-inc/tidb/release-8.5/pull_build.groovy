@@ -13,7 +13,7 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
@@ -44,12 +44,9 @@ pipeline {
                     set -euxo pipefail
                     for f in WORKSPACE DEPS.bzl; do
                       [ -f "$f" ] || continue
-                      sed -i '/bazel-cache\\.pingcap\\.net:8080/d' "$f"
-                      sed -i '/ats\\.apps\\.svc/d' "$f"
-                      sed -i '/cache\\.hawkingrei\\.com/d' "$f"
-                      sed -i '/mirror\\.bazel\\.build/d' "$f"
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
                     done
-                    grep -nE 'bazel-cache\\.pingcap\\.net:8080|ats\\.apps\\.svc|cache\\.hawkingrei\\.com|mirror\\.bazel\\.build' WORKSPACE DEPS.bzl || true
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                     '''
                 }
             }
