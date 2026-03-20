@@ -9,14 +9,36 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-ghpr_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-prow.setPRDescription(REFS)
 pipeline {
-    agent none
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yamlFile POD_TEMPLATE_FILE
+            defaultContainer 'golang'
+        }
+    }
+    environment {
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+    }
     options {
-        timeout(time: 90, unit: 'MINUTES')
+        timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
+        stage('Checkout') {
+            options { timeout(time: 10, unit: 'MINUTES') }
+            steps {
+                dir("tiflow") {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        retry(2) {
+                            script {
+                                prow.checkoutRefs(REFS)
+                            }
+                        }
+                    }
+                }
+            }
+        }
         stage('Tests') {
             matrix {
                 axes {
@@ -34,21 +56,17 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        options { timeout(time: 40, unit: 'MINUTES') }
                         environment {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
-                            dir("tiflow") {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                    retry(2) {
-                                        script {
-                                            prow.checkoutRefs(REFS)
-                                        }
-                                    }
+                            dir('tiflow') {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                    sh label: "${TEST_CMD}", script: """
+                                        make ${TEST_CMD}
+                                    """
                                 }
-                                sh label: "${TEST_CMD}", script: """
-                                    make ${TEST_CMD}
-                                """
                             }
                         }
                         post {
@@ -68,25 +86,6 @@ pipeline {
                             }
                             always {
                                 junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)
-                                dir('tiflow') {
-                                    container(name: 'codecov') {
-                                        script{
-                                            def testConfigs = [
-                                            dm_unit_test_in_verify_ci: [flags: "unit", test_results_file: "dm-junit-report.xml"],
-                                            engine_unit_test_in_verify_ci: [flags: "unit", test_results_file: "engine-junit-report.xml"]
-                                            ]
-                                            def config = testConfigs[TEST_CMD]
-                                            if (config && config.test_results_file) {
-                                                sh label: "upload junit report to codecov", script: """
-                                                    wget -q -O codecovcli https://cli.codecov.io/latest/linux/codecov
-                                                    chmod +x codecovcli
-                                                    git config --global --add safe.directory '*'
-                                                    ./codecovcli do-upload --report-type test_results --file ${config.test_results_file} --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number}
-                                                """
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
                     }

@@ -9,6 +9,11 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 def skipRemainingStages = false
 
 pipeline {
@@ -20,7 +25,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -68,20 +73,33 @@ pipeline {
             steps {
                 dir("third_party_download") {
                     script {
-                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
                         retry(2) {
-                            sh label: "download third_party", script: """
-                                export TIDB_BRANCH=${tidbBranch}
-                                export PD_BRANCH=${pdBranch}
-                                export TIKV_BRANCH=${tikvBranch}
-                                cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                                cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                                ls -alh ./bin
-                                ./bin/tidb-server -V
-                                ./bin/pd-server -V
-                                ./bin/tikv-server -V
+                            sh label: "prepare third_party dir", script: "mkdir -p bin"
+                            container("utils") {
+                                dir("bin") {
+                                    sh label: "download third_party from OCI", script: """
+                                        script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        \$script \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --pd=${OCI_TAG_PD} \
+                                            --minio=${OCI_TAG_MINIO} \
+                                            --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR}
+                                    """
+                                }
+                            }
+                            sh label: "download gh-ost", script: """
+                                cd bin
+                                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    -O gh-ost.tar.gz \
+                                    https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz
+                                tar -xzf gh-ost.tar.gz
+                                rm -f gh-ost.tar.gz
+                                [ -f ./gh-ost ] && chmod +x ./gh-ost
+                                ls -alh ./
+                                ./tidb-server -V
+                                ./pd-server -V
+                                ./tikv-server -V
                             """
                         }
                     }

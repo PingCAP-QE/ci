@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25"
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.25:latest"
       tty: true
       resources:
         requests:
@@ -14,13 +14,18 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
-    - name: codecov
-      image: python:3.11.10-bullseye
-      tty: true
-      resources:
-        limits:
-          memory: 4Gi
-          cpu: 2000m
+      volumeMounts:
+        - name: gocache
+          mountPath: /share/.cache/go-build
+        - name: gopathcache
+          mountPath: /share/.go
+  volumes:
+    - name: gopathcache
+      persistentVolumeClaim:
+        claimName: gopathcache
+    - name: gocache
+      persistentVolumeClaim:
+        claimName: gocache
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

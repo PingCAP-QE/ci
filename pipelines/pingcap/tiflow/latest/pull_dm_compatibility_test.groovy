@@ -9,6 +9,9 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_compatibility_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 def skipRemainingStages = false
 
 pipeline {
@@ -20,7 +23,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -67,7 +70,6 @@ pipeline {
             steps {
                 dir("tiflow") {
                     script {
-                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
@@ -86,11 +88,36 @@ pipeline {
                                 mv bin/dm-worker.test bin/dm-worker.test.current
                                 ls -alh ./bin/
                             """
-                            sh label: "download third_party", script: """
-                                export TIDB_BRANCH=${tidbBranch}
-                                pwd && ls -alh dm/tests/
-                                cd dm/tests && ./download-compatibility-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                                cd - && cp -r dm/tests/bin/* ./bin
+                            sh label: "prepare third_party dir", script: "mkdir -p ./bin"
+                            container("utils") {
+                                dir("bin") {
+                                    sh label: "download third_party from OCI", script: """
+                                        script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        \$script \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR} \
+                                            --minio=${OCI_TAG_MINIO}
+                                    """
+                                }
+                            }
+                            sh label: "download extra non-OCI tools", script: """
+                                cd ./bin
+                                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    -O tidb-enterprise-tools-latest-linux-amd64.tar.gz \
+                                    https://download.pingcap.com/tidb-enterprise-tools-latest-linux-amd64.tar.gz
+                                tar -xzf tidb-enterprise-tools-latest-linux-amd64.tar.gz \
+                                    tidb-enterprise-tools-latest-linux-amd64/bin/mydumper
+                                mv tidb-enterprise-tools-latest-linux-amd64/bin/mydumper ./
+                                rm -rf tidb-enterprise-tools-latest-linux-amd64 tidb-enterprise-tools-latest-linux-amd64.tar.gz
+
+                                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    -O gh-ost.tar.gz \
+                                    https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz
+                                tar -xzf gh-ost.tar.gz
+                                rm -f gh-ost.tar.gz
+                                [ -f ./mydumper ] && chmod +x ./mydumper
+                                [ -f ./gh-ost ] && chmod +x ./gh-ost
+                                cd -
                                 ls -alh ./bin
                                 ./bin/tidb-server -V
                                 ./bin/mydumper -V
