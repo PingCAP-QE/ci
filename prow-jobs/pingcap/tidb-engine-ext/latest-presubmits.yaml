@@ -1,8 +1,8 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+# TODO(@wuhuizuo): migrate image hub.pingcap.net/tiflash/tiflash-llvm-base:amd64 to a public registry.
 presubmits:
   pingcap/tidb-engine-ext:
     - name: pull-unit-test
-      cluster: gcp-prow-ksyun
       decorate: true # need add this.
       always_run: true
       skip_submodules: true
@@ -23,24 +23,12 @@ presubmits:
                 make ci_fmt_check
                 make ci_test
             env:
-              - name: GO_PROXY
-                value: http://goproxy.pingcap.net,direct
               - name: CARGO_NET_GIT_FETCH_WITH_CLI
                 value: "true"
             resources:
               limits:
                 memory: 32Gi
                 cpu: "12"
-            volumeMounts:
-              - name: cargo-cache
-                mountPath: /root/.cargo/git/db
-                subPath: git/db
-              - name: cargo-cache
-                mountPath: /root/.cargo/registry/index
-                subPath: registry/index
-              - name: cargo-cache
-                mountPath: /root/.cargo/registry/cache
-                subPath: registry/cache
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -50,7 +38,3 @@ presubmits:
                   operator: In
                   values:
                     - amd64
-        volumes:
-          - name: cargo-cache
-            persistentVolumeClaim:
-              claimName: cargo-home-linux-amd64
