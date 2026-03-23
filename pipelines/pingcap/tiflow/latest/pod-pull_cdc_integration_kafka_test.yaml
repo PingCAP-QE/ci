@@ -18,9 +18,8 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - args:
-        - cat
-      image: hub.pingcap.net/jenkins/rocky8_golang-1.25:tini
+    - command: [tini, --, bash]
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25
       imagePullPolicy: Always
       name: golang
       resources:
@@ -29,7 +28,7 @@ spec:
           memory: 16Gi
         limits:
           cpu: "4"
-          memory: 16Gi
+          memory: 32Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
