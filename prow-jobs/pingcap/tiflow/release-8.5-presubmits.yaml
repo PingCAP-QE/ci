@@ -183,7 +183,7 @@ presubmits:
     - name: pingcap/tiflow/release-8.5/ghpr_verify
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-verify
