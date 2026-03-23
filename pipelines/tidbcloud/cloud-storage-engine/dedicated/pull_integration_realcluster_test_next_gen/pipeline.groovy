@@ -184,25 +184,13 @@ pipeline {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
-                                script {
-                                    // Realcluster addindextest4 is historically flaky (Region unavailable).
-                                    // Add one outer retry for this group only.
-                                    if ("${SCRIPT_AND_ARGS}".contains(" bazel_addindextest4")) {
-                                        retry(2) {
-                                            sh """#! /usr/bin/env bash
-                                                set -o pipefail
+                                // addindextest4 is temporarily disabled in matrix; keep single execution path for now.
+                                // Re-introduce a dedicated retry block when addindextest4 is re-enabled.
+                                sh """#! /usr/bin/env bash
+                                    set -o pipefail
 
-                                                $SCRIPT_AND_ARGS 2>&1 | tee bazel-test.log
-                                            """
-                                        }
-                                    } else {
-                                        sh """#! /usr/bin/env bash
-                                            set -o pipefail
-
-                                            $SCRIPT_AND_ARGS 2>&1 | tee bazel-test.log
-                                        """
-                                    }
-                                }
+                                    $SCRIPT_AND_ARGS 2>&1 | tee bazel-test.log
+                                """
                             }
                         }
                         post {
