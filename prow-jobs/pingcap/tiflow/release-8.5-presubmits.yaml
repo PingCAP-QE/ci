@@ -51,7 +51,7 @@ presubmits:
       spec:
         containers:
           - name: cdc-unit-test
-            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.15-1-g5625431-go1.25
             command: [bash, -ce]
             args:
               - |
@@ -183,7 +183,7 @@ presubmits:
     - name: pingcap/tiflow/release-8.5/ghpr_verify
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-verify
