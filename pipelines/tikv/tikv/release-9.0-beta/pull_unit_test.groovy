@@ -46,7 +46,10 @@ pipeline {
                     pwd & ls -alh
                     mv ./tikv \$HOME/tikv-src
                     cd \$HOME/tikv-src
-                    ln -s \$HOME/tikv-target \$HOME/tikv-src/target
+                    # Hotfix: some CI images may leave a non-directory target path.
+                    rm -rf \$HOME/tikv-src/target
+                    mkdir -p \$HOME/tikv-target
+                    ln -sfn \$HOME/tikv-target \$HOME/tikv-src/target
                     pwd && ls -alh
                 """
             }
