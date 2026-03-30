@@ -31,7 +31,7 @@ spec:
             ) || (
               body.repository.full_name in [
                 'tidbcloud/cloud-storage-engine',
-              ] && body.ref == 'refs/heads/dedicated'
+              ] && body.ref.matches('^refs/heads/(dedicated|cloud-engine)$')
             ) || (
               body.repository.full_name in [
                 'pingcap/tidb',
