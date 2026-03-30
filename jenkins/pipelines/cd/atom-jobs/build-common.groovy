@@ -970,8 +970,9 @@ def run_with_pod(String builder, Closure body) {
 }
 
 try {
+    def buildTimeoutMinutes = (PRODUCT == "tikv") ? 300 : 180
     stage("Build ${PRODUCT}") {
-        timeout(time: 180, unit: 'MINUTES') {
+        timeout(time: buildTimeoutMinutes, unit: 'MINUTES') {
             if (!ifFileCacheExists()) {
                 if (params.BUILDER_IMG && params.OS=="linux"){
                     run_with_pod(params.BUILDER_IMG,{
