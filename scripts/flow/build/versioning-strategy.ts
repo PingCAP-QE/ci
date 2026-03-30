@@ -19,6 +19,10 @@ function isHotfixBranch(branch: string): boolean {
   );
 }
 
+function isNextgenReleaseBranch(branch: string): boolean {
+  return /\brelease-nextgen-(\d{6}|\d{8})\b/.test(branch);
+}
+
 /**
  * Determine if the given branch is a release branch.
  * @param {string} branch - The branch name to check.
@@ -34,7 +38,7 @@ function isReleaseBranch(branch: string): boolean {
       .test(
         branch,
       );
-  const nextgenRelease = /\brelease-nextgen-(\d{6}|\d{8})\b/.test(branch);
+  const nextgenRelease = isNextgenReleaseBranch(branch);
   return standardRelease || nextgenRelease;
 }
 
@@ -65,7 +69,22 @@ export function compute(
   rawVersion: string,
   commitInBranches: string[],
 ): builtControl {
-  const rv = semver.parse(rawVersion.trim());
+  const normalizedRawVersion = rawVersion.trim();
+  const rv = semver.parse(normalizedRawVersion);
+  const hasNextgenReleaseBranch = commitInBranches.some(isNextgenReleaseBranch);
+
+  if (
+    hasNextgenReleaseBranch &&
+    /^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+-g[0-9a-f]+)?(?:-dirty)?$/.test(
+      normalizedRawVersion,
+    )
+  ) {
+    console.info(
+      "Keep calendar-style nextgen version on release-nextgen branches:",
+      normalizedRawVersion,
+    );
+    return { releaseVersion: normalizedRawVersion };
+  }
 
   // If it's a GA version, return it directly
   if (isGaVer(rv)) {

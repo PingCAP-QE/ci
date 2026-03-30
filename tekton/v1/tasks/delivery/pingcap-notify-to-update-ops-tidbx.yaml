@@ -160,10 +160,11 @@ spec:
           local image_repo=${image%:*}
           local image_tag=${image##*:}
 
-          # Fast return if image_tag is not in format: vX.Y.Z-nextgen.YYDDMM.N
-          # Example: v1.2.3-nextgen.250101.1
-          if ! [[ "$image_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-nextgen\.[0-9]{6}\.[0-9]+$ ]]; then
-            echo "🤷 Image tag '$image_tag' is not in expected format vX.Y.Z-nextgen.YYDDMM.N, skip Ops update."
+          # Fast return unless image_tag is one of:
+          # - legacy nextgen format: v1.2.3-nextgen.250101.1
+          # - calendar-style nextgen semver: v26.3.1
+          if ! [[ "$image_tag" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+-nextgen\.[0-9]{6}\.[0-9]+|v[1-9][0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "🤷 Image tag '$image_tag' is not a supported nextgen release tag, skip Ops update."
             return 0
           fi
 

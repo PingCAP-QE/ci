@@ -33,4 +33,7 @@ The table below maps the input git version and branches to the expected version 
 | New style - commits after GA | v9.0.0-2-g1234567 | release-9.0 | v9.0.1-pre | v9.0.1 |
 | History style - hotfix without tag | v8.5.1-2-g1234567 | release-8.5-20250101-v8.5.1 | v8.5.1-2-g1234567 | |
 | History style - hotfix with tag | v8.5.1-20250101-fecba32 | release-8.5-20250101-v8.5.1 | v8.5.1-20250101-fecba32 | |
+| New style - nextgen GA tag | v26.3.1 | release-nextgen-20260301 | v26.3.1 | |
+| New style - nextgen GA tag with master | v26.3.1 | master, release-nextgen-20260301 | v26.3.1 | |
+| New style - commits after nextgen GA tag | v26.3.1-2-g1234567 | release-nextgen-20260301 | v26.3.1-2-g1234567 | |
 | **Feature branch - prerelease** | v9.0.0-beta.1.pre-151-gb4c8f4dc8 | feature/fts | v9.0.0-feature.fts | v9.0.0-feature.fts |

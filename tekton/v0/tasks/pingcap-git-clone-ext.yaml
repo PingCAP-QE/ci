@@ -148,7 +148,7 @@ spec:
           EXT_REVERSION="master"
         elif [[ $origin_ref =~ "^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$" ]]; then
           # Handle version tags (GA/RC/etc.) by choosing a containing branch in priority:
-          # 1) release-X.Y, 2) any release-*, 3) master (or main), 4) fallback to the tag itself.
+          # 1) release-X.Y, 2) release-nextgen-*, 3) any other release-*, 4) master (or main), 5) fallback to the tag itself.
           echo "Detected version tag: $origin_ref - resolving containing branch..."
 
           # Resolve current commit SHA(the tag's commit SHA).
@@ -169,21 +169,28 @@ spec:
               EXT_REVERSION="release-$MAJOR_MINOR"
               echo "Matched exact minor release branch: $EXT_REVERSION"
             else
-              # 2) Any release-* branch (choose highest version by -V sort)
-              CANDIDATES="$(echo "$CONTAINS_LIST" | grep -E '^release-.+$' || true)"
-              if [ -n "$CANDIDATES" ]; then
-                EXT_REVERSION="$(echo "$CANDIDATES" | sed 's/^release-//' | sort -t. -k1,1nr -k2,2nr | head -n1 | sed 's/^/release-/')"
-                echo "Matched other release branch: $EXT_REVERSION"
-              elif echo "$CONTAINS_LIST" | grep -qx "master"; then
-                EXT_REVERSION="master"
-                echo "Matched master"
-              elif echo "$CONTAINS_LIST" | grep -qx "main"; then
+              # 2) Prefer nextgen release branches for calendar-style nextgen tags.
+              NEXTGEN_CANDIDATES="$(echo "$CONTAINS_LIST" | grep -E '^release-nextgen-[0-9]+$' || true)"
+              if [ -n "$NEXTGEN_CANDIDATES" ]; then
+                EXT_REVERSION="$(echo "$NEXTGEN_CANDIDATES" | sort -V | tail -n1)"
+                echo "Matched nextgen release branch: $EXT_REVERSION"
+              else
+                # 3) Any release-* branch (choose highest version by -V sort)
+                CANDIDATES="$(echo "$CONTAINS_LIST" | grep -E '^release-.+$' || true)"
+                if [ -n "$CANDIDATES" ]; then
+                  EXT_REVERSION="$(echo "$CANDIDATES" | sed 's/^release-//' | sort -t. -k1,1nr -k2,2nr | head -n1 | sed 's/^/release-/')"
+                  echo "Matched other release branch: $EXT_REVERSION"
+                elif echo "$CONTAINS_LIST" | grep -qx "master"; then
+                  EXT_REVERSION="master"
+                  echo "Matched master"
+                elif echo "$CONTAINS_LIST" | grep -qx "main"; then
                   EXT_REVERSION="main"
                   echo "Matched main"
-              else
-                # 4) Fallback to the tag itself
-                EXT_REVERSION="$origin_ref"
-                echo "No containing branches matched priority. Fallback to tag: $EXT_REVERSION"
+                else
+                  # 5) Fallback to the tag itself
+                  EXT_REVERSION="$origin_ref"
+                  echo "No containing branches matched priority. Fallback to tag: $EXT_REVERSION"
+                fi
               fi
             fi
           else
