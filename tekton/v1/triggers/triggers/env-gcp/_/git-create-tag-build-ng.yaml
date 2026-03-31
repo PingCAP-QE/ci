@@ -4,7 +4,7 @@ metadata:
   name: github-tag-build-ng
   labels:
     type: github-tag-create
-    profile: next-gen
+    profile: nextgen
 spec:
   interceptors:
     - name: filter on repo and git tags
@@ -76,7 +76,7 @@ spec:
                 body.repository.name
             - key: profile
               expression: >-
-                body.repository.full_name == 'pingcap/tiproxy' ? 'release' : 'next-gen'
+                body.repository.full_name == 'pingcap/tiproxy' ? 'release' : 'nextgen'
 
   bindings:
     - ref: github-tag-create

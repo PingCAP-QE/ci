@@ -4,7 +4,7 @@ metadata:
   name: github-push-build-ng
   labels:
     type: github-branch-push
-    profile: next-gen
+    profile: nextgen
 spec:
   interceptors:
     - name: filter on repo and branches
@@ -89,7 +89,7 @@ spec:
                 body.repository.name
             - key: profile
               expression: >-
-                body.repository.full_name == 'pingcap/tiproxy' ? 'release' : 'next-gen'
+                body.repository.full_name == 'pingcap/tiproxy' ? 'release' : 'nextgen'
 
   bindings:
     - ref: github-branch-push
