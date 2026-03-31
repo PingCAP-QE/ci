@@ -114,6 +114,24 @@ Deno.test("compute", () => {
       },
     },
     {
+      description:
+        "new style - nextgen GA tag with patch sequence starting at zero",
+      gitVer: "v26.3.0",
+      branches: ["release-nextgen-20260301"],
+      expect: {
+        version: "v26.3.0",
+      },
+    },
+    {
+      description:
+        "new style - commits after nextgen GA tag with zero patch stay unchanged on release branch",
+      gitVer: "v26.3.0-2-g1234567",
+      branches: ["release-nextgen-20260301"],
+      expect: {
+        version: "v26.3.0-2-g1234567",
+      },
+    },
+    {
       description: "new style - nextgen GA tag on release branch",
       gitVer: "v26.3.1",
       branches: ["release-nextgen-20260301"],

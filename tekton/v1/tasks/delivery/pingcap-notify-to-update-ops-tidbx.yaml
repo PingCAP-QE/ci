@@ -162,7 +162,7 @@ spec:
 
           # Fast return unless image_tag is one of:
           # - legacy nextgen format: v1.2.3-nextgen.250101.1
-          # - calendar-style nextgen image tag: v26.3.1-nextgen
+          # - calendar-semver nextgen image tag: v26.3.0-nextgen
           if ! [[ "$image_tag" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+-nextgen\.[0-9]{6}\.[0-9]+|v[1-9][0-9]+\.[0-9]+\.[0-9]+-nextgen)$ ]]; then
             echo "🤷 Image tag '$image_tag' is not a supported nextgen release tag, skip Ops update."
             return 0

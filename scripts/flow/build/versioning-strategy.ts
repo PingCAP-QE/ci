@@ -80,7 +80,7 @@ export function compute(
     )
   ) {
     console.info(
-      "Keep calendar-style nextgen version on release-nextgen branches:",
+      "Keep calendar-semver nextgen version on release-nextgen branches:",
       normalizedRawVersion,
     );
     return { releaseVersion: normalizedRawVersion };
