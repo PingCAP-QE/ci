@@ -209,3 +209,13 @@ spec:
           value: $(tasks.build-binaries.results.pushed)
         - name: publisher-url
           value: "$(params.publisher-url)"
+    - name: deliver-images
+      when:
+        - input: "$(params.push)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        name: echo
+      params:
+        - name: message
+          value: "skip for darwin"
