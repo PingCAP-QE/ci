@@ -9,20 +9,6 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_schrodinger_test') {
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
-
-        // Legacy pipeline parameters.
-        stringParam("desc", "TiFlash schrodinger test")
-        stringParam("branch", "master")
-        stringParam("version", "latest")
-        stringParam("testcase", "schrodinger/bank")
-        stringParam("maxRunTime", "120")
-        stringParam("notify", "false")
-        stringParam("idleMinutes", "5")
-        stringParam("tidb_commit_hash", "")
-        stringParam("tikv_commit_hash", "")
-        stringParam("pd_commit_hash", "")
-        stringParam("tiflash_commit_hash", "")
-        stringParam("FILE_SERVER_URL", "https://download.pingcap.com")
     }
     properties {
         githubProjectUrl("https://github.com/pingcap-inc/tiflash-scripts")

@@ -9,23 +9,6 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_regression_test') {
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
-
-        // Legacy pipeline parameters.
-        stringParam("desc", "TiFlash regression daily")
-        stringParam("branch", "master")
-        stringParam("version", "latest")
-        stringParam("tidb_commit_hash", "")
-        stringParam("tikv_commit_hash", "")
-        stringParam("pd_commit_hash", "")
-        stringParam("tiflash_commit_hash", "")
-        stringParam("notify", "false")
-        stringParam("idleMinutes", "5")
-        stringParam("pipeline", "")
-        stringParam("FILE_SERVER_URL", "https://download.pingcap.com")
-        stringParam("ghprbTargetBranch", "")
-        stringParam("ghprbCommentBody", "")
-        stringParam("ghprbActualCommit", "")
-        stringParam("ghprbPullId", "0")
     }
     properties {
         githubProjectUrl("https://github.com/pingcap-inc/tiflash-scripts")
