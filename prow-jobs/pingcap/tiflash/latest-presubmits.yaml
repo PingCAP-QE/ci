@@ -144,24 +144,24 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-sanitizer-asan)(?: .*?)?$"
       rerun_command: "/test pull-sanitizer-asan"
       spec:
+        affinity: *pull_sanitizer_affinity
         containers:
           - <<: *pull_sanitizer_container
             env:
               - name: SANITIZER
                 value: ASan
-      affinity: *pull_sanitizer_affinity
 
     - <<: *pull_sanitizer_job
       name: pull-sanitizer-tsan
       trigger: "(?m)^/test (?:.*? )?(pull-sanitizer-tsan)(?: .*?)?$"
       rerun_command: "/test pull-sanitizer-tsan"
       spec:
+        affinity: *pull_sanitizer_affinity
         containers:
           - <<: *pull_sanitizer_container
             env:
               - name: SANITIZER
                 value: TSan
-      affinity: *pull_sanitizer_affinity
 
     - name: pull-error-log-review
       branches:

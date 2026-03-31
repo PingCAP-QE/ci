@@ -299,7 +299,12 @@ repo = ARGV[1]
 kind = ARGV[2]
 name = ARGV[3]
 
-cfg = YAML.load_file(file) || {}
+cfg = YAML.safe_load(
+  File.read(file),
+  permitted_classes: [],
+  permitted_symbols: [],
+  aliases: true
+) || {}
 jobs = []
 
 case kind
@@ -914,7 +919,12 @@ job_type = ARGV[2]
 repo_filter = ARGV[3]
 container_name = ARGV[4]
 
-obj = YAML.load_file(config)
+obj = YAML.safe_load(
+  File.read(config),
+  permitted_classes: [],
+  permitted_symbols: [],
+  aliases: true
+)
 
 candidates = []
 
