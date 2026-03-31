@@ -343,9 +343,9 @@ spec:
           if echo "$release_candidates" | grep -qx "$candidate_exact"; then
             echo "Matched exact patch release branch: $candidate_exact" >&2
             printf "%s" "$candidate_exact"
-          elif [ -n "$candidate_prev" ] && echo "$release_candidates" | grep -qx "$candidate_prev"; then
-            echo "Matched previous patch release branch: $candidate_prev" >&2
-            printf "%s" "$candidate_prev"
+          # elif [ -n "$candidate_prev" ] && echo "$release_candidates" | grep -qx "$candidate_prev"; then
+          #   echo "Matched previous patch release branch: $candidate_prev" >&2
+          #   printf "%s" "$candidate_prev"
           else
             echo "Falling back to minor release branch: $candidate_minor" >&2
             printf "%s" "$candidate_minor"
