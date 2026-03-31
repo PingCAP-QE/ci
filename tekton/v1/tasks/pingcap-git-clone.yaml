@@ -323,6 +323,35 @@ spec:
         release_version="$(git describe --tags --always --dirty --exclude 'v20[0-9][0-9].[0-1][0-9].[0-3][0-9]*')"
         echo "origin ref: '$origin_ref'"
 
+        pick_remote_release_branch() {
+          version_core="$1"
+          remote_url="$2"
+
+          major_minor="${version_core%.*}"
+          patch="${version_core##*.}"
+          candidate_exact="release-${version_core}"
+          candidate_minor="release-${major_minor}"
+          candidate_prev=""
+          if [ "$patch" -gt 0 ] 2>/dev/null; then
+            candidate_prev="release-${major_minor}.$((patch - 1))"
+          fi
+
+          release_candidates="$(git ls-remote --heads "$remote_url" "refs/heads/release-${major_minor}*" 2>/dev/null | sed 's#.*refs/heads/##' | tr -d '\r' || true)"
+          echo "Remote release branches for ${major_minor}:" >&2
+          echo "$release_candidates" >&2
+
+          if echo "$release_candidates" | grep -qx "$candidate_exact"; then
+            echo "Matched exact patch release branch: $candidate_exact" >&2
+            printf "%s" "$candidate_exact"
+          elif [ -n "$candidate_prev" ] && echo "$release_candidates" | grep -qx "$candidate_prev"; then
+            echo "Matched previous patch release branch: $candidate_prev" >&2
+            printf "%s" "$candidate_prev"
+          else
+            echo "Falling back to minor release branch: $candidate_minor" >&2
+            printf "%s" "$candidate_minor"
+          fi
+        }
+
         if echo "$origin_ref" | grep -Eq '^feature/release-[0-9]+\.[0-9]+'; then
           major_minor=$(echo "$release_version" | awk -F. '{print $1 "." $2}')
           external_revision=$(echo "$major_minor" | sed -E 's/^v/release-/')
@@ -331,6 +360,9 @@ spec:
           external_revision=$(echo "$major_minor_patch" | sed -E 's/^v/release-/')
         elif echo "$origin_ref" | grep -Eq '^(master|main|feature/.*|release-fts-[0-9]+)$'; then
           external_revision="master"
+        elif echo "$origin_ref" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-[0-9]{8}-[0-9a-f]{6,}$'; then
+          version_core="$(echo "$origin_ref" | sed -nE 's/^v(([0-9]+\.[0-9]+\.[0-9]+))-[0-9]{8}-[0-9a-f]{6,}$/\1/p')"
+          external_revision="$(pick_remote_release_branch "$version_core" "$(params.external-git-url)")"
         elif echo "$origin_ref" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$'; then
           echo "Detected version tag: $origin_ref - resolving containing branch..."
 
@@ -449,7 +481,8 @@ spec:
         PARAM_REVISION="$(cat /workspace/pingcap-external-revision)"
         PARAM_SUBDIRECTORY="${PARAM_EXTERNAL_SUBDIRECTORY}"
         if [ -z "${PARAM_SUBDIRECTORY}" ] ; then
-          PARAM_SUBDIRECTORY="$(echo "${PARAM_URL}" | sed -E 's#^.*[/:]([^/:]+?)(\.git)?$#\1#')"
+          PARAM_SUBDIRECTORY="$(basename "${PARAM_URL}")"
+          PARAM_SUBDIRECTORY="${PARAM_SUBDIRECTORY%.git}"
         fi
 
         if [ "${PARAM_VERBOSE}" = "true" ] ; then
