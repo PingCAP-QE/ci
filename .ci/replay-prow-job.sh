@@ -988,24 +988,37 @@ if [[ -n "$SKIPPED_ENVS" ]]; then
 fi
 
 run_pod_mode() {
-    local b64_decode_opt="-D"
-    if base64 --help 2>&1 | grep -q -- '--decode'; then
-        b64_decode_opt="--decode"
-    fi
+    decode_b64_token() {
+        local token="$1"
+        local decoded=""
+        if decoded="$(printf '%s' "$token" | base64 --decode 2>/dev/null)"; then
+            printf '%s' "$decoded"
+            return 0
+        fi
+        if decoded="$(printf '%s' "$token" | base64 -d 2>/dev/null)"; then
+            printf '%s' "$decoded"
+            return 0
+        fi
+        if decoded="$(printf '%s' "$token" | base64 -D 2>/dev/null)"; then
+            printf '%s' "$decoded"
+            return 0
+        fi
+        return 1
+    }
 
     local cmd_array=()
     local token_b64=""
     local token_decoded=""
     while IFS= read -r token_b64; do
         [[ -n "$token_b64" ]] || continue
-        token_decoded="$(printf '%s' "$token_b64" | base64 "$b64_decode_opt")"
+        token_decoded="$(decode_b64_token "$token_b64")" || fatal "failed to decode command token via base64"
         cmd_array+=("$token_decoded")
     done < <(jq -r '.command[]? | @base64' <<<"$EXTRACT_JSON")
 
     local arg_array=()
     while IFS= read -r token_b64; do
         [[ -n "$token_b64" ]] || continue
-        token_decoded="$(printf '%s' "$token_b64" | base64 "$b64_decode_opt")"
+        token_decoded="$(decode_b64_token "$token_b64")" || fatal "failed to decode args token via base64"
         arg_array+=("$token_decoded")
     done < <(jq -r '.args[]? | @base64' <<<"$EXTRACT_JSON")
 

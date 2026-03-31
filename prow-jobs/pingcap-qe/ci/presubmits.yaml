@@ -85,7 +85,7 @@ presubmits:
       max_concurrency: 1
       trigger: "(?m)^/test (?:.*? )?pull-replay-prow-jobs(?: .*?)?$"
       rerun_command: "/test pull-replay-prow-jobs"
-      run_if_changed: "^prow-jobs/.*\\.(yaml|yml)$"
+      run_if_changed: "^prow-jobs/.+/.*\\.(yaml|yml)$"
       branches:
         - ^main$
       spec:
