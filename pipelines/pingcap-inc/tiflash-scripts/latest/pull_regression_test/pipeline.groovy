@@ -82,7 +82,7 @@ pipeline {
                 dir(REFS.repo) {
                     sh '''
                         set -euxo pipefail
-                        for proc in tidb-server tikv-server pd-server theflash tiflash tikv-server-rngine; do
+                        for proc in tidb-server tikv-server pd-server theflash tiflash; do
                           pkill -9 -x "${proc}" || true
                         done
                         rm -rf /tmp/ti /tmp/download || true

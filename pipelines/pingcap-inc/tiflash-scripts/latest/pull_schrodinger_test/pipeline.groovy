@@ -92,7 +92,7 @@ pipeline {
                 dir(REFS.repo) {
                     sh '''
                         set -euxo pipefail
-                        for proc in tidb-server tikv-server pd-server theflash tiflash tikv-server-rngine; do
+                        for proc in tidb-server tikv-server pd-server theflash tiflash; do
                           pkill -9 -x "${proc}" || true
                         done
                         rm -rf /tmp/ti /tmp/download || true
@@ -116,8 +116,11 @@ pipeline {
                         integrated/ops/ti.sh regression_test/download.ti burn : up : ver : burn
 
                         if [[ "${testcase}" == schrodinger/sqllogic* ]]; then
+                          set +e
                           timeout 330m regression_test/schrodinger.sh "${testcase}"
-                          exit 0
+                          rc="$?"
+                          set -e
+                          exit "${rc}"
                         fi
 
                         start_ts="$(date +%s)"

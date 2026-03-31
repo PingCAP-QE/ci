@@ -185,15 +185,17 @@ if [[ "${mode}" == "schrodinger" ]]; then
 fi
 
 bin_paths_file="regression_test/conf/bin.paths"
-if ! grep -qE '^pd_ctl[[:space:]]' "${bin_paths_file}"; then
-  cat >> "${bin_paths_file}" <<'EOC'
+if [[ -f "${bin_paths_file}" ]]; then
+  if ! grep -qE '^pd_ctl[[:space:]]' "${bin_paths_file}"; then
+    cat >> "${bin_paths_file}" <<'EOC'
 pd_ctl           pd-ctl                    {integrated}/../binary/pd/pd-ctl
 EOC
-fi
-if ! grep -qE '^tikv_ctl[[:space:]]' "${bin_paths_file}"; then
-  cat >> "${bin_paths_file}" <<'EOC'
+  fi
+  if ! grep -qE '^tikv_ctl[[:space:]]' "${bin_paths_file}"; then
+    cat >> "${bin_paths_file}" <<'EOC'
 tikv_ctl         tikv-ctl                  {integrated}/../binary/tikv/tikv-ctl
 EOC
+  fi
 fi
 
 syncing_py="integrated/ops/ti.sh.cmds/syncing/show_syncing_table.py"
