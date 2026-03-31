@@ -14,7 +14,7 @@ presubmits:
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       context: pull-regression-test
       decorate: false
       name: pingcap-inc/tiflash-scripts/pull_regression_test
@@ -28,7 +28,7 @@ presubmits:
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       context: pull-schrodinger-test
       decorate: false
       name: pingcap-inc/tiflash-scripts/pull_schrodinger_test
@@ -51,28 +51,26 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       max_concurrency: 3
       spec:
-        volumes:
-          - name: ci-cache
-            emptyDir: {}
         containers:
           - name: run-test
-            image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2024.10.8-135-g43bfc3c-centos7
+            image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
             imagePullPolicy: Always
             command: [/bin/bash, -ce]
             env:
               - name: OCI_ARTIFACT_HOST
                 value: us-docker.pkg.dev/pingcap-testing-account/hub
-            volumeMounts:
-              - name: ci-cache
-                mountPath: /ci-cache
             args:
               - |
                 set -euo pipefail
+                if [[ ! -d integrated ]]; then
+                  echo "integrated directory not found in workspace" >&2
+                  exit 1
+                fi
 
                 missing_pkgs=()
-                append_pkg() {
+                add_missing_pkg() {
                   local pkg="$1"
-                  local item=""
+                  local item
                   for item in "${missing_pkgs[@]:-}"; do
                     if [[ "${item}" == "${pkg}" ]]; then
                       return 0
@@ -81,50 +79,43 @@ presubmits:
                   missing_pkgs+=("${pkg}")
                 }
 
-                need_cmd_pkg() {
+                ensure_cmd_pkg() {
                   local cmd="$1"
                   local pkg="$2"
                   if ! command -v "${cmd}" >/dev/null 2>&1; then
-                    append_pkg "${pkg}"
+                    add_missing_pkg "${pkg}"
                   fi
                 }
 
-                # Required by curl-based downloads with TLS.
                 if ! rpm -q ca-certificates >/dev/null 2>&1; then
-                  append_pkg ca-certificates
+                  add_missing_pkg ca-certificates
                 fi
 
-                need_cmd_pkg curl curl
-                need_cmd_pkg wget wget
-                need_cmd_pkg git git
-                need_cmd_pkg jq jq
-                need_cmd_pkg tar tar
-                need_cmd_pkg xz xz
-                need_cmd_pkg bzip2 bzip2
-                need_cmd_pkg gzip gzip
-                need_cmd_pkg which which
-                need_cmd_pkg lsof lsof
-                need_cmd_pkg mysql mariadb
-                need_cmd_pkg java java-1.8.0-openjdk-headless
-                need_cmd_pkg rsync rsync
-                need_cmd_pkg ssh openssh-clients
-                need_cmd_pkg fio fio
-                need_cmd_pkg python python
+                for pair in \
+                  "curl:curl" \
+                  "wget:wget" \
+                  "tar:tar" \
+                  "gzip:gzip" \
+                  "which:which" \
+                  "lsof:lsof" \
+                  "timeout:coreutils" \
+                  "python:python" \
+                  "fio:fio" \
+                  "mysql:mariadb"; do
+                  ensure_cmd_pkg "${pair%%:*}" "${pair##*:}"
+                done
 
                 if ! command -v nc >/dev/null 2>&1; then
-                  append_pkg nmap-ncat
+                  add_missing_pkg nmap-ncat
                 fi
                 if ! command -v ifconfig >/dev/null 2>&1 && ! command -v netstat >/dev/null 2>&1; then
-                  append_pkg net-tools
+                  add_missing_pkg net-tools
                 fi
                 if ! command -v ps >/dev/null 2>&1 || ! command -v top >/dev/null 2>&1; then
-                  append_pkg procps-ng
-                fi
-                if ! command -v killall >/dev/null 2>&1 && ! command -v fuser >/dev/null 2>&1; then
-                  append_pkg psmisc
+                  add_missing_pkg procps-ng
                 fi
 
-                if [[ "${#missing_pkgs[@]}" -gt 0 ]]; then
+                if (( ${#missing_pkgs[@]} > 0 )); then
                   echo "install missing packages: ${missing_pkgs[*]}"
                   yum install -y "${missing_pkgs[@]}"
                 else
@@ -137,83 +128,66 @@ presubmits:
                 fi
                 echo "branch=${branch}"
 
-                shared_artifact_dir=/ci-cache/artifacts
-                artifact_dir="${shared_artifact_dir}"
-                cache_ready="true"
-                for required in tidb-server tikv-server pd-server pd-ctl tikv-ctl tiflash .resolved_tidb_tag; do
-                  if [[ ! -e "${shared_artifact_dir}/${required}" ]]; then
-                    cache_ready="false"
-                    break
-                  fi
-                done
-
-                if [[ "${cache_ready}" == "true" ]]; then
-                  echo "use preloaded artifacts: ${shared_artifact_dir}"
-                  resolved_tidb_tag="$(cat "${shared_artifact_dir}/.resolved_tidb_tag")"
-                else
-                  echo "shared artifacts not ready, fallback to in-container OCI download"
-                  ORAS_VERSION="1.2.3"
-                  if ! command -v oras >/dev/null 2>&1; then
-                    curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" \
-                      | tar -xz -C /usr/local/bin oras
-                    chmod +x /usr/local/bin/oras
-                  fi
-
-                  YQ_VERSION="v4.47.2"
-                  if ! command -v yq >/dev/null 2>&1; then
-                    curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
-                    chmod +x /usr/local/bin/yq
-                  fi
-
-                  oci_script=/tmp/download_pingcap_oci_artifact.sh
-                  curl -fsSL https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh -o "${oci_script}"
-
-                  artifact_dir=/tmp/oci-artifacts
-                  rm -rf "${artifact_dir}"
-                  mkdir -p "${artifact_dir}"
-                  download_component() {
-                    local component="$1"
-                    local tag="$2"
-                    if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"="${tag}"; then
-                      echo "component=${component} tag=${tag} not found in OCI, fallback to master"
-                      OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"=master
-                    fi
-                  }
-
-                  download_tidb() {
-                    local tag="$1"
-                    local candidates=(
-                      "${tag}-failpoint"
-                      "${tag}_failpoint"
-                      "${tag}-failpoints"
-                      "${tag}_failpoints"
-                      "${tag}"
-                    )
-                    local t=""
-                    for t in "${candidates[@]}"; do
-                      if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --tidb="${t}"; then
-                        echo "${t}" > "${artifact_dir}/.resolved_tidb_tag"
-                        return 0
-                      fi
-                    done
-                    return 1
-                  }
-
-                  (
-                    cd "${artifact_dir}"
-                    download_component tikv "${branch}"
-                    download_component pd "${branch}"
-                    download_component pd-ctl "${branch}"
-                    download_component tikv-ctl "${branch}"
-                    download_component tiflash "${branch}"
-                    if ! download_tidb "${branch}"; then
-                      echo "tidb tag '${branch}' not found in OCI (including failpoint candidates)" >&2
-                      exit 1
-                    fi
-                  )
-                  resolved_tidb_tag="$(cat "${artifact_dir}/.resolved_tidb_tag")"
+                ORAS_VERSION="1.2.3"
+                if ! command -v oras >/dev/null 2>&1; then
+                  curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" \
+                    | tar -xz -C /usr/local/bin oras
+                  chmod +x /usr/local/bin/oras
                 fi
-                echo "resolved_tidb_tag=${resolved_tidb_tag}"
+
+                YQ_VERSION="v4.47.2"
+                if ! command -v yq >/dev/null 2>&1; then
+                  curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
+                  chmod +x /usr/local/bin/yq
+                fi
+
+                oci_script=/tmp/download_pingcap_oci_artifact.sh
+                curl -fsSL https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh -o "${oci_script}"
+
+                artifact_dir=/tmp/oci-artifacts
+                rm -rf "${artifact_dir}"
+                mkdir -p "${artifact_dir}"
+
+                download_component() {
+                  local component="$1"
+                  local tag="$2"
+                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"="${tag}"; then
+                    echo "component=${component} tag=${tag} not found in OCI, fallback to master"
+                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"=master
+                  fi
+                }
+
+                download_tidb() {
+                  local tag="$1"
+                  local candidates=(
+                    "${tag}-failpoint"
+                    "${tag}_failpoint"
+                    "${tag}-failpoints"
+                    "${tag}_failpoints"
+                    "${tag}"
+                  )
+                  local t
+                  for t in "${candidates[@]}"; do
+                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --tidb="${t}"; then
+                      echo "${t}" > "${artifact_dir}/.resolved_tidb_tag"
+                      return 0
+                    fi
+                  done
+                  return 1
+                }
+
+                (
+                  cd "${artifact_dir}"
+                  download_component tikv "${branch}"
+                  download_component pd "${branch}"
+                  download_component pd-ctl "${branch}"
+                  download_component tikv-ctl "${branch}"
+                  download_component tiflash "${branch}"
+                  if ! download_tidb "${branch}"; then
+                    echo "tidb tag '${branch}' not found in OCI (including failpoint candidates)" >&2
+                    exit 1
+                  fi
+                )
 
                 mkdir -p integrated/binary/tidb integrated/binary/tikv integrated/binary/pd integrated/binary/tiflash
                 cp -f "${artifact_dir}/tidb-server" integrated/binary/tidb/tidb-server
@@ -221,9 +195,35 @@ presubmits:
                 cp -f "${artifact_dir}/pd-server" integrated/binary/pd/pd-server
                 cp -f "${artifact_dir}/pd-ctl" integrated/binary/pd/pd-ctl
                 cp -f "${artifact_dir}/tikv-ctl" integrated/binary/tikv/tikv-ctl
-                tar -czf integrated/binary/tiflash/tiflash.tar.gz -C "${artifact_dir}" tiflash
 
-                # Keep public fallback downloads, but switch domain from .org to .com.
+                # The OCI helper exposes TiFlash binary as symlink "tiflash -> tiflash_dir/tiflash",
+                # while OPS TI expects tiflash.tar.gz to expand to a "tiflash/" directory.
+                tiflash_src_dir=""
+                if [[ -d "${artifact_dir}/tiflash_dir" ]]; then
+                  tiflash_src_dir="${artifact_dir}/tiflash_dir"
+                elif [[ -d "${artifact_dir}/tiflash" ]]; then
+                  tiflash_src_dir="${artifact_dir}/tiflash"
+                elif [[ -L "${artifact_dir}/tiflash" ]]; then
+                  tiflash_resolved="$(readlink -f "${artifact_dir}/tiflash" || true)"
+                  if [[ -n "${tiflash_resolved}" ]]; then
+                    tiflash_candidate_dir="$(dirname "${tiflash_resolved}")"
+                    if [[ -d "${tiflash_candidate_dir}" ]]; then
+                      tiflash_src_dir="${tiflash_candidate_dir}"
+                    fi
+                  fi
+                fi
+                if [[ -z "${tiflash_src_dir}" ]]; then
+                  echo "cannot locate TiFlash directory in ${artifact_dir}" >&2
+                  ls -la "${artifact_dir}" >&2 || true
+                  exit 1
+                fi
+
+                tiflash_pkg_dir="$(mktemp -d /tmp/tiflash-pkg.XXXXXX)"
+                mkdir -p "${tiflash_pkg_dir}/tiflash"
+                cp -a "${tiflash_src_dir}/." "${tiflash_pkg_dir}/tiflash/"
+                tar -czf integrated/binary/tiflash/tiflash.tar.gz -C "${tiflash_pkg_dir}" tiflash
+                rm -rf "${tiflash_pkg_dir}"
+
                 for f in integrated/conf/bin.urls integrated/conf/bin.urls.mac; do
                   if [[ -f "${f}" ]]; then
                     sed -i 's#https://download.pingcap.org/#https://download.pingcap.com/#g' "${f}"
@@ -231,38 +231,26 @@ presubmits:
                   fi
                 done
 
-                # Ensure OPS TI tests won't attempt to download from internal domains.
-                # The repo test script copies tests/ci/conf/bin.paths to integrated/conf/bin.paths.
-                # Add missing tools (pd_ctl/tikv_ctl) so ti.sh won't fall back to bin.urls (download.pingcap.org).
-                if ! grep -qE '^pd_ctl[[:space:]]' integrated/tests/ci/conf/bin.paths; then
+                if [[ -f integrated/tests/ci/conf/bin.paths ]] && ! grep -qE '^pd_ctl[[:space:]]' integrated/tests/ci/conf/bin.paths; then
                   cat >> integrated/tests/ci/conf/bin.paths <<'EOF'
                 pd_ctl           pd-ctl                    {integrated}/binary/pd/pd-ctl
                 EOF
                 fi
-                if ! grep -qE '^tikv_ctl[[:space:]]' integrated/tests/ci/conf/bin.paths; then
+                if [[ -f integrated/tests/ci/conf/bin.paths ]] && ! grep -qE '^tikv_ctl[[:space:]]' integrated/tests/ci/conf/bin.paths; then
                   cat >> integrated/tests/ci/conf/bin.paths <<'EOF'
                 tikv_ctl         tikv-ctl                  {integrated}/binary/tikv/tikv-ctl
                 EOF
                 fi
 
-                # Disable internal mirror (fileserver.pingcap.net) by clearing the *hash* fields.
-                # With correct bin.paths, no download should happen; if something is missing, fail fast.
-                sed -i \
-                  -e "s/^tidb_branch=.*/tidb_branch='${branch}'/" -e "s/^tidb_hash=.*/tidb_hash=''/" \
-                  -e "s/^tikv_branch=.*/tikv_branch='${branch}'/" -e "s/^tikv_hash=.*/tikv_hash=''/" \
-                  -e "s/^pd_branch=.*/pd_branch='${branch}'/" -e "s/^pd_hash=.*/pd_hash=''/" \
-                  -e "s/^tiflash_branch=.*/tiflash_branch='${branch}'/" -e "s/^tiflash_hash=.*/tiflash_hash=''/" \
-                  integrated/tests/ci/conf/download.ti
-                echo "patched integrated/tests/ci/conf/download.ti:"
-                cat integrated/tests/ci/conf/download.ti
-
-                if [[ -n "${STORAGE_ENGINE:-}" ]]; then
-                  sed -i "s/storage_engine = \\\"dt\\\"/storage_engine = \\\"${STORAGE_ENGINE}\\\"/" integrated/conf/tiflash/config.toml
-                  echo "patched integrated/conf/tiflash/config.toml:"
-                  cat integrated/conf/tiflash/config.toml
+                if [[ -f integrated/tests/ci/conf/download.ti ]]; then
+                  sed -i \
+                    -e "s/^tidb_branch=.*/tidb_branch='${branch}'/" -e "s/^tidb_hash=.*/tidb_hash=''/" \
+                    -e "s/^tikv_branch=.*/tikv_branch='${branch}'/" -e "s/^tikv_hash=.*/tikv_hash=''/" \
+                    -e "s/^pd_branch=.*/pd_branch='${branch}'/" -e "s/^pd_hash=.*/pd_hash=''/" \
+                    -e "s/^tiflash_branch=.*/tiflash_branch='${branch}'/" -e "s/^tiflash_hash=.*/tiflash_hash=''/" \
+                    integrated/tests/ci/conf/download.ti
                 fi
 
-                # Skip stale table IDs in syncing/show so fullstack does not hang when PD keeps old tiflash rules.
                 syncing_py="integrated/ops/ti.sh.cmds/syncing/show_syncing_table.py"
                 if [[ -f "${syncing_py}" ]]; then
                   sed -i "/if s.find(' does not exist') >= 0:/{n;s/return/continue/;}" "${syncing_py}"
@@ -274,17 +262,11 @@ presubmits:
                 collect_logs() {
                   local out="${artifacts_dir}/tiflash-scripts-ops-ti-logs"
                   mkdir -p "${out}"
-                  # Collect ti logs (exclude data and tiflash/db to keep size reasonable).
                   while IFS= read -r -d '' file; do
                     local base="${file#/}"
                     base="${base//\//_}"
                     cp -f "${file}" "${out}/${base}" || true
                   done < <(find /tmp/ti -type f -name '*.log' ! -path '*/data/*' ! -path '*/tiflash/db*' -print0 2>/dev/null || true)
-
-                  # Also store full /tmp/ti for debugging if it's not too large.
-                  if [[ -d /tmp/ti ]]; then
-                    tar -czf "${out}/tmp-ti.tar.gz" -C /tmp ti || true
-                  fi
                 }
 
                 if [[ -f integrated/tests/ci/jenkins.sh ]]; then
@@ -309,8 +291,8 @@ presubmits:
                 cpu: "12"
                 memory: 24Gi
               limits:
-                cpu: "16"
-                memory: 32Gi
+                cpu: "12"
+                memory: 24Gi
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
