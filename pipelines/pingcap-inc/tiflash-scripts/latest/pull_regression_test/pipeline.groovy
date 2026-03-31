@@ -7,17 +7,6 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/tiflash-scripts/latest/pull_reg
 
 prow.setPRDescription(REFS)
 
-def parseCommentValue(String body, String key) {
-    if (body == null || body.trim() == "") {
-        return ""
-    }
-    def m = body =~ /(?:^|\s|\\)${key}\s*=\s*([^\s\\]+)(?:\s|\\|$)/
-    if (m) {
-        return "${m[0][1]}"
-    }
-    return ""
-}
-
 pipeline {
     agent {
         kubernetes {
@@ -31,7 +20,7 @@ pipeline {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
-        timeout(time: 20, unit: 'HOURS')
+        timeout(time: 12, unit: 'HOURS')
     }
     stages {
         stage('Init Params') {
@@ -40,19 +29,10 @@ pipeline {
                     def desc = params.getOrDefault("desc", "TiFlash regression test")
                     def branch = params.getOrDefault("branch", "${REFS.base_ref ?: 'master'}")
                     def version = params.getOrDefault("version", "latest")
-                    def commentBody = params.getOrDefault("ghprbCommentBody", "")
                     def targetBranch = params.getOrDefault("ghprbTargetBranch", "")
 
                     if (targetBranch != "") {
                         branch = targetBranch
-                    }
-                    def branchFromComment = parseCommentValue(commentBody, 'branch')
-                    if (branchFromComment != "") {
-                        branch = branchFromComment
-                    }
-                    def versionFromComment = parseCommentValue(commentBody, 'version')
-                    if (versionFromComment != "") {
-                        version = versionFromComment
                     }
 
                     if (branch in ["planner_refactory", "raft"]) {
@@ -115,7 +95,7 @@ pipeline {
                         integrated/ops/ti.sh download regression_test/download.ti "${binaries_dir}"
 
                         integrated/ops/ti.sh regression_test/download.ti burn : up : ver : burn
-                        timeout 1080m regression_test/daily.sh
+                        timeout 660m regression_test/daily.sh
                     '''
                 }
             }

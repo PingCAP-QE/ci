@@ -7,17 +7,6 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/tiflash-scripts/latest/pull_sch
 
 prow.setPRDescription(REFS)
 
-def parseCommentValue(String body, String key) {
-    if (body == null || body.trim() == "") {
-        return ""
-    }
-    def m = body =~ /(?:^|\s|\\)${key}\s*=\s*([^\s\\]+)(?:\s|\\|$)/
-    if (m) {
-        return "${m[0][1]}"
-    }
-    return ""
-}
-
 pipeline {
     agent {
         kubernetes {
@@ -31,7 +20,7 @@ pipeline {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
-        timeout(time: 48, unit: 'HOURS')
+        timeout(time: 6, unit: 'HOURS')
     }
     stages {
         stage('Init Params') {
@@ -42,19 +31,10 @@ pipeline {
                     def version = params.getOrDefault("version", "latest")
                     def testcase = params.getOrDefault("testcase", "schrodinger/bank")
                     def maxRunTime = params.getOrDefault("maxRunTime", "120")
-                    def commentBody = params.getOrDefault("ghprbCommentBody", "")
                     def targetBranch = params.getOrDefault("ghprbTargetBranch", "")
 
                     if (targetBranch != "") {
                         branch = targetBranch
-                    }
-                    def branchFromComment = parseCommentValue(commentBody, 'branch')
-                    if (branchFromComment != "") {
-                        branch = branchFromComment
-                    }
-                    def versionFromComment = parseCommentValue(commentBody, 'version')
-                    if (versionFromComment != "") {
-                        version = versionFromComment
                     }
 
                     if (branch in ["planner_refactory", "raft"]) {
@@ -122,6 +102,12 @@ pipeline {
 
                         testcase="${TEST_CASE:-}"
                         max_runtime="${TEST_MAX_RUNTIME:-120}"
+                        if ! [[ "${max_runtime}" =~ ^[0-9]+$ ]]; then
+                          max_runtime=120
+                        fi
+                        if (( max_runtime > 330 )); then
+                          max_runtime=330
+                        fi
 
                         rm -f integrated/conf/bin.paths
                         cp regression_test/conf/bin.paths integrated/conf/bin.paths
@@ -130,7 +116,7 @@ pipeline {
                         integrated/ops/ti.sh regression_test/download.ti burn : up : ver : burn
 
                         if [[ "${testcase}" == schrodinger/sqllogic* ]]; then
-                          timeout 2880m regression_test/schrodinger.sh "${testcase}"
+                          timeout 330m regression_test/schrodinger.sh "${testcase}"
                           exit 0
                         fi
 
