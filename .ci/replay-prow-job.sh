@@ -8,6 +8,7 @@ Replay a Prow job locally.
 Modes:
   1) pod      : Create a temporary pod and run extracted command directly.
   2) prowjob  : Create a ProwJob CR in prow control namespace and wait for result.
+  3) auto     : Prefer prowjob replay with historical PR context; fallback to pod.
 
 Examples:
   # pod mode (legacy local replay)
@@ -43,7 +44,7 @@ Common options:
   --head-sha <sha>             Head SHA for --auto-changed. Default: $PULL_PULL_SHA or HEAD.
   --max-replays <count>        Max replay jobs in --auto-changed mode. Default: 3.
   --max-jobs-per-file <count>  Fallback max selected jobs per changed file. Default: 3.
-  --mode <pod|prowjob>         Default: pod.
+  --mode <pod|prowjob|auto>    Default: pod.
   --job-type <type>            auto|presubmit|postsubmit|periodic. Default: auto.
   --repo <org/repo>            Required for ambiguous presubmit/postsubmit selection.
   --container <name>           Container name in spec.containers. Default: first.
@@ -82,6 +83,8 @@ Notes:
   - env.valueFrom entries in job container are skipped in pod mode extraction.
   - For presubmit ProwJob, if both PULL_NUMBER and PULL_PULL_SHA are provided via --set-env,
     they are injected into refs.pulls to run against that PR commit.
+  - In auto mode, presubmit/postsubmit jobs try to reuse latest historical PR context
+    from ProwJob CRs (same job + repo). If none is found, it falls back to pod replay.
 USAGE
 }
 
@@ -131,6 +134,18 @@ get_override() {
         fi
     done
     printf '%s' "$v"
+}
+
+append_override_if_missing() {
+    local key="$1"
+    local value="$2"
+    [[ -n "$key" ]] || return 1
+    [[ -n "$value" ]] || return 1
+    if extra_env_has_key "$key"; then
+        return 0
+    fi
+    EXTRA_ENVS+=("${key}=${value}")
+    return 0
 }
 
 KUBECTL_OPTS=()
@@ -222,6 +237,54 @@ extra_env_has_key() {
         fi
     done
     return 1
+}
+
+has_pull_context_override() {
+    local pull_number pull_sha
+    pull_number="$(get_override PULL_NUMBER '')"
+    pull_sha="$(get_override PULL_PULL_SHA '')"
+    [[ -n "${pull_number}" && -n "${pull_sha}" ]]
+}
+
+resolve_latest_pull_context_from_history() {
+    [[ -n "${REPO_SELECTED:-}" ]] || return 1
+    [[ "${REPO_SELECTED}" == */* ]] || return 1
+
+    local org repo selector json line
+    org="${REPO_SELECTED%%/*}"
+    repo="${REPO_SELECTED##*/}"
+    selector="prow.k8s.io/job=${JOB_NAME},prow.k8s.io/refs.org=${org},prow.k8s.io/refs.repo=${repo}"
+
+    json="$(run_kubectl --namespace "${PROWJOB_NAMESPACE}" get prowjobs -l "${selector}" -o json 2>/dev/null || true)"
+    [[ -n "${json}" ]] || return 1
+    line="$(jq -r --arg default_base "$(get_override PULL_BASE_REF master)" '
+      .items
+      | map(select(
+          ((.status.state // "" | ascii_downcase) == "success") and
+          (.spec.refs.org // "") != "" and
+          (.spec.refs.repo // "") != "" and
+          ((.spec.refs.pulls | type) == "array") and
+          (.spec.refs.pulls | length) > 0 and
+          ((.spec.refs.pulls[0].number // "") != "") and
+          ((.spec.refs.pulls[0].sha // "") != "")
+        ))
+      | sort_by(.metadata.creationTimestamp // "")
+      | reverse
+      | .[0] as $x
+      | if $x == null then
+          empty
+        else
+          [
+            ($x.spec.refs.base_ref // $default_base),
+            ($x.spec.refs.pulls[0].number | tostring),
+            ($x.spec.refs.pulls[0].sha | tostring),
+            ($x.metadata.name // "")
+          ] | @tsv
+        end
+    ' <<<"${json}")"
+    [[ -n "${line}" ]] || return 1
+    printf '%s\n' "${line}"
+    return 0
 }
 
 resolve_job_agent() {
@@ -814,7 +877,7 @@ auto_replay_changed_jobs() {
     log "replay finished successfully"
 }
 
-[[ "$MODE" == "pod" || "$MODE" == "prowjob" ]] || fatal "--mode must be pod|prowjob"
+[[ "$MODE" == "pod" || "$MODE" == "prowjob" || "$MODE" == "auto" ]] || fatal "--mode must be pod|prowjob|auto"
 [[ "$CHECKOUT_MODE" == "github" || "$CHECKOUT_MODE" == "workspace" ]] || fatal "--checkout-mode must be github|workspace"
 if [[ "${AUTO_CHANGED}" == "true" ]]; then
     auto_replay_changed_jobs
@@ -1495,8 +1558,50 @@ RUBY
     done
 }
 
+run_auto_mode() {
+    local chosen_mode="pod"
+
+    case "${KIND_SELECTED}" in
+        periodic)
+            chosen_mode="prowjob"
+            log "auto mode: periodic job, use prowjob replay"
+            ;;
+        presubmit|postsubmit)
+            if has_pull_context_override; then
+                chosen_mode="prowjob"
+                log "auto mode: explicit pull context found, use prowjob replay"
+            else
+                local hist_line hist_base hist_number hist_sha hist_pj
+                if hist_line="$(resolve_latest_pull_context_from_history)"; then
+                    IFS=$'\t' read -r hist_base hist_number hist_sha hist_pj <<<"${hist_line}"
+                    append_override_if_missing PULL_BASE_REF "${hist_base}" || true
+                    append_override_if_missing PULL_NUMBER "${hist_number}" || true
+                    append_override_if_missing PULL_PULL_SHA "${hist_sha}" || true
+                    chosen_mode="prowjob"
+                    log "auto mode: use successful history context prowjob=${hist_pj:-unknown} base=${hist_base} pull=${hist_number}"
+                else
+                    chosen_mode="pod"
+                    log "auto mode: no successful history context found, fallback to pod replay"
+                fi
+            fi
+            ;;
+        *)
+            chosen_mode="pod"
+            log "auto mode: unknown kind=${KIND_SELECTED}, fallback to pod replay"
+            ;;
+    esac
+
+    if [[ "${chosen_mode}" == "prowjob" ]]; then
+        run_prowjob_mode
+    else
+        run_pod_mode
+    fi
+}
+
 if [[ "$MODE" == "pod" ]]; then
     run_pod_mode
-else
+elif [[ "$MODE" == "prowjob" ]]; then
     run_prowjob_mode
+else
+    run_auto_mode
 fi
