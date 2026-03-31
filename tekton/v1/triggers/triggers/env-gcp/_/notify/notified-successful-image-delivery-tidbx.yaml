@@ -11,16 +11,7 @@ spec:
       params:
         - name: filter
           value: >-
-            body.images.exists(
-              img,
-              img.matches('^.+/(dbaas|tidbx)/.+:.+$')
-              &&
-              (
-                img.contains('nextgen')
-                ||
-                img.contains('next-gen')
-              )
-            )
+            body.images.exists(img, img.contains('nextgen') || img.contains('next-gen'))
 
   bindings:
     # - { name: ce-context, value: $(extensions.ce-context) }
