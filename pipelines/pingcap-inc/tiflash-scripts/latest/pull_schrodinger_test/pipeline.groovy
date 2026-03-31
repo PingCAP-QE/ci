@@ -81,7 +81,7 @@ pipeline {
                 dir(REFS.repo) {
                     sh '''
                         set -euxo pipefail
-                        bash "${WORKSPACE}/.ci/tiflash-scripts/prepare_runtime_and_artifacts.sh" schrodinger
+                        bash "${WORKSPACE}/pipelines/pingcap-inc/tiflash-scripts/latest/common/prepare_runtime_and_artifacts.sh" schrodinger
                     '''
                 }
             }
