@@ -184,6 +184,18 @@ pipeline {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
+                                // Apply hotfix in each matrix pod because ws cache is produced before the dedicated hotfix stage.
+                                // This guarantees old cache URLs are removed in the actual execution pod.
+                                sh '''#!/usr/bin/env bash
+                                    set -euxo pipefail
+                                    for f in WORKSPACE DEPS.bzl; do
+                                      [ -f "$f" ] || continue
+                                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                                    done
+                                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                                '''
+
                                 // addindextest4 is temporarily disabled in matrix; keep single execution path for now.
                                 // Re-introduce a dedicated retry block when addindextest4 is re-enabled.
                                 sh """#! /usr/bin/env bash
