@@ -1063,6 +1063,57 @@ if [[ -n "$SKIPPED_ENVS" ]]; then
 fi
 
 run_pod_mode() {
+    local pod_deadline_ts
+    pod_deadline_ts=$(( $(date +%s) + RUN_TIMEOUT ))
+
+    run_kubectl_with_deadline() {
+        local step_desc="$1"
+        shift
+
+        local now remaining timeout_marker cmd_pid watchdog_pid rc
+        now="$(date +%s)"
+        remaining=$(( pod_deadline_ts - now ))
+        if (( remaining <= 0 )); then
+            log "pod replay timeout after ${RUN_TIMEOUT}s before step: ${step_desc}"
+            if [[ -n "${POD_NAME_ACTIVE:-}" ]]; then
+                run_kubectl --namespace "$NAMESPACE" delete pod "$POD_NAME_ACTIVE" --grace-period=0 --force --ignore-not-found=true --wait=false >/dev/null 2>&1 || true
+            fi
+            return 124
+        fi
+
+        timeout_marker="$(mktemp)"
+        rm -f "${timeout_marker}"
+
+        set +e
+        run_kubectl "$@" &
+        cmd_pid="$!"
+        (
+            sleep "${remaining}"
+            if kill -0 "${cmd_pid}" >/dev/null 2>&1; then
+                printf 'timeout\n' > "${timeout_marker}"
+                log "pod replay timeout after ${RUN_TIMEOUT}s during step: ${step_desc}"
+                if [[ -n "${POD_NAME_ACTIVE:-}" ]]; then
+                    run_kubectl --namespace "$NAMESPACE" delete pod "$POD_NAME_ACTIVE" --grace-period=0 --force --ignore-not-found=true --wait=false >/dev/null 2>&1 || true
+                fi
+                kill "${cmd_pid}" >/dev/null 2>&1 || true
+            fi
+        ) &
+        watchdog_pid="$!"
+
+        wait "${cmd_pid}"
+        rc="$?"
+        kill "${watchdog_pid}" >/dev/null 2>&1 || true
+        wait "${watchdog_pid}" 2>/dev/null || true
+        set -e
+
+        if [[ -f "${timeout_marker}" ]]; then
+            rm -f "${timeout_marker}"
+            return 124
+        fi
+        rm -f "${timeout_marker}"
+        return "${rc}"
+    }
+
     decode_b64_token() {
         local token="$1"
         local decoded=""
@@ -1352,66 +1403,72 @@ YAML
     }
     trap cleanup_pod_mode EXIT
 
-    run_kubectl --namespace "$NAMESPACE" apply --validate=false -f "$pod_file" >/dev/null
+    run_kubectl_with_deadline "create replay pod" --namespace "$NAMESPACE" apply --validate=false -f "$pod_file"
+    local rc="$?"
+    if [[ "${rc}" -ne 0 ]]; then
+        return "${rc}"
+    fi
     log "waiting pod ready: ${pod_name}"
-    run_kubectl --namespace "$NAMESPACE" wait --for=condition=Ready "pod/${pod_name}" --timeout="${POD_READY_TIMEOUT}s"
+    local now remaining ready_timeout
+    now="$(date +%s)"
+    remaining=$(( pod_deadline_ts - now ))
+    if (( remaining <= 0 )); then
+        log "pod replay timeout after ${RUN_TIMEOUT}s before waiting pod ready"
+        return 124
+    fi
+    ready_timeout="${POD_READY_TIMEOUT}"
+    if (( remaining < ready_timeout )); then
+        ready_timeout="${remaining}"
+    fi
+    run_kubectl_with_deadline "wait pod ready" --namespace "$NAMESPACE" wait --for=condition=Ready "pod/${pod_name}" --timeout="${ready_timeout}s"
+    rc="$?"
+    if [[ "${rc}" -ne 0 ]]; then
+        return "${rc}"
+    fi
 
     if [[ "$CHECKOUT_MODE" == "workspace" ]]; then
         log "copy workspace to pod:/workspace"
-        run_kubectl --namespace "$NAMESPACE" exec "$pod_name" -- mkdir -p /workspace
-        if [[ "$(uname -s)" == "Darwin" ]]; then
-            if tar --help 2>&1 | grep -q -- '--no-mac-metadata'; then
-                COPYFILE_DISABLE=1 tar --no-mac-metadata -C "$WORKSPACE" -cf - . | run_kubectl --namespace "$NAMESPACE" exec -i "$pod_name" -- tar -C /workspace -xf -
-            else
-                COPYFILE_DISABLE=1 tar -C "$WORKSPACE" -cf - . | run_kubectl --namespace "$NAMESPACE" exec -i "$pod_name" -- tar -C /workspace -xf -
-            fi
-        else
-            tar -C "$WORKSPACE" -cf - . | run_kubectl --namespace "$NAMESPACE" exec -i "$pod_name" -- tar -C /workspace -xf -
+        run_kubectl_with_deadline "prepare workspace dir in pod" --namespace "$NAMESPACE" exec "$pod_name" -- mkdir -p /workspace
+        rc="$?"
+        if [[ "${rc}" -ne 0 ]]; then
+            return "${rc}"
+        fi
+        run_kubectl_with_deadline "copy workspace into pod" --namespace "$NAMESPACE" cp "${WORKSPACE}/." "${pod_name}:/workspace"
+        rc="$?"
+        if [[ "${rc}" -ne 0 ]]; then
+            return "${rc}"
         fi
     else
         log "skip workspace sync, pod will checkout from github"
     fi
 
     log "copy env and run script"
-    run_kubectl --namespace "$NAMESPACE" cp "$env_file" "${pod_name}:/tmp/prow_env.sh"
-    run_kubectl --namespace "$NAMESPACE" cp "$run_file" "${pod_name}:/tmp/prow_run.sh"
-    run_kubectl --namespace "$NAMESPACE" exec "$pod_name" -- chmod +x /tmp/prow_run.sh
-
-    log "run job command (timeout=${RUN_TIMEOUT}s)"
-    local timeout_marker
-    timeout_marker="$(mktemp)"
-    rm -f "${timeout_marker}"
-
-    set +e
-    run_kubectl --namespace "$NAMESPACE" exec -i "$pod_name" -- /tmp/prow_run.sh &
-    local exec_pid="$!"
-    (
-        sleep "${RUN_TIMEOUT}"
-        if kill -0 "${exec_pid}" >/dev/null 2>&1; then
-            printf 'timeout\n' > "${timeout_marker}"
-            log "pod replay timeout after ${RUN_TIMEOUT}s, terminating pod ${pod_name}"
-            run_kubectl --namespace "$NAMESPACE" delete pod "$pod_name" --grace-period=0 --force --ignore-not-found=true --wait=false >/dev/null 2>&1 || true
-            kill "${exec_pid}" >/dev/null 2>&1 || true
-        fi
-    ) &
-    local watchdog_pid="$!"
-
-    wait "${exec_pid}"
-    local exec_rc="$?"
-    kill "${watchdog_pid}" >/dev/null 2>&1 || true
-    wait "${watchdog_pid}" 2>/dev/null || true
-    set -e
-
-    if [[ -f "${timeout_marker}" ]]; then
-        rm -f "${timeout_marker}"
-        log "job command timed out after ${RUN_TIMEOUT}s"
-        return 1
+    run_kubectl_with_deadline "copy replay env file" --namespace "$NAMESPACE" cp "$env_file" "${pod_name}:/tmp/prow_env.sh"
+    rc="$?"
+    if [[ "${rc}" -ne 0 ]]; then
+        return "${rc}"
     fi
-    rm -f "${timeout_marker}"
+    run_kubectl_with_deadline "copy replay run script" --namespace "$NAMESPACE" cp "$run_file" "${pod_name}:/tmp/prow_run.sh"
+    rc="$?"
+    if [[ "${rc}" -ne 0 ]]; then
+        return "${rc}"
+    fi
+    run_kubectl_with_deadline "chmod replay run script" --namespace "$NAMESPACE" exec "$pod_name" -- chmod +x /tmp/prow_run.sh
+    rc="$?"
+    if [[ "${rc}" -ne 0 ]]; then
+        return "${rc}"
+    fi
 
-    if [[ "${exec_rc}" -ne 0 ]]; then
-        log "job command failed with exit code ${exec_rc}"
-        return "${exec_rc}"
+    log "run job command (full replay timeout=${RUN_TIMEOUT}s)"
+    run_kubectl_with_deadline "run replay job command" --namespace "$NAMESPACE" exec -i "$pod_name" -- /tmp/prow_run.sh
+    rc="$?"
+    if [[ "${rc}" -ne 0 ]]; then
+        if [[ "${rc}" -eq 124 ]]; then
+            log "pod replay timed out after ${RUN_TIMEOUT}s"
+            return 1
+        fi
+        log "job command failed with exit code ${rc}"
+        return "${rc}"
     fi
     log "job finished successfully"
 }
