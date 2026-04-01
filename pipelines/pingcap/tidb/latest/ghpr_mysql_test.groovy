@@ -11,20 +11,20 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    defaultContainer 'golang'
+                }
+            }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -35,6 +35,11 @@ pipeline {
                         }
                     }
                 }
+                dir('tidb') {
+                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
+                    }
+                }
                 dir("tidb-test") {
                     cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                         retry(2) {
@@ -43,17 +48,6 @@ pipeline {
                             }
                         }
                     }
-                }
-            }
-        }
-        stage('Prepare') {
-            steps {
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
-                    }
-                }
-                dir('tidb-test') {
                     sh "git branch && git status"
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                         sh 'touch ws-${BUILD_TAG}'
@@ -61,7 +55,7 @@ pipeline {
                 }
             }
         }
-        stage('Tests') {
+        stage('MySQL Tests') {
             matrix {
                 axes {
                     axis {
@@ -72,8 +66,8 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'golang'
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 stages {
