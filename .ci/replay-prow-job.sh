@@ -157,6 +157,44 @@ run_kubectl() {
     fi
 }
 
+ensure_kubectl_auth() {
+    if [[ -n "${KUBECONFIG:-}" ]]; then
+        return 0
+    fi
+    if kubectl config current-context >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local sa_dir="/var/run/secrets/kubernetes.io/serviceaccount"
+    local sa_token="${sa_dir}/token"
+    local sa_ca="${sa_dir}/ca.crt"
+    local sa_ns="${sa_dir}/namespace"
+
+    if [[ -z "${KUBERNETES_SERVICE_HOST:-}" || ! -f "${sa_token}" || ! -f "${sa_ca}" ]]; then
+        return 0
+    fi
+
+    local kube_ns kube_server kubeconfig_file
+    kube_ns="$(cat "${sa_ns}" 2>/dev/null || echo default)"
+    kube_server="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT_HTTPS:-443}"
+    kubeconfig_file="$(mktemp /tmp/replay-prow-incluster-kubeconfig.XXXXXX)"
+
+    kubectl config --kubeconfig "${kubeconfig_file}" set-cluster in-cluster \
+        --server="${kube_server}" \
+        --certificate-authority="${sa_ca}" \
+        --embed-certs=true >/dev/null
+    kubectl config --kubeconfig "${kubeconfig_file}" set-credentials in-cluster \
+        --token="$(cat "${sa_token}")" >/dev/null
+    kubectl config --kubeconfig "${kubeconfig_file}" set-context in-cluster \
+        --cluster=in-cluster \
+        --user=in-cluster \
+        --namespace="${kube_ns}" >/dev/null
+    kubectl config --kubeconfig "${kubeconfig_file}" use-context in-cluster >/dev/null
+
+    KUBECTL_OPTS+=(--kubeconfig "${kubeconfig_file}")
+    log "kubectl: no local kubeconfig detected, using in-cluster serviceaccount context (namespace=${kube_ns})"
+}
+
 to_lower() {
     printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }
@@ -911,6 +949,8 @@ require_bin kubectl
 require_bin ruby
 require_bin jq
 require_bin tar
+
+ensure_kubectl_auth
 
 CONTEXT="${CONTEXT:-}"
 if [[ -n "$CONTEXT" ]]; then
