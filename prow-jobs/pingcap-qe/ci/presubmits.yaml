@@ -89,6 +89,8 @@ presubmits:
       branches:
         - ^main$
       spec:
+        serviceAccountName: k8s-pod-full
+        automountServiceAccountToken: true
         containers:
           - name: main
             image: wbitt/network-multitool
