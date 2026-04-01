@@ -123,6 +123,18 @@ pipeline {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
+                                // Lightweight fallback: only re-apply when stale URLs are still present in restored cache.
+                                sh '''#!/usr/bin/env bash
+                                    set -euxo pipefail
+                                    if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
+                                        for f in WORKSPACE DEPS.bzl; do
+                                          [ -f "$f" ] || continue
+                                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                                        done
+                                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                                    fi
+                                '''
+
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh """
                                 git diff .

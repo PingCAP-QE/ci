@@ -50,7 +50,7 @@ pipeline {
 
                     # Replay-only skip for flaky target in this environment:
                     # //pkg/sessionctx/variable/tests:tests_test (goleak flake on shard 18/47).
-                    sed -i 's|-- //... -//cmd/...|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    sed -i 's|-- //\\.\\.\\. -//cmd/\\.\\.\\.|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
 
                     # Replay-only timeout hotfix: raise ci shard timeout to avoid 150s timeout flakes.
                     if [ -f .bazelrc ]; then

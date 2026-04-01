@@ -131,6 +131,12 @@ pipeline {
                                                 if ! python3 -c 'import MySQLdb' >/dev/null 2>&1; then
                                                     pip3 install mysqlclient || {
                                                         if command -v apt-get >/dev/null 2>&1; then
+                                                            # Temporary fallback for legacy images without mysqlclient build deps.
+                                                            # Prefer baking these deps into the base image for long-term stability.
+                                                            if [ "$(id -u)" -ne 0 ]; then
+                                                                echo "mysqlclient build dependencies are missing and apt-get requires root. Please update the python image."
+                                                                exit 1
+                                                            fi
                                                             apt_update_with_archive_fallback
                                                             DEBIAN_FRONTEND=noninteractive apt-get install -y gcc python3-dev pkg-config default-libmysqlclient-dev
                                                         elif command -v yum >/dev/null 2>&1; then
@@ -144,7 +150,6 @@ pipeline {
                                                 if [[ -f sqlalchemy_test/sqlalchemy-test/requirements.txt ]]; then
                                                     pip3 install -r sqlalchemy_test/sqlalchemy-test/requirements.txt
                                                 fi
-                                                pip3 install 'sqlalchemy>=1.4,<2' alembic
                                             fi
 
                                             if ! command -v mysql >/dev/null 2>&1; then
@@ -181,6 +186,7 @@ pipeline {
 
                                             if [[ "\${TEST_PARAMS}" == sqlalchemy_test/* && \${TEST_RC} -ne 0 ]]; then
                                                 KNOWN_FLAKY=1
+                                                # TODO: move known flaky patterns to a shared config in tidb-test for easier maintenance.
                                                 for pattern in \\
                                                     "FAILED test/test_engin_transaction.py::FutureTransactionTest_tidb+mysqldb_9_0_0::test_no_autocommit_w_autobegin" \\
                                                     "FAILED test/test_engin_transaction.py::FutureTransactionTest_tidb+mysqldb_9_0_0::test_no_autocommit_w_begin" \\

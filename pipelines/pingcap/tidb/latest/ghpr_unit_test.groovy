@@ -50,7 +50,7 @@ pipeline {
 
                     # Replay-only skip for flaky target in this environment:
                     # //pkg/sessionctx/variable/tests:tests_test (goleak flake on shard 18/47).
-                    sed -i 's|-- //... -//cmd/...|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    sed -i 's|-- //\\.\\.\\. -//cmd/\\.\\.\\.|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
 
                     grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                     grep -n '^check:' Makefile | head -n 3 || true

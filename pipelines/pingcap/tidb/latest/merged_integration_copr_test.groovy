@@ -96,6 +96,7 @@ pipeline {
 
                             if grep -Eqi 'Outputs are not matching|Test case FAIL' /tmp/push-down-test.log \
                                && grep -Eqi 'Test case: sql/randgen/5_math_2.sql|Test case: sql/randgen-topn/6_date_2.sql' /tmp/push-down-test.log; then
+                                # TODO: move flaky-case matching to a centralized config once copr-test provides it.
                                 echo "Detected known flaky push-down-test mismatch, retry attempt ${attempt}/3"
                                 if [ "${attempt}" -lt 3 ]; then
                                     sleep 5
