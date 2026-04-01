@@ -19,12 +19,13 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST_COMMUNITY = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -67,7 +68,8 @@ pipeline {
                                 mv tiflash tiflash_dir
                             fi
                             if [[ -f tiflash_dir/tiflash ]]; then
-                                ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
+                                # Use a relative link so cache restore in matrix pods keeps tiflash executable resolvable.
+                                ln -sfn "tiflash_dir/tiflash" tiflash
                             fi
 
                             ls -alh .
@@ -108,7 +110,7 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'golang'
                     }
                 }
