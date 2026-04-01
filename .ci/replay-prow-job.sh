@@ -884,6 +884,8 @@ auto_replay_changed_jobs() {
 
 [[ "$MODE" == "pod" || "$MODE" == "prowjob" || "$MODE" == "auto" ]] || fatal "--mode must be pod|prowjob|auto"
 [[ "$CHECKOUT_MODE" == "github" || "$CHECKOUT_MODE" == "workspace" ]] || fatal "--checkout-mode must be github|workspace"
+[[ "$RUN_TIMEOUT" =~ ^[0-9]+$ ]] || fatal "--run-timeout must be an integer number of seconds"
+(( RUN_TIMEOUT > 0 )) || fatal "--run-timeout must be greater than 0"
 if [[ "${AUTO_CHANGED}" == "true" ]]; then
     auto_replay_changed_jobs
     exit 0
@@ -1376,7 +1378,41 @@ YAML
     run_kubectl --namespace "$NAMESPACE" exec "$pod_name" -- chmod +x /tmp/prow_run.sh
 
     log "run job command (timeout=${RUN_TIMEOUT}s)"
-    run_kubectl --namespace "$NAMESPACE" exec -i "$pod_name" -- /tmp/prow_run.sh
+    local timeout_marker
+    timeout_marker="$(mktemp)"
+    rm -f "${timeout_marker}"
+
+    set +e
+    run_kubectl --namespace "$NAMESPACE" exec -i "$pod_name" -- /tmp/prow_run.sh &
+    local exec_pid="$!"
+    (
+        sleep "${RUN_TIMEOUT}"
+        if kill -0 "${exec_pid}" >/dev/null 2>&1; then
+            printf 'timeout\n' > "${timeout_marker}"
+            log "pod replay timeout after ${RUN_TIMEOUT}s, terminating pod ${pod_name}"
+            run_kubectl --namespace "$NAMESPACE" delete pod "$pod_name" --grace-period=0 --force --ignore-not-found=true --wait=false >/dev/null 2>&1 || true
+            kill "${exec_pid}" >/dev/null 2>&1 || true
+        fi
+    ) &
+    local watchdog_pid="$!"
+
+    wait "${exec_pid}"
+    local exec_rc="$?"
+    kill "${watchdog_pid}" >/dev/null 2>&1 || true
+    wait "${watchdog_pid}" 2>/dev/null || true
+    set -e
+
+    if [[ -f "${timeout_marker}" ]]; then
+        rm -f "${timeout_marker}"
+        log "job command timed out after ${RUN_TIMEOUT}s"
+        return 1
+    fi
+    rm -f "${timeout_marker}"
+
+    if [[ "${exec_rc}" -ne 0 ]]; then
+        log "job command failed with exit code ${exec_rc}"
+        return "${exec_rc}"
+    fi
     log "job finished successfully"
 }
 
