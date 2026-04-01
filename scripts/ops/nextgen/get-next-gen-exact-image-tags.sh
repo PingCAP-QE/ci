@@ -37,13 +37,14 @@ fetch_next_gen_exact_tags() {
 
 fetch_all() {
     registry="us.gcr.io"
+    common_release_branch="release-nextgen-202603"
     # login to registry with gcloud
     gcloud auth print-access-token | oras login -u oauth2accesstoken --password-stdin $registry
 
     # pingcap/ticdc repo
     echo "🚀 Fetch images built from pingcap/ticdc..."
     trunk_branch=master
-    release_branch=release-nextgen-20251011
+    release_branch=$common_release_branch
     img_repo="${registry}/pingcap-public/tidbx/ticdc"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
@@ -52,7 +53,7 @@ fetch_all() {
     # pingcap/tidb repo
     echo "🚀 Fetch images built from pingcap/tidb..."
     trunk_branch=master
-    release_branch=release-nextgen-20251011
+    release_branch=$common_release_branch
     img_repo="${registry}/pingcap-public/tidbx/tidb"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
@@ -76,7 +77,7 @@ fetch_all() {
     # pingcap/tiflash repo
     echo "🚀 Fetch images built from pingcap/tiflash..."
     trunk_branch=master
-    release_branch=release-nextgen-20251011
+    release_branch=$common_release_branch
     img_repo="${registry}/pingcap-public/tidbx/tiflash"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
@@ -93,8 +94,8 @@ fetch_all() {
 
     # tidbcloud/cloud-storage-engine repo
     echo "🚀 Fetch images built from tidbcloud/cloud-storage-engine..."
-    trunk_branch=dedicated
-    release_branch=release-nextgen-20251011
+    trunk_branch=cloud-engine
+    release_branch=$common_release_branch
     img_repo="${registry}/pingcap-public/tidbx/tikv"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
@@ -103,7 +104,7 @@ fetch_all() {
     # tikv/pd repo
     echo "🚀 Fetch images built from tikv/pd..."
     trunk_branch=master
-    release_branch=release-nextgen-20251011
+    release_branch=$common_release_branch
     img_repo="${registry}/pingcap-public/tidbx/pd"
     echo "💿 $img_repo"
     fetch_next_gen_exact_tags "$img_repo" "${trunk_branch}-next-gen"
