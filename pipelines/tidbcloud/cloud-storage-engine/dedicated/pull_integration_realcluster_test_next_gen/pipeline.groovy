@@ -3,7 +3,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final BRANCH_ALIAS = 'dedicated'
+final BRANCH_ALIAS = 'cloud-engine'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = "${REFS.org}/${REFS.repo}"

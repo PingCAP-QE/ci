@@ -19,7 +19,7 @@ String libclara_commit_hash = null
 
 final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
 final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
-final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
+final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "cloud-engine")
 
 pipeline {
     agent {
