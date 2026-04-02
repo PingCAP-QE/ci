@@ -65,15 +65,20 @@ pipeline {
                                 }
                             }
                         }
-                        sh """
-                            mv tiflash tiflash_dir
-                            ln -s tiflash_dir/tiflash tiflash
+                        sh label: "verify third_party", script: '''
+                            if [[ -d tiflash && ! -L tiflash ]]; then
+                                rm -rf tiflash_dir
+                                mv tiflash tiflash_dir
+                            fi
+                            if [[ -f tiflash_dir/tiflash ]]; then
+                                ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
+                            fi
 
                             ls -alh .
                             ./pd-server -V
                             ./tikv-server -V
                             ./tiflash --version
-                        """
+                        '''
                     }
                     // cache workspace for matrix pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
