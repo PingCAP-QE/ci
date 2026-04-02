@@ -14,9 +14,9 @@ spec:
           value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
-          cpu: "8"
-          memory: 24Gi
-          ephemeral-storage: 50Gi
+          cpu: "2"
+          memory: 16Gi
+          ephemeral-storage: 20Gi
         limits:
           memory: 64Gi
           cpu: "16"
@@ -37,7 +37,15 @@ spec:
               - /data/bazel-prepare-in-container.sh
   volumes:
     - name: bazel-out-merged
-      emptyDir: {}
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 150Gi
+            storageClassName: hyperdisk-rwo
     - name: bazel-rc
       configMap:
         name: bazel
@@ -69,10 +77,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-  nodeSelector:
-    ee-bigdisk: "true"
-  tolerations:
-    - key: ee-bigdisk
-      operator: Equal
-      value: "true"
-      effect: NoSchedule
