@@ -505,9 +505,9 @@ pipeline {
                             }
                             steps {
                                 dir(CHARTS_BUILD_DIR){
-                                    sh "curl http://charts.pingcap.org/index.yaml -o index.yaml"
+                                    sh "curl http://charts.pingcap.com/index.yaml -o index.yaml"
 			    container("helm") {
-                                        sh "helm repo index . --url https://charts.pingcap.org/ --merge index.yaml"
+                                        sh "helm repo index . --url https://charts.pingcap.com/ --merge index.yaml"
                                     }
                                     sh "cat index.yaml"
                                     // Upload to Tencent COS
