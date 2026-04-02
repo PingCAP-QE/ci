@@ -114,6 +114,8 @@ global_definitions:
   pull_sanitizer_job: &pull_sanitizer_job
     <<: *brancher
     decorate: true
+    decoration_config:
+      timeout: 3h
     skip_submodules: true
     always_run: false
     optional: true
