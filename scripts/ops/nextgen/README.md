@@ -18,9 +18,12 @@ This is useful when you need deterministic, immutable image tags for deployments
 
 - jq (for JSON parsing)
 - crane (for interacting with container registries)
-  - Make sure you have access to `gcr.io/pingcap-public` (e.g., via `gcloud auth configure-docker gcr.io` or `crane auth login gcr.io`)
+- gcloud (for obtaining the registry access token used by `oras login`)
+- oras (for authenticating against the container registries before listing tags)
+  - Make sure you have access to both `us.gcr.io/pingcap-public/tidbx` and `gcr.io/pingcap-public/dbaas`
+  - A practical setup is `gcloud auth configure-docker us.gcr.io gcr.io`
 
-If either tool is missing, the script exits with a non-zero code and an actionable message.
+If any required tool is missing, the script exits with a non-zero code and an actionable message.
 
 ### Usage
 
@@ -53,7 +56,8 @@ The script prints the results for all covered repositories and branches.
   - Repo: `us.gcr.io/pingcap-public/tidbx/tiflash`
   - Tags checked: `master-next-gen`, `release-nextgen-202603`
 - pingcap/tiproxy
-  - Repo: `gcr.io/pingcap-public/dbaas/tiproxy`
+  - Repo: `gcr.io/pingcap-public/dbaas/tiproxy` for trunk lookup
+  - Repo: `us.gcr.io/pingcap-public/tidbx/tiproxy` for release lookup
   - Tags checked: `main`, `release-nextgen-20251023`
 - tidbcloud/cloud-storage-engine (TiKV)
   - Repo: `us.gcr.io/pingcap-public/tidbx/tikv`
@@ -80,6 +84,7 @@ Notes:
 💿 gcr.io/pingcap-public/dbaas/tiproxy
   📦 gcr.io/pingcap-public/dbaas/tiproxy:main
     👉 gcr.io/pingcap-public/dbaas/tiproxy:...-gabcd123
+💿 us.gcr.io/pingcap-public/tidbx/tiproxy
   📦 us.gcr.io/pingcap-public/tidbx/tiproxy:release-nextgen-20251023
     👉 us.gcr.io/pingcap-public/tidbx/tiproxy:release-nextgen-20251023-...-gabcd123
 
@@ -108,21 +113,27 @@ Notes:
 - 1: Failure
   - `jq` not installed
   - `crane` not installed
+  - `gcloud` not installed
+  - `oras` not installed
+  - registry authentication failed
   - A candidate exact image tag was found but does not exist in the registry (digest lookup failed)
 
 Note: If no matching exact tag is found for a given base tag, the script does not treat it as an error; it prints only the base tag line and continues.
 
 ### Troubleshooting
 
-- Authentication to `gcr.io`:
+- Authentication to the registries:
   - Ensure you have credentials that allow listing and pulling:
     - `gcloud auth configure-docker us.gcr.io gcr.io`, or
-    - `crane auth login us.gcr.io`
+    - `oras login us.gcr.io` and `oras login gcr.io` with a valid token source
 - Verify tools:
   - `jq --version`
   - `crane version`
+  - `gcloud --version`
+  - `oras version`
 - Verbose registry checks:
   - Try `crane ls us.gcr.io/pingcap-public/tidbx/<component>` manually to confirm visible tags
+  - Try `crane ls gcr.io/pingcap-public/dbaas/tiproxy` manually for the tiproxy trunk tags
   - Try `crane config <repo>:<tag>` to confirm the `net.pingcap.tibuild.git-sha` label exists
 
 ### Maintenance notes

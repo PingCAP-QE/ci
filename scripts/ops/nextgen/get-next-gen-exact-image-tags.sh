@@ -3,13 +3,21 @@
 set -uo pipefail
 
 check_tools() {
-    # Check if jq, crane and gcloud is installed
-    for tool in jq crane gcloud; do
+    # Check if all required CLI tools are installed before touching registries.
+    for tool in jq crane gcloud oras; do
         if ! command -v $tool &> /dev/null; then
             echo "$tool is not installed. Please install $tool before running this script."
             exit 1
         fi
     done
+}
+
+login_registry() {
+    local registry="$1"
+    if ! gcloud auth print-access-token | oras login -u oauth2accesstoken --password-stdin "$registry"; then
+        echo "ERROR: Failed to authenticate with $registry" >&2
+        exit 1
+    fi
 }
 
 # get the last exact images for next-gen components.
@@ -38,8 +46,10 @@ fetch_next_gen_exact_tags() {
 fetch_all() {
     registry="us.gcr.io"
     common_release_branch="release-nextgen-202603"
-    # login to registry with gcloud
-    gcloud auth print-access-token | oras login -u oauth2accesstoken --password-stdin $registry
+    # Authenticate against both registries because tiproxy trunk still resolves from gcr.io
+    # while the other next-gen artifacts are stored under us.gcr.io.
+    login_registry "$registry"
+    login_registry "gcr.io"
 
     # pingcap/ticdc repo
     echo "🚀 Fetch images built from pingcap/ticdc..."
