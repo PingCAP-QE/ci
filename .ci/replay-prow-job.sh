@@ -736,6 +736,7 @@ auto_replay_changed_jobs() {
     local selected_jobs_file
     local target_count
     local failures
+    local force_dry_run
     local file job_name job_type repo base_ref agent
 
     if [[ -z "${head_sha}" ]]; then
@@ -832,6 +833,21 @@ auto_replay_changed_jobs() {
         log "target: file=${file} job=${job_name} type=${job_type} repo=${repo:-<auto>} base_ref=${base_ref}"
     done < "${targets_file}"
 
+    force_dry_run="false"
+    if [[ "${DRY_RUN}" != "true" ]]; then
+        if [[ -n "${CONTEXT:-}" ]]; then
+            if ! kubectl --context "${CONTEXT}" version --request-timeout=5s >/dev/null 2>&1; then
+                force_dry_run="true"
+            fi
+        elif ! kubectl version --request-timeout=5s >/dev/null 2>&1; then
+            force_dry_run="true"
+        fi
+
+        if [[ "${force_dry_run}" == "true" ]]; then
+            log "kubernetes API is unavailable in current environment, fallback auto replay to --dry-run"
+        fi
+    fi
+
     failures=0
     while IFS='|' read -r file job_name job_type repo base_ref; do
         local cmd=()
@@ -857,6 +873,8 @@ auto_replay_changed_jobs() {
             cmd+=(--verbose)
         fi
         if [[ "${DRY_RUN}" == "true" ]]; then
+            cmd+=(--dry-run)
+        elif [[ "${force_dry_run}" == "true" ]]; then
             cmd+=(--dry-run)
         fi
 
