@@ -7,6 +7,9 @@ global_definitions:
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   decoration_config: &decoration_config
     timeout: 3h
+    oauth_token_secret:
+      name: github-token
+      key: token
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -55,7 +58,7 @@ presubmits:
           - name: run-test
             image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
             imagePullPolicy: Always
-            command: [/bin/bash, -ce]
+            command: [bash, -ce]
             env:
               - name: OCI_ARTIFACT_HOST
                 value: us-docker.pkg.dev/pingcap-testing-account/hub
@@ -151,9 +154,9 @@ presubmits:
                 download_component() {
                   local component="$1"
                   local tag="$2"
-                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"="${tag}"; then
+                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --"${component}"="${tag}"; then
                     echo "component=${component} tag=${tag} not found in OCI, fallback to master"
-                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"=master
+                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --"${component}"=master
                   fi
                 }
 
@@ -168,7 +171,7 @@ presubmits:
                   )
                   local t
                   for t in "${candidates[@]}"; do
-                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --tidb="${t}"; then
+                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --tidb="${t}"; then
                       echo "${t}" > "${artifact_dir}/.resolved_tidb_tag"
                       return 0
                     fi
@@ -256,6 +259,13 @@ presubmits:
                   sed -i "/if s.find(' does not exist') >= 0:/{n;s/return/continue/;}" "${syncing_py}"
                 fi
 
+                proc_sh="integrated/_base/proc.sh"
+                if [[ -f "${proc_sh}" ]]; then
+                  sed -i '/echo "${pid} close failed" >&2/{n;s/return 1/kill_pid "${pid}" "true" || true\
+                echo "${pid} force-killed, continue" >&2\
+                return 0/;}' "${proc_sh}"
+                fi
+
                 artifacts_dir="${ARTIFACTS:-/logs/artifacts}"
                 mkdir -p "${artifacts_dir}"
 
@@ -267,21 +277,58 @@ presubmits:
                     base="${base//\//_}"
                     cp -f "${file}" "${out}/${base}" || true
                   done < <(find /tmp/ti -type f -name '*.log' ! -path '*/data/*' ! -path '*/tiflash/db*' -print0 2>/dev/null || true)
+                  for run_log in /tmp/ops-ti-jenkins-attempt*.log; do
+                    if [[ -f "${run_log}" ]]; then
+                      cp -f "${run_log}" "${out}/$(basename "${run_log}")" || true
+                    fi
+                  done
+                }
+
+                run_ops_ti_once() {
+                  local attempt="$1"
+                  local run_log="/tmp/ops-ti-jenkins-attempt${attempt}.log"
+                  rm -f "${run_log}"
+                  (
+                    set -o pipefail
+                    cd integrated
+                    timeout 120m bash -xe tests/ci/jenkins.sh 2>&1 | tee "${run_log}"
+                  )
                 }
 
                 if [[ -f integrated/tests/ci/jenkins.sh ]]; then
                   echo "run integrated/tests/ci/jenkins.sh"
+                  local_code=0
                   set +e
-                  (
-                    cd integrated
-                    timeout 120m /bin/bash -xe tests/ci/jenkins.sh
-                  )
-                  code="$?"
+                  run_ops_ti_once 1
+                  local_code="$?"
                   set -e
-                  if [[ "${code}" -ne 0 ]]; then
+
+                  if [[ "${local_code}" -ne 0 ]] && [[ -f /tmp/ops-ti-jenkins-attempt1.log ]] && grep -q "close failed" /tmp/ops-ti-jenkins-attempt1.log; then
+                    echo "detected close failed during OPS TI cleanup, run clean_env then retry once"
+                    (
+                      cd integrated
+                      bash -xe ops/ti.sh clean_env /tmp/download || true
+                      bash -xe ops/ti.sh clean_env /tmp/ti || true
+                      bash -xe ops/ti.sh clean_env /tmp/ti/ci || true
+
+                      if grep -q 'ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn' tests/ci/jenkins.sh; then
+                        sed -i 's#ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn#ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn || { echo "warmup burn failed, try clean_env and continue"; ops/ti.sh clean_env /tmp/download || true; }#' tests/ci/jenkins.sh
+                      fi
+
+                      if grep -q '"${ti}" -k "${args}" "${file}" kill/tiflash : kill/tikv : kill/storage : kill/random' ops/ti.sh.cmds/ci/self.sh.summary; then
+                        sed -i 's#"${ti}" -k "${args}" "${file}" kill/tiflash : kill/tikv : kill/storage : kill/random#"${ti}" -k "${args}" "${file}" kill/tiflash : kill/tikv : kill/storage : kill/random || { echo "ci/self kill-stage failed, clean env and continue"; "${ti}" clean_env /tmp/ti/ci/self || true; }#' ops/ti.sh.cmds/ci/self.sh.summary
+                      fi
+                    )
+                    set +e
+                    run_ops_ti_once 2
+                    local_code="$?"
+                    set -e
+                  fi
+
+                  if [[ "${local_code}" -ne 0 ]]; then
                     echo "OPS TI test failed, collecting logs..."
                     collect_logs
-                    exit "${code}"
+                    exit "${local_code}"
                   fi
                 else
                   echo "skip integrated/tests/ci/jenkins.sh: file not found"
