@@ -390,6 +390,13 @@ function trim_right(s) {
   sub(/[[:space:]]+$/, "", s)
   return s
 }
+function repeat_space(n,    out, i) {
+  out = ""
+  for (i = 0; i < n; i++) {
+    out = out " "
+  }
+  return out
+}
 function flush(next_start, end_line) {
   if (!in_item) return
   if (next_start > 0) {
@@ -422,14 +429,14 @@ function flush(next_start, end_line) {
 
   if (!in_item) next
 
-  name_pat = sprintf("^%*sname:[[:space:]]*", indent + 2, "")
+  name_pat = "^" repeat_space(indent + 2) "name:[[:space:]]*"
   if (name == "" && line ~ name_pat) {
     value = line
     sub(name_pat, "", value)
     name = trim_right(value)
   }
 
-  jenkins_pat = sprintf("^%*sagent:[[:space:]]*jenkins([[:space:]]*#.*)?$", indent + 2, "")
+  jenkins_pat = "^" repeat_space(indent + 2) "agent:[[:space:]]*jenkins([[:space:]]*#.*)?$"
   if (line ~ jenkins_pat) {
     is_jenkins = 1
   }

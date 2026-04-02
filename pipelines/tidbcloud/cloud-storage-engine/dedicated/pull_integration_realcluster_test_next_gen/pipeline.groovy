@@ -102,16 +102,8 @@ pipeline {
                             """
                         }
                     }
-                    // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch rev-${REFS.pulls[0].sha}"
-                    }
-                }
-            }
-        }
-        stage('Hotfix bazel deps URL (temporary)') {
-            steps {
-                dir('tidb') {
+
+                    // Apply hotfix before ws cache is saved so matrix pods restore cleaned files.
                     sh '''#!/usr/bin/env bash
                     set -euxo pipefail
                     for f in WORKSPACE DEPS.bzl; do
@@ -125,6 +117,10 @@ pipeline {
                     grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                     grep -n '^check:' Makefile | head -n 3 || true
                     '''
+                    // cache it for other pods
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
+                        sh "touch rev-${REFS.pulls[0].sha}"
+                    }
                 }
             }
         }
@@ -184,15 +180,17 @@ pipeline {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
-                                // Apply hotfix in each matrix pod because ws cache is produced before the dedicated hotfix stage.
-                                // This guarantees old cache URLs are removed in the actual execution pod.
+                                // Matrix pods restore ws cache, so keep a lightweight fallback in each pod.
+                                // Re-apply only when stale URLs are still present in restored cache.
                                 sh '''#!/usr/bin/env bash
                                     set -euxo pipefail
-                                    for f in WORKSPACE DEPS.bzl; do
-                                      [ -f "$f" ] || continue
-                                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                                    done
-                                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                                    if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
+                                        for f in WORKSPACE DEPS.bzl; do
+                                          [ -f "$f" ] || continue
+                                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                                        done
+                                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                                    fi
                                     grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                                 '''
 
