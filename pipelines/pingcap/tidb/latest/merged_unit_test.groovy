@@ -33,26 +33,21 @@ pipeline {
                 }
             }
         }
-        stage('Hotfix bazel deps URL (temporary)') {
+        stage('Clean Legacy Bazel URL') {
             steps {
                 dir(REFS.repo) {
                     sh '''#!/usr/bin/env bash
                         set -euxo pipefail
-                        for f in WORKSPACE DEPS.bzl; do
-                          [ -f "$f" ] || continue
-                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                        done
-                        if [ -f .bazelrc ]; then
-                          echo 'test:ci --test_timeout=300,600,1800,7200' >> .bazelrc
+
+                        if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
+                            for f in WORKSPACE DEPS.bzl; do
+                                [ -f "$f" ] || continue
+                                sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                            done
+                            sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                        else
+                            echo "No legacy bazel deps URL found in WORKSPACE/DEPS.bzl."
                         fi
-                        # Replay-only skip for flaky target in current canary environment.
-                        sed -i 's|-- //\\.\\.\\. -//cmd/\\.\\.\\. -//tests/graceshutdown/\\.\\.\\.|-- //... -//cmd/... -//tests/graceshutdown/... -//pkg/executor/test/analyzetest/memorycontrol:memorycontrol_test |' Makefile || true
-                        # Replay-only skip for timeout-prone target in this canary run.
-                        sed -i 's|-//pkg/executor/test/analyzetest/memorycontrol:memorycontrol_test |-//pkg/executor/test/analyzetest/memorycontrol:memorycontrol_test -//pkg/executor/test/distsqltest:distsqltest_test |' Makefile || true
-                        grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
-                        grep -n 'test:ci --test_timeout=' .bazelrc | tail -n 3 || true
-                        grep -n 'memorycontrol_test' Makefile || true
-                        grep -n 'distsqltest_test' Makefile || true
                     '''
                 }
             }
