@@ -158,12 +158,10 @@ run_kubectl() {
 }
 
 ensure_kubectl_auth() {
-    if [[ -n "${KUBECONFIG:-}" ]]; then
+    if kubectl "${KUBECTL_OPTS[@]}" version --request-timeout=5s >/dev/null 2>&1; then
         return 0
     fi
-    if kubectl config current-context >/dev/null 2>&1; then
-        return 0
-    fi
+    log "kubectl API check failed with current config, trying in-cluster serviceaccount auth"
 
     local sa_dir="/var/run/secrets/kubernetes.io/serviceaccount"
     local sa_token="${sa_dir}/token"
@@ -171,6 +169,7 @@ ensure_kubectl_auth() {
     local sa_ns="${sa_dir}/namespace"
 
     if [[ -z "${KUBERNETES_SERVICE_HOST:-}" || ! -f "${sa_token}" || ! -f "${sa_ca}" ]]; then
+        log "in-cluster serviceaccount files are unavailable, keep current kubectl config"
         return 0
     fi
 
@@ -192,7 +191,11 @@ ensure_kubectl_auth() {
     kubectl config --kubeconfig "${kubeconfig_file}" use-context in-cluster >/dev/null
 
     KUBECTL_OPTS+=(--kubeconfig "${kubeconfig_file}")
-    log "kubectl: no local kubeconfig detected, using in-cluster serviceaccount context (namespace=${kube_ns})"
+    log "kubectl: switched to in-cluster serviceaccount context (namespace=${kube_ns})"
+
+    if ! kubectl "${KUBECTL_OPTS[@]}" version --request-timeout=5s >/dev/null 2>&1; then
+        log "kubectl API check still failed after in-cluster auth bootstrap"
+    fi
 }
 
 to_lower() {
@@ -950,12 +953,12 @@ require_bin ruby
 require_bin jq
 require_bin tar
 
-ensure_kubectl_auth
-
 CONTEXT="${CONTEXT:-}"
 if [[ -n "$CONTEXT" ]]; then
     KUBECTL_OPTS+=(--context "$CONTEXT")
 fi
+
+ensure_kubectl_auth
 
 extract_job() {
     ruby - "$CONFIG" "$JOB_NAME" "$JOB_TYPE" "$REPO" "$CONTAINER_NAME" <<'RUBY'
