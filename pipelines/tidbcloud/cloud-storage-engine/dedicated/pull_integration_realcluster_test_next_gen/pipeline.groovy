@@ -211,12 +211,15 @@ pipeline {
 
                                     if [ -f .bazelrc ]; then
                                       sed -i '/^try-import \\/data\\/bazel$/d' .bazelrc
-                                      grep -q '^build --noremote_accept_cached$' .bazelrc || echo 'build --noremote_accept_cached' >> .bazelrc
-                                      grep -q '^build --noremote_upload_local_results$' .bazelrc || echo 'build --noremote_upload_local_results' >> .bazelrc
-                                      grep -q '^test --noremote_accept_cached$' .bazelrc || echo 'test --noremote_accept_cached' >> .bazelrc
-                                      grep -q '^test --noremote_upload_local_results$' .bazelrc || echo 'test --noremote_upload_local_results' >> .bazelrc
-                                      grep -q '^run --noremote_accept_cached$' .bazelrc || echo 'run --noremote_accept_cached' >> .bazelrc
-                                      grep -q '^run --noremote_upload_local_results$' .bazelrc || echo 'run --noremote_upload_local_results' >> .bazelrc
+                                      # Ensure a trailing newline before appending, avoiding line corruption.
+                                      [ -n "$(tail -c1 .bazelrc 2>/dev/null)" ] && echo "" >> .bazelrc
+                                      for cmd in build test run; do
+                                        for opt in noremote_accept_cached noremote_upload_local_results; do
+                                          grep -q "^${cmd} --${opt}$" .bazelrc || echo "${cmd} --${opt}" >> .bazelrc
+                                        done
+                                      done
+                                    else
+                                      echo ".bazelrc not found; skip remote-cache disable patch."
                                     fi
                                 '''
 
