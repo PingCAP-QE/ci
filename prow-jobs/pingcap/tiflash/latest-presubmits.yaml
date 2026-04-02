@@ -101,7 +101,7 @@ global_definitions:
     name: run-sanitizer
     image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
     imagePullPolicy: Always
-    command: [/bin/bash, -ce]
+    command: [bash, -ce]
     args:
       - *sanitizer_script
     resources:
@@ -197,7 +197,7 @@ presubmits:
         containers:
           - name: check
             image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
-            command: [/bin/bash, -ce]
+            command: [bash, -ce]
             args:
               - |
                 if [[ "${JOB_TYPE:-}" == "batch" ]]; then

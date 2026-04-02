@@ -58,7 +58,7 @@ presubmits:
           - name: run-test
             image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
             imagePullPolicy: Always
-            command: [/bin/bash, -ce]
+            command: [bash, -ce]
             env:
               - name: OCI_ARTIFACT_HOST
                 value: us-docker.pkg.dev/pingcap-testing-account/hub
@@ -154,9 +154,9 @@ presubmits:
                 download_component() {
                   local component="$1"
                   local tag="$2"
-                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"="${tag}"; then
+                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --"${component}"="${tag}"; then
                     echo "component=${component} tag=${tag} not found in OCI, fallback to master"
-                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --"${component}"=master
+                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --"${component}"=master
                   fi
                 }
 
@@ -171,7 +171,7 @@ presubmits:
                   )
                   local t
                   for t in "${candidates[@]}"; do
-                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" /bin/bash "${oci_script}" --tidb="${t}"; then
+                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --tidb="${t}"; then
                       echo "${t}" > "${artifact_dir}/.resolved_tidb_tag"
                       return 0
                     fi
@@ -291,7 +291,7 @@ presubmits:
                   (
                     set -o pipefail
                     cd integrated
-                    timeout 120m /bin/bash -xe tests/ci/jenkins.sh 2>&1 | tee "${run_log}"
+                    timeout 120m bash -xe tests/ci/jenkins.sh 2>&1 | tee "${run_log}"
                   )
                 }
 
@@ -307,9 +307,9 @@ presubmits:
                     echo "detected close failed during OPS TI cleanup, run clean_env then retry once"
                     (
                       cd integrated
-                      /bin/bash -xe ops/ti.sh clean_env /tmp/download || true
-                      /bin/bash -xe ops/ti.sh clean_env /tmp/ti || true
-                      /bin/bash -xe ops/ti.sh clean_env /tmp/ti/ci || true
+                      bash -xe ops/ti.sh clean_env /tmp/download || true
+                      bash -xe ops/ti.sh clean_env /tmp/ti || true
+                      bash -xe ops/ti.sh clean_env /tmp/ti/ci || true
 
                       if grep -q 'ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn' tests/ci/jenkins.sh; then
                         sed -i 's#ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn#ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn || { echo "warmup burn failed, try clean_env and continue"; ops/ti.sh clean_env /tmp/download || true; }#' tests/ci/jenkins.sh
