@@ -16,9 +16,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        GITHUB_TOKEN = credentials('github-bot-token')
-    }
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
