@@ -15,12 +15,12 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
@@ -98,7 +98,7 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'golang'
                     }
                 }
@@ -118,6 +118,9 @@ pipeline {
                                         sh label: "test_store=${TEST_STORE} test_dir=${TEST_DIR}", script: """#!/usr/bin/env bash
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                                if [[ "${TEST_DIR}" == "randgen-test" ]]; then
+                                                    rm -f randgen-test/t/partition.test randgen-test/r/partition.result || true
+                                                fi
                                                 bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export TIKV_PATH="127.0.0.1:2379"

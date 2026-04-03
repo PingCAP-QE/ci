@@ -16,14 +16,14 @@ final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.ba
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TICI = component.computeArtifactOciTagFromPR('tici', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
-final GIT_CREDENTIALS_ID = ''
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
@@ -31,7 +31,7 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub' // mirror for 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     stages {
         stage('Checkout') {

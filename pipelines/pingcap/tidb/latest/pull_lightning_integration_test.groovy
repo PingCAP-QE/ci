@@ -19,7 +19,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -30,7 +30,7 @@ pipeline {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     defaultContainer 'golang'
                 }
             }
@@ -65,12 +65,21 @@ pipeline {
                                 }
                             }
                         }
-                        sh """
+                        sh '''#!/usr/bin/env bash
+                            set -euxo pipefail
+                            if [[ -d tiflash && ! -L tiflash ]]; then
+                                rm -rf tiflash_dir
+                                mv tiflash tiflash_dir
+                            fi
+                            if [[ -f tiflash_dir/tiflash ]]; then
+                                ln -sfn "tiflash_dir/tiflash" tiflash
+                            fi
+
                             ls -alh .
                             ./pd-server -V
                             ./tikv-server -V
                             ./tiflash --version
-                        """
+                        '''
                     }
                     // cache workspace for matrix pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -91,7 +100,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 stages {

@@ -15,12 +15,12 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -99,7 +99,7 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'java'
                     }
                 }
@@ -129,12 +129,19 @@ pipeline {
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export TIKV_PATH="127.0.0.1:2379"
                                                 export TIDB_TEST_STORE_NAME="tikv"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
                                             else
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export TIDB_TEST_STORE_NAME="unistore"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
                                             fi
+                                            cd \${TEST_DIR}
+                                            if [[ ! -f ../_helper.sh ]]; then
+                                                if [[ -f ../../_helper.sh ]]; then
+                                                    ln -sf ../../_helper.sh ../_helper.sh
+                                                elif [[ -f ${WORKSPACE}/tidb-test/_helper.sh ]]; then
+                                                    ln -sf ${WORKSPACE}/tidb-test/_helper.sh ../_helper.sh
+                                                fi
+                                            fi
+                                            chmod +x *.sh && \${TEST_SCRIPT}
                                         """
                                     }
                                 }

@@ -5,22 +5,34 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: download-sqllogic
-      image: "ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c"
       command:
         - /bin/sh
         - -c
         - |
           cd /git && \
-          oras pull hub-zot.pingcap.net/mirrors/hub/pingcap/case-data/sqllogic:v20241212 && \
-          tar xzf sqllogictest_v20241212.tar.gz && \
-          rm sqllogictest_v20241212.tar.gz
+          rm -rf sqllogictest sqllogictest_v20241212.tar.gz && \
+          for source in \
+            us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/case-data/sqllogic:v20241212 \
+            hub-zot.pingcap.net/mirrors/hub/pingcap/case-data/sqllogic:v20241212; do \
+            timeout 60 oras pull "${source}" && break || true; \
+          done && \
+          if [ -f sqllogictest_v20241212.tar.gz ]; then \
+            tar xzf sqllogictest_v20241212.tar.gz && rm sqllogictest_v20241212.tar.gz; \
+          else \
+            echo 'sqllogic OCI artifact unavailable, fallback to legacy tarball'; \
+            curl --retry 3 --fail -L http://pingcap-dev.hk.ufileos.com/jenkins/jenkins-slave-docker-sqllogictest.tar.gz | tar xzf -; \
+          fi
       volumeMounts:
         - name: test-data
           mountPath: /git
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/rocky8_golang-1.23:latest"
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 8Gi
@@ -43,7 +55,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
