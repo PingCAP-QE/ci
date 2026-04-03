@@ -22,7 +22,6 @@ pipeline {
     }
     environment {
         OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
-        GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {
         timeout(time: 65, unit: 'MINUTES')
