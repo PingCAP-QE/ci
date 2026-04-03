@@ -27,7 +27,7 @@ periodics:
               cpu: 200m
   - name: periodic-reporter-flaky-tests-tidb
     decorate: true # need add this.
-    cron: "0 6 * * 5" # Run weekly at 14:00 UTC+8 (which is 6:00 UTC) every Friday
+    cron: "0 22 * * *" # Run daily at 6:00 UTC+8 (which is 22:00 UTC)
     # hidden: true
     spec:
       activeDeadlineSeconds: 300
@@ -42,7 +42,7 @@ periodics:
               set -euo pipefail
 
               script_url="https://github.com/PingCAP-QE/ci/raw/main/tools/reporters/ci/flaky-tests/main.ts"
-              start_date=$(date -d "7 days ago" +%Y-%m-%d)
+              start_date=$(date -d "1 days ago" +%Y-%m-%d)
               end_date=$(date +%Y-%m-%d)
               email_subject="Flaky Tests Report of $PARAM_REPO repository (branch: $PARAM_BRANCH) between ${start_date} and ${end_date}"
 
@@ -117,7 +117,7 @@ periodics:
               cpu: 200m
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
-    cron: "0 6 * * 5" # Run weekly at 14:00 UTC+8 (which is 6:00 UTC) every Friday
+    cron: "0 23 * * *" # Run daily at 7:00 UTC+8 (which is 23:00 UTC)
     # hidden: true
     spec:
       activeDeadlineSeconds: 300
