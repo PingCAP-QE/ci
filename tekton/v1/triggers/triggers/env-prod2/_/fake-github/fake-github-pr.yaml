@@ -145,6 +145,12 @@ spec:
                   'tidbcloud/cloud-storage-engine': 'tikv',
                 }[body.repository.full_name]
                 : body.repository.name
+            - key: registry
+              expression: >-
+                header.canonical('ce-type').startWith('net.pingcap.tibuild.hotfix.') ?
+                'us-docker.pkg.dev/pingcap-testing-account/hotfix' :
+                'us-docker.pkg.dev/pingcap-testing-account/dev'
+
   bindings:
     - ref: github-pr
     - ref: ksy-dev-build-params
