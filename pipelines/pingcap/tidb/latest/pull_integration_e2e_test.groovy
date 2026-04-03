@@ -49,39 +49,15 @@ pipeline {
                         container("utils") {
                             script {
                                 retry(2) {
-                                    withEnv([
-                                        "TAG_DUMPLING=${OCI_TAG_TIKV}",
-                                        "TAG_PD=${OCI_TAG_PD}",
-                                        "TAG_TIKV=${OCI_TAG_TIKV}",
-                                        "TAG_TIFLASH=${OCI_TAG_TIFLASH}",
-                                        "TAG_TICDC_NEW=${OCI_TAG_TICDC_NEW}",
-                                    ]) {
-                                        sh label: "download tidb components", script: '''#!/usr/bin/env bash
-                                            set -euxo pipefail
-                                            "$WORKSPACE/scripts/artifacts/download_pingcap_oci_artifact.sh" \
-                                                --dumpling="$TAG_DUMPLING" \
-                                                --pd="$TAG_PD" \
-                                                --tikv="$TAG_TIKV" \
-                                                --tiflash="$TAG_TIFLASH" \
-                                                --ticdc-new="$TAG_TICDC_NEW"
-
-                                            if [[ ! -x ./br ]]; then
-                                                br_oci_url="$OCI_ARTIFACT_HOST/pingcap/tidb/package:$TAG_TIKV"_linux_amd64
-                                                repo=$(echo "$br_oci_url" | cut -d ':' -f 1)
-                                                echo "🚀 start download BR from $br_oci_url"
-                                                oras manifest fetch "$br_oci_url" | yq --prettyPrint -oy '.layers | filter(.annotations["org.opencontainers.image.title"] | test "^br-v.+.tar.gz$") | .[0]' > br_blob.yaml
-                                                br_file=$(yq '.annotations["org.opencontainers.image.title"]' br_blob.yaml)
-                                                br_blob="$repo@$(yq '.digest' br_blob.yaml)"
-                                                echo "🔗 blob fetching url: $br_blob"
-                                                oras blob fetch --output "$br_file" "$br_blob"
-                                                mv -v "$br_file" br.tar.gz
-                                                tar -xzvf br.tar.gz br
-                                                rm -f br.tar.gz br_blob.yaml
-                                                chmod +x br
-                                                echo "🎉 download BR success"
-                                            fi
-                                        '''
-                                    }
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --dumpling=${OCI_TAG_TIKV} \
+                                            --br=${OCI_TAG_TIKV} \
+                                            --pd=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --ticdc-new=${OCI_TAG_TICDC_NEW}
+                                    """
                                 }
                             }
                         }
