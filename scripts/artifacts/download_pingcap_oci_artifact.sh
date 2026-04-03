@@ -112,6 +112,12 @@ function main() {
         chmod +x dumpling
         echo "🎉 download Dumpling success"
     fi
+    if [[ -n "$BR" ]]; then
+        echo "🚀 start download BR"
+        download_and_extract_with_path "$br_oci_url" '^br-v.+.tar.gz$' br.tar.gz br
+        chmod +x br
+        echo "🎉 download BR success"
+    fi
     if [[ -n "$TIKV" ]]; then
         echo "🚀 start download TiKV server"
         download_and_extract_with_path "$tikv_oci_url" '^tikv-v.+.tar.gz$' tikv.tar.gz tikv-server
@@ -264,6 +270,10 @@ function parse_cli_args() {
         DUMPLING="${i#*=}"
         shift # past argument=value
         ;;
+        -br=*|--br=*)
+        BR="${i#*=}"
+        shift # past argument=value
+        ;;
         -pd=*|--pd=*)
         PD="${i#*=}"
         shift # past argument=value
@@ -351,6 +361,7 @@ function parse_cli_args() {
 
     [[ -n "${TIDB}" ]]          && echo "TIDB        = ${TIDB}"
     [[ -n "${DUMPLING}" ]]      && echo "DUMPLING    = ${DUMPLING}"
+    [[ -n "${BR}" ]]            && echo "BR          = ${BR}"
     [[ -n "${TIKV}" ]]          && echo "TIKV        = ${TIKV}"
     [[ -n "${TIKV_WORKER}" ]]   && echo "TIKV_WORKER = ${TIKV_WORKER}"
     [[ -n "${TIKV_CTL}" ]]      && echo "TIKV_CTL    = ${TIKV_CTL}"
@@ -381,6 +392,7 @@ function parse_cli_args() {
     registry_host_community="${OCI_ARTIFACT_HOST_COMMUNITY:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
     dumpling_oci_url="${registry_host}/pingcap/tidb/package:${DUMPLING}_${tag_suffix}"
+    br_oci_url="${registry_host}/pingcap/tidb/package:${BR}_${tag_suffix}"
     tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
     tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
     tikv_worker_oci_url="${registry_host}/tikv/tikv/package:${TIKV_WORKER}_${tag_suffix}"
