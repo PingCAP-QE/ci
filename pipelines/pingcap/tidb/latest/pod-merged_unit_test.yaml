@@ -17,7 +17,7 @@ spec:
       resources:
         requests:
           memory: 16Gi
-          cpu: "2"
+          cpu: "4"
           ephemeral-storage: 40Gi
         limits:
           memory: 32Gi
