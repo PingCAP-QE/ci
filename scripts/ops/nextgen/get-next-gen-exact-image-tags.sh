@@ -14,7 +14,13 @@ check_tools() {
 
 login_registry() {
     local registry="$1"
-    if ! gcloud auth print-access-token | oras login -u oauth2accesstoken --password-stdin "$registry"; then
+    local token
+    token=$(gcloud auth print-access-token)
+    if [[ -z "$token" ]]; then
+        echo "ERROR: Failed to obtain access token from gcloud" >&2
+        exit 1
+    fi
+    if ! echo "$token" | oras login -u oauth2accesstoken --password-stdin "$registry"; then
         echo "ERROR: Failed to authenticate with $registry" >&2
         exit 1
     fi
