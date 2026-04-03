@@ -118,9 +118,6 @@ pipeline {
                                         sh label: "test_store=${TEST_STORE} test_dir=${TEST_DIR}", script: """#!/usr/bin/env bash
                                             if [[ "${TEST_STORE}" == "tikv" ]]; then
                                                 echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                if [[ "${TEST_DIR}" == "randgen-test" ]]; then
-                                                    rm -f randgen-test/t/partition.test randgen-test/r/partition.result || true
-                                                fi
                                                 bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export TIKV_PATH="127.0.0.1:2379"
