@@ -11,24 +11,15 @@ spec:
         - -c
         - |
           cd /git && \
-          rm -rf sqllogictest sqllogictest_v20241212.tar.gz && \
-          for source in \
-            us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/case-data/sqllogic:v20241212 \
-            hub-zot.pingcap.net/mirrors/hub/pingcap/case-data/sqllogic:v20241212; do \
-            timeout 60 oras pull "${source}" && break || true; \
-          done && \
-          if [ -f sqllogictest_v20241212.tar.gz ]; then \
-            tar xzf sqllogictest_v20241212.tar.gz && rm sqllogictest_v20241212.tar.gz; \
-          else \
-            echo 'sqllogic OCI artifact unavailable, fallback to legacy tarball'; \
-            curl --retry 3 --fail -L http://pingcap-dev.hk.ufileos.com/jenkins/jenkins-slave-docker-sqllogictest.tar.gz | tar xzf -; \
-          fi
+          oras pull us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/case-data/sqllogic:v20241212 && \
+          tar xzf sqllogictest_v20241212.tar.gz && \
+          rm sqllogictest_v20241212.tar.gz
       volumeMounts:
         - name: test-data
           mountPath: /git
   containers:
     - name: golang
-      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
       env:
         - name: GOPROXY
