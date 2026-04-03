@@ -118,25 +118,6 @@ pipeline {
                                     sh "ls rev-${REFS.pulls[0].sha}"
                                 }
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                    if [ "${TEST_GROUP}" = "G08" ]; then
-                                        echo "Applying temporary G08 hotfix: relax key_types count check to current observed value"
-                                        sed -i '0,/check_contains "cnt: 4"/{s/check_contains "cnt: 4"/check_contains "cnt: 3"/}' br/tests/br_pitr/check/check_key_types.sh
-                                    fi
-                                    if [ "${TEST_GROUP}" = "G07" ]; then
-                                        echo "Applying temporary G07 hotfix: tolerate alternate blocklist restore error text"
-                                        sed -i 's/grep -q "because it is log restored"/grep -qE "because it is log restored|restore log from"/' br/tests/br_blocklist/run.sh
-                                        echo "Applying temporary G07 hotfix: avoid checkpoint boundary ts drift in blocklist restores"
-                                        sed -i 's/T4=${'$'}LATEST_CHECKPOINT_TS/T4=`expr ${'$'}LATEST_CHECKPOINT_TS - 1000`/' br/tests/br_blocklist/run.sh
-                                        sed -i 's/T5=${'$'}LATEST_CHECKPOINT_TS/T5=`expr ${'$'}LATEST_CHECKPOINT_TS - 1000`/' br/tests/br_blocklist/run.sh
-                                    fi
-                                    if [ "${TEST_GROUP}" = "G06" ]; then
-                                        echo "Applying temporary G06 hotfix: tolerate 0/1 pitr_id_maps for restore_checkpoint replay instability"
-                                        sed -i '/pitr_id_maps | wc -l/{n;s/-ne 1/-gt 1/;}' br/tests/br_restore_checkpoint/run.sh
-                                    fi
-                                    if [ "${TEST_GROUP}" = "G02" ]; then
-                                        echo "Applying temporary G02 hotfix: tolerate user3 non-SSL access behavior drift in full_cluster_restore"
-                                        sed -i 's#check_contains "Access denied for user"#grep -Eq "Access denied for user|count\\\\(\\\\*\\\\): 2" "${'$'}TEST_DIR/sql_res.${'$'}TEST_NAME.txt"#' br/tests/br_full_cluster_restore/run.sh
-                                    fi
                                     chmod +x br/tests/*.sh
                                     ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
                                 """
