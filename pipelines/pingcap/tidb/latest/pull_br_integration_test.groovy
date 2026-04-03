@@ -20,7 +20,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 90, unit: 'MINUTES')
@@ -31,7 +31,7 @@ pipeline {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     defaultContainer 'golang'
                 }
             }
@@ -105,7 +105,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 stages {
@@ -126,11 +126,15 @@ pipeline {
                         post{
                             failure {
                                 sh label: "collect logs", script: """
+                                    if [ ! -d /tmp/backup_restore_test ]; then
+                                        echo "/tmp/backup_restore_test does not exist, skip archiving logs for ${TEST_GROUP}"
+                                        exit 0
+                                    fi
                                     ls /tmp/backup_restore_test
                                     tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")
-                                    ls -alh  log-${TEST_GROUP}.tar.gz
+                                    ls -alh log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true, allowEmptyArchive: true
                             }
                             success {
                                 dir(REFS.repo) {

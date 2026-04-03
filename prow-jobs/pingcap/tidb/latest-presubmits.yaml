@@ -96,7 +96,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_tici_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-tici-test
@@ -185,7 +185,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_common_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-integration-common-test
@@ -196,7 +196,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_ddl_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -220,7 +220,7 @@ presubmits:
       name: pingcap/tidb/pull_mysql_client_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-mysql-client-test
@@ -231,7 +231,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_nodejs_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-integration-nodejs-test
