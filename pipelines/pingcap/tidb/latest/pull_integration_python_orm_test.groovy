@@ -14,12 +14,12 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -96,7 +96,7 @@ pipeline {
                 agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'python'
                     }
                 }
@@ -120,7 +120,6 @@ pipeline {
                                         TEST_SCRIPT=\$2
                                         echo "TEST_DIR=\${TEST_DIR}"
                                         echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-
                                         cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
                                     """
                                 }

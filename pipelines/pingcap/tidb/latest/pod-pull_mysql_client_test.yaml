@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
       resources:
         requests:
@@ -15,7 +15,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: mysql-client-test
-      image: "hub.pingcap.net/tiproxy-team/mysql-client-test"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/tiproxy-team/mysql-client-test:latest"
       securityContext:
         privileged: true
       tty: true
