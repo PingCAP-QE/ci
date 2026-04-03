@@ -271,7 +271,7 @@ spec:
         printf "%s" "${RESULT_SHA}" > "$(results.commit.path)"
         printf "%s" "${PARAM_URL}" > "$(results.url.path)"
     - name: init-external
-      image: alpine:3.22
+      image: alpine:3.23
       when:
         - input: "$(params.fetch-external)"
           operator: in
