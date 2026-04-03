@@ -58,7 +58,7 @@ The script prints the results for all covered repositories and branches.
 - pingcap/tiproxy
   - Repo: `gcr.io/pingcap-public/dbaas/tiproxy` for trunk lookup
   - Repo: `us.gcr.io/pingcap-public/tidbx/tiproxy` for release lookup
-  - Tags checked: `main`, `release-nextgen-20251023`
+  - Tags checked: `main`, `release-nextgen-202603`
 - tidbcloud/cloud-storage-engine (TiKV)
   - Repo: `us.gcr.io/pingcap-public/tidbx/tikv`
   - Tags checked: `cloud-engine-next-gen`, `release-nextgen-202603`
@@ -85,8 +85,8 @@ Notes:
   📦 gcr.io/pingcap-public/dbaas/tiproxy:main
     👉 gcr.io/pingcap-public/dbaas/tiproxy:...-gabcd123
 💿 us.gcr.io/pingcap-public/tidbx/tiproxy
-  📦 us.gcr.io/pingcap-public/tidbx/tiproxy:release-nextgen-20251023
-    👉 us.gcr.io/pingcap-public/tidbx/tiproxy:release-nextgen-20251023-...-gabcd123
+  📦 us.gcr.io/pingcap-public/tidbx/tiproxy:release-nextgen-202603
+    👉 us.gcr.io/pingcap-public/tidbx/tiproxy:release-nextgen-202603-...-gabcd123
 
 🎉🎉🎉 All gotten
 ```
