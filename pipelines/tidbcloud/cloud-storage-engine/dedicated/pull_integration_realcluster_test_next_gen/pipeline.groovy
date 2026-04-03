@@ -29,7 +29,7 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/dev'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
     }
     stages {
         stage('Checkout') {
@@ -86,6 +86,12 @@ pipeline {
                 }
                 dir('tidb') {
                     container("utils") {
+                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                            sh label: "prepare docker auth", script: '''
+                                mkdir -p ~/.docker
+                                cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                            '''
+                        }
                         dir('bin') {
                             sh label: 'download peer component binaries', script: """#!/usr/bin/env bash
                                 set -eo pipefail
