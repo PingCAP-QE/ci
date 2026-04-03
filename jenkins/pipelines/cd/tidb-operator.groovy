@@ -505,7 +505,7 @@ pipeline {
                             }
                             steps {
                                 dir(CHARTS_BUILD_DIR){
-                                    sh "curl http://charts.pingcap.com/index.yaml -o index.yaml"
+                                    sh "curl https://charts.pingcap.com/index.yaml -o index.yaml"
 			    container("helm") {
                                         sh "helm repo index . --url https://charts.pingcap.com/ --merge index.yaml"
                                     }
