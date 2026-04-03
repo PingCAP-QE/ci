@@ -24,17 +24,29 @@ global_definitions:
     run_with_sanitizer_runtime() {
       "$@"
     }
+    if [[ "${sanitizer}" == "TSan" ]] && ! command -v setarch >/dev/null 2>&1; then
+      echo "setarch is required for TSan runtime on this job" >&2
+      exit 1
+    fi
     if [[ "${sanitizer}" == "TSan" ]] && command -v setarch >/dev/null 2>&1; then
       arch_name="$(uname -m)"
       run_with_sanitizer_runtime() {
-        if ! setarch "${arch_name}" -R "$@"; then
-          echo "warning: setarch failed; fallback without setarch" >&2
-          "$@"
-        fi
+        setarch "${arch_name}" -R "$@"
       }
     fi
 
+    build_jobs="8"
+    test_workers="8"
+    if [[ "${sanitizer}" == "TSan" ]]; then
+      build_jobs="6"
+      test_workers="6"
+    fi
+
     repo_root="$(pwd)"
+    git config "submodule.contrib/tiflash-proxy-next-gen.update" none
+    git submodule sync --recursive
+    git submodule update --init --recursive
+
     rm -rf "${repo_root}/.ccache" "${repo_root}/build-${sanitizer}"
     mkdir -p "${repo_root}/build-${sanitizer}"
 
@@ -58,7 +70,7 @@ global_definitions:
         -DCMAKE_PREFIX_PATH=/usr/local \
         -DUSE_GM_SSL=0 \
         -GNinja
-      run_with_sanitizer_runtime ninja -j12 gtests_dbms gtests_libcommon gtests_libdaemon
+      run_with_sanitizer_runtime ninja -j"${build_jobs}" gtests_dbms gtests_libcommon gtests_libdaemon
     )
 
     rm -rf /tests /tiflash
@@ -74,7 +86,7 @@ global_definitions:
     LSAN_OPTIONS=suppressions=/tests/sanitize/asan.suppression \
     TSAN_OPTIONS="suppressions=/tests/sanitize/tsan.suppression" \
     ENV_VARS_PATH=/tests/docker/_env.sh \
-    NPROC=12 \
+    NPROC="${test_workers}" \
     run_with_sanitizer_runtime /tests/run-gtest.sh
   pull_sanitizer_affinity: &pull_sanitizer_affinity
     nodeAffinity:
@@ -95,13 +107,16 @@ global_definitions:
     resources:
       requests:
         cpu: "12"
-        memory: 32Gi
+        memory: 48Gi
       limits:
         cpu: "12"
-        memory: 32Gi
+        memory: 48Gi
   pull_sanitizer_job: &pull_sanitizer_job
     <<: *brancher
     decorate: true
+    decoration_config:
+      timeout: 3h
+    skip_submodules: true
     always_run: false
     optional: true
     skip_if_only_changed: *skip_if_only_changed
@@ -162,6 +177,8 @@ presubmits:
             env:
               - name: SANITIZER
                 value: TSan
+            securityContext:
+              privileged: true
 
     - name: pull-error-log-review
       branches:

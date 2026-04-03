@@ -43,11 +43,16 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    retry(3) {
-                        sh label: 'download binary', script: """
-                            cd bin
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                        """
+                    container('utils') {
+                        dir('bin') {
+                            script {
+                                retry(3) {
+                                    sh label: 'download binary', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
+                            }
+                        }
                     }
                 }
             }

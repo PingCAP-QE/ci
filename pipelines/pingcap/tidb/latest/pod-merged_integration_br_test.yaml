@@ -3,22 +3,13 @@ kind: Pod
 spec:
   securityContext:
     fsGroup: 1000
-  initContainers:
-    - name: init-mysql-config
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
-      command:
-        - sh
-        - -c
-        - |
-          echo "[client]" > /mysql-config/.my.cnf
-          echo "ssl-mode=DISABLED" >> /mysql-config/.my.cnf
-      volumeMounts:
-        - mountPath: "/mysql-config"
-          name: "mysql-config-volume"
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/centos7_golang-1.23:latest"
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 12Gi
@@ -26,12 +17,8 @@ spec:
         limits:
           memory: 16Gi
           cpu: "4"
-      volumeMounts:
-        - mountPath: "/home/jenkins/.my.cnf"
-          name: "mysql-config-volume"
-          subPath: ".my.cnf"
     - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c"
       tty: true
       resources:
         requests:
@@ -53,6 +40,3 @@ spec:
                 operator: In
                 values:
                   - "true"
-  volumes:
-    - name: mysql-config-volume
-      emptyDir: {}

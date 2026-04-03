@@ -125,7 +125,7 @@ Note: If no matching exact tag is found for a given base tag, the script does no
 - Authentication to the registries:
   - Ensure you have credentials that allow listing and pulling:
     - `gcloud auth configure-docker us.gcr.io gcr.io`, or
-    - `oras login us.gcr.io` and `oras login gcr.io` with a valid token source
+    - `crane auth login us.gcr.io`
 - Verify tools:
   - `jq --version`
   - `crane version`
@@ -133,7 +133,6 @@ Note: If no matching exact tag is found for a given base tag, the script does no
   - `oras version`
 - Verbose registry checks:
   - Try `crane ls us.gcr.io/pingcap-public/tidbx/<component>` manually to confirm visible tags
-  - Try `crane ls gcr.io/pingcap-public/dbaas/tiproxy` manually for the tiproxy trunk tags
   - Try `crane config <repo>:<tag>` to confirm the `net.pingcap.tibuild.git-sha` label exists
 
 ### Maintenance notes

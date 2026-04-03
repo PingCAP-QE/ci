@@ -87,7 +87,6 @@ pipeline {
                         which bin/dumpling
                         which bin/importer
                         ls -alh ./bin/
-                        chmod +x bin/*
                         ./bin/dumpling --version
                         ./bin/tikv-server -V
                         ./bin/pd-server -V
