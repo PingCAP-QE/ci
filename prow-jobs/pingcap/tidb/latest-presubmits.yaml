@@ -141,7 +141,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_e2e_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-e2e-test
@@ -185,7 +185,8 @@ presubmits:
       name: pingcap/tidb/pull_integration_common_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
+      # never run before
       decorate: false # need add this.
       optional: true
       context: pull-integration-common-test
@@ -254,6 +255,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "0"
+      # this job never run before.
       decorate: false # need add this.
       optional: true
       context: pull-tiflash-integration-test
