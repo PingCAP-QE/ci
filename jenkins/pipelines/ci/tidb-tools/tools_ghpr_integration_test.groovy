@@ -44,7 +44,7 @@ m3 = null
 println "TIDB_BRANCH=${TIDB_BRANCH}"
 
 GO_VERSION = "go1.23"
-POD_GO_IMAGE = "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/centos7_golang-1.23:latest"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
 POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go123"
 
 node("master") {
@@ -54,7 +54,7 @@ node("master") {
     def goversion_lib = load('goversion-select-lib.groovy')
 
     GO_VERSION = "go1.23"
-    POD_GO_IMAGE = "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/centos7_golang-1.23:latest"
+    POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
     POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go123"
 
     println "go version: ${GO_VERSION}"
@@ -181,7 +181,7 @@ catchError {
             containerTemplate(name: 'golang',alwaysPullImage: true,image: "${POD_GO_IMAGE}", ttyEnabled: true, command: 'cat'),
             containerTemplate(
                 name: 'mysql',
-                image: 'us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/mysql:5.7',
+                image: 'hub.pingcap.net/jenkins/mysql:5.7',
                 ttyEnabled: true,
                 alwaysPullImage: false,
                 envVars: [

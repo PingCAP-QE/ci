@@ -1,5 +1,5 @@
 GO_VERSION = "go1.23"
-POD_GO_IMAGE = "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/centos7_golang-1.23:latest"
+POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
 POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go123"
 
 node("master") {
@@ -8,7 +8,7 @@ node("master") {
     sh "curl --retry 3 --retry-delay 5 --retry-connrefused --fail -o goversion-select-lib.groovy  ${goversion_lib_url}"
     def goversion_lib = load('goversion-select-lib.groovy')
     GO_VERSION = "go1.23"
-    POD_GO_IMAGE = "us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/centos7_golang-1.23:latest"
+    POD_GO_IMAGE = "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
     POD_LABEL = "${JOB_NAME}-${BUILD_NUMBER}-go123"
     println "go version: ${GO_VERSION}"
     println "go image: ${POD_GO_IMAGE}"
@@ -97,7 +97,7 @@ catchError {
                             ttyEnabled: true, command: 'cat'),
                     containerTemplate(
                             name: 'mysql',
-                            image: 'us-docker.pkg.dev/pingcap-testing-account/hub/jenkins/mysql:5.7',
+                            image: 'hub.pingcap.net/jenkins/mysql:5.7',
                             ttyEnabled: true,
                             alwaysPullImage: false,
                             envVars: [
