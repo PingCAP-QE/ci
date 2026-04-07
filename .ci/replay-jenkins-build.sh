@@ -23,7 +23,7 @@ Options:
   --auto-changed           Replay all changed pipelines/*.groovy from git diff.
   --base-sha <sha>         Base SHA for --auto-changed.
   --head-sha <sha>         Head SHA for --auto-changed.
-  --jenkins-url <url>      Jenkins root URL. Default: $JENKINS_URL or https://do.pingcap.net/jenkins.
+  --jenkins-url <url>      Jenkins root URL. Default: $JENKINS_URL or https://prow.tidb.net/jenkins.
   --wait                   Wait for replay build to finish.
   --timeout <seconds>      Max wait seconds for queue/build completion. Default: 3600.
   --poll-interval <sec>    Poll interval in seconds. Default: 15.
@@ -541,7 +541,7 @@ init_defaults() {
     MAX_REPLAYS=20
     INLINE_POD_YAML="true"
     VERBOSE="false"
-    JENKINS_URL="${JENKINS_URL:-https://do.pingcap.net/jenkins}"
+    JENKINS_URL="${JENKINS_URL:-https://prow.tidb.net/jenkins}"
     JENKINS_USER="${JENKINS_USER:-}"
     JENKINS_TOKEN="${JENKINS_TOKEN:-}"
     REPLAY_LAST_RESULT=""

@@ -1,6 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "description": "Update container images referenced in pipelines/ and prow-jobs/ YAML files",
+      "customType": "regex",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker",
+      "managerFilePatterns": ["/(^|/)(jobs/pipelines|prow-jobs)/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "(?m)^\\s*image:\\s*(?:&[A-Za-z0-9_-]+\\s+)?[\"']?(?<depName>[^\"'\\s@:]+(?::\\d+)?(?:/[^\"'\\s@:]+)*):(?<currentValue>[^\"'\\s]+)[\"']?(?:\\s+#.*)?$"
+      ]
+    }
+  ],
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "ignorePaths": ["tools/deprecated/**", "**/requirements.txt"]
 }
