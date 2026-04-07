@@ -123,7 +123,7 @@ Replay each selected candidate with `.ci/replay-jenkins-build.sh`.
 .ci/replay-jenkins-build.sh \
   --script-file <pipeline.groovy> \
   --job-url <job_url_from_jobs_dsl> \
-  --jenkins-url https://do.pingcap.net/jenkins \
+  --jenkins-url https://prow.tidb.net/jenkins \
   --selector lastSuccessfulBuild \
   --verbose
 ```
@@ -154,7 +154,7 @@ Recommended comment marker/template:
 ## Jenkins Replay Status
 - [ ] `pipelines/...` -> `org/repo/job_name`
   - status: building (attempt 1/4)
-  - replay: https://do.pingcap.net/jenkins/job/.../123
+  - replay: https://prow.tidb.net/jenkins/job/.../123
   - note: dedup target, same diff as release-x.y
 ```
 
@@ -179,7 +179,7 @@ Example retry:
 # Assumes `JENKINS_USER` and `JENKINS_TOKEN` are already exported (from `.env`)
 .ci/replay-jenkins-build.sh \
   --script-file <failed-pipeline.groovy> \
-  --jenkins-url https://do.pingcap.net/jenkins \
+  --jenkins-url https://prow.tidb.net/jenkins \
   --selector lastSuccessfulBuild \
   --wait --verbose
 ```
