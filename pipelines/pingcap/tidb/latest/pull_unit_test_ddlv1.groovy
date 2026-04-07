@@ -40,7 +40,21 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     sh """
-                        sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                        for file in WORKSPACE DEPS.bzl; do
+                            if [ -f "\$file" ]; then
+                                sed -i '/ats[.]apps[.]svc/d' "\$file"
+                                sed -i '/bazel-cache[.]pingcap[.]net/d' "\$file"
+                                sed -i '/cache[.]hawkingrei[.]com/d' "\$file"
+                                sed -i '/mirror[.]bazel[.]build/d' "\$file"
+                            fi
+                        done
+                        echo "removed legacy bazel mirrors from WORKSPACE/DEPS.bzl for gcp replay"
+                        if [ -d /share/.cache/bazel-repository-cache ] && mkdir -p /share/.cache/bazel-repository-cache/content_addressable/sha256 2>/dev/null; then
+                            sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                            echo "using shared bazel repository cache: /share/.cache/bazel-repository-cache"
+                        else
+                            echo "shared bazel repository cache unavailable or not writable, keep repository_cache=/home/jenkins/.tidb/tmp"
+                        fi
                         git diff .
                         git status
                     """
