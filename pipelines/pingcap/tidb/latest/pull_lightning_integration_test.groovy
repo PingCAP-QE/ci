@@ -19,7 +19,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -30,11 +30,10 @@ pipeline {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -47,7 +46,7 @@ pipeline {
                     cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS, 'tidb-server')) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
-                    cache(path: "./bin", includes: 'tidb-lightning*', key: prow.getCacheKey('binary', REFS, 'tidb-lightning.test')) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'tidb-lightning.test')) {
                         sh label: 'tidb-lightning.test', script: ' [ -f ./bin/tidb-lightning-ctl.test ] || make build_for_lightning_integration_test'
                     }
                     dir("bin") {
@@ -66,15 +65,12 @@ pipeline {
                                 }
                             }
                         }
-                        sh """
-                            mv tiflash tiflash_dir
-                            ln -s tiflash_dir/tiflash tiflash
-
+                        sh '''#!/usr/bin/env bash
                             ls -alh .
                             ./pd-server -V
                             ./tikv-server -V
                             ./tiflash --version
-                        """
+                        '''
                     }
                     // cache workspace for matrix pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -95,7 +91,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 stages {

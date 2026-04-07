@@ -1,21 +1,23 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tidb/periodics_integration_test') {
+// For trunk and latest release branches.
+pipelineJob('pingcap-inc/ticdc/pull_cdc_storage_integration_heavy') {
     logRotator {
-        daysToKeep(7)
+        daysToKeep(30)
     }
     parameters {
-        stringParam("TARGET_BRANCH", "master", "Target branch to verify")
+        // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
+        stringParam("BUILD_ID")
+        stringParam("PROW_JOB_ID")
+        stringParam("JOB_SPEC")
     }
     properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb")
-        disableConcurrentBuilds()
+        githubProjectUrl("https://github.com/pingcap-inc/ticdc")
     }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath('pipelines/pingcap/tidb/latest/periodics_integration_test.groovy')
+            scriptPath("pipelines/pingcap-inc/ticdc/latest/pull_cdc_storage_integration_heavy/pipeline.groovy")
             scm {
                 git{
                     remote {

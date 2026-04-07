@@ -19,7 +19,7 @@ String libclara_commit_hash = null
 
 final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
 final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
-final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "dedicated")
+final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "cloud-engine")
 
 pipeline {
     agent {
@@ -39,50 +39,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    hostname
-                    df -h
-                    free -hm
-                    gcc --version
-                    cmake --version
-                    clang --version
-                    ccache --version
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-                script {
-                    // test build cache, if cache is exist, then skip the following build steps
-                    try {
-                        dir("test-build-cache") {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')){
-                                // if file README.md not exist, then build-cache-ready is false
-                                build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('ng-binary', REFS, 'it-build')}"
-                                println "skip build..."
-                                // if build cache not ready, then throw error to avoid cache empty directory
-                                // for the same cache key, if throw error, will skip the cache step
-                                // the cache gets not stored if the key already exists or the inner-step has been failed
-                                if (!build_cache_ready) {
-                                    error "build cache not exist, start build..."
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        println "build cache not ready: ${e}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             when {
                 expression { !build_cache_ready }

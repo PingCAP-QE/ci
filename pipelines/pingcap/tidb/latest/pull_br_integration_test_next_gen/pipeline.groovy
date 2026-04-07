@@ -12,7 +12,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-next-gen")
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -26,7 +26,6 @@ pipeline {
     environment {
         NEXT_GEN = '1'
         OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/tidbx'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/tidbx
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -65,15 +64,12 @@ pipeline {
                             """
                         }
                         sh '''
-                            mv tiflash tiflash_dir
-                            ln -s `pwd`/tiflash_dir/tiflash tiflash
-
                             ./tikv-server -V
                             ./tikv-worker -V
                             ./pd-server -V
                             ./tiflash --version
                         '''
-                        sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh ${FILE_SERVER_URL}"
+                        sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh"
                     }
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {

@@ -5,27 +5,30 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
-          memory: 12Gi
-          cpu: "4"
+          memory: 4Gi
+          cpu: "2"
         limits:
           memory: 16Gi
           cpu: "6"
     - name: python
-      image: "hub.pingcap.net/jenkins/django-tidb-test:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/django-tidb-test:latest"
       tty: true
       resources:
         requests:
-          memory: 12Gi
-          cpu: "4"
+          memory: 4Gi
+          cpu: "2"
         limits:
           memory: 16Gi
           cpu: "6"
     - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:

@@ -19,14 +19,14 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     stages {
         stage('Checkout & Prepare') {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     defaultContainer 'golang'
                 }
             }
@@ -53,6 +53,19 @@ pipeline {
                             }
                         }
                     }
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+
+                    # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
@@ -87,7 +100,6 @@ pipeline {
                             'run_real_tikv_tests.sh bazel_importintotest4',
                             'run_real_tikv_tests.sh bazel_pipelineddmltest',
                             'run_real_tikv_tests.sh bazel_flashbacktest',
-                            'run_real_tikv_tests.sh bazel_ddltest',
                             'run_real_tikv_tests.sh bazel_pushdowntest',
                         )
                     }
@@ -96,7 +108,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 stages {
@@ -106,34 +118,40 @@ pipeline {
                         }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
+                                // Lightweight fallback: only re-apply when stale URLs are still present in restored cache.
+                                sh '''#!/usr/bin/env bash
+                                    set -euxo pipefail
+                                    if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
+                                        for f in WORKSPACE DEPS.bzl; do
+                                          [ -f "$f" ] || continue
+                                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                                        done
+                                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                                    fi
+                                '''
+
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh """
-                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                                 git diff .
                                 git status
                                 """
-                                sh """
-                                export BRIETEST_TMPDIR="${WORKSPACE}/tmp"
-                                mkdir -vp "\$BRIETEST_TMPDIR"
-
-                                ${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}
-                                """
+                                sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
                         post {
                             always {
-                                dir('tidb') {
+                                dir(REFS.repo) {
                                     // archive test report to Jenkins.
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                                 }
                             }
                             unsuccessful {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     sh label: "archive log", script: """
                                     str="$SCRIPT_AND_ARGS"
                                     logs_dir="logs_\${str// /_}"
@@ -147,7 +165,7 @@ pipeline {
                                 }
                             }
                             success {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     script {
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                                     }

@@ -64,6 +64,16 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
             componentBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][2]) // => release-X.Y
         }
     } else if (prTargetBranch =~ historyReleaseFeatureBranchReg) {
+        // Special Branches:
+        if (prTargetBranch == 'feature/release-8.5.5-active-active') {
+            if (component == "tidb" || component == "ticdc") {
+                return prTargetBranch
+            }
+            if (component == "tidb-test") {
+                return 'release-8.5-20260121-v8.5.5'
+            }
+        }
+
         if (componentsSupportPatchReleaseBranch.contains(component)) {
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][1]) // => release-X.Y.Z
         } else {

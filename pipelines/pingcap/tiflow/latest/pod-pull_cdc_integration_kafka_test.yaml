@@ -18,9 +18,8 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - args:
-        - cat
-      image: hub.pingcap.net/jenkins/rocky8_golang-1.25:tini
+    - command: [tini, --, bash]
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25
       imagePullPolicy: Always
       name: golang
       resources:
@@ -29,7 +28,7 @@ spec:
           memory: 16Gi
         limits:
           cpu: "4"
-          memory: 16Gi
+          memory: 32Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -104,20 +103,6 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        requests:
-          cpu: 200m
-          memory: 4Gi
     - name: mysql
       image: quay.io/debezium/example-mysql:2.4
       imagePullPolicy: IfNotPresent

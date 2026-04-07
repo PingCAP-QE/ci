@@ -1,0 +1,551 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: pingcap-git-clone
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.38.0"
+    tekton.dev/categories: Git
+    tekton.dev/tags: git
+    tekton.dev/displayName: "pingcap git clone"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Clone the main repository into the output workspace and optionally resolve
+    and clone the external repository that some PingCAP builds require.
+  workspaces:
+    - name: output
+      description: The git repo will be cloned onto the volume backing this Workspace.
+    - name: ssh-directory
+      optional: true
+      description: |
+        A .ssh directory with private key, known_hosts, config, etc. Copied to
+        the user's home before git commands are executed. Used to authenticate
+        with the git remote when performing the clone. Binding a Secret to this
+        Workspace is strongly recommended over other volume types.
+    - name: basic-auth
+      optional: true
+      description: |
+        A Workspace containing a .gitconfig and .git-credentials file. These
+        will be copied to the user's home before any git commands are run. Any
+        other files in this Workspace are ignored. It is strongly recommended
+        to use ssh-directory over basic-auth whenever possible and to bind a
+        Secret to this Workspace over other volume types.
+    - name: ssl-ca-directory
+      optional: true
+      description: |
+        A workspace containing CA certificates, this will be used by Git to
+        verify the peer with when fetching or pushing over HTTPS.
+  params:
+    - name: url
+      description: Repository URL to clone from.
+      type: string
+    - name: revision
+      description: Revision to checkout. (branch, tag, sha, ref, etc...)
+      type: string
+      default: ""
+    - name: refspec
+      description: Refspec to fetch before checking out revision.
+      type: string
+      default: ""
+    - name: submodules
+      description: Initialize and fetch git submodules.
+      type: string
+      default: "true"
+    - name: depth
+      description: Perform a shallow clone, fetching only the most recent N commits.
+      type: string
+      default: "1"
+    - name: sslVerify
+      description: Set the `http.sslVerify` global git config. Setting this to `false` is not advised unless you are sure that you trust your git remote.
+      type: string
+      default: "true"
+    - name: crtFileName
+      description: file name of mounted crt using ssl-ca-directory workspace. default value is ca-bundle.crt.
+      type: string
+      default: "ca-bundle.crt"
+    - name: subdirectory
+      description: Subdirectory inside the `output` Workspace to clone the repo into.
+      type: string
+      default: ""
+    - name: sparseCheckoutDirectories
+      description: Define the directory patterns to match or exclude when performing the sparse checkout.
+      type: string
+      default: ""
+    - name: deleteExisting
+      description: Clean out the contents of the destination directory if it already exists before cloning.
+      type: string
+      default: "true"
+    - name: httpProxy
+      description: HTTP proxy server for non-SSL requests.
+      type: string
+      default: ""
+    - name: httpsProxy
+      description: HTTPS proxy server for SSL requests.
+      type: string
+      default: ""
+    - name: noProxy
+      description: Opt out of proxying HTTP/HTTPS requests.
+      type: string
+      default: ""
+    - name: verbose
+      description: Log the commands that are executed during the task operation.
+      type: string
+      default: "true"
+    - name: gitInitImage
+      description: The image providing the git-init binary that this Task runs.
+      type: string
+      default: "ghcr.io/tektoncd/github.com/tektoncd/pipeline/cmd/git-init:v0.29.0"
+    - name: userHome
+      description: |
+        Absolute path to the user's home directory. Set this explicitly if you are running the image as a non-root user or have overridden
+        the gitInitImage param with an image containing custom user configuration.
+      type: string
+      default: "/tekton/home"
+    - name: gitInsteadOf
+      description: |
+        Configure Git to use `git instead` for specific operations to speed up cloning.
+        You can specify multiple `insteadOf` configurations separated by commas.
+        For example: `insteadof1 => new1,insteadof2 => new2
+      type: string
+      default: ""
+    - name: fetch-external
+      description: Clone the external repository resolved from the main repository and ref.
+      type: string
+      default: "false"
+    - name: external-git-ref
+      description: The main repository git ref used to resolve the external repository revision.
+      type: string
+      default: ""
+    - name: external-git-url
+      description: URL of the external repository.
+      type: string
+      default: "https://github.com/pingcap-inc/enterprise-plugin.git"
+    - name: external-refspec
+      description: Refspec to fetch before checking out the external repository revision.
+      type: string
+      default: "+refs/heads/*:refs/heads/*"
+    - name: external-subdirectory
+      description: Subdirectory inside the `output` Workspace to clone the external repo into. Defaults to the external repo name.
+      type: string
+      default: ""
+  results:
+    - name: commit
+      description: The precise commit SHA that was fetched by this Task.
+    - name: url
+      description: The precise URL that was fetched by this Task.
+    - name: committer-date
+      description: The epoch timestamp of the commit that was fetched by this Task.
+    - name: external-commit
+      description: The precise commit SHA of the fetched external repository, or empty when skipped.
+    - name: external-url
+      description: The precise URL of the fetched external repository, or empty when skipped.
+    - name: external-committer-date
+      description: The epoch timestamp of the fetched external repository commit, or empty when skipped.
+  steps:
+    - name: clone
+      image: "$(params.gitInitImage)"
+      env:
+        - name: HOME
+          value: "$(params.userHome)"
+        - name: PARAM_URL
+          value: $(params.url)
+        - name: PARAM_REVISION
+          value: $(params.revision)
+        - name: PARAM_REFSPEC
+          value: $(params.refspec)
+        - name: PARAM_SUBMODULES
+          value: $(params.submodules)
+        - name: PARAM_DEPTH
+          value: $(params.depth)
+        - name: PARAM_SSL_VERIFY
+          value: $(params.sslVerify)
+        - name: PARAM_CRT_FILENAME
+          value: $(params.crtFileName)
+        - name: PARAM_SUBDIRECTORY
+          value: $(params.subdirectory)
+        - name: PARAM_DELETE_EXISTING
+          value: $(params.deleteExisting)
+        - name: PARAM_HTTP_PROXY
+          value: $(params.httpProxy)
+        - name: PARAM_HTTPS_PROXY
+          value: $(params.httpsProxy)
+        - name: PARAM_NO_PROXY
+          value: $(params.noProxy)
+        - name: PARAM_VERBOSE
+          value: $(params.verbose)
+        - name: PARAM_SPARSE_CHECKOUT_DIRECTORIES
+          value: $(params.sparseCheckoutDirectories)
+        - name: PARAM_USER_HOME
+          value: $(params.userHome)
+        - name: PARAM_GIT_INSTEAD_OF
+          value: $(params.gitInsteadOf)
+        - name: WORKSPACE_OUTPUT_PATH
+          value: $(workspaces.output.path)
+        - name: WORKSPACE_SSH_DIRECTORY_BOUND
+          value: $(workspaces.ssh-directory.bound)
+        - name: WORKSPACE_SSH_DIRECTORY_PATH
+          value: $(workspaces.ssh-directory.path)
+        - name: WORKSPACE_BASIC_AUTH_DIRECTORY_BOUND
+          value: $(workspaces.basic-auth.bound)
+        - name: WORKSPACE_BASIC_AUTH_DIRECTORY_PATH
+          value: $(workspaces.basic-auth.path)
+        - name: WORKSPACE_SSL_CA_DIRECTORY_BOUND
+          value: $(workspaces.ssl-ca-directory.bound)
+        - name: WORKSPACE_SSL_CA_DIRECTORY_PATH
+          value: $(workspaces.ssl-ca-directory.path)
+        - name: GIT_SSH_COMMAND
+          value: "ssh -o StrictHostKeyChecking=accept-new"
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+
+        if [ "${PARAM_VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        if [ "${WORKSPACE_BASIC_AUTH_DIRECTORY_BOUND}" = "true" ] ; then
+          cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.git-credentials" "${PARAM_USER_HOME}/.git-credentials"
+          cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.gitconfig" "${PARAM_USER_HOME}/.gitconfig"
+          chmod 400 "${PARAM_USER_HOME}/.git-credentials"
+          chmod 400 "${PARAM_USER_HOME}/.gitconfig"
+        fi
+
+        if [ "${WORKSPACE_SSH_DIRECTORY_BOUND}" = "true" ] ; then
+          cp -R "${WORKSPACE_SSH_DIRECTORY_PATH}" "${PARAM_USER_HOME}"/.ssh
+          chmod 700 "${PARAM_USER_HOME}"/.ssh
+          chmod -R 400 "${PARAM_USER_HOME}"/.ssh/*
+        fi
+
+        if [ "${WORKSPACE_SSL_CA_DIRECTORY_BOUND}" = "true" ] ; then
+           export GIT_SSL_CAPATH="${WORKSPACE_SSL_CA_DIRECTORY_PATH}"
+           if [ "${PARAM_CRT_FILENAME}" != "" ] ; then
+              export GIT_SSL_CAINFO="${WORKSPACE_SSL_CA_DIRECTORY_PATH}/${PARAM_CRT_FILENAME}"
+           fi
+        fi
+        CHECKOUT_DIR="${WORKSPACE_OUTPUT_PATH}/${PARAM_SUBDIRECTORY}"
+
+        cleandir() {
+          # Delete any existing contents of the repo directory if it exists.
+          #
+          # We don't just "rm -rf ${CHECKOUT_DIR}" because ${CHECKOUT_DIR} might be "/"
+          # or the root of a mounted volume.
+          if [ -d "${CHECKOUT_DIR}" ] ; then
+            rm -rf "${CHECKOUT_DIR:?}"/*
+            rm -rf "${CHECKOUT_DIR}"/.[!.]*
+            rm -rf "${CHECKOUT_DIR}"/..?*
+          fi
+        }
+
+        if [ "${PARAM_DELETE_EXISTING}" = "true" ] ; then
+          cleandir || true
+        fi
+
+        test -z "${PARAM_HTTP_PROXY}" || export HTTP_PROXY="${PARAM_HTTP_PROXY}"
+        test -z "${PARAM_HTTPS_PROXY}" || export HTTPS_PROXY="${PARAM_HTTPS_PROXY}"
+        test -z "${PARAM_NO_PROXY}" || export NO_PROXY="${PARAM_NO_PROXY}"
+
+        if [ -n "${PARAM_GIT_INSTEAD_OF}" ] ; then
+          echo -n "${PARAM_GIT_INSTEAD_OF}" | tr ',' '\n' | while IFS= read -r mapping; do
+            instead_of_url=$(echo "${mapping}" | cut -d '=' -f 1 | tr -d ' ' | tr -d '"')
+            new_url=$(echo "${mapping}" | cut -d '>' -f 2 | tr -d ' ' | tr -d '"')
+            git config --global --add url."${new_url}".insteadOf "${instead_of_url}"
+          done
+        fi
+        git config --global --add safe.directory "${WORKSPACE_OUTPUT_PATH}"
+        /ko-app/git-init \
+          -url="${PARAM_URL}" \
+          -revision="${PARAM_REVISION}" \
+          -refspec="${PARAM_REFSPEC}" \
+          -path="${CHECKOUT_DIR}" \
+          -sslVerify="${PARAM_SSL_VERIFY}" \
+          -submodules="${PARAM_SUBMODULES}" \
+          -depth="${PARAM_DEPTH}" \
+          -sparseCheckoutDirectories="${PARAM_SPARSE_CHECKOUT_DIRECTORIES}"
+        cd "${CHECKOUT_DIR}"
+        RESULT_SHA="$(git rev-parse HEAD)"
+        RESULT_COMMITTER_DATE="$(git log -1 --pretty=%ct)"
+        printf "%s" "${RESULT_COMMITTER_DATE}" > "$(results.committer-date.path)"
+        printf "%s" "${RESULT_SHA}" > "$(results.commit.path)"
+        printf "%s" "${PARAM_URL}" > "$(results.url.path)"
+    - name: init-external
+      image: alpine:3.23
+      when:
+        - input: "$(params.fetch-external)"
+          operator: in
+          values: ["true"]
+        - input: "$(params.url)"
+          operator: in
+          values:
+            - "https://github.com/pingcap/tidb"
+            - "https://github.com/pingcap/tidb.git"
+            - "git@github.com:pingcap/tidb.git"
+            - "ssh://git@github.com/pingcap/tidb.git"
+      script: |
+        #!/bin/sh
+        set -eu
+
+        rm -f /workspace/pingcap-external-url /workspace/pingcap-external-revision
+        printf "" > "$(results.external-committer-date.path)"
+        printf "" > "$(results.external-commit.path)"
+        printf "" > "$(results.external-url.path)"
+    - name: resolve-external
+      image: alpine/git:v2.52.0
+      when:
+        - input: "$(params.fetch-external)"
+          operator: in
+          values: ["true"]
+        - input: "$(params.url)"
+          operator: in
+          values:
+            - "https://github.com/pingcap/tidb"
+            - "https://github.com/pingcap/tidb.git"
+            - "git@github.com:pingcap/tidb.git"
+            - "ssh://git@github.com/pingcap/tidb.git"
+      workingDir: $(workspaces.output.path)/$(params.subdirectory)
+      computeResources:
+        requests:
+          memory: 512Mi
+          cpu: "100m"
+      script: |
+        #!/bin/sh
+        set -eu
+
+        origin_ref="$(params.external-git-ref)"
+        if [ -z "$origin_ref" ]; then
+          origin_ref="$(params.revision)"
+        fi
+
+        git config --global --add safe.directory "$(workspaces.output.path)/$(params.subdirectory)" || true
+
+        release_version="$(git describe --tags --always --dirty --exclude 'v20[0-9][0-9].[0-1][0-9].[0-3][0-9]*')"
+        echo "origin ref: '$origin_ref'"
+
+        pick_remote_release_branch() {
+          version_core="$1"
+          remote_url="$2"
+
+          major_minor="${version_core%.*}"
+          patch="${version_core##*.}"
+          candidate_exact="release-${version_core}"
+          candidate_minor="release-${major_minor}"
+          candidate_prev=""
+          if [ "$patch" -gt 0 ] 2>/dev/null; then
+            candidate_prev="release-${major_minor}.$((patch - 1))"
+          fi
+
+          release_candidates="$(git ls-remote --heads "$remote_url" "refs/heads/release-${major_minor}*" 2>/dev/null | sed 's#.*refs/heads/##' | tr -d '\r' || true)"
+          echo "Remote release branches for ${major_minor}:" >&2
+          echo "$release_candidates" >&2
+
+          if echo "$release_candidates" | grep -qx "$candidate_exact"; then
+            echo "Matched exact patch release branch: $candidate_exact" >&2
+            printf "%s" "$candidate_exact"
+          # elif [ -n "$candidate_prev" ] && echo "$release_candidates" | grep -qx "$candidate_prev"; then
+          #   echo "Matched previous patch release branch: $candidate_prev" >&2
+          #   printf "%s" "$candidate_prev"
+          else
+            echo "Falling back to minor release branch: $candidate_minor" >&2
+            printf "%s" "$candidate_minor"
+          fi
+        }
+
+        if echo "$origin_ref" | grep -Eq '^feature/release-[0-9]+\.[0-9]+'; then
+          major_minor=$(echo "$release_version" | awk -F. '{print $1 "." $2}')
+          external_revision=$(echo "$major_minor" | sed -E 's/^v/release-/')
+        elif echo "$origin_ref" | grep -Eq '^release-[0-9]+\.[0-9]+-.*-v[0-9]+\.[0-9]+\.[0-9]+'; then
+          major_minor_patch=$(echo "$release_version" | grep -oE '^v[0-9]+[.][0-9]+[.][0-9]+')
+          external_revision=$(echo "$major_minor_patch" | sed -E 's/^v/release-/')
+        elif echo "$origin_ref" | grep -Eq '^(master|main|feature/.*|release-fts-[0-9]+)$'; then
+          external_revision="master"
+        elif echo "$origin_ref" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-[0-9]{8}-[0-9a-f]{6,}$'; then
+          version_core="$(echo "$origin_ref" | sed -nE 's/^v(([0-9]+\.[0-9]+\.[0-9]+))-[0-9]{8}-[0-9a-f]{6,}$/\1/p')"
+          external_revision="$(pick_remote_release_branch "$version_core" "$(params.external-git-url)")"
+        elif echo "$origin_ref" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$'; then
+          echo "Detected version tag: $origin_ref - resolving containing branch..."
+
+          tag_sha="$(git rev-parse --verify HEAD)"
+          if [ -n "$tag_sha" ]; then
+            git fetch origin "+refs/heads/*:refs/remotes/origin/*" --prune >/dev/null 2>&1 || true
+
+            contains_list="$(git branch -r --contains "$tag_sha" 2>/dev/null | sed -E 's#^[ *]*origin/##' | tr -d '\r' || true)"
+            echo "Branches containing $origin_ref ($tag_sha):"
+            echo "$contains_list"
+
+            major_minor="$(echo "$origin_ref" | sed -nE 's/^v([0-9]+\.[0-9]+).*$/\1/p')"
+            if [ -n "$major_minor" ] && echo "$contains_list" | grep -qx "release-$major_minor"; then
+              external_revision="release-$major_minor"
+              echo "Matched exact minor release branch: $external_revision"
+            else
+              nextgen_candidates="$(echo "$contains_list" | grep -E '^release-nextgen-[0-9]+$' || true)"
+              if [ -n "$nextgen_candidates" ]; then
+                external_revision="$(echo "$nextgen_candidates" | sort -V | tail -n1)"
+                echo "Matched nextgen release branch: $external_revision"
+              else
+                candidates="$(echo "$contains_list" | grep -E '^release-.+$' || true)"
+                if [ -n "$candidates" ]; then
+                  external_revision="$(echo "$candidates" | sed 's/^release-//' | sort -t. -k1,1nr -k2,2nr | head -n1 | sed 's/^/release-/')"
+                  echo "Matched other release branch: $external_revision"
+                elif echo "$contains_list" | grep -qx "master"; then
+                  external_revision="master"
+                  echo "Matched master"
+                elif echo "$contains_list" | grep -qx "main"; then
+                  external_revision="main"
+                  echo "Matched main"
+                else
+                  external_revision="$origin_ref"
+                  echo "No containing branches matched priority. Falling back to tag: $external_revision"
+                fi
+              fi
+            fi
+          else
+            external_revision="$origin_ref"
+            echo "Could not resolve tag SHA for $origin_ref. Falling back to tag."
+          fi
+        else
+          external_revision="$origin_ref"
+        fi
+
+        printf "%s" "${external_revision}" > /workspace/pingcap-external-revision
+        printf "%s" "$(params.external-git-url)" > /workspace/pingcap-external-url
+
+        echo "external git url: $(cat /workspace/pingcap-external-url)"
+        echo "external git revision: $(cat /workspace/pingcap-external-revision)"
+    - name: clone-external
+      image: "$(params.gitInitImage)"
+      when:
+        - input: "$(params.fetch-external)"
+          operator: in
+          values: ["true"]
+        - input: "$(params.url)"
+          operator: in
+          values:
+            - "https://github.com/pingcap/tidb"
+            - "https://github.com/pingcap/tidb.git"
+            - "git@github.com:pingcap/tidb.git"
+            - "ssh://git@github.com/pingcap/tidb.git"
+      env:
+        - name: HOME
+          value: "$(params.userHome)"
+        - name: PARAM_EXTERNAL_REFSPEC
+          value: $(params.external-refspec)
+        - name: PARAM_SUBMODULES
+          value: $(params.submodules)
+        - name: PARAM_DEPTH
+          value: $(params.depth)
+        - name: PARAM_SSL_VERIFY
+          value: $(params.sslVerify)
+        - name: PARAM_CRT_FILENAME
+          value: $(params.crtFileName)
+        - name: PARAM_DELETE_EXISTING
+          value: $(params.deleteExisting)
+        - name: PARAM_HTTP_PROXY
+          value: $(params.httpProxy)
+        - name: PARAM_HTTPS_PROXY
+          value: $(params.httpsProxy)
+        - name: PARAM_NO_PROXY
+          value: $(params.noProxy)
+        - name: PARAM_VERBOSE
+          value: $(params.verbose)
+        - name: PARAM_SPARSE_CHECKOUT_DIRECTORIES
+          value: $(params.sparseCheckoutDirectories)
+        - name: PARAM_USER_HOME
+          value: $(params.userHome)
+        - name: PARAM_GIT_INSTEAD_OF
+          value: $(params.gitInsteadOf)
+        - name: PARAM_EXTERNAL_SUBDIRECTORY
+          value: $(params.external-subdirectory)
+        - name: WORKSPACE_OUTPUT_PATH
+          value: $(workspaces.output.path)
+        - name: WORKSPACE_SSH_DIRECTORY_BOUND
+          value: $(workspaces.ssh-directory.bound)
+        - name: WORKSPACE_SSH_DIRECTORY_PATH
+          value: $(workspaces.ssh-directory.path)
+        - name: WORKSPACE_BASIC_AUTH_DIRECTORY_BOUND
+          value: $(workspaces.basic-auth.bound)
+        - name: WORKSPACE_BASIC_AUTH_DIRECTORY_PATH
+          value: $(workspaces.basic-auth.path)
+        - name: WORKSPACE_SSL_CA_DIRECTORY_BOUND
+          value: $(workspaces.ssl-ca-directory.bound)
+        - name: WORKSPACE_SSL_CA_DIRECTORY_PATH
+          value: $(workspaces.ssl-ca-directory.path)
+        - name: GIT_SSH_COMMAND
+          value: "ssh -o StrictHostKeyChecking=accept-new"
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+
+        PARAM_URL="$(cat /workspace/pingcap-external-url)"
+        PARAM_REVISION="$(cat /workspace/pingcap-external-revision)"
+        PARAM_SUBDIRECTORY="${PARAM_EXTERNAL_SUBDIRECTORY}"
+        if [ -z "${PARAM_SUBDIRECTORY}" ] ; then
+          PARAM_SUBDIRECTORY="$(basename "${PARAM_URL}")"
+          PARAM_SUBDIRECTORY="${PARAM_SUBDIRECTORY%.git}"
+        fi
+
+        if [ "${PARAM_VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        if [ "${WORKSPACE_BASIC_AUTH_DIRECTORY_BOUND}" = "true" ] ; then
+          cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.git-credentials" "${PARAM_USER_HOME}/.git-credentials"
+          cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.gitconfig" "${PARAM_USER_HOME}/.gitconfig"
+          chmod 400 "${PARAM_USER_HOME}/.git-credentials"
+          chmod 400 "${PARAM_USER_HOME}/.gitconfig"
+        fi
+
+        if [ "${WORKSPACE_SSH_DIRECTORY_BOUND}" = "true" ] ; then
+          cp -R "${WORKSPACE_SSH_DIRECTORY_PATH}" "${PARAM_USER_HOME}"/.ssh
+          chmod 700 "${PARAM_USER_HOME}"/.ssh
+          chmod -R 400 "${PARAM_USER_HOME}"/.ssh/*
+        fi
+
+        if [ "${WORKSPACE_SSL_CA_DIRECTORY_BOUND}" = "true" ] ; then
+           export GIT_SSL_CAPATH="${WORKSPACE_SSL_CA_DIRECTORY_PATH}"
+           if [ "${PARAM_CRT_FILENAME}" != "" ] ; then
+              export GIT_SSL_CAINFO="${WORKSPACE_SSL_CA_DIRECTORY_PATH}/${PARAM_CRT_FILENAME}"
+           fi
+        fi
+        CHECKOUT_DIR="${WORKSPACE_OUTPUT_PATH}/${PARAM_SUBDIRECTORY}"
+
+        cleandir() {
+          if [ -d "${CHECKOUT_DIR}" ] ; then
+            rm -rf "${CHECKOUT_DIR:?}"/*
+            rm -rf "${CHECKOUT_DIR}"/.[!.]*
+            rm -rf "${CHECKOUT_DIR}"/..?*
+          fi
+        }
+
+        if [ "${PARAM_DELETE_EXISTING}" = "true" ] ; then
+          cleandir || true
+        fi
+
+        test -z "${PARAM_HTTP_PROXY}" || export HTTP_PROXY="${PARAM_HTTP_PROXY}"
+        test -z "${PARAM_HTTPS_PROXY}" || export HTTPS_PROXY="${PARAM_HTTPS_PROXY}"
+        test -z "${PARAM_NO_PROXY}" || export NO_PROXY="${PARAM_NO_PROXY}"
+
+        if [ -n "${PARAM_GIT_INSTEAD_OF}" ] ; then
+          echo -n "${PARAM_GIT_INSTEAD_OF}" | tr ',' '\n' | while IFS= read -r mapping; do
+            instead_of_url=$(echo "${mapping}" | cut -d '=' -f 1 | tr -d ' ' | tr -d '"')
+            new_url=$(echo "${mapping}" | cut -d '>' -f 2 | tr -d ' ' | tr -d '"')
+            git config --global --add url."${new_url}".insteadOf "${instead_of_url}"
+          done
+        fi
+        git config --global --add safe.directory "${WORKSPACE_OUTPUT_PATH}"
+        /ko-app/git-init \
+          -url="${PARAM_URL}" \
+          -revision="${PARAM_REVISION}" \
+          -refspec="${PARAM_EXTERNAL_REFSPEC}" \
+          -path="${CHECKOUT_DIR}" \
+          -sslVerify="${PARAM_SSL_VERIFY}" \
+          -submodules="${PARAM_SUBMODULES}" \
+          -depth="${PARAM_DEPTH}" \
+          -sparseCheckoutDirectories="${PARAM_SPARSE_CHECKOUT_DIRECTORIES}"
+        cd "${CHECKOUT_DIR}"
+        RESULT_SHA="$(git rev-parse HEAD)"
+        RESULT_COMMITTER_DATE="$(git log -1 --pretty=%ct)"
+        printf "%s" "${RESULT_COMMITTER_DATE}" > "$(results.external-committer-date.path)"
+        printf "%s" "${RESULT_SHA}" > "$(results.external-commit.path)"
+        printf "%s" "${PARAM_URL}" > "$(results.external-url.path)"

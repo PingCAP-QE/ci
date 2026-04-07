@@ -98,8 +98,6 @@ spec:
         taskRunSpecs:
           - pipelineTaskName: checkout
             serviceAccountName: github-bot
-          - pipelineTaskName: checkout-ext
-            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
             serviceAccountName: image-releaser
             stepSpecs:

@@ -32,50 +32,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    hostname
-                    df -h
-                    free -hm
-                    gcc --version
-                    cmake --version
-                    clang --version
-                    ccache --version
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-                script {
-                    // test build cache, if cache is exist, then skip the following build steps
-                    try {
-                        dir("test-build-cache") {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'ut-build')){
-                                // if file README.md not exist, then build-cache-ready is false
-                                build_cache_ready = sh(script: "test -f README.md && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                                println "build_cache_ready: ${build_cache_ready}, build cache key: ${prow.getCacheKey('binary', REFS, 'ut-build')}"
-                                println "skip build..."
-                                // if build cache not ready, then throw error to avoid cache empty directory
-                                // for the same cache key, if throw error, will skip the cache step
-                                // the cache gets not stored if the key already exists or the inner-step has been failed
-                                if (!build_cache_ready) {
-                                    error "build cache not exist, start build..."
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        println "build cache not ready: ${e}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             when {
                 expression { !build_cache_ready }
@@ -349,6 +305,12 @@ pipeline {
                             chown -R 1000:1000 ./
                         """
                         cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'ut-build')) {
+                            // Fallback for cases where build_cache_ready was not set before this stage.
+                            build_cache_ready = build_cache_ready || (sh(
+                                script: "test -x tests/.build/tiflash",
+                                returnStatus: true
+                            ) == 0)
+
                             if (build_cache_ready) {
                                 println "build cache exist, restore from cache key: ${prow.getCacheKey('binary', REFS, 'ut-build')}"
                                 sh """
@@ -361,7 +323,7 @@ pipeline {
                                 sh label: "clean git repo", script: """
                                 git status
                                 git show --oneline -s
-                                mkdir tests/.build
+                                mkdir -p tests/.build
                                 cp -r ${WORKSPACE}/install/* tests/.build/
                                 rm -rf .git
                                 rm -rf contrib

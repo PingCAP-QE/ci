@@ -5,8 +5,11 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 12Gi
@@ -15,7 +18,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: java
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.13_java:cached"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/centos7_golang-1.13_java:cached"
       tty: true
       resources:
         requests:
@@ -24,13 +27,6 @@ spec:
         limits:
           memory: 16Gi
           cpu: "4"
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

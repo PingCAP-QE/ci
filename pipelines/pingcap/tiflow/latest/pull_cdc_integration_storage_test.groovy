@@ -4,141 +4,88 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_storage_test.yaml'
+final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-def skipRemainingStages = false
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
+final OCI_TAG_ETCD = 'v3.5.15'
+final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_SCHEMA_REGISTRY = 'latest'
 
+prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
+                    defaultContainer 'golang'
                 }
             }
-        }
-        stage('Check diff files') {
             steps {
-                container("golang") {
+                dir(REFS.repo) {
                     script {
-                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                        def pattern = /(^dm\/|^engine\/).*$/
-                        println "pr_diff_files: ${pr_diff_files}"
-                        // if all diff files start with dm/, skip cdc integration test
-                        def matched = component.patternMatchAllFiles(pattern, pr_diff_files)
-                        if (matched) {
-                            println "matched, all diff files full path start with dm/ or engine/, current pr is dm/engine's pr(not related to ticdc), skip cdc integration test"
-                            currentBuild.result = 'SUCCESS'
-                            skipRemainingStages = true
-                            return
-                        }
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
-                }
-            }
-        }
-        stage('Checkout') {
-            when { expression { !skipRemainingStages} }
-            steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
+                    script {
+                        cdc.prepareIntegrationTestCommonBinariesWithCacheLock(REFS, 'binary')
+                        cdc.prepareIntegrationTestKafkaConsumerBinariesWithCacheLock(REFS, 'binary')
+                        cdc.prepareIntegrationTestStorageConsumerBinariesWithCacheLock(REFS, 'binary')
+                    }
+                    container("utils") {
+                        dir("bin") {
                             script {
-                                prow.checkoutRefs(REFS)
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        \$script \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --pd=${OCI_TAG_PD} \
+                                            --pd-ctl=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR} \
+                                            --minio=${OCI_TAG_MINIO} \
+                                            --etcdctl=${OCI_TAG_ETCD} \
+                                            --ycsb=${OCI_TAG_YCSB} \
+                                            --schema-registry=${OCI_TAG_SCHEMA_REGISTRY}
+                                    """
+                                }
                             }
                         }
                     }
-                }
-            }
-        }
-        stage("prepare") {
-            when { expression { !skipRemainingStages} }
-            steps {
-                dir("third_party_download") {
-                    script {
-                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        retry(2) {
-                            sh label: "download third_party", script: """
-                                export TIDB_BRANCH=${tidbBranch}
-                                export PD_BRANCH=${pdBranch}
-                                export TIKV_BRANCH=${tikvBranch}
-                                export TIFLASH_BRANCH=${tiflashBranch}
-                                cd ../tiflow && ./scripts/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                                make check_third_party_binary
-                                cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                                ls -alh ./bin
-                                ./bin/tidb-server -V
-                                ./bin/pd-server -V
-                                ./bin/tikv-server -V
-                                ./bin/tiflash --version
-                            """
-                        }
-                    }
-                }
-                dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
-                        // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
-                        // only build binarys if not exist, use the cached binarys if exist
-                        sh label: "prepare", script: """
-                            ls -alh ./bin
-                            [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
-                            [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
-                            [ -f ./bin/cdc.test ] || make integration_test_build
-                            ls -alh ./bin
-                            ./bin/cdc version
-                        """
-                    }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
+                        sh label: "prepare", script: "ls -alh ./bin"
                     }
                 }
             }
         }
 
         stage('Tests') {
-            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09',
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09',
                             'G10', 'G11', 'G12', 'G13', 'G14', 'G15', 'G16', 'G17'
                     }
                 }
-                agent{
+                agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
@@ -147,27 +94,38 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        environment {
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
-                        }
+
                         steps {
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh storage ${TEST_GROUP}
+                                    sh """
+                                        ln -sf /usr/bin/jq ./bin/jq
+                                        make check_third_party_binary
+                                        ls -alh ./bin
+                                        ./bin/tidb-server -V
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/tiflash --version
                                     """
                                 }
+                                sh label: "${TEST_GROUP}", script: """
+                                    rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
+                                    chmod +x ./tests/integration_tests/run_group.sh
+                                    ./tests/integration_tests/run_group.sh storage ${TEST_GROUP}
+                                """
                             }
                         }
                         post {
                             failure {
                                 sh label: "collect logs", script: """
-                                    ls /tmp/tidb_cdc_test/
-                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
-                                    ls -alh  log-${TEST_GROUP}.tar.gz
+                                    ls /tmp/tidb_cdc_test/ || true
+                                    log_files=\$(find /tmp/tidb_cdc_test/ -type f -name "*.log" 2>/dev/null || true)
+                                    if [ -n "\${log_files}" ]; then
+                                        tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \${log_files}
+                                    else
+                                        tar -czf log-${TEST_GROUP}.tar.gz --files-from /dev/null
+                                    fi
+                                    ls -alh log-${TEST_GROUP}.tar.gz
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }

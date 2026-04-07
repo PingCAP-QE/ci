@@ -68,11 +68,6 @@ main() {
 	(
 		cd "${BIN_DIR}"
 		"${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" "${oci_args[@]}"
-		# Flatten tiflash directory so tiflash binary is directly in bin/
-		if [ -d tiflash ]; then
-			mv tiflash/* .
-			rm -rf tiflash
-		fi
 	)
 
 	log_green "Download SUCCESS"

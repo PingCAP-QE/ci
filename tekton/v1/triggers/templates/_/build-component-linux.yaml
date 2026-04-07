@@ -93,8 +93,6 @@ spec:
         taskRunSpecs:
           - pipelineTaskName: checkout
             serviceAccountName: github-bot
-          - pipelineTaskName: checkout-ext
-            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
             serviceAccountName: image-releaser
             stepSpecs:
@@ -174,8 +172,6 @@ spec:
               kubernetes.io/arch: arm64
         taskRunSpecs:
           - pipelineTaskName: checkout
-            serviceAccountName: github-bot
-          - pipelineTaskName: checkout-ext
             serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
             serviceAccountName: image-releaser

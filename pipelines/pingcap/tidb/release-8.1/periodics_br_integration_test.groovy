@@ -8,6 +8,13 @@ final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.1/pod-pull_br_integration_test.yaml'
 final TARGET_BRANCH = "release-8.1"
+final OCI_TAG_PD = TARGET_BRANCH.replaceAll('/', '-')
+final OCI_TAG_TIKV = TARGET_BRANCH.replaceAll('/', '-')
+final OCI_TAG_TIFLASH = TARGET_BRANCH.replaceAll('/', '-')
+final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
+final OCI_TAG_KES = 'v0.14.0'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
 pipeline {
     agent {
@@ -18,27 +25,13 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -56,16 +49,38 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            chmod +x ../tidb/br/tests/*.sh
-                            ${WORKSPACE}/tidb/br/tests/download_integration_test_binaries.sh release-8.1
-                            mkdir -p bin && mv third_bin/* bin/
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                        """
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: "download third_party", script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --pd=${OCI_TAG_PD} \
+                                        --pd-ctl=${OCI_TAG_PD} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --tikv-ctl=${OCI_TAG_TIKV} \
+                                        --tiflash=${OCI_TAG_TIFLASH} \
+                                        --ycsb=${OCI_TAG_YCSB} \
+                                        --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                        --kes=${OCI_TAG_KES} \
+                                        --minio=${OCI_TAG_MINIO} \
+                                        --brv408
+                                """
+                            }
+                        }
+                        sh label: "verify third_party", script: '''
+                            if [[ -d tiflash && ! -L tiflash ]]; then
+                                rm -rf tiflash_dir
+                                mv tiflash tiflash_dir
+                            fi
+                            if [[ -f tiflash_dir/tiflash ]]; then
+                                ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
+                            fi
+
+                            ls -alh .
+                            ./pd-server -V
+                            ./tikv-server -V
+                            ./tiflash --version
+                        '''
                     }
                 }
                 dir('tidb') {
