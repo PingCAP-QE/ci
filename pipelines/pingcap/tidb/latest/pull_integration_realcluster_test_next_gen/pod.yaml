@@ -5,28 +5,25 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go12320241009"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
       securityContext:
         privileged: true
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
+        requests:
+          memory: 24Gi
+          cpu: "6"
+          ephemeral-storage: 20Gi
         limits:
-          memory: 32Gi
-          cpu: "8"
+          memory: 48Gi
+          cpu: "12"
+          ephemeral-storage: 150Gi
       volumeMounts:
-        - mountPath: /home/jenkins/.tidb/tmp
+        - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
-        - name: bazel-out-lower
-          subPath: tidb/go1.19.2
-          mountPath: /bazel-out-lower
-        - name: bazel-out-overlay
-          mountPath: /bazel-out-overlay
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
-        - mountPath: /share/.cache/bazel-repository-cache
-          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -39,7 +36,7 @@ spec:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
     - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
@@ -49,25 +46,19 @@ spec:
           cpu: "1"
           memory: 4Gi
   volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
-    - name: bazel-out-lower
-      persistentVolumeClaim:
-        claimName: bazel-out-data
-    - name: bazel-out-overlay
-      emptyDir: {}
     - name: bazel-out-merged
-      emptyDir: {}
-    - name: bazel-repository-cache
-      persistentVolumeClaim:
-        claimName: bazel-repository-cache
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 200Gi
+            storageClassName: hyperdisk-rwo
     - name: bazel-rc
-      secret:
-        secretName: bazel
+      configMap:
+        name: bazel
     - name: containerinfo
       downwardAPI:
         items:
