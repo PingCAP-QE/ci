@@ -44,7 +44,7 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://do.pingcap.net/jenkins
+                value: https://prow.tidb.net/jenkins
               - name: JENKINS_USER
                 valueFrom:
                   secretKeyRef:
@@ -86,7 +86,7 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://do.pingcap.net/jenkins
+                value: https://prow.tidb.net/jenkins
             command: [bash, -ceo, pipefail]
             args:
               - |
