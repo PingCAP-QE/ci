@@ -20,13 +20,13 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/tidbx'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/tidbx
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -51,6 +51,15 @@ pipeline {
                 dir("${REFS.repo}/tests/integrationtest2/third_bin") {
                     container("utils") {
                         sh """
+                            set -euxo pipefail
+                            if [[ "\${OCI_ARTIFACT_HOST}" == us-docker.pkg.dev/* ]]; then
+                                registry_host="\${OCI_ARTIFACT_HOST%%/*}"
+                                token=\$(curl -fsSL -H 'Metadata-Flavor: Google' \\
+                                    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' | jq -r '.access_token')
+                                if [[ -n "\${token}" && "\${token}" != "null" ]]; then
+                                    echo "\${token}" | oras login "\${registry_host}" -u oauth2accesstoken --password-stdin
+                                fi
+                            fi
                             script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                             chmod +x \$script
                             \${script} \

@@ -40,6 +40,24 @@ pipeline {
                 }
             }
         }
+        stage('Hotfix bazel deps/cache (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                        set -euxo pipefail
+
+                        # Clean legacy cache/mirror URLs that are unstable on GCP workers.
+                        for f in WORKSPACE DEPS.bzl; do
+                          [ -f "$f" ] || continue
+                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                        done
+
+                        # Avoid "check" targets re-writing legacy cache settings during migration replay.
+                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                    '''
+                }
+            }
+        }
         stage("Build tidb-server community edition"){
             steps {
                 dir(REFS.repo) {
