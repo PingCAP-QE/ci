@@ -112,7 +112,7 @@ presubmits:
             name: checkconfig
             resources: {}
           - name: verify-gitops
-            image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
+            image: ghcr.io/fluxcd/flux-cli:v2.2.3
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
             command: [flux, -n, apps]
