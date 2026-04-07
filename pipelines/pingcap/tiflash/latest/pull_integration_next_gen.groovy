@@ -66,9 +66,8 @@ pipeline {
                         git version
                         git status
                         """
-                        git.setSshKey(GIT_CREDENTIALS_ID)
                         retry(2) {
-                            prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
 
