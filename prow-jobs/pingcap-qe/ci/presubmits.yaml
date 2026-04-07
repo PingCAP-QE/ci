@@ -8,6 +8,25 @@ global_definitions:
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   PingCAP-QE/ci:
+    - name: pull-verify-pr-content-policy
+      labels: *labels
+      decorate: true
+      always_run: true
+      max_concurrency: 1
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: ghcr.io/pingcap-qe/cd/utils/release:v2026.3.29-14-g90ae7ef
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                .ci/check-pr-content-policy.sh --base-sha "${PULL_BASE_SHA:?missing PULL_BASE_SHA}"
+            resources:
+              limits:
+                memory: 128Mi
+                cpu: 200m
     - name: pull-replay-jenkins-pipelines
       labels: *labels
       decorate: true
