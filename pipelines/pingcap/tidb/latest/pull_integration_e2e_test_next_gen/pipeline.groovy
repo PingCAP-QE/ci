@@ -26,7 +26,7 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -50,16 +50,13 @@ pipeline {
             steps {
                 dir("${REFS.repo}/tests/integrationtest2/third_bin") {
                     container("utils") {
+                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                            sh label: "prepare docker auth", script: '''
+                                mkdir -p ~/.docker
+                                cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                            '''
+                        }
                         sh """
-                            set -euxo pipefail
-                            if [[ "\${OCI_ARTIFACT_HOST}" == us-docker.pkg.dev/* ]]; then
-                                registry_host="\${OCI_ARTIFACT_HOST%%/*}"
-                                token=\$(curl -fsSL -H 'Metadata-Flavor: Google' \\
-                                    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' | jq -r '.access_token')
-                                if [[ -n "\${token}" && "\${token}" != "null" ]]; then
-                                    echo "\${token}" | oras login "\${registry_host}" -u oauth2accesstoken --password-stdin
-                                fi
-                            fi
                             script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                             chmod +x \$script
                             \${script} \

@@ -54,6 +54,9 @@ pipeline {
 
                         # Avoid "check" targets re-writing legacy cache settings during migration replay.
                         sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                        # Ensure expected bazel tmp dir exists after mount point change.
+                        mkdir -p /home/jenkins/.tidb/tmp
                     '''
                 }
             }
