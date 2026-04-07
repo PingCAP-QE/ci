@@ -245,7 +245,7 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
 // send test case run report to cloudevents server
 def sendTestCaseRunReport(repo, branch, dataFile = 'bazel-go-test-problem-cases.json') {
     sh label: 'Send event to cloudevents server', script: """timeout 10 \
-        curl --verbose --request POST --url https://cloudevents-server.cs.svc/events \
+        curl --verbose --request POST --url http://cloudevents-server.cs.svc/events \
         --header "ce-id: \$(uuidgen)" \
         --header "ce-source: \${JENKINS_URL}" \
         --header 'ce-type: test-case-run-report' \
