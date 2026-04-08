@@ -10,9 +10,9 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final OCI_TAG_PD = component.computeArtifactNextGenOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIDB = component.computeArtifactNextGenOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeArtifactNextGenOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'cloud-engine')
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
+final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 
 Boolean proxy_cache_ready = false
 Boolean build_cache_ready = false
@@ -20,7 +20,6 @@ String proxy_commit_hash = null
 String tiflash_commit_hash = null
 Boolean libclara_cache_ready = false
 String libclara_commit_hash = null
-
 
 pipeline {
     agent {
