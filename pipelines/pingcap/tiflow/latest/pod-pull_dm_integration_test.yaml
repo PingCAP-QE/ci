@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: init-mysql-config
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.25:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25"
       command:
         - sh
         - -c
@@ -17,10 +17,9 @@ spec:
           name: "mysql-config-volume"
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.25:tini"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25"
+      command: [tini, --, bash]
       tty: true
-      args:
-        - cat
       resources:
         requests:
           memory: 12Gi
@@ -32,8 +31,18 @@ spec:
         - mountPath: "/home/jenkins/.my.cnf"
           name: "mysql-config-volume"
           subPath: ".my.cnf"
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      tty: true
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+        limits:
+          cpu: "1"
+          memory: 4Gi
     - name: mysql1
-      image: "hub.pingcap.net/jenkins/mysql:5.7"
+      image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
         limits:
@@ -51,7 +60,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: "registry-mirror.pingcap.net/library/mysql:8.0.21"
+      image: "docker.io/library/mysql:8.0.21"
       tty: true
       resources:
         limits:
@@ -70,20 +79,6 @@ spec:
         - "--gtid-mode=ON"
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
   volumes:
     - name: mysql-config-volume
       emptyDir: {}

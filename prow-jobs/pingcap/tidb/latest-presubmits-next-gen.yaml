@@ -17,6 +17,8 @@ presubmits:
   pingcap/tidb:
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_build_next_gen
+      labels:
+        master: "1"
       skip_if_only_changed: *skip_if_only_changed
       context: pull-build-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-build-next-gen(?: .*?)?$"
@@ -24,6 +26,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_unit_test_next_gen
+      labels:
+        master: "1"
       skip_if_only_changed: *skip_if_only_changed
       context: pull-unit-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-next-gen(?: .*?)?$"
@@ -31,6 +35,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_realcluster_test_next_gen
+      labels:
+        master: "1"
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
@@ -38,6 +44,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_mysql_client_test_next_gen
+      labels:
+        master: "1"
       skip_if_only_changed: *skip_if_only_changed
       context: pull-mysql-client-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
@@ -45,6 +53,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_mysql_test_next_gen
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-mysql-test-next-gen
@@ -53,6 +63,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_e2e_test_next_gen
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-integration-e2e-test-next-gen
@@ -61,6 +73,7 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_br_integration_test_next_gen
+      # never run before
       # run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       optional: true
       context: non-block/pull-br-integration-test-next-gen
@@ -69,6 +82,7 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_ddl_test_next_gen
+      # never run before
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-integration-ddl-test-next-gen

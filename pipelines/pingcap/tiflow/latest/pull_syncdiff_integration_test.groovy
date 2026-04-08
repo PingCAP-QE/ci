@@ -10,6 +10,7 @@ final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_DUMPLING = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+
 pipeline {
     agent {
         kubernetes {
@@ -19,37 +20,22 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                    retry(3) {
+                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                            script {
+                                retry(2) {
+                                    prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                                }
                             }
                         }
                     }
@@ -63,37 +49,26 @@ pipeline {
                         dir("bin") {
                             retry(2) {
                                 sh label: "download third-party binaries", script: """
-                                    if grep -q -- '--dumpling=' "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"; then
-                                        "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" \
-                                            --tidb=${OCI_TAG_TIDB} \
-                                            --tikv=${OCI_TAG_TIKV} \
-                                            --pd=${OCI_TAG_PD} \
-                                            --dumpling=${OCI_TAG_DUMPLING}
-                                    else
-                                        # Replay may run with an older helper script checkout that lacks --dumpling.
-                                        "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" \
-                                            --tidb=${OCI_TAG_TIDB} \
-                                            --tikv=${OCI_TAG_TIKV} \
-                                            --pd=${OCI_TAG_PD}
-                                    fi
+                                    "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" \
+                                        --tidb=${OCI_TAG_TIDB} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --pd=${OCI_TAG_PD} \
+                                        --dumpling=${OCI_TAG_DUMPLING}
                                 """
                             }
                             sh label: "ensure importer tools", script: """
                                 if [ ! -x importer ]; then
                                     wget --no-verbose -t 3 \
-                                        -O tidb-enterprise-tools.tar.gz \
-                                        https://fileserver.pingcap.net/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
-                                    tar -xzf tidb-enterprise-tools.tar.gz
-                                    mv tidb-enterprise-tools/bin/loader ./
-                                    mv tidb-enterprise-tools/bin/importer ./
-                                    rm -rf tidb-enterprise-tools tidb-enterprise-tools.tar.gz
+                                        -O tidb-enterprise-tools-nightly-linux-amd64.tar.gz \
+                                        https://download.pingcap.com/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
+                                    tar -xzf tidb-enterprise-tools-nightly-linux-amd64.tar.gz \
+                                        tidb-enterprise-tools-nightly-linux-amd64/bin/loader \
+                                        tidb-enterprise-tools-nightly-linux-amd64/bin/importer
+                                    mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader ./
+                                    mv tidb-enterprise-tools-nightly-linux-amd64/bin/importer ./
+                                    rm -rf tidb-enterprise-tools-nightly-linux-amd64 tidb-enterprise-tools-nightly-linux-amd64.tar.gz
                                 fi
                             """
-                        }
-                    }
-                    script {
-                        if (!fileExists('bin/dumpling')) {
-                            component.fetchAndExtractArtifact('http://fileserver.pingcap.net', 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
                         }
                     }
                     sh label: "check", script: """
@@ -101,12 +76,9 @@ pipeline {
                         which bin/pd-server
                         which bin/tidb-server
                         which bin/importer
+                        which bin/dumpling
                         ls -alh ./bin/
-                        if [ -x bin/dumpling ]; then
-                            ./bin/dumpling --version
-                        else
-                            echo "dumpling is not present in current helper-script mode"
-                        fi
+                        ./bin/dumpling --version
                         ./bin/tikv-server -V
                         ./bin/pd-server -V
                         ./bin/tidb-server -V

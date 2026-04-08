@@ -1,5 +1,15 @@
-import { buildIssueBody, buildIssueComment, buildIssueTitle, parseRepo } from "./IssueUtils.ts";
-import type { CaseAgg, GithubIssueInfo, GithubIssueStatus, ReportData } from "./types.ts";
+import {
+  buildIssueBody,
+  buildIssueComment,
+  buildIssueTitle,
+  parseRepo,
+} from "./IssueUtils.ts";
+import type {
+  CaseAgg,
+  GithubIssueInfo,
+  GithubIssueStatus,
+  ReportData,
+} from "./types.ts";
 
 interface IssueManagerOptions {
   token?: string;
@@ -10,6 +20,7 @@ interface IssueManagerOptions {
   labels: string[];
   repoOverride?: string;
   titleIncludesRepo?: boolean;
+  now?: () => Date;
   verbose?: boolean;
 }
 
@@ -18,7 +29,11 @@ interface GitHubIssueApi {
   title: string;
   state: "open" | "closed";
   html_url: string;
+  closed_at?: string | null;
 }
+
+const ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS = 10;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 class GitHubClient {
   constructor(
@@ -31,11 +46,13 @@ class GitHubClient {
     repo: string,
     title: string,
   ): Promise<GitHubIssueApi[]> {
-    const queryTitle = title.replaceAll('"', "\\\"");
+    const queryTitle = title.replaceAll('"', '\\"');
     const query = `repo:${owner}/${repo} is:issue in:title \"${queryTitle}\"`;
-    const url = `https://api.github.com/search/issues?q=${encodeURIComponent(query)}`;
-    const res = await this.request("GET", url);
-    const items = Array.isArray(res?.items) ? res.items : [];
+    const url = `https://api.github.com/search/issues?q=${
+      encodeURIComponent(query)
+    }`;
+    const res = await this.request("GET", url) as { items?: GitHubIssueApi[] };
+    const items = Array.isArray(res.items) ? res.items : [];
     return items
       .filter((i: GitHubIssueApi) => i && i.title)
       .map((i: GitHubIssueApi) => ({
@@ -43,6 +60,7 @@ class GitHubClient {
         title: i.title,
         state: i.state,
         html_url: i.html_url,
+        closed_at: i.closed_at,
       }));
   }
 
@@ -52,7 +70,9 @@ class GitHubClient {
     title: string,
     body: string,
   ): Promise<GitHubIssueApi> {
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues`;
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${
+      encodeURIComponent(repo)
+    }/issues`;
     const res = await this.request("POST", url, {
       title,
       body,
@@ -66,7 +86,9 @@ class GitHubClient {
     repo: string,
     issueNumber: number,
   ): Promise<GitHubIssueApi> {
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${issueNumber}`;
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${
+      encodeURIComponent(repo)
+    }/issues/${issueNumber}`;
     const res = await this.request("PATCH", url, { state: "open" });
     return res as GitHubIssueApi;
   }
@@ -78,7 +100,9 @@ class GitHubClient {
     labels: string[],
   ): Promise<void> {
     if (!labels || labels.length === 0) return;
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${issueNumber}/labels`;
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${
+      encodeURIComponent(repo)
+    }/issues/${issueNumber}/labels`;
     await this.request("POST", url, { labels });
   }
 
@@ -88,7 +112,9 @@ class GitHubClient {
     issueNumber: number,
     body: string,
   ): Promise<void> {
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${issueNumber}/comments`;
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${
+      encodeURIComponent(repo)
+    }/issues/${issueNumber}/comments`;
     await this.request("POST", url, { body });
   }
 
@@ -170,6 +196,7 @@ export class GithubIssueManager {
   private readonly labels: string[];
   private readonly repoOverride?: string;
   private readonly titleIncludesRepo: boolean;
+  private readonly now: () => Date;
   private readonly verbose: boolean;
 
   constructor(opts: IssueManagerOptions) {
@@ -184,6 +211,7 @@ export class GithubIssueManager {
     this.labels = opts.labels ?? [];
     this.repoOverride = opts.repoOverride;
     this.titleIncludesRepo = !!opts.titleIncludesRepo;
+    this.now = opts.now ?? (() => new Date());
     this.verbose = !!opts.verbose;
   }
 
@@ -267,25 +295,32 @@ export class GithubIssueManager {
       return;
     }
 
-    const title = buildIssueTitle(sample, { includeRepo: this.titleIncludesRepo });
+    const title = buildIssueTitle(sample, {
+      includeRepo: this.titleIncludesRepo,
+    });
     const { owner, repo } = parsed;
 
     let issue: GitHubIssueApi | null = null;
     let status: GithubIssueStatus = "missing";
     let created = false;
+    let note: string | undefined;
 
     try {
       issue = await this.findBestIssue(owner, repo, title);
       if (issue?.state === "open") {
         status = "open";
       } else if (issue?.state === "closed") {
-        if (this.allowReopen && canMutate) {
+        const reopenCheck = this.allowReopen && canMutate
+          ? this.checkReopenEligibility(issue)
+          : { eligible: false, note: undefined };
+        if (reopenCheck.eligible) {
           status = "reopened";
           if (!this.dryRun) {
             issue = await this.client!.reopenIssue(owner, repo, issue.number);
           }
         } else {
           status = "closed";
+          note = reopenCheck.note;
         }
       } else {
         if (this.allowCreate && canMutate) {
@@ -314,7 +349,7 @@ export class GithubIssueManager {
       return;
     }
 
-    const info = this.buildIssueInfo(issueRepo, issue, status);
+    const info = this.buildIssueInfo(issueRepo, issue, status, note);
     if (this.dryRun && canMutate) info.dryRun = true;
 
     for (const c of group) {
@@ -327,7 +362,9 @@ export class GithubIssueManager {
       if (this.dryRun) {
         if (this.verbose) {
           console.debug(
-            `[github] dryrun labels: ${issueRepo}#${issue.number} -> ${this.labels.join(",")}`,
+            `[github] dryrun labels: ${issueRepo}#${issue.number} -> ${
+              this.labels.join(",")
+            }`,
           );
         }
       } else {
@@ -340,8 +377,8 @@ export class GithubIssueManager {
       }
     }
 
-    const shouldComment =
-      this.allowComment && !created && issue.state === "open" &&
+    const shouldComment = this.allowComment && !created &&
+      issue.state === "open" &&
       this.allowCommentForStatus(status);
 
     if (!shouldComment) return;
@@ -380,7 +417,9 @@ export class GithubIssueManager {
     if (!issues || issues.length === 0) return null;
 
     const normalizedTitle = this.normalizeTitle(title);
-    const exact = issues.filter((i) => this.normalizeTitle(i.title) === normalizedTitle);
+    const exact = issues.filter((i) =>
+      this.normalizeTitle(i.title) === normalizedTitle
+    );
     const candidates = exact.length > 0 ? exact : issues;
 
     const open = candidates.find((i) => i.state === "open");
@@ -393,10 +432,48 @@ export class GithubIssueManager {
     return title.trim().replace(/\s+/g, " ").toLowerCase();
   }
 
+  private checkReopenEligibility(
+    issue: GitHubIssueApi,
+  ): { eligible: boolean; note?: string } {
+    const closedAt = this.parseClosedAt(issue.closed_at);
+    if (!closedAt) {
+      return {
+        eligible: false,
+        note: "skip reopen: missing closed_at timestamp",
+      };
+    }
+
+    const ageMs = this.now().getTime() - closedAt.getTime();
+    if (!Number.isFinite(ageMs) || ageMs < 0) {
+      return {
+        eligible: false,
+        note: `skip reopen: invalid closed_at timestamp ${issue.closed_at}`,
+      };
+    }
+
+    if (ageMs < ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS * DAY_MS) {
+      return {
+        eligible: false,
+        note:
+          `skip reopen: issue closed less than ${ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS} days ago`,
+      };
+    }
+
+    return { eligible: true };
+  }
+
+  private parseClosedAt(value?: string | null): Date | null {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
   private buildIssueInfo(
     repo: string,
     issue: GitHubIssueApi | null,
     status: GithubIssueStatus,
+    note?: string,
   ): GithubIssueInfo {
     return {
       repo,
@@ -404,6 +481,7 @@ export class GithubIssueManager {
       url: issue?.html_url,
       state: issue?.state,
       status,
+      note,
     };
   }
 }

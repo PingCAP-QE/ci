@@ -6,18 +6,20 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_python_orm_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -51,15 +53,18 @@ pipeline {
                 container("golang") {
                     dir('tidb') {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
+                    }
+                }
+                container("utils") {
+                    dir("tidb/bin") {
                         retry(2) {
-                            script {
-	                            def isFeatureBranch = (REFS.base_ref ==~ /^feature\/.*/)
-	                            def artifactVerify = !isFeatureBranch
-	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
-	                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=artifactVerify)
-                            }
+                            sh label: 'download tidb components', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                            """
                         }
                     }
+                }
+                container("golang") {
                     dir('tidb-test') {
                         cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                             sh label: "prepare", script: """
@@ -91,7 +96,7 @@ pipeline {
                 agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'python'
                     }
                 }
@@ -115,7 +120,6 @@ pipeline {
                                         TEST_SCRIPT=\$2
                                         echo "TEST_DIR=\${TEST_DIR}"
                                         echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-
                                         cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
                                     """
                                 }

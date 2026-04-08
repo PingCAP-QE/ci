@@ -114,7 +114,7 @@ Required permissions:
 - --issue-create
   - Enable creating new GitHub issues (default false).
 - --issue-reopen
-  - Enable reopening closed GitHub issues (default false).
+  - Enable reopening closed GitHub issues only when they were closed at least 10 days ago (default false).
 - --issue-comment
   - Enable adding comments to open/reopened issues (default false).
 - --issue-mutation-limit
@@ -179,7 +179,7 @@ Defaults:
 ## GitHub issue integration
 
 - When a GitHub token is provided, the reporter searches issues by title (branch is not part of the title).
-- New issues are created only with `--issue-create`; closed issues are reopened only with `--issue-reopen`.
+- New issues are created only with `--issue-create`; closed issues are reopened only with `--issue-reopen` and only after they have been closed for at least 10 days.
 - The configured labels are applied to any matched/created issue.
 - For open or reopened issues, a comment is appended with the current window’s stats only when `--issue-comment` is enabled.
 - New issues set the issue type to `Task` (silently dropped if not permitted by GitHub).

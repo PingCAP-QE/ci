@@ -5,35 +5,29 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go12320241009"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
       securityContext:
         privileged: true
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
+        requests:
+          cpu: "2"
+          memory: 16Gi
+          ephemeral-storage: 20Gi
         limits:
           memory: 64Gi
           cpu: "16"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
+          ephemeral-storage: 150Gi
       volumeMounts:
-        - mountPath: /home/jenkins/.tidb/tmp
+        - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
-        - name: bazel-out-lower
-          subPath: tidb/go1.19.2
-          mountPath: /bazel-out-lower
-        - name: bazel-out-overlay
-          mountPath: /bazel-out-overlay
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
-        - name: bazel-rc
+        - name: bazel-rc # migration: keep
           mountPath: /data/
           readOnly: true
-        - name: containerinfo
+        - name: containerinfo # migration: keep
           mountPath: /etc/containerinfo
       lifecycle:
         postStart:
@@ -41,37 +35,20 @@ spec:
             command:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
   volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
-    - name: bazel-out-lower
-      persistentVolumeClaim:
-        claimName: bazel-out-data
-    - name: bazel-out-overlay
-      emptyDir: {}
     - name: bazel-out-merged
-      emptyDir: {}
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 150Gi
+            storageClassName: hyperdisk-rwo
     - name: bazel-rc
-      secret:
-        secretName: bazel
+      configMap:
+        name: bazel
     - name: containerinfo
       downwardAPI:
         items:

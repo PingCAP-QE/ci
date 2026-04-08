@@ -12,7 +12,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
 final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-next-gen")
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
 final OCI_TAG_ETCD = 'v3.5.15'
@@ -76,11 +76,6 @@ pipeline {
                                             --etcdctl=${OCI_TAG_ETCD} \
                                             --ycsb=${OCI_TAG_YCSB} \
                                             --schema-registry=${OCI_TAG_SCHEMA_REGISTRY}
-
-                                        ls -d tiflash
-                                        mv tiflash tiflash-dir
-                                        mv tiflash-dir/* .
-                                        rm -rf tiflash-dir
                                     """
                                 }
                             }

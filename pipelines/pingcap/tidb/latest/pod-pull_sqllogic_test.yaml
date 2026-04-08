@@ -5,13 +5,13 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: download-sqllogic
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c"
       command:
         - /bin/sh
         - -c
         - |
           cd /git && \
-          wget http://fileserver.pingcap.net/download/builds/pingcap/case-data/sqllogic/sqllogictest_v20241212.tar.gz && \
+          oras pull us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/case-data/sqllogic:v20241212 && \
           tar xzf sqllogictest_v20241212.tar.gz && \
           rm sqllogictest_v20241212.tar.gz
       volumeMounts:
@@ -19,8 +19,11 @@ spec:
           mountPath: /git
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 8Gi
@@ -31,13 +34,6 @@ spec:
       volumeMounts:
         - name: test-data
           mountPath: /git
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
   volumes:
     - name: test-data
       emptyDir: {}
@@ -50,7 +46,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"

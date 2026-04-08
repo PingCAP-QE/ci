@@ -23,7 +23,7 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
@@ -31,7 +31,7 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub' // mirror for 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     stages {
         stage('Checkout') {
@@ -66,13 +66,6 @@ pipeline {
                                 """
                             }
                             sh '''
-                                if [[ -d tiflash && ! -L tiflash ]]; then
-                                    rm -rf tiflash_dir
-                                    mv tiflash tiflash_dir
-                                fi
-                                if [[ -f tiflash_dir/tiflash ]]; then
-                                    ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
-                                fi
                                 ls -alh .
                                 ./tikv-server -V
                                 ./pd-server -V

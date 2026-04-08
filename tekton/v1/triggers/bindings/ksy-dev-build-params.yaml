@@ -12,7 +12,7 @@ spec:
     - { name: force-builder-image, value: $(extensions.custom-params.builder-image) }
     - { name: profile, value: $(extensions.custom-params.profile) }
     - { name: publisher-url, value: "" } # no need publish in dev-builds
-    - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/dev }
+    - { name: registry, value: $(extensions.registry) }
     - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
     - { name: timeout, value: $(extensions.resource-config.timeout) }
     - name: git-instead-of

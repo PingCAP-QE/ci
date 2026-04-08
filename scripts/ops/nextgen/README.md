@@ -18,19 +18,22 @@ This is useful when you need deterministic, immutable image tags for deployments
 
 - jq (for JSON parsing)
 - crane (for interacting with container registries)
-  - Make sure you have access to `gcr.io/pingcap-public` (e.g., via `gcloud auth configure-docker gcr.io` or `crane auth login gcr.io`)
+- gcloud (for obtaining the registry access token used by `oras login`)
+- oras (for authenticating against the container registries before listing tags)
+  - Make sure you have access to both `us.gcr.io/pingcap-public/tidbx` and `gcr.io/pingcap-public/dbaas`
+  - A practical setup is `gcloud auth configure-docker us.gcr.io gcr.io`
 
-If either tool is missing, the script exits with a non-zero code and an actionable message.
+If any required tool is missing, the script exits with a non-zero code and an actionable message.
 
 ### Usage
 
 - Directly (executable):
 ```bash
-./ci/scripts/ops/nextgen/get-next-gen-exact-image-tags.sh
+./scripts/ops/nextgen/get-next-gen-exact-image-tags.sh
 ```
 - Or via Bash:
 ```bash
-bash ci/scripts/ops/nextgen/get-next-gen-exact-image-tags.sh
+bash scripts/ops/nextgen/get-next-gen-exact-image-tags.sh
 ```
 
 The script prints the results for all covered repositories and branches.
@@ -38,29 +41,30 @@ The script prints the results for all covered repositories and branches.
 ### Repositories and branches covered
 
 - pingcap/ticdc
-  - Repo: `gcr.io/pingcap-public/dbaas/ticdc`
-  - Tags checked: `master-next-gen`, `release-8.5-next-gen`
+  - Repo: `us.gcr.io/pingcap-public/tidbx/ticdc`
+  - Tags checked: `master-next-gen`, `release-nextgen-202603`
 - pingcap/tidb family
-  - Repo: `gcr.io/pingcap-public/dbaas/tidb`
-    - Tags checked: `master-next-gen`, `release-nextgen-20251011`
-  - Repo: `gcr.io/pingcap-public/dbaas/br`
-    - Tags checked: `master-next-gen`, `release-nextgen-20251011`
-  - Repo: `gcr.io/pingcap-public/dbaas/tidb-lightning`
-    - Tags checked: `master-next-gen`, `release-nextgen-20251011`
-  - Repo: `gcr.io/pingcap-public/dbaas/dumpling`
-    - Tags checked: `master-next-gen`, `release-nextgen-20251011`
+  - Repo: `us.gcr.io/pingcap-public/tidbx/tidb`
+    - Tags checked: `master-next-gen`, `release-nextgen-202603`
+  - Repo: `us.gcr.io/pingcap-public/tidbx/br`
+    - Tags checked: `master-next-gen`, `release-nextgen-202603`
+  - Repo: `us.gcr.io/pingcap-public/tidbx/tidb-lightning`
+    - Tags checked: `master-next-gen`, `release-nextgen-202603`
+  - Repo: `us.gcr.io/pingcap-public/tidbx/dumpling`
+    - Tags checked: `master-next-gen`, `release-nextgen-202603`
 - pingcap/tiflash
-  - Repo: `gcr.io/pingcap-public/dbaas/tiflash`
-  - Tags checked: `master-next-gen`, `release-nextgen-20251011`
+  - Repo: `us.gcr.io/pingcap-public/tidbx/tiflash`
+  - Tags checked: `master-next-gen`, `release-nextgen-202603`
 - pingcap/tiproxy
-  - Repo: `gcr.io/pingcap-public/dbaas/tiproxy`
-  - Tags checked: `main`, `release-nextgen-20251023`
+  - Repo: `gcr.io/pingcap-public/dbaas/tiproxy` for trunk lookup
+  - Repo: `us.gcr.io/pingcap-public/tidbx/tiproxy` for release lookup
+  - Tags checked: `main`, `release-nextgen-202603`
 - tidbcloud/cloud-storage-engine (TiKV)
-  - Repo: `gcr.io/pingcap-public/dbaas/tikv`
-  - Tags checked: `dedicated-next-gen`, `release-nextgen-20251011`
+  - Repo: `us.gcr.io/pingcap-public/tidbx/tikv`
+  - Tags checked: `cloud-engine-next-gen`, `release-nextgen-202603`
 - tikv/pd (PD)
-  - Repo: `gcr.io/pingcap-public/dbaas/pd`
-  - Tags checked: `master-next-gen`, `release-nextgen-20251011`
+  - Repo: `us.gcr.io/pingcap-public/tidbx/pd`
+  - Tags checked: `master-next-gen`, `release-nextgen-202603`
 
 Notes:
 - Some components use `<trunk>-next-gen` tags for trunk verification.
@@ -70,17 +74,19 @@ Notes:
 
 ```text
 🚀 Fetch images built from pingcap/tidb...
-💿 gcr.io/pingcap-public/dbaas/tidb
-  📦 gcr.io/pingcap-public/dbaas/tidb:master-next-gen
-    👉 gcr.io/pingcap-public/dbaas/tidb:next-gen-...-abcd1234...
-  📦 gcr.io/pingcap-public/dbaas/tidb:release-nextgen-20251011
-    👉 gcr.io/pingcap-public/dbaas/tidb:release-nextgen-20251011-...-abcd1234...
+💿 us.gcr.io/pingcap-public/tidbx/tidb
+  📦 us.gcr.io/pingcap-public/tidbx/tidb:master-next-gen
+    👉 us.gcr.io/pingcap-public/tidbx/tidb:next-gen-...-abcd1234...
+  📦 us.gcr.io/pingcap-public/tidbx/tidb:release-nextgen-202603
+    👉 us.gcr.io/pingcap-public/tidbx/tidb:release-nextgen-202603-...-abcd1234...
 
 🚀 Fetch images built from pingcap/tiproxy...
+💿 gcr.io/pingcap-public/dbaas/tiproxy
   📦 gcr.io/pingcap-public/dbaas/tiproxy:main
     👉 gcr.io/pingcap-public/dbaas/tiproxy:...-gabcd123
-  📦 gcr.io/pingcap-public/dbaas/tiproxy:release-nextgen-20251023
-    👉 gcr.io/pingcap-public/dbaas/tiproxy:release-nextgen-20251023-...-gabcd123
+💿 us.gcr.io/pingcap-public/tidbx/tiproxy
+  📦 us.gcr.io/pingcap-public/tidbx/tiproxy:release-nextgen-202603
+    👉 us.gcr.io/pingcap-public/tidbx/tiproxy:release-nextgen-202603-...-gabcd123
 
 🎉🎉🎉 All gotten
 ```
@@ -107,21 +113,26 @@ Notes:
 - 1: Failure
   - `jq` not installed
   - `crane` not installed
+  - `gcloud` not installed
+  - `oras` not installed
+  - registry authentication failed
   - A candidate exact image tag was found but does not exist in the registry (digest lookup failed)
 
 Note: If no matching exact tag is found for a given base tag, the script does not treat it as an error; it prints only the base tag line and continues.
 
 ### Troubleshooting
 
-- Authentication to `gcr.io`:
+- Authentication to the registries:
   - Ensure you have credentials that allow listing and pulling:
-    - `gcloud auth configure-docker gcr.io`, or
-    - `crane auth login gcr.io`
+    - `gcloud auth configure-docker us.gcr.io gcr.io`, or
+    - `crane auth login us.gcr.io`
 - Verify tools:
   - `jq --version`
   - `crane version`
+  - `gcloud --version`
+  - `oras version`
 - Verbose registry checks:
-  - Try `crane ls gcr.io/pingcap-public/dbaas/<component>` manually to confirm visible tags
+  - Try `crane ls us.gcr.io/pingcap-public/tidbx/<component>` manually to confirm visible tags
   - Try `crane config <repo>:<tag>` to confirm the `net.pingcap.tibuild.git-sha` label exists
 
 ### Maintenance notes

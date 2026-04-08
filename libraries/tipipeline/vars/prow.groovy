@@ -1,18 +1,18 @@
-def checkoutRefsWithCacheLock(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
+def checkoutRefsWithCacheLock(refs, timeout = 5, credentialsId = '', withSubmodule = false, gitBaseUrl = 'https://github.com') {
     final lockResource = getCacheKey('git', refs)
     lock(lockResource) {
-        checkoutRefsWithCache(refs, timeout, credentialsId, gitBaseUrl, withSubmodule)
+        checkoutRefsWithCache(refs, timeout, credentialsId, withSubmodule, gitBaseUrl)
     }
 }
 
-def checkoutPrivateRefsWithCacheLock(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
+def checkoutPrivateRefsWithCacheLock(refs, credentialsId, timeout = 5, withSubmodule = false, gitSshHost = 'github.com') {
     final lockResource = getCacheKey('git', refs)
     lock(lockResource) {
-        checkoutPrivateRefsWithCache(refs, credentialsId, timeout, gitSshHost, withSubmodule)
+        checkoutPrivateRefsWithCache(refs, credentialsId, timeout, withSubmodule, gitSshHost)
     }
 }
 
-def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule = false) {
+def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', withSubmodule = false, gitBaseUrl = 'https://github.com') {
     final cacheKey = getCacheKey('git', refs)
     final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
@@ -22,7 +22,7 @@ def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', gitBaseUrl = 'h
     }
 }
 
-def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, gitSshHost = 'github.com', withSubmodule = false) {
+def checkoutPrivateRefsWithCache(refs, credentialsId, timeout = 5, withSubmodule = false, gitSshHost = 'github.com') {
     final cacheKey = getCacheKey('git', refs)
     final restoreKeys = getRestoreKeys('git', refs)
     cache(path: "./", includes: '**/*', key: cacheKey, restoreKeys: restoreKeys) {
@@ -208,7 +208,34 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
         fi
 
         if [ -f \$coverageFile ]; then
-            wget -q -O codecov http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0
+            # Prefer GCS mirror with Workload Identity token; fallback to legacy fileserver.
+            codecov_url="https://storage.googleapis.com/pingcap-ci-bazel-mirror-static-us-central1/download/cicd/tools/codecov-v0.5.0"
+            codecov_legacy_url="http://fileserver.pingcap.net/download/cicd/tools/codecov-v0.5.0"
+            token_api="http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
+            token_json=\$(curl -fsS --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 20 \
+                -H "Metadata-Flavor: Google" "\${token_api}" 2>/dev/null || true)
+            access_token=""
+            if [ -n "\${token_json}" ]; then
+                if command -v python3 >/dev/null 2>&1; then
+                    access_token=\$(printf '%s' "\${token_json}" | \
+                        python3 -c 'import json,sys; print(json.load(sys.stdin).get("access_token",""))' 2>/dev/null || true)
+                else
+                    echo "WARN: python3 not found; fallback to sed token parser."
+                fi
+                if [ -z "\${access_token}" ]; then
+                    access_token=\$(printf '%s' "\${token_json}" | \
+                        sed -n 's/.*"access_token":"\\([^"]*\\)".*/\\1/p' | head -n1 || true)
+                fi
+            fi
+            if [ -n "\${access_token}" ] && curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 120 \
+                -H "Authorization: Bearer \${access_token}" \
+                -o codecov "\${codecov_url}"; then
+                echo "INFO: Downloaded codecov from GCS mirror."
+            else
+                echo "WARN: Could not download codecov from GCS mirror; fallback to legacy fileserver."
+                curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 60 \
+                    -o codecov "\${codecov_legacy_url}"
+            fi
             chmod +x codecov
             ./codecov --rootDir . --flags ${flags} --file \${coverageFile} ${codecovGitOptions}
         fi
@@ -218,7 +245,7 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
 // send test case run report to cloudevents server
 def sendTestCaseRunReport(repo, branch, dataFile = 'bazel-go-test-problem-cases.json') {
     sh label: 'Send event to cloudevents server', script: """timeout 10 \
-        curl --verbose --request POST --url https://internal2-do.pingcap.net/cloudevents-server/events \
+        curl --verbose --request POST --url http://cloudevents-server.cs.svc/events \
         --header "ce-id: \$(uuidgen)" \
         --header "ce-source: \${JENKINS_URL}" \
         --header 'ce-type: test-case-run-report' \
