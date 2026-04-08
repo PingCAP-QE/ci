@@ -9,7 +9,11 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final dependency_dir = "/home/jenkins/agent/dependency"
+
+final OCI_TAG_PD = component.computeArtifactNextGenOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIDB = component.computeArtifactNextGenOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactNextGenOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+
 Boolean proxy_cache_ready = false
 Boolean build_cache_ready = false
 String proxy_commit_hash = null
@@ -17,9 +21,6 @@ String tiflash_commit_hash = null
 Boolean libclara_cache_ready = false
 String libclara_commit_hash = null
 
-final TARGET_BRANCH_PD = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
-final TARGET_BRANCH_TIDB = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "master")
-final TARGET_BRANCH_TIKV = (REFS.base_ref ==~ /release-.*/ ? REFS.base_ref : "cloud-engine")
 
 pipeline {
     agent {
@@ -32,7 +33,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/tidbx'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -417,24 +418,27 @@ pipeline {
                         steps {
                             dir("${WORKSPACE}/tiflash") {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')){
-                                    println "restore from cache key: ${prow.getCacheKey('ng-binary', REFS, 'it-build')}"
-                                    sh label: "debug info", script: """
-                                    printenv
-                                    pwd && ls -alh
-                                    """
                                     dir("tests/${TEST_PATH}") {
-                                        echo "path: ${pwd()}"
-                                        sh label: "debug docker info", script: """
-                                        docker ps -a && docker version
-                                        """
-                                        script {
-                                            def pdBranch = component.computeBranchFromPR('pd', TARGET_BRANCH_PD, REFS.pulls[0].title, 'master')
-                                            def tikvBranch = component.computeBranchFromPR('tidb', TARGET_BRANCH_TIKV, REFS.pulls[0].title, 'master')
-                                            def tidbBranch = component.computeBranchFromPR('tidb', TARGET_BRANCH_TIDB, REFS.pulls[0].title, 'master')
+                                        withEnv([
+                                            "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_PD}",
+                                            "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_TIKV}",
+                                            "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${OCI_TAG_TIDB}",
+                                        ]) {
+                                            // TODO: enable auth when migrated to cloud
+                                            // withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                                            //     sh label: "prepare docker auth", script: '''
+                                            //         mkdir -p ~/.docker
+                                            //         cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                                            //     '''
+                                            // }
 
-                                            sh label: "run integration tests", script: """
-                                            PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh
-                                            """
+                                            sh label: "prepare docker images", script: '''
+                                                docker ps -a && docker version
+                                                docker pull $PD_IMAGE
+                                                docker pull $TIKV_IMAGE
+                                                docker pull $TIDB_IMAGE
+                                            '''
+                                            sh label: "run the tests", script: "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh"
                                         }
                                     }
                                 }

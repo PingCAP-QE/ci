@@ -1,3 +1,8 @@
+def computeArtifactNextGenOciTagFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
+    def ret = computeArtifactOciTagFromPR(component, prTargetBranch, prTitle, trunkBranch)
+    return ret.contains("nextgen") ? ret : "${ret}-nextgen"
+}
+
 def computeArtifactOciTagFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     def branchName = computeBranchFromPR(component, prTargetBranch, prTitle, trunkBranch)
     return branchName.replaceAll('/', '-')
