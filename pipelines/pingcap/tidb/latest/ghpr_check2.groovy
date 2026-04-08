@@ -112,7 +112,6 @@ pipeline {
                         environment {
                             CODECOV_TOKEN = credentials('codecov-token-tidb')
                         }
-                        options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {

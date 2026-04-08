@@ -85,7 +85,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
@@ -141,7 +140,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {

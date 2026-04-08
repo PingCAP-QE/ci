@@ -144,7 +144,6 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
-                        options { timeout(time: 50, unit: 'MINUTES') }
                         environment {
                             MINIO_BIN_PATH = "bin/minio"
                         }

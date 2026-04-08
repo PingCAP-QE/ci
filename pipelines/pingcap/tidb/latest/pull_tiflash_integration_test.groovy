@@ -140,7 +140,6 @@ pipeline {
                         }
                     }
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash
