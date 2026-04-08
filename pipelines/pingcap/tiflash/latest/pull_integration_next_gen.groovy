@@ -421,7 +421,7 @@ pipeline {
                                     dir("tests/${TEST_PATH}") {
                                         withEnv([
                                             "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_PD}",
-                                            "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_TIKV}",
+                                            "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${OCI_TAG_TIKV}",
                                             "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${OCI_TAG_TIDB}",
                                         ]) {
                                             withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
