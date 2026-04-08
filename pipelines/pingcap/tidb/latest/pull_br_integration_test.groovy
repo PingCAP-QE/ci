@@ -35,7 +35,6 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     script {

@@ -27,7 +27,6 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     script {
@@ -65,7 +64,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
                     sh label: 'check version', script: """

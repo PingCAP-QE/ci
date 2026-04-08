@@ -33,7 +33,6 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     script {

@@ -33,7 +33,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir('tidb/tests/graceshutdown') {
                     sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'

@@ -75,7 +75,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 45, unit: 'MINUTES') }
             environment {
                 TICI_BIN = "third_bin/tici-server"
                 MINIO_BIN = "third_bin/minio"

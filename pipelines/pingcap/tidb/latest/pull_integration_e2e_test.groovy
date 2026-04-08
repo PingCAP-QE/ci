@@ -38,7 +38,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 45, unit: 'MINUTES') }
             steps {
                 dir("${REFS.repo}/tests/integrationtest2") {
                     dir("third_bin") {

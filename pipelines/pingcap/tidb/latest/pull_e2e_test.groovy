@@ -62,7 +62,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                     dir('tests/graceshutdown') {

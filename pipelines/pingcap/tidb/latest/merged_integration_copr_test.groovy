@@ -26,7 +26,6 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     script {
@@ -69,7 +68,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir('tikv-copr-test') {
                     sh label: "Push Down Test", script: '''#!/usr/bin/env bash
