@@ -20,10 +20,10 @@ spec:
       resources:
         requests:
           cpu: "8"
-          memory: 56Gi
+          memory: 64Gi
         limits:
           cpu: "8"
-          memory: 56Gi
+          memory: 64Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
