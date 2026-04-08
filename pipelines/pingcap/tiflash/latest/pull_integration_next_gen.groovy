@@ -33,7 +33,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/tidbx'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -424,20 +424,20 @@ pipeline {
                                             "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_TIKV}",
                                             "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${OCI_TAG_TIDB}",
                                         ]) {
-                                            // TODO: enable auth when migrated to cloud
-                                            // withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                                            //     sh label: "prepare docker auth", script: '''
-                                            //         mkdir -p ~/.docker
-                                            //         cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
-                                            //     '''
-                                            // }
+                                            withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                                                sh label: "prepare docker images", script: '''
+                                                    mkdir -p ~/.docker
+                                                    cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                                                    docker ps -a && docker version
 
-                                            sh label: "prepare docker images", script: '''
-                                                docker ps -a && docker version
-                                                docker pull $PD_IMAGE
-                                                docker pull $TIKV_IMAGE
-                                                docker pull $TIDB_IMAGE
-                                            '''
+                                                    docker pull $PD_IMAGE
+                                                    docker pull $TIKV_IMAGE
+                                                    docker pull $TIDB_IMAGE
+
+                                                    rm -rf ~/.docker
+                                                '''
+                                            }
+
                                             sh label: "run the tests", script: "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh"
                                         }
                                     }
