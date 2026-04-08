@@ -26,20 +26,6 @@ pipeline {
         timeout(time: 40, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir('tidb') {
@@ -57,11 +43,16 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    retry(3) {
-                        sh label: 'download binary', script: """
-                            cd bin
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                        """
+                    container('utils') {
+                        dir('bin') {
+                            script {
+                                retry(3) {
+                                    sh label: 'download binary', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
+                            }
+                        }
                     }
                 }
             }

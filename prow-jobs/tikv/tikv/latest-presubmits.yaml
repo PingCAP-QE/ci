@@ -46,7 +46,7 @@ presubmits:
       spec:
         containers:
           - name: build
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.8.17-13-ga5750d9
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2026.3.22-3-g892e449
             command: [bash, -ce]
             args:
               - |

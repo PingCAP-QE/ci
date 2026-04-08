@@ -16,21 +16,15 @@ spec:
       privileged: true
     tty: false
     volumeMounts:
-    - mountPath: "/home/jenkins"
-      name: "volume-0"
-      readOnly: false
     - mountPath: "/tmp"
-      name: "volume-3"
-      readOnly: false
-    - mountPath: "/home/jenkins/agent"
-      name: "workspace-volume"
+      name: "volume-tmp"
       readOnly: false
   - command:
     - "cat"
     env:
     - name: "DOCKER_HOST"
       value: "tcp://localhost:2375"
-    image: "hub.pingcap.net/jenkins/docker:build-essential-java"
+    image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/docker:build-essential-java"
     imagePullPolicy: "Always"
     name: "docker"
     resources:
@@ -39,25 +33,12 @@ spec:
         cpu: "5000m"
     tty: true
     volumeMounts:
-    - mountPath: "/home/jenkins"
-      name: "volume-0"
-      readOnly: false
     - mountPath: "/tmp"
-      name: "volume-3"
-      readOnly: false
-    - mountPath: "/home/jenkins/agent"
-      name: "workspace-volume"
+      name: "volume-tmp"
       readOnly: false
   volumes:
-  - emptyDir:
-      medium: ""
-    name: "volume-0"
-  - emptyDir:
-      medium: ""
-    name: "workspace-volume"
-  - emptyDir:
-      medium: ""
-    name: "volume-3"
+  - name: "volume-tmp"
+    emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

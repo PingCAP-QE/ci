@@ -23,6 +23,7 @@ resources:
   - pingcap-get-builder-image.yaml
   - pingcap-get-set-release-version.yaml
   - pingcap-git-clone-ext.yaml
+  - pingcap-git-clone.yaml
   - release/create-pr-to-add-release-anchor-commit.yaml
   - release/create-pr-to-bump-tikv-version.yaml
   - release/pingcap-compose-offline-pkgs.yaml

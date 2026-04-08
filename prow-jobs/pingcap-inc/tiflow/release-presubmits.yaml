@@ -1,0 +1,113 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+    - ^release-.*$
+    - ^feature/release-8[.]5[.]5-active-active$
+  changer: &changer
+    skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false # need add this.
+    max_concurrency: 2
+    labels:
+      master: "1"
+    run_before_merge: true
+  k8s_job: &k8s_job
+    decorate: true
+    clone_uri: git@github.com:pingcap-inc/tiflow.git
+    decoration_config:
+      ssh_key_secrets:
+        - github-ssh-secret
+      ssh_host_fingerprints:
+        # TODO: add to default decoration config global
+        # Ref: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+        - github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+        - github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+        - github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap-inc/tiflow:
+    - <<: [*k8s_job, *brancher, *changer]
+      name: pull-check
+      spec:
+        containers:
+          - name: check
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make check
+            resources: &resources
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
+    - <<: [*k8s_job, *brancher, *changer]
+      name: pull-build
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                make build
+            resources: *resources
+
+    - <<: [*k8s_job, *brancher, *changer]
+      name: pull-unit-test-cdc
+      spec:
+        containers:
+          - name: cdc-unit-test
+            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            command: [bash, -ce]
+            args:
+              - |
+                # Preserve junit artifacts for Prow even when tests fail.
+                archive_junit_reports() {
+                  local report
+                  shopt -s globstar nullglob
+                  mkdir -p "${ARTIFACTS}" || return 0
+                  for report in ./**/*-junit-report.xml; do
+                    cp -f "$report" "${ARTIFACTS}/$(basename "$report")" || true
+                  done
+                }
+                trap archive_junit_reports EXIT
+
+                make unit_test_in_verify_ci
+
+            resources:
+              requests:
+                memory: 24Gi
+                cpu: "6"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap-inc/tiflow/release-8.5/pull_cdc_integration_kafka_test
+      context: pull-cdc-integration-kafka-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-kafka-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap-inc/tiflow/release-8.5/pull_cdc_integration_mysql_test
+      context: pull-cdc-integration-mysql-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-mysql-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap-inc/tiflow/release-8.5/pull_cdc_integration_pulsar_test
+      context: pull-cdc-integration-pulsar-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-pulsar-test"
+
+    - <<: [*jenkins_job, *brancher, *changer]
+      name: pingcap-inc/tiflow/release-8.5/pull_cdc_integration_storage_test
+      context: pull-cdc-integration-storage-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-storage-test"
