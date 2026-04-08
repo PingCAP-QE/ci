@@ -18,7 +18,7 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
@@ -28,7 +28,7 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/tidbx'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/tidbx
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
     }
     stages {
         stage('Checkout') {
@@ -44,6 +44,35 @@ pipeline {
                 }
             }
         }
+        stage('Hotfix bazel deps/cache (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                        set -euxo pipefail
+
+                        # Clean legacy external cache/mirror URLs that are unstable on GCP workers.
+                        for f in WORKSPACE DEPS.bzl; do
+                          [ -f "$f" ] || continue
+                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                        done
+
+                        # Avoid check target re-writing legacy cache settings during replay validation.
+                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                        # Disable remote cache usage for this migration replay path.
+                        if [ -f .bazelrc ]; then
+                          sed -i '/^try-import \\/data\\/bazel$/d' .bazelrc
+                          grep -q '^build --noremote_accept_cached$' .bazelrc || echo 'build --noremote_accept_cached' >> .bazelrc
+                          grep -q '^build --noremote_upload_local_results$' .bazelrc || echo 'build --noremote_upload_local_results' >> .bazelrc
+                          grep -q '^test --noremote_accept_cached$' .bazelrc || echo 'test --noremote_accept_cached' >> .bazelrc
+                          grep -q '^test --noremote_upload_local_results$' .bazelrc || echo 'test --noremote_upload_local_results' >> .bazelrc
+                          grep -q '^run --noremote_accept_cached$' .bazelrc || echo 'run --noremote_accept_cached' >> .bazelrc
+                          grep -q '^run --noremote_upload_local_results$' .bazelrc || echo 'run --noremote_upload_local_results' >> .bazelrc
+                        fi
+                    '''
+                }
+            }
+        }
         stage("Prepare") {
             steps {
                 dir(REFS.repo) {
@@ -51,6 +80,12 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     container("utils") {
+                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                            sh label: "prepare docker auth", script: '''
+                                mkdir -p ~/.docker
+                                cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                            '''
+                        }
                         dir('bin') {
                             sh """
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
@@ -102,7 +137,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 when {
@@ -123,11 +158,11 @@ pipeline {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
-                                sh """
-                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
-                                git diff .
-                                git status
-                                """
+                                sh '''
+                                    mkdir -p /home/jenkins/.tidb/tmp
+                                    git diff . || true
+                                    git status || true
+                                '''
                                 sh """#! /usr/bin/env bash
                                     set -o pipefail
 
