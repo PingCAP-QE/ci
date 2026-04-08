@@ -27,20 +27,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} -c golang -- bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Check diff files') {
             steps {
                 container("golang") {
@@ -85,9 +71,7 @@ pipeline {
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
-                                git fetch origin ${REFS.base_ref}:local
-                                git checkout local
-                                git rev-parse HEAD
+                                git checkout ${REFS.base_sha}
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous

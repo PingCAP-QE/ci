@@ -135,7 +135,6 @@ presubmits:
     # ARM test
     - <<: *brancher
       name: pull-rust-rocksdb-test-arm
-      cluster: gcp-prow-ksyun
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
       spec:

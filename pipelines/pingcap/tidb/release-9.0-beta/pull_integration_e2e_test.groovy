@@ -60,9 +60,6 @@ pipeline {
                             }
                         }
                         sh '''
-                            mv tiflash tiflash_dir
-                            ln -s `pwd`/tiflash_dir/tiflash tiflash
-
                             ./tikv-server -V
                             ./pd-server -V
                             ./tiflash --version

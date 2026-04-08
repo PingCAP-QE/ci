@@ -26,13 +26,6 @@ spec:
           memory: 6Gi
           cpu: "6"
       command: ["bin/pulsar", "standalone"]
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

@@ -17,7 +17,6 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         ENABLE_FIPS = 1
     }
     options {
@@ -25,24 +24,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             parallel {
                 stage('tidb') {
@@ -101,15 +82,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        // TODO(wuhuizuo): put into container lifecyle preStop hook.
-        always {
-            container('report') {
-                sh "bash scripts/plugins/report_job_result.sh ${currentBuild.result} result.json || true"
-            }
-            archiveArtifacts(artifacts: 'result.json', fingerprint: true, allowEmptyArchive: true)
         }
     }
 }

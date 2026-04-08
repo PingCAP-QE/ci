@@ -8,6 +8,25 @@ global_definitions:
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   PingCAP-QE/ci:
+    - name: pull-verify-pr-content-policy
+      labels: *labels
+      decorate: true
+      always_run: true
+      max_concurrency: 1
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: ghcr.io/pingcap-qe/cd/utils/release:v2026.3.29-14-g90ae7ef
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                .ci/check-pr-content-policy.sh --base-sha "${PULL_BASE_SHA:?missing PULL_BASE_SHA}"
+            resources:
+              limits:
+                memory: 128Mi
+                cpu: 200m
     - name: pull-replay-jenkins-pipelines
       labels: *labels
       decorate: true
@@ -25,7 +44,7 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://do.pingcap.net/jenkins
+                value: https://prow.tidb.net/jenkins
               - name: JENKINS_USER
                 valueFrom:
                   secretKeyRef:
@@ -67,7 +86,7 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://do.pingcap.net/jenkins
+                value: https://prow.tidb.net/jenkins
             command: [bash, -ceo, pipefail]
             args:
               - |
@@ -112,7 +131,7 @@ presubmits:
             name: checkconfig
             resources: {}
           - name: verify-gitops
-            image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
+            image: ghcr.io/fluxcd/flux-cli:v2.2.3
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
             command: [flux, -n, apps]

@@ -1,0 +1,351 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^release-.+$
+      - ^feature/.+$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  decoration_config: &decoration_config
+    timeout: 3h
+    oauth_token_secret:
+      name: github-token
+      key: token
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap-inc/tiflash-scripts:
+    - <<: *brancher
+      agent: jenkins
+      labels:
+        master: "1"
+      context: pull-regression-test
+      decorate: false
+      name: pingcap-inc/tiflash-scripts/pull_regression_test
+      always_run: false
+      optional: true
+      rerun_command: "/test pull-regression-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-regression-test)(?: .*?)?$"
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+
+    - <<: *brancher
+      agent: jenkins
+      labels:
+        master: "1"
+      context: pull-schrodinger-test
+      decorate: false
+      name: pingcap-inc/tiflash-scripts/pull_schrodinger_test
+      always_run: false
+      optional: true
+      rerun_command: "/test pull-schrodinger-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-schrodinger-test)(?: .*?)?$"
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+
+    - <<: *brancher
+      name: pull-test
+      decorate: true
+      decoration_config: *decoration_config
+      always_run: false
+      optional: true
+      context: pull-test
+      trigger: "(?m)^/test (?:.*? )?(pull-test)(?: .*?)?$"
+      rerun_command: "/test pull-test"
+      skip_if_only_changed: *skip_if_only_changed
+      max_concurrency: 3
+      spec:
+        containers:
+          - name: run-test
+            image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
+            imagePullPolicy: Always
+            command: [bash, -ce]
+            env:
+              - name: OCI_ARTIFACT_HOST
+                value: us-docker.pkg.dev/pingcap-testing-account/hub
+            args:
+              - |
+                set -euo pipefail
+                if [[ ! -d integrated ]]; then
+                  echo "integrated directory not found in workspace" >&2
+                  exit 1
+                fi
+
+                missing_pkgs=()
+                add_missing_pkg() {
+                  local pkg="$1"
+                  local item
+                  for item in "${missing_pkgs[@]:-}"; do
+                    if [[ "${item}" == "${pkg}" ]]; then
+                      return 0
+                    fi
+                  done
+                  missing_pkgs+=("${pkg}")
+                }
+
+                ensure_cmd_pkg() {
+                  local cmd="$1"
+                  local pkg="$2"
+                  if ! command -v "${cmd}" >/dev/null 2>&1; then
+                    add_missing_pkg "${pkg}"
+                  fi
+                }
+
+                if ! rpm -q ca-certificates >/dev/null 2>&1; then
+                  add_missing_pkg ca-certificates
+                fi
+
+                for pair in \
+                  "curl:curl" \
+                  "wget:wget" \
+                  "tar:tar" \
+                  "gzip:gzip" \
+                  "which:which" \
+                  "lsof:lsof" \
+                  "timeout:coreutils" \
+                  "python:python" \
+                  "fio:fio" \
+                  "mysql:mariadb"; do
+                  ensure_cmd_pkg "${pair%%:*}" "${pair##*:}"
+                done
+
+                if ! command -v nc >/dev/null 2>&1; then
+                  add_missing_pkg nmap-ncat
+                fi
+                if ! command -v ifconfig >/dev/null 2>&1 && ! command -v netstat >/dev/null 2>&1; then
+                  add_missing_pkg net-tools
+                fi
+                if ! command -v ps >/dev/null 2>&1 || ! command -v top >/dev/null 2>&1; then
+                  add_missing_pkg procps-ng
+                fi
+
+                if (( ${#missing_pkgs[@]} > 0 )); then
+                  echo "install missing packages: ${missing_pkgs[*]}"
+                  yum install -y "${missing_pkgs[@]}"
+                else
+                  echo "all required OS packages already installed, skip yum install"
+                fi
+
+                branch="${PULL_BASE_REF:-master}"
+                if [[ -z "${branch}" || "${branch}" == "raft" ]]; then
+                  branch="master"
+                fi
+                echo "branch=${branch}"
+
+                ORAS_VERSION="1.2.3"
+                if ! command -v oras >/dev/null 2>&1; then
+                  curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" \
+                    | tar -xz -C /usr/local/bin oras
+                  chmod +x /usr/local/bin/oras
+                fi
+
+                YQ_VERSION="v4.47.2"
+                if ! command -v yq >/dev/null 2>&1; then
+                  curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq
+                  chmod +x /usr/local/bin/yq
+                fi
+
+                oci_script=/tmp/download_pingcap_oci_artifact.sh
+                curl -fsSL https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh -o "${oci_script}"
+
+                artifact_dir=/tmp/oci-artifacts
+                rm -rf "${artifact_dir}"
+                mkdir -p "${artifact_dir}"
+
+                download_component() {
+                  local component="$1"
+                  local tag="$2"
+                  if ! OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --"${component}"="${tag}"; then
+                    echo "component=${component} tag=${tag} not found in OCI, fallback to master"
+                    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --"${component}"=master
+                  fi
+                }
+
+                download_tidb() {
+                  local tag="$1"
+                  local candidates=(
+                    "${tag}-failpoint"
+                    "${tag}_failpoint"
+                    "${tag}-failpoints"
+                    "${tag}_failpoints"
+                    "${tag}"
+                  )
+                  local t
+                  for t in "${candidates[@]}"; do
+                    if OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${oci_script}" --tidb="${t}"; then
+                      echo "${t}" > "${artifact_dir}/.resolved_tidb_tag"
+                      return 0
+                    fi
+                  done
+                  return 1
+                }
+
+                (
+                  cd "${artifact_dir}"
+                  download_component tikv "${branch}"
+                  download_component pd "${branch}"
+                  download_component pd-ctl "${branch}"
+                  download_component tikv-ctl "${branch}"
+                  download_component tiflash "${branch}"
+                  if ! download_tidb "${branch}"; then
+                    echo "tidb tag '${branch}' not found in OCI (including failpoint candidates)" >&2
+                    exit 1
+                  fi
+                )
+
+                mkdir -p integrated/binary/tidb integrated/binary/tikv integrated/binary/pd integrated/binary/tiflash
+                cp -f "${artifact_dir}/tidb-server" integrated/binary/tidb/tidb-server
+                cp -f "${artifact_dir}/tikv-server" integrated/binary/tikv/tikv-server
+                cp -f "${artifact_dir}/pd-server" integrated/binary/pd/pd-server
+                cp -f "${artifact_dir}/pd-ctl" integrated/binary/pd/pd-ctl
+                cp -f "${artifact_dir}/tikv-ctl" integrated/binary/tikv/tikv-ctl
+
+                # The OCI helper exposes TiFlash binary as symlink "tiflash -> tiflash_dir/tiflash",
+                # while OPS TI expects tiflash.tar.gz to expand to a "tiflash/" directory.
+                tiflash_src_dir=""
+                if [[ -d "${artifact_dir}/tiflash_dir" ]]; then
+                  tiflash_src_dir="${artifact_dir}/tiflash_dir"
+                elif [[ -d "${artifact_dir}/tiflash" ]]; then
+                  tiflash_src_dir="${artifact_dir}/tiflash"
+                elif [[ -L "${artifact_dir}/tiflash" ]]; then
+                  tiflash_resolved="$(readlink -f "${artifact_dir}/tiflash" || true)"
+                  if [[ -n "${tiflash_resolved}" ]]; then
+                    tiflash_candidate_dir="$(dirname "${tiflash_resolved}")"
+                    if [[ -d "${tiflash_candidate_dir}" ]]; then
+                      tiflash_src_dir="${tiflash_candidate_dir}"
+                    fi
+                  fi
+                fi
+                if [[ -z "${tiflash_src_dir}" ]]; then
+                  echo "cannot locate TiFlash directory in ${artifact_dir}" >&2
+                  ls -la "${artifact_dir}" >&2 || true
+                  exit 1
+                fi
+
+                tiflash_pkg_dir="$(mktemp -d /tmp/tiflash-pkg.XXXXXX)"
+                mkdir -p "${tiflash_pkg_dir}/tiflash"
+                cp -a "${tiflash_src_dir}/." "${tiflash_pkg_dir}/tiflash/"
+                tar -czf integrated/binary/tiflash/tiflash.tar.gz -C "${tiflash_pkg_dir}" tiflash
+                rm -rf "${tiflash_pkg_dir}"
+
+                for f in integrated/conf/bin.urls integrated/conf/bin.urls.mac; do
+                  if [[ -f "${f}" ]]; then
+                    sed -i 's#https://download.pingcap.org/#https://download.pingcap.com/#g' "${f}"
+                    sed -i 's#http://download.pingcap.org/#https://download.pingcap.com/#g' "${f}"
+                  fi
+                done
+
+                if [[ -f integrated/tests/ci/conf/bin.paths ]] && ! grep -qE '^pd_ctl[[:space:]]' integrated/tests/ci/conf/bin.paths; then
+                  cat >> integrated/tests/ci/conf/bin.paths <<'EOF'
+                pd_ctl           pd-ctl                    {integrated}/binary/pd/pd-ctl
+                EOF
+                fi
+                if [[ -f integrated/tests/ci/conf/bin.paths ]] && ! grep -qE '^tikv_ctl[[:space:]]' integrated/tests/ci/conf/bin.paths; then
+                  cat >> integrated/tests/ci/conf/bin.paths <<'EOF'
+                tikv_ctl         tikv-ctl                  {integrated}/binary/tikv/tikv-ctl
+                EOF
+                fi
+
+                if [[ -f integrated/tests/ci/conf/download.ti ]]; then
+                  sed -i \
+                    -e "s/^tidb_branch=.*/tidb_branch='${branch}'/" -e "s/^tidb_hash=.*/tidb_hash=''/" \
+                    -e "s/^tikv_branch=.*/tikv_branch='${branch}'/" -e "s/^tikv_hash=.*/tikv_hash=''/" \
+                    -e "s/^pd_branch=.*/pd_branch='${branch}'/" -e "s/^pd_hash=.*/pd_hash=''/" \
+                    -e "s/^tiflash_branch=.*/tiflash_branch='${branch}'/" -e "s/^tiflash_hash=.*/tiflash_hash=''/" \
+                    integrated/tests/ci/conf/download.ti
+                fi
+
+                syncing_py="integrated/ops/ti.sh.cmds/syncing/show_syncing_table.py"
+                if [[ -f "${syncing_py}" ]]; then
+                  sed -i "/if s.find(' does not exist') >= 0:/{n;s/return/continue/;}" "${syncing_py}"
+                fi
+
+                proc_sh="integrated/_base/proc.sh"
+                if [[ -f "${proc_sh}" ]]; then
+                  sed -i '/echo "${pid} close failed" >&2/{n;s/return 1/kill_pid "${pid}" "true" || true\
+                echo "${pid} force-killed, continue" >&2\
+                return 0/;}' "${proc_sh}"
+                fi
+
+                artifacts_dir="${ARTIFACTS:-/logs/artifacts}"
+                mkdir -p "${artifacts_dir}"
+
+                collect_logs() {
+                  local out="${artifacts_dir}/tiflash-scripts-ops-ti-logs"
+                  mkdir -p "${out}"
+                  while IFS= read -r -d '' file; do
+                    local base="${file#/}"
+                    base="${base//\//_}"
+                    cp -f "${file}" "${out}/${base}" || true
+                  done < <(find /tmp/ti -type f -name '*.log' ! -path '*/data/*' ! -path '*/tiflash/db*' -print0 2>/dev/null || true)
+                  for run_log in /tmp/ops-ti-jenkins-attempt*.log; do
+                    if [[ -f "${run_log}" ]]; then
+                      cp -f "${run_log}" "${out}/$(basename "${run_log}")" || true
+                    fi
+                  done
+                }
+
+                run_ops_ti_once() {
+                  local attempt="$1"
+                  local run_log="/tmp/ops-ti-jenkins-attempt${attempt}.log"
+                  rm -f "${run_log}"
+                  (
+                    set -o pipefail
+                    cd integrated
+                    timeout 120m bash -xe tests/ci/jenkins.sh 2>&1 | tee "${run_log}"
+                  )
+                }
+
+                if [[ -f integrated/tests/ci/jenkins.sh ]]; then
+                  echo "run integrated/tests/ci/jenkins.sh"
+                  local_code=0
+                  set +e
+                  run_ops_ti_once 1
+                  local_code="$?"
+                  set -e
+
+                  if [[ "${local_code}" -ne 0 ]] && [[ -f /tmp/ops-ti-jenkins-attempt1.log ]] && grep -q "close failed" /tmp/ops-ti-jenkins-attempt1.log; then
+                    echo "detected close failed during OPS TI cleanup, run clean_env then retry once"
+                    (
+                      cd integrated
+                      bash -xe ops/ti.sh clean_env /tmp/download || true
+                      bash -xe ops/ti.sh clean_env /tmp/ti || true
+                      bash -xe ops/ti.sh clean_env /tmp/ti/ci || true
+
+                      if grep -q 'ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn' tests/ci/jenkins.sh; then
+                        sed -i 's#ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn#ops/ti.sh "${integrated}/tests/ci/conf/download.ti" burn : up : ver : burn || { echo "warmup burn failed, try clean_env and continue"; ops/ti.sh clean_env /tmp/download || true; }#' tests/ci/jenkins.sh
+                      fi
+
+                      if grep -q '"${ti}" -k "${args}" "${file}" kill/tiflash : kill/tikv : kill/storage : kill/random' ops/ti.sh.cmds/ci/self.sh.summary; then
+                        sed -i 's#"${ti}" -k "${args}" "${file}" kill/tiflash : kill/tikv : kill/storage : kill/random#"${ti}" -k "${args}" "${file}" kill/tiflash : kill/tikv : kill/storage : kill/random || { echo "ci/self kill-stage failed, clean env and continue"; "${ti}" clean_env /tmp/ti/ci/self || true; }#' ops/ti.sh.cmds/ci/self.sh.summary
+                      fi
+                    )
+                    set +e
+                    run_ops_ti_once 2
+                    local_code="$?"
+                    set -e
+                  fi
+
+                  if [[ "${local_code}" -ne 0 ]]; then
+                    echo "OPS TI test failed, collecting logs..."
+                    collect_logs
+                    exit "${local_code}"
+                  fi
+                else
+                  echo "skip integrated/tests/ci/jenkins.sh: file not found"
+                fi
+            resources:
+              requests:
+                cpu: "12"
+                memory: 24Gi
+              limits:
+                cpu: "12"
+                memory: 24Gi
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64

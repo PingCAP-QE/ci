@@ -13,181 +13,65 @@ global_definitions:
     agent: jenkins
     decorate: false
     labels:
-      master: "0"
+      master: "1" # run on GCP
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap-inc/tidb:
     - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_build
+      name: pingcap-inc/tidb/release-8.5/pull_build
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: idc-jenkins-ci-tidb/build
+      context: pull-build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
 
     - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_check
+      name: pingcap-inc/tidb/release-8.5/pull_check
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: idc-jenkins-ci-tidb/check_dev
+      context: pull-check-dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
 
     - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_check2
+      name: pingcap-inc/tidb/release-8.5/pull_check2
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: idc-jenkins-ci-tidb/check_dev_2
+      context: pull-check-dev2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
 
     - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_mysql_test
+      name: pingcap-inc/tidb/release-8.5/pull_mysql_test
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: idc-jenkins-ci-tidb/mysql-test
+      context: pull-mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
 
     - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_unit_test
+      name: pingcap-inc/tidb/release-8.5/pull_unit_test
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-      context: idc-jenkins-ci-tidb/unit-test
+      context: pull-unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
 
     - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_unit_test_ddlv1
+      name: pingcap-inc/tidb/release-8.5/pull_unit_test_ddlv1
       run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-ddlv1(?: .*?)?$"
       rerun_command: "/test pull-unit-test-ddlv1"
 
     - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_br_integration_test
+      name: pingcap-inc/tidb/release-8.5/pull_br_integration_test
       context: pull-br-integration-test
       run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
 
     - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_lightning_integration_test
-      context: pull-lightning-integration-test
-      always_run: false
-      optional: true
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
-      rerun_command: "/test pull-lightning-integration-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_ddl_test
-      always_run: false
-      optional: true
-      context: pull-integration-ddl-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-ddl-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_mysql_client_test
-      always_run: false
-      optional: true
-      context: pull-mysql-client-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
-      rerun_command: "/test pull-mysql-client-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_mysql_test
-      always_run: false
-      optional: true
-      context: pull-integration-mysql-test
-      trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-mysql-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_copr_test
-      always_run: false
-      optional: true
-      context: pull-integration-copr-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-copr-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_jdbc_test
-      always_run: false
-      optional: true
-      context: pull-integration-jdbc-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-jdbc-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_e2e_test
-      always_run: false
-      optional: true
-      context: pull-e2e-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-e2e-test(?: .*?)?$"
-      rerun_command: "/test pull-e2e-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_common_test
-      always_run: false
-      optional: true
-      context: pull-common-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-common-test(?: .*?)?$"
-      rerun_command: "/test pull-common-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_common_test
-      always_run: false
-      optional: true
-      context: pull-integration-common-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-common-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-common-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_sqllogic_test
-      always_run: false
-      optional: true
-      context: pull-sqllogic-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-sqllogic-test(?: .*?)?$"
-      rerun_command: "/test pull-sqllogic-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_nodejs_test
-      always_run: false
-      optional: true
-      context: pull-integration-nodejs-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-nodejs-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-nodejs-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_python_orm_test
-      always_run: false
-      optional: true
-      context: pull-integration-python-orm-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-python-orm-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-python-orm-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_e2e_test
+      name: pingcap-inc/tidb/release-8.5/pull_integration_e2e_test
       always_run: false
       optional: true
       context: pull-integration-e2e-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-e2e-test(?: .*?)?$"
       rerun_command: "/test pull-integration-e2e-test"
-
-    - <<: [*jenkins_job, *brancher]
-      name: pingcap/tidb/release-8.5/pull_integration_tidb_tools_test
-      always_run: false
-      optional: true
-      context: pull-integration-tidb-tools-test
-      skip_report: false
-      trigger: "(?m)^/test (?:.*? )?pull-integration-tidb-tools-test(?: .*?)?$"
-      rerun_command: "/test pull-integration-tidb-tools-test"

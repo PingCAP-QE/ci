@@ -19,7 +19,7 @@ presubmits:
       name: pingcap/tidb/ghpr_build
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/build
@@ -30,7 +30,7 @@ presubmits:
       name: pingcap/tidb/ghpr_check
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev
@@ -41,7 +41,7 @@ presubmits:
       name: pingcap/tidb/ghpr_check2
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -52,7 +52,7 @@ presubmits:
       name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/mysql-test
@@ -63,7 +63,7 @@ presubmits:
       name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/unit-test
@@ -74,7 +74,7 @@ presubmits:
       name: pingcap/tidb/pull_unit_test_ddlv1
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
@@ -85,7 +85,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-integration-mysql-test
@@ -96,7 +96,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_tici_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-tici-test
@@ -108,7 +108,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_copr_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-integration-copr-test
@@ -119,7 +119,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_jdbc_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-integration-jdbc-test
@@ -130,7 +130,7 @@ presubmits:
       name: pingcap/tidb/pull_e2e_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-e2e-test
@@ -141,7 +141,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_e2e_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-e2e-test
@@ -152,7 +152,7 @@ presubmits:
       name: pingcap/tidb/pull_br_integration_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       context: pull-br-integration-test
       run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
@@ -163,7 +163,7 @@ presubmits:
       name: pingcap/tidb/pull_lightning_integration_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       context: pull-lightning-integration-test
       run_if_changed: "(lightning|pkg/(domain|statistics|ddl|infoschema)|br/pkg/(checksum|httputil|membuf|pdutil|restore/split|storage))/.*"
@@ -174,7 +174,7 @@ presubmits:
       name: pingcap/tidb/pull_common_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-common-test
@@ -186,6 +186,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "0"
+      # never run before
       decorate: false # need add this.
       optional: true
       context: pull-integration-common-test
@@ -196,7 +197,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_ddl_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -209,7 +210,7 @@ presubmits:
       name: pingcap/tidb/pull_sqllogic_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-sqllogic-test
@@ -220,7 +221,7 @@ presubmits:
       name: pingcap/tidb/pull_mysql_client_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-mysql-client-test
@@ -231,7 +232,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_nodejs_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-integration-nodejs-test
@@ -242,7 +243,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_python_orm_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-integration-python-orm-test
@@ -254,6 +255,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "0"
+      # this job never run before.
       decorate: false # need add this.
       optional: true
       context: pull-tiflash-integration-test
