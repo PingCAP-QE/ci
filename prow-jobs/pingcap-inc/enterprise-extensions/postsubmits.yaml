@@ -55,7 +55,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:1.45.5
+            image: denoland/deno:1.46.3
             command:
               [
                 deno,
