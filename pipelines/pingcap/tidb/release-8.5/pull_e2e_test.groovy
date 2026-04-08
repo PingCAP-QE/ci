@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.5/pod-pull_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 
@@ -15,12 +15,12 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             defaultContainer 'golang'
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
