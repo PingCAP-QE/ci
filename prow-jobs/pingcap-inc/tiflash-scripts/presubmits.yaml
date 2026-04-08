@@ -21,8 +21,12 @@ presubmits:
       context: pull-regression-test
       decorate: false
       name: pingcap-inc/tiflash-scripts/pull_regression_test
+      always_run: false
       optional: true
+      rerun_command: "/test pull-regression-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-regression-test)(?: .*?)?$"
       skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
 
     - <<: *brancher
       agent: jenkins
@@ -31,15 +35,22 @@ presubmits:
       context: pull-schrodinger-test
       decorate: false
       name: pingcap-inc/tiflash-scripts/pull_schrodinger_test
+      always_run: false
       optional: true
+      rerun_command: "/test pull-schrodinger-test"
+      trigger: "(?m)^/test (?:.*? )?(pull-schrodinger-test)(?: .*?)?$"
       skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
 
     - <<: *brancher
       name: pull-test
       decorate: true
       decoration_config: *decoration_config
+      always_run: false
       optional: true
       context: pull-test
+      trigger: "(?m)^/test (?:.*? )?(pull-test)(?: .*?)?$"
+      rerun_command: "/test pull-test"
       skip_if_only_changed: *skip_if_only_changed
       max_concurrency: 3
       spec:
