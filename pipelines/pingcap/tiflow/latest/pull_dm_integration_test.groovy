@@ -180,6 +180,7 @@ pipeline {
                                         # TODO use wait-for-mysql-ready.sh
                                         set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                         set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                        set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3308 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                     """
                                     sh label: "${TEST_GROUP}", script: """
                                         if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
@@ -195,6 +196,9 @@ pipeline {
                                             echo "run ${TEST_GROUP} test"
                                         fi
                                         export PATH=/usr/local/go/bin:\$PATH
+                                        export MARIADB_HOST1=127.0.0.1
+                                        export MARIADB_PORT1=3308
+                                        export MARIADB_PASSWORD1=123456
                                         mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
                                         make dm_integration_test_in_group GROUP="${TEST_GROUP}"
                                     """
