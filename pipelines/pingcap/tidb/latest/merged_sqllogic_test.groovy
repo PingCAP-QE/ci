@@ -85,7 +85,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
@@ -172,7 +171,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {

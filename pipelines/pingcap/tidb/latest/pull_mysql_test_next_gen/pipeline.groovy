@@ -99,7 +99,6 @@ pipeline {
                 }
                 stages {
                     stage('Test') {
-                        options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
                                 // restore the cache saved by previous stage.

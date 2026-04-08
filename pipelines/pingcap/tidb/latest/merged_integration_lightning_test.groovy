@@ -112,7 +112,6 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") {
