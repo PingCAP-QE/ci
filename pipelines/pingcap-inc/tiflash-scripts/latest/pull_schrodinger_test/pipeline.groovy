@@ -63,15 +63,16 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    deleteDir()
-                    script {
-                        prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 10)
+                    container('checkout') {
+                        script {
+                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 10)
+                        }
+                        sh '''
+                            set -euxo pipefail
+                            git rev-parse HEAD
+                            git status --short
+                        '''
                     }
-                    sh '''
-                        set -euxo pipefail
-                        git rev-parse HEAD
-                        git status --short
-                    '''
                 }
             }
         }
