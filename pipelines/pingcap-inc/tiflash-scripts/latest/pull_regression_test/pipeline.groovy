@@ -31,8 +31,6 @@ pipeline {
 
                     env.TEST_BRANCH = "${branch}"
                     env.TEST_VERSION = "${version}"
-
-                    currentBuild.description = "TiFlash regression test branch=${branch} version=${version}"
                 }
             }
         }

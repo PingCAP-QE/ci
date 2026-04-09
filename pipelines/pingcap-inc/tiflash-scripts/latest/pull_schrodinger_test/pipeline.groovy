@@ -35,8 +35,6 @@ pipeline {
                     env.TEST_VERSION = "${version}"
                     env.TEST_CASE = "${testcase}"
                     env.TEST_MAX_RUNTIME = "${maxRunTime}"
-
-                    currentBuild.description = "TiFlash schrodinger test branch=${branch} version=${version} testcase=${testcase}"
                 }
             }
         }
