@@ -348,6 +348,14 @@ Deno.test("compute", () => {
       },
     },
     {
+      description: "history style - feature release branch with hotfix tag",
+      gitVer: "v8.5.1-20250101-fecba32",
+      branches: ["feature/release-8.5-xxx"],
+      expect: {
+        version: "v8.5.1-20250101-fecba32",
+      },
+    },
+    {
       description: "feature branch - beta prerelease",
       gitVer: "v9.0.0-beta.1.pre-151-gb4c8f4dc8",
       branches: ["feature/fts"],

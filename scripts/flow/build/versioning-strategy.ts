@@ -34,7 +34,7 @@ function isReleaseBranch(branch: string): boolean {
     return false;
   }
   const standardRelease =
-    /\brelease-[0-9]+[.][0-9]+(?:-beta\.[0-9]+)?(?!-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+)/
+    /^(?:feature\/)?release-[0-9]+[.][0-9]+(?:-beta\.[0-9]+)?(?![\/.-])(?!-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+)/
       .test(
         branch,
       );
@@ -108,6 +108,16 @@ export function compute(
       /\bfeature\/[\w.-]+$/.test(b)
     );
     if (featureBranch) {
+      // Check if the current version is a hotfix tag (format: YYYYMMDD-shortcommit)
+      const hasHotfixTag = rv.prerelease &&
+        rv.prerelease.length === 1 &&
+        /^\d{8}-[0-9a-f]+$/.test(rv.prerelease[0].toString());
+
+      if (hasHotfixTag) {
+        console.info("Current commit is in a feature branch with hotfix tag.");
+        return { releaseVersion: "v" + semver.format(rv) };
+      }
+
       console.info("Current commit is in a feature branch.");
       // Extract feature name, replace '/' with '.' for version/tag
       const suffix = featureBranch
