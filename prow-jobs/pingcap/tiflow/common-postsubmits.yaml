@@ -17,7 +17,7 @@ postsubmits:
       spec:
         containers:
           - name: build
-            image: golang:1.23
+            image: golang:1.25.8
             command: [bash, -ceo, pipefail]
             args:
               - |
