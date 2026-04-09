@@ -35,9 +35,6 @@ interface GitHubIssueApi {
   closed_at?: string | null;
 }
 
-const ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS = 10;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 class GitHubClient {
   constructor(
     private readonly token: string,
@@ -318,7 +315,7 @@ export class GithubIssueManager {
         status = "open";
       } else if (issue?.state === "closed") {
         const reopenCheck = this.allowReopen && canMutate
-          ? this.checkReopenEligibility(issue)
+          ? this.checkReopenEligibility(issue, report)
           : { eligible: false, note: undefined };
         if (reopenCheck.eligible) {
           status = "reopened";
@@ -498,6 +495,7 @@ export class GithubIssueManager {
 
   private checkReopenEligibility(
     issue: GitHubIssueApi,
+    report: ReportData,
   ): { eligible: boolean; note?: string } {
     const closedAt = this.parseClosedAt(issue.closed_at);
     if (!closedAt) {
@@ -507,19 +505,18 @@ export class GithubIssueManager {
       };
     }
 
-    const ageMs = this.now().getTime() - closedAt.getTime();
-    if (!Number.isFinite(ageMs) || ageMs < 0) {
+    const windowStart = new Date(report.window.from);
+    if (Number.isNaN(windowStart.getTime())) {
       return {
         eligible: false,
-        note: `skip reopen: invalid closed_at timestamp ${issue.closed_at}`,
+        note: `skip reopen: invalid report window start ${report.window.from}`,
       };
     }
 
-    if (ageMs < ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS * DAY_MS) {
+    if (closedAt.getTime() >= windowStart.getTime()) {
       return {
         eligible: false,
-        note:
-          `skip reopen: issue closed less than ${ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS} days ago`,
+        note: "skip reopen: issue closed in current statistics window",
       };
     }
 
