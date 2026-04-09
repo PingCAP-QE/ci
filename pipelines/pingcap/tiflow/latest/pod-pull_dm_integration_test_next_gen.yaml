@@ -70,6 +70,23 @@ spec:
         - "--gtid-mode=ON"
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
+    - name: mariadb1
+      image: "docker.io/library/mariadb:11.3"
+      tty: true
+      resources:
+        limits:
+          memory: 4Gi
+          cpu: "2"
+      env:
+        - name: MARIADB_ROOT_PASSWORD
+          value: "123456"
+        - name: MYSQL_TCP_PORT
+          value: "3308"
+      args:
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--server-id=1"
+        - "--lower_case_table_names=0"
     - name: net-tool
       image: hub.pingcap.net/jenkins/network-multitool
       tty: true
