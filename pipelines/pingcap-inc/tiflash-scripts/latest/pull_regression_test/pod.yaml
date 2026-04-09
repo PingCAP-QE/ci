@@ -9,20 +9,20 @@ spec:
       tty: true
       resources:
         requests:
-          cpu: "2"
-          memory: 4Gi
+          cpu: "1"
+          memory: 2Gi
         limits:
-          cpu: "2"
-          memory: 4Gi
+          cpu: "1"
+          memory: 2Gi
     - name: runner
       image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
       tty: true
       resources:
         requests:
-          cpu: "4"
+          cpu: "6"
           memory: 12Gi
         limits:
-          cpu: "16"
+          cpu: "12"
           memory: 24Gi
   affinity:
     nodeAffinity:
