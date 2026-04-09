@@ -178,7 +178,7 @@ Defaults:
 
 ## GitHub issue integration
 
-- When a GitHub token is provided, the reporter searches issues by title (branch is not part of the title).
+- When a GitHub token is provided, the reporter searches issues by title using exact + loose matching (branch is not part of the title).
 - New issues are created only with `--issue-create`; closed issues are reopened only with `--issue-reopen` and only after they have been closed for at least 10 days.
 - The configured labels are applied to any matched/created issue.
 - For open or reopened issues, a comment is appended with the current window’s stats only when `--issue-comment` is enabled.
@@ -344,7 +344,7 @@ HTML (default: flaky-report.html)
     - Columns: Team Owner, Repo, Branch, Package, Flaky Cases, Time Thresholded Cases
 - Links:
   - “Latest Build” links to the most recent build_url in the window (best-effort).
-  - “Issue” links to the matched/new/reopened GitHub issue if available; otherwise provides search/new links and shows status (open/new/reopened/closed/missing/disabled/error, dry-run annotated).
+  - “Issue” links to the matched/new/reopened GitHub issue if available; otherwise provides search/new links and shows status (open/new/reopened/closed/missing/disabled/error, dry-run annotated). The search link includes both exact title and loose keywords for broader discovery.
 
 JSON (via --json)
 - Keys:

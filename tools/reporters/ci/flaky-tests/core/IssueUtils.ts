@@ -3,7 +3,9 @@ import { CaseAgg, ReportData } from "./types.ts";
 export const DEFAULT_ISSUE_SUBSCRIBE_TEXT =
   "You can send a private message to @TiReleaseBot or @ it in a group: issue watch repo=tidb labels=flaky-test action=label action_result=<component label>";
 
-export function parseRepo(repo: string): { owner: string; repo: string } | null {
+export function parseRepo(
+  repo: string,
+): { owner: string; repo: string } | null {
   if (!repo) return null;
   const parts = repo.split("/").filter(Boolean);
   if (parts.length !== 2) return null;
@@ -78,4 +80,22 @@ export function buildIssueComment(report: ReportData, r: CaseAgg): string {
     `Threshold: ${report.window.thresholdMs} ms`,
   ];
   return lines.join("\n");
+}
+
+export function normalizeIssueTitle(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+export function buildIssueTitleSearchExpr(
+  title: string,
+  caseName: string,
+): string {
+  const exact = `"${escapeIssueSearchTerm(title)}"`;
+  const c = escapeIssueSearchTerm(caseName);
+  if (!c) return exact;
+  return `${exact} OR ("Flaky" AND "${c}")`;
+}
+
+function escapeIssueSearchTerm(term: string): string {
+  return String(term ?? "").trim().replaceAll('"', '\\"');
 }

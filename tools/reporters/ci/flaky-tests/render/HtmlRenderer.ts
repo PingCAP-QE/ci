@@ -2,6 +2,7 @@ import { CaseAgg, ReportData } from "../core/types.ts";
 import {
   buildIssueBody,
   buildIssueTitle,
+  buildIssueTitleSearchExpr,
   formatSuiteName as formatSuiteNameUtil,
   parseRepo,
 } from "../core/IssueUtils.ts";
@@ -459,14 +460,22 @@ ${rows}
     const suffix = showStatus ? ` <span class="muted">(${status})</span>` : "";
     if (r.issue?.url) {
       const label = r.issue.number ? `#${r.issue.number}` : "link";
-      return `<td><a href="${escapeHtml(r.issue.url)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>${suffix}</td>`;
+      return `<td><a href="${
+        escapeHtml(r.issue.url)
+      }" target="_blank" rel="noopener">${escapeHtml(label)}</a>${suffix}</td>`;
     }
     const searchUrl = this.githubIssueSearchUrlForCase(report, r);
     const newUrl = this.githubNewIssueUrlForCase(report, r);
     if (searchUrl === "#" && newUrl === "#") {
-      return `<td><span class="muted">N/A${showStatus ? ` (${status})` : ""}</span></td>`;
+      return `<td><span class="muted">N/A${
+        showStatus ? ` (${status})` : ""
+      }</span></td>`;
     }
-    return `<td><a href="${escapeHtml(searchUrl)}" target="_blank" rel="noopener">search</a> | <a href="${escapeHtml(newUrl)}" target="_blank" rel="noopener">new</a>${suffix}</td>`;
+    return `<td><a href="${
+      escapeHtml(searchUrl)
+    }" target="_blank" rel="noopener">search</a> | <a href="${
+      escapeHtml(newUrl)
+    }" target="_blank" rel="noopener">new</a>${suffix}</td>`;
   }
 
   private issueStatusLabel(r: CaseAgg): string {
@@ -488,8 +497,10 @@ ${rows}
     const title = buildIssueTitle(r, {
       includeRepo: report.issueMeta?.titleIncludesRepo,
     });
-    const terms = [`"${title}"`].filter(Boolean).join(" ");
-    return `https://github.com/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}/issues?q=${encodeURIComponent(`${terms} in:title is:issue`)}`;
+    const terms = buildIssueTitleSearchExpr(title, r.case_name);
+    return `https://github.com/${encodeURIComponent(parsed.owner)}/${
+      encodeURIComponent(parsed.repo)
+    }/issues?q=${encodeURIComponent(`${terms} in:title is:issue`)}`;
   }
 
   private githubNewIssueUrlForCase(report: ReportData, r: CaseAgg): string {
@@ -502,7 +513,11 @@ ${rows}
     const body = buildIssueBody(report, r, {
       includeRepo: report.issueMeta?.titleIncludesRepo,
     });
-    return `https://github.com/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+    return `https://github.com/${encodeURIComponent(parsed.owner)}/${
+      encodeURIComponent(parsed.repo)
+    }/issues/new?title=${encodeURIComponent(title)}&body=${
+      encodeURIComponent(body)
+    }`;
   }
 
   private num(n: number): string {
@@ -539,9 +554,12 @@ ${rows}
     if (this.email) {
       const styles: Record<string, string> = {
         up: "background:#fee2e2;color:#7f1d1d;font-weight:600;text-align:left;",
-        down: "background:#dbeafe;color:#1e3a8a;font-weight:600;text-align:left;",
-        flat: "background:#ffffff;color:#374151;font-weight:600;text-align:left;",
-        new: "background:#fee2e2;color:#7f1d1d;font-weight:600;text-align:left;",
+        down:
+          "background:#dbeafe;color:#1e3a8a;font-weight:600;text-align:left;",
+        flat:
+          "background:#ffffff;color:#374151;font-weight:600;text-align:left;",
+        new:
+          "background:#fee2e2;color:#7f1d1d;font-weight:600;text-align:left;",
       };
       return `<td style="${styles[variant]}">${label}</td>`;
     }
