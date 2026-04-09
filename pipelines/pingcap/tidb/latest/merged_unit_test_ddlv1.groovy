@@ -44,7 +44,12 @@ pipeline {
 
                     # Replay-only skip for flaky target in this environment:
                     # //pkg/sessionctx/variable/tests:tests_test (goleak flake on shard 18/47).
-                    sed -i 's|-- //\\.\\.\\. -//cmd/\\.\\.\\.|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    # Guard this hotfix so newer branches that removed the package keep working.
+                    if [ -f pkg/sessionctx/variable/tests/BUILD ] || [ -f pkg/sessionctx/variable/tests/BUILD.bazel ]; then
+                      sed -i 's|-- //\\.\\.\\. -//cmd/\\.\\.\\.|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    else
+                      echo 'Skip adding //pkg/sessionctx/variable/tests:tests_test exclusion: package not found'
+                    fi
 
                     # Replay-only timeout hotfix: raise ci shard timeout to avoid 150s timeout flakes.
                     if [ -f .bazelrc ]; then

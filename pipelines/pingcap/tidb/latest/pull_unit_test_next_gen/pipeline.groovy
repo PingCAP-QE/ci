@@ -48,7 +48,12 @@ pipeline {
                     sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
 
                     # Replay-only skip for flaky target in GCP replay (goleak on IMDS path).
-                    sed -i 's|-- //... -//cmd/...|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    # Guard this hotfix so newer branches that removed the package keep working.
+                    if [ -f pkg/sessionctx/variable/tests/BUILD ] || [ -f pkg/sessionctx/variable/tests/BUILD.bazel ]; then
+                      sed -i 's|-- //... -//cmd/...|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    else
+                      echo 'Skip adding //pkg/sessionctx/variable/tests:tests_test exclusion: package not found'
+                    fi
 
                     grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                     grep -n '^check:' Makefile | head -n 3 || true
