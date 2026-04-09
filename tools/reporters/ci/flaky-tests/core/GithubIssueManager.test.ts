@@ -119,3 +119,116 @@ Deno.test("GithubIssueManager.sync keeps recently closed issues closed", async (
     "skip reopen: issue closed less than 10 days ago",
   );
 });
+
+Deno.test("GithubIssueManager.sync prefers open issue over closed exact title match", async () => {
+  const closedExact: TestIssue = {
+    number: 200,
+    title: "Flaky test: TestFlakyCase in pkg/executor",
+    state: "closed",
+    html_url: "https://github.com/pingcap/tidb/issues/200",
+    closed_at: "2026-03-01T12:00:00Z",
+  };
+  const openLoose: TestIssue = {
+    number: 100,
+    title: "Flaky test: TestFlakyCase intermittently fails",
+    state: "open",
+    html_url: "https://github.com/pingcap/tidb/issues/100",
+  };
+
+  const searchModes: Array<"exact" | "loose"> = [];
+  const manager = createManager({
+    searchIssues: async (
+      _owner: string,
+      _repo: string,
+      _title: string,
+      looseCaseName?: string,
+    ) => {
+      searchModes.push(
+        looseCaseName ? "loose" : "exact",
+      );
+      if (looseCaseName) return [openLoose];
+      return [closedExact];
+    },
+  });
+  const report = buildReport();
+  const flakyCase = buildCase();
+
+  await manager.sync(report, [flakyCase], [flakyCase]);
+
+  assertEquals(searchModes, ["exact", "loose"]);
+  assertEquals(flakyCase.issue?.number, 100);
+  assertEquals(flakyCase.issue?.state, "open");
+  assertEquals(flakyCase.issue?.status, "open");
+});
+
+Deno.test("GithubIssueManager.sync prefers exact title when issue state is same", async () => {
+  const openExact: TestIssue = {
+    number: 300,
+    title: "Flaky test: TestFlakyCase in pkg/executor",
+    state: "open",
+    html_url: "https://github.com/pingcap/tidb/issues/300",
+  };
+  const openLoose: TestIssue = {
+    number: 120,
+    title: "Flaky test: TestFlakyCase intermittently fails",
+    state: "open",
+    html_url: "https://github.com/pingcap/tidb/issues/120",
+  };
+
+  const manager = createManager({
+    searchIssues: async (
+      _owner: string,
+      _repo: string,
+      _title: string,
+      looseCaseName?: string,
+    ) => {
+      if (looseCaseName) return [openLoose];
+      return [openExact];
+    },
+  });
+  const report = buildReport();
+  const flakyCase = buildCase();
+
+  await manager.sync(report, [flakyCase], [flakyCase]);
+
+  assertEquals(flakyCase.issue?.number, 300);
+  assertEquals(flakyCase.issue?.state, "open");
+  assertEquals(flakyCase.issue?.status, "open");
+});
+
+Deno.test("GithubIssueManager.sync can match issue from loose title query", async () => {
+  const openLoose: TestIssue = {
+    number: 140,
+    title: "Flaky test: TestFlakyCase intermittently fails in executor",
+    state: "open",
+    html_url: "https://github.com/pingcap/tidb/issues/140",
+  };
+
+  let exactCalls = 0;
+  let looseCalls = 0;
+  const manager = createManager({
+    searchIssues: async (
+      _owner: string,
+      _repo: string,
+      _title: string,
+      looseCaseName?: string,
+    ) => {
+      if (looseCaseName) {
+        looseCalls += 1;
+        return [openLoose];
+      }
+      exactCalls += 1;
+      return [];
+    },
+  });
+  const report = buildReport();
+  const flakyCase = buildCase();
+
+  await manager.sync(report, [flakyCase], [flakyCase]);
+
+  assertEquals(exactCalls, 1);
+  assertEquals(looseCalls, 1);
+  assertEquals(flakyCase.issue?.number, 140);
+  assertEquals(flakyCase.issue?.state, "open");
+  assertEquals(flakyCase.issue?.status, "open");
+});
