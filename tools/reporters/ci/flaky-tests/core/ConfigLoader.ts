@@ -204,8 +204,8 @@ Examples:
       dbPort: flags["db-port"]
         ? parseInt(String(flags["db-port"]))
         : Deno.env.get("DB_PORT")
-          ? parseInt(String(Deno.env.get("DB_PORT")))
-          : undefined,
+        ? parseInt(String(Deno.env.get("DB_PORT")))
+        : undefined,
       dbUser: flags["db-user"] ?? Deno.env.get("DB_USER"),
       dbPass: flags["db-pass"] ?? Deno.env.get("DB_PASSWORD"),
       dbName: flags["db-name"] ?? Deno.env.get("DB_NAME"),
@@ -217,15 +217,15 @@ Examples:
       jsonPath: flags["json"],
       emailTo: flags["email-to"]
         ? String(flags["email-to"])
-            .split(",")
-            .map((s: string) => s.trim())
-            .filter(Boolean)
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
         : undefined,
       emailCc: flags["email-cc"]
         ? String(flags["email-cc"])
-            .split(",")
-            .map((s: string) => s.trim())
-            .filter(Boolean)
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
         : undefined,
       emailFrom: flags["email-from"],
       emailSubject: flags["email-subject"],

@@ -58,7 +58,7 @@ function createManager(client: object): GithubIssueManager {
   return manager;
 }
 
-Deno.test("GithubIssueManager.sync reopens issues closed at least 10 days ago", async () => {
+Deno.test("GithubIssueManager.sync reopens issues closed before report window", async () => {
   const issue: TestIssue = {
     number: 123,
     title: "Flaky test: TestFlakyCase in pkg/executor",
@@ -89,13 +89,13 @@ Deno.test("GithubIssueManager.sync reopens issues closed at least 10 days ago", 
   assertEquals(flakyCase.issue?.number, 123);
 });
 
-Deno.test("GithubIssueManager.sync keeps recently closed issues closed", async () => {
+Deno.test("GithubIssueManager.sync keeps issues closed in report window closed", async () => {
   const issue: TestIssue = {
     number: 456,
     title: "Flaky test: TestFlakyCase in pkg/executor",
     state: "closed",
     html_url: "https://github.com/pingcap/tidb/issues/456",
-    closed_at: "2026-03-04T12:00:01Z",
+    closed_at: "2026-03-10T12:00:01Z",
   };
   let reopenCalls = 0;
   const manager = createManager({
@@ -116,7 +116,7 @@ Deno.test("GithubIssueManager.sync keeps recently closed issues closed", async (
   assertEquals(flakyCase.issue?.number, 456);
   assertEquals(
     flakyCase.issue?.note,
-    "skip reopen: issue closed less than 10 days ago",
+    "skip reopen: issue closed in current statistics window",
   );
 });
 
