@@ -26,36 +26,17 @@ pipeline {
         stage('Init Params') {
             steps {
                 script {
-                    def desc = params.getOrDefault("desc", "TiFlash schrodinger test")
-                    def branch = params.getOrDefault("branch", "${REFS.base_ref ?: 'master'}")
-                    def version = params.getOrDefault("version", "latest")
-                    def testcase = params.getOrDefault("testcase", "schrodinger/bank")
-                    def maxRunTime = params.getOrDefault("maxRunTime", "120")
-                    def targetBranch = params.getOrDefault("ghprbTargetBranch", "")
-
-                    if (targetBranch != "") {
-                        branch = targetBranch
-                    }
-
-                    if (branch in ["planner_refactory", "raft"]) {
-                        branch = "master"
-                    }
-                    if (version == null || version.trim() == "") {
-                        version = "latest"
-                    }
-                    if (testcase == null || testcase.trim() == "") {
-                        testcase = "schrodinger/bank"
-                    }
-                    if (maxRunTime == null || maxRunTime.trim() == "") {
-                        maxRunTime = "120"
-                    }
+                    def branch = (REFS.base_ref ?: "master").trim()
+                    def version = "latest"
+                    def testcase = "schrodinger/bank"
+                    def maxRunTime = "120"
 
                     env.TEST_BRANCH = "${branch}"
                     env.TEST_VERSION = "${version}"
                     env.TEST_CASE = "${testcase}"
                     env.TEST_MAX_RUNTIME = "${maxRunTime}"
 
-                    currentBuild.description = "${desc} branch=${branch} version=${version} testcase=${testcase}"
+                    currentBuild.description = "TiFlash schrodinger test branch=${branch} version=${version} testcase=${testcase}"
                 }
             }
         }

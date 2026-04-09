@@ -26,26 +26,13 @@ pipeline {
         stage('Init Params') {
             steps {
                 script {
-                    def desc = params.getOrDefault("desc", "TiFlash regression test")
-                    def branch = params.getOrDefault("branch", "${REFS.base_ref ?: 'master'}")
-                    def version = params.getOrDefault("version", "latest")
-                    def targetBranch = params.getOrDefault("ghprbTargetBranch", "")
-
-                    if (targetBranch != "") {
-                        branch = targetBranch
-                    }
-
-                    if (branch in ["planner_refactory", "raft"]) {
-                        branch = "master"
-                    }
-                    if (version == null || version.trim() == "") {
-                        version = "latest"
-                    }
+                    def branch = (REFS.base_ref ?: "master").trim()
+                    def version = "latest"
 
                     env.TEST_BRANCH = "${branch}"
                     env.TEST_VERSION = "${version}"
 
-                    currentBuild.description = "${desc} branch=${branch} version=${version}"
+                    currentBuild.description = "TiFlash regression test branch=${branch} version=${version}"
                 }
             }
         }
