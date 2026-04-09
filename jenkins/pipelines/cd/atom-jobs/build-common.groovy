@@ -795,6 +795,7 @@ def upload_fileserver(local, remote){
             sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f $local ks3://ee-fileserver/download/${remote}"
         }
     }
+    archiveArtifacts(artifacts: "ks3util.log", allowEmptyArchive: true)
 }
 
 def download_fileserver(remote, local){
@@ -809,6 +810,7 @@ def download_fileserver(remote, local){
             sh "ks3util -c \$KS3UTIL_CONF cp --loglevel=debug -f ks3://ee-fileserver/download/${remote} $local"
         }
     }
+    archiveArtifacts(artifacts: "ks3util.log", allowEmptyArchive: true)
 }
 
 def packageBinary() {
