@@ -17,11 +17,10 @@ final OCI_TAG_KES = 'v0.14.0'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
 prow.setPRDescription(REFS)
-
 pipeline {
     agent none
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 180, unit: 'MINUTES')
@@ -32,7 +31,7 @@ pipeline {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     defaultContainer 'golang'
                 }
             }
@@ -76,19 +75,17 @@ pipeline {
                                 }
                             }
                         }
-                        sh """
+                        sh '''
                             ls -alh .
                             ./pd-server -V
                             ./tikv-server -V
                             ./tiflash --version
-                        """
+                        '''
                     }
 
                     // cache workspace for matrix pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
-                            touch rev-${REFS.pulls[0].sha}
-                        """
+                        sh "touch rev-${REFS.pulls[0].sha}"
                     }
                 }
             }
@@ -105,21 +102,22 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     }
                 }
                 stages {
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
+                        options { timeout(time: 90, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls rev-${REFS.pulls[0].sha}"
                                 }
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        chmod +x br/tests/*.sh
-                                        ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
-                                    """
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    chmod +x br/tests/*.sh
+                                    ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
+                                """
                             }
                         }
                         post{
@@ -133,11 +131,13 @@ pipeline {
                             }
                             success {
                                 dir(REFS.repo) {
-                                    sh label: "upload coverage", script: """
+                                    sh label: "prepare coverage", script: """
                                         ls -alh /tmp/group_cover
                                         gocovmerge /tmp/group_cover/cov.* > coverage.txt
-                                        codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number} || true
                                     """
+                                    script {
+                                        prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.txt')
+                                    }
                                 }
                             }
                         }
