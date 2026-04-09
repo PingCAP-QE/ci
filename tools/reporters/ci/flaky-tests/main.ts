@@ -126,8 +126,9 @@ export async function main(args: string[]): Promise<number> {
   }
 
   try {
+    const windowDurationMs = window.to.getTime() - window.from.getTime();
     const previousWeekTimeWindow = {
-      from: new Date(window.from.getTime() - 7 * 24 * 60 * 60 * 1000),
+      from: new Date(window.from.getTime() - windowDurationMs),
       to: window.from,
     };
     previousWeekRuns = await db.fetchRuns(previousWeekTimeWindow);
