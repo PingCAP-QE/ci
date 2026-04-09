@@ -1,0 +1,27 @@
+global_definitions:
+  branches: &branches
+    - ^master$
+    - ^release-nextgen-\d+$
+    - ^feature/.+
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tiflow:
+    - name: pingcap/tiflow/pull_dm_integration_test_next_gen
+      agent: jenkins
+      decorate: false
+      context: pull-dm-integration-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test-next-gen|dm-next-gen|next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-dm-integration-test-next-gen"
+      branches: *branches
+      optional: true
+
+    - name: pingcap/tiflow/pull_dm_compatibility_test_next_gen
+      agent: jenkins
+      decorate: false
+      context: pull-dm-compatibility-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test-next-gen|dm-next-gen|next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-dm-compatibility-test-next-gen"
+      branches: *branches
+      optional: true
