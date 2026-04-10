@@ -1,5 +1,6 @@
 global_definitions:
   branches: &branches
+    - ^master$
     - ^release-nextgen-.*$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
