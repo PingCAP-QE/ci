@@ -94,6 +94,7 @@ configMapGenerator:
       - pingcap_tiflow_common-postsubmits.yaml=pingcap/tiflow/common-postsubmits.yaml
       - pingcap_tiflow_latest-periodics.yaml=pingcap/tiflow/latest-periodics.yaml
       - pingcap_tiflow_latest-postsubmits.yaml=pingcap/tiflow/latest-postsubmits.yaml
+      - pingcap_tiflow_latest-presubmits-next-gen.yaml=pingcap/tiflow/latest-presubmits-next-gen.yaml
       - pingcap_tiflow_latest-presubmits-wip.yaml=pingcap/tiflow/latest-presubmits-wip.yaml
       - pingcap_tiflow_latest-presubmits.yaml=pingcap/tiflow/latest-presubmits.yaml
       - pingcap_tiflow_release-6.0-presubmits.yaml=pingcap/tiflow/release-6.0-presubmits.yaml
