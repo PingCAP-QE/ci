@@ -8,11 +8,8 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_TIDB = component.computeArtifactNextGenOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeArtifactNextGenOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_PD = component.computeArtifactNextGenOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-// Keep sync-diff-inspector on the existing hub/community source until the
-// nextgen tiflow package route is consumed by CI independently from this
-// DM-only presubmit.
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
@@ -26,7 +23,6 @@ pipeline {
     }
     environment {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
-        OCI_ARTIFACT_HOST_COMMUNITY = 'us-docker.pkg.dev/pingcap-testing-account/hub'
         NEXT_GEN = '1'
     }
     options {
