@@ -14,7 +14,6 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       run_if_changed: "^(dm/.*|pkg/.*|sync_diff_inspector/.*|go\\.mod)$"
-      run_before_merge: true
       optional: true
       context: pull-dm-integration-test-next-gen
       trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test-next-gen|next-gen-dm|next-gen)(?: .*?)?$"
