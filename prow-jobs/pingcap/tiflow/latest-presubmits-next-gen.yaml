@@ -14,6 +14,7 @@ presubmits:
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
+      run_if_changed: "^(dm/.*|pkg/.*|sync_diff_inspector/.*|go\\.mod)$"
       run_before_merge: true
       optional: true
       context: pull-dm-integration-test-next-gen
