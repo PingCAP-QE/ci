@@ -19,6 +19,7 @@ spec:
             'pingcap/ticdc',
             'pingcap/tidb',
             'pingcap/tiflash',
+            'pingcap/tiflow',
             'pingcap/tiproxy',
             'tidbcloud/cloud-storage-engine',
             'tikv/pd',
@@ -53,6 +54,12 @@ spec:
                     'sourceWsSize': '100Gi',
                     'cpu': '12',
                     'memory': '48Gi',
+                  },
+                  'pingcap/tiflow': {
+                    'timeout': '40m',
+                    'sourceWsSize': '50Gi',
+                    'cpu': '6',
+                    'memory': '24Gi',
                   },
                   'tikv/pd': {
                     'timeout': '20m',
