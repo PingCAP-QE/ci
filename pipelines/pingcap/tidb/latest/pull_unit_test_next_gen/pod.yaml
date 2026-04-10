@@ -22,7 +22,7 @@ spec:
         limits:
           memory: 48Gi
           cpu: "12"
-          ephemeral-storage: 150Gi
+          ephemeral-storage: 80Gi
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
@@ -48,7 +48,7 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 200Gi
+                storage: 300Gi
             storageClassName: hyperdisk-rwo
     - name: bazel-repository-cache
       emptyDir: {}
