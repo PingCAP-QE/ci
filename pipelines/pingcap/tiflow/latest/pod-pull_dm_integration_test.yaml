@@ -80,6 +80,16 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
   volumes:
+    - name: workspace-volume
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 150Gi
+            storageClassName: hyperdisk-rwo
     - name: mysql-config-volume
       emptyDir: {}
   affinity:
