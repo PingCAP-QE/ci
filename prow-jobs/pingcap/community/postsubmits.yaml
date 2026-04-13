@@ -41,3 +41,37 @@ postsubmits:
               requests:
                 cpu: "1"
                 memory: 1Gi
+    - name: create-updating-owners-pr-tidb-85
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: teams/tidb/membership\.json
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: main
+            image: denoland/deno:2.2.2
+            command:
+              - deno
+              - run
+              - --allow-all
+              - https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts
+            args:
+              - --owner=pingcap
+              - --only_repo.repo=tidb
+              - --only_repo.branch=release-8.5
+              - --github_private_token=$(GITHUB_API_TOKEN)
+              - --inputs=teams/tidb/membership.json
+            env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
+            resources:
+              limits:
+                cpu: "1"
+                memory: 1Gi
+              requests:
+                cpu: "1"
+                memory: 1Gi
