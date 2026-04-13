@@ -21,6 +21,17 @@ spec:
         limits:
           memory: 4Gi
           cpu: 2000m
+  volumes:
+    - name: workspace-volume
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 150Gi
+            storageClassName: hyperdisk-rwo
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

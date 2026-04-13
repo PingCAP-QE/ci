@@ -138,6 +138,16 @@ spec:
           cpu: 2000m
           memory: 4Gi
   volumes:
+    - name: workspace-volume
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 150Gi
+            storageClassName: hyperdisk-rwo
     - emptyDir: {}
       name: volume-0
   affinity:
