@@ -8,8 +8,8 @@ global_definitions:
     decorate: true
     decoration_config:
       timeout: 3h
-    always_run: false
-    optional: true
+    always_run: false # TODO update here after test passed 
+    optional: true  # TODO update here after test passed
     skip_if_only_changed: *skip_if_only_changed
   amd64_affinity: &amd64_affinity
     nodeAffinity:
@@ -216,8 +216,9 @@ presubmits:
               - name: SANITIZER
                 value: TSAN
             securityContext:
+              # Required for TSAN on GCP. Without privileged mode, the TSAN job hit
+              # `ThreadSanitizer: unexpected memory mapping` during test execution.
               privileged: true
-
     - <<: *titan_presubmit_job
       name: pull-titan-sanitizer-ubsan
       spec:
