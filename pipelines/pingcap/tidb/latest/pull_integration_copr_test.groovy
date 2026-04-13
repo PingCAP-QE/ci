@@ -27,15 +27,10 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tikv-copr-test") {
@@ -69,7 +64,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir('tidb') {
                     sh label: 'check version', script: """

@@ -24,7 +24,6 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${OCI_TAG_TIDB}", restoreKeys: ['git/pingcap/tidb/rev-']) {

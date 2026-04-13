@@ -30,12 +30,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
@@ -144,7 +140,6 @@ pipeline {
                         }
                     }
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
                                 sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash

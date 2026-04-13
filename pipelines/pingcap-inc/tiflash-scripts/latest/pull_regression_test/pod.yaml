@@ -10,9 +10,9 @@ spec:
       resources:
         requests:
           cpu: "4"
-          memory: 12Gi
+          memory: 16Gi
         limits:
-          cpu: "16"
+          cpu: "12"
           memory: 24Gi
   affinity:
     nodeAffinity:

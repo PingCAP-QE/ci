@@ -27,7 +27,7 @@ periodics:
               cpu: 200m
   - name: periodic-reporter-flaky-tests-tidb
     decorate: true # need add this.
-    cron: "0 22 * * *" # Run daily at 6:00 UTC+8 (which is 22:00 UTC)
+    cron: "5 0 * * *" # Run daily at 8:05 UTC+8 (which is 00:05 UTC)
     # hidden: true
     spec:
       activeDeadlineSeconds: 300
@@ -117,7 +117,7 @@ periodics:
               cpu: 200m
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
-    cron: "0 23 * * *" # Run daily at 7:00 UTC+8 (which is 23:00 UTC)
+    cron: "30 0 * * *" # Run daily at 8:30 UTC+8 (which is 0:30 UTC)
     # hidden: true
     spec:
       activeDeadlineSeconds: 300

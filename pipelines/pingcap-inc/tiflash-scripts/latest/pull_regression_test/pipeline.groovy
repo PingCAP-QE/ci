@@ -53,15 +53,11 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    deleteDir()
-                    script {
-                        prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 10)
+                    container('jnlp') {
+                        script {
+                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 10)
+                        }
                     }
-                    sh '''
-                        set -euxo pipefail
-                        git rev-parse HEAD
-                        git status --short
-                    '''
                 }
             }
         }
@@ -83,7 +79,7 @@ pipeline {
                     sh '''
                         set -euxo pipefail
                         for proc in tidb-server tikv-server pd-server theflash tiflash; do
-                          pkill -9 -x "${proc}" || true
+                            pkill -9 -x "${proc}" || true
                         done
                         rm -rf /tmp/ti /tmp/download || true
 
@@ -109,19 +105,19 @@ pipeline {
                             mkdir -p "${out_dir}"
 
                             while IFS= read -r -d '' f; do
-                              safe="${f#/}"
-                              safe="$(echo "${safe}" | tr '/' '_')"
-                              cp -f "${f}" "${out_dir}/${safe}" || true
+                                safe="${f#/}"
+                                safe="$(echo "${safe}" | tr '/' '_')"
+                                cp -f "${f}" "${out_dir}/${safe}" || true
                             done < <(find . -type f -name '*.log' -print0 2>/dev/null || true)
 
                             while IFS= read -r -d '' f; do
-                              safe="${f#/}"
-                              safe="$(echo "${safe}" | tr '/' '_')"
-                              cp -f "${f}" "${out_dir}/${safe}" || true
+                                safe="${f#/}"
+                                safe="$(echo "${safe}" | tr '/' '_')"
+                                cp -f "${f}" "${out_dir}/${safe}" || true
                             done < <(find /tmp/ti -type f -name '*.log' ! -path '*/data/*' ! -path '*/tiflash/db*' -print0 2>/dev/null || true)
 
                             if [[ -d /tmp/ti ]]; then
-                              tar -czf "${out_dir}/tmp-ti.tar.gz" -C /tmp ti || true
+                                tar -czf "${out_dir}/tmp-ti.tar.gz" -C /tmp ti || true
                             fi
                             tar -czf "artifacts/${out_name}.tar.gz" -C artifacts "${out_name}" || true
                         '''

@@ -1,0 +1,21 @@
+global_definitions:
+  branches: &branches
+    - ^master$
+    - ^release-nextgen-.*$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tiflow:
+    - name: pingcap/tiflow/pull_dm_integration_test_next_gen
+      agent: jenkins
+      labels:
+        master: "1"
+      decorate: false # need add this.
+      always_run: false
+      run_if_changed: "^(dm/.*|pkg/.*|sync_diff_inspector/.*|go\\.mod)$"
+      optional: true
+      context: pull-dm-integration-test-next-gen
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test-next-gen|next-gen-dm|next-gen)(?: .*?)?$"
+      rerun_command: "/test pull-dm-integration-test-next-gen"
+      branches: *branches

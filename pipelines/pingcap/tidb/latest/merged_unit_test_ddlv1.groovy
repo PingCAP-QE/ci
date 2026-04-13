@@ -21,16 +21,10 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            git.setSshKey(GIT_CREDENTIALS_ID)
-                            retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
             }
@@ -50,7 +44,12 @@ pipeline {
 
                     # Replay-only skip for flaky target in this environment:
                     # //pkg/sessionctx/variable/tests:tests_test (goleak flake on shard 18/47).
-                    sed -i 's|-- //\\.\\.\\. -//cmd/\\.\\.\\.|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    # Guard this hotfix so newer branches that removed the package keep working.
+                    if [ -f pkg/sessionctx/variable/tests/BUILD ] || [ -f pkg/sessionctx/variable/tests/BUILD.bazel ]; then
+                      sed -i 's|-- //\\.\\.\\. -//cmd/\\.\\.\\.|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    else
+                      echo 'Skip adding //pkg/sessionctx/variable/tests:tests_test exclusion: package not found'
+                    fi
 
                     # Replay-only timeout hotfix: raise ci shard timeout to avoid 150s timeout flakes.
                     if [ -f .bazelrc ]; then

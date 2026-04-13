@@ -31,18 +31,13 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
         }
         stage('Tests') {
-            options { timeout(time: 45, unit: 'MINUTES') }
             steps {
                 dir("${REFS.repo}/tests/integrationtest2") {
                     dir("third_bin") {

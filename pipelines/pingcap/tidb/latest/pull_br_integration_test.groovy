@@ -35,15 +35,10 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
 
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
@@ -111,7 +106,6 @@ pipeline {
                 stages {
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {

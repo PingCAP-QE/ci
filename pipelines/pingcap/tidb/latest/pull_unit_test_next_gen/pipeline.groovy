@@ -28,12 +28,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
             }
@@ -52,7 +48,12 @@ pipeline {
                     sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
 
                     # Replay-only skip for flaky target in GCP replay (goleak on IMDS path).
-                    sed -i 's|-- //... -//cmd/...|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    # Guard this hotfix so newer branches that removed the package keep working.
+                    if [ -f pkg/sessionctx/variable/tests/BUILD ] || [ -f pkg/sessionctx/variable/tests/BUILD.bazel ]; then
+                      sed -i 's|-- //\\.\\.\\. -//cmd/\\.\\.\\.|-- //... -//cmd/... -//pkg/sessionctx/variable/tests:tests_test |' Makefile || true
+                    else
+                      echo 'Skip adding //pkg/sessionctx/variable/tests:tests_test exclusion: package not found'
+                    fi
 
                     grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                     grep -n '^check:' Makefile | head -n 3 || true

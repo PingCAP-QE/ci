@@ -37,12 +37,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
@@ -79,7 +75,6 @@ pipeline {
             }
         }
         stage('Tests') {
-            options { timeout(time: 45, unit: 'MINUTES') }
             environment {
                 TICI_BIN = "third_bin/tici-server"
                 MINIO_BIN = "third_bin/minio"

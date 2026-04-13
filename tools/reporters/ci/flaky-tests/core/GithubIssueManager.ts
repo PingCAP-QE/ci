@@ -2,6 +2,9 @@ import {
   buildIssueBody,
   buildIssueComment,
   buildIssueTitle,
+  buildIssueTitleSearchExpr,
+  formatSuiteName,
+  normalizeIssueTitle,
   parseRepo,
 } from "./IssueUtils.ts";
 import type {
@@ -32,9 +35,6 @@ interface GitHubIssueApi {
   closed_at?: string | null;
 }
 
-const ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS = 10;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 class GitHubClient {
   constructor(
     private readonly token: string,
@@ -45,9 +45,13 @@ class GitHubClient {
     owner: string,
     repo: string,
     title: string,
+    looseCaseName?: string,
   ): Promise<GitHubIssueApi[]> {
-    const queryTitle = title.replaceAll('"', '\\"');
-    const query = `repo:${owner}/${repo} is:issue in:title \"${queryTitle}\"`;
+    const searchExpr = buildIssueTitleSearchExpr(
+      title,
+      looseCaseName ? String(looseCaseName) : "",
+    );
+    const query = `${searchExpr} in:title is:issue repo:${owner}/${repo}`;
     const url = `https://api.github.com/search/issues?q=${
       encodeURIComponent(query)
     }`;
@@ -306,12 +310,12 @@ export class GithubIssueManager {
     let note: string | undefined;
 
     try {
-      issue = await this.findBestIssue(owner, repo, title);
+      issue = await this.findBestIssue(owner, repo, title, sample);
       if (issue?.state === "open") {
         status = "open";
       } else if (issue?.state === "closed") {
         const reopenCheck = this.allowReopen && canMutate
-          ? this.checkReopenEligibility(issue)
+          ? this.checkReopenEligibility(issue, report)
           : { eligible: false, note: undefined };
         if (reopenCheck.eligible) {
           status = "reopened";
@@ -412,28 +416,86 @@ export class GithubIssueManager {
     owner: string,
     repo: string,
     title: string,
+    sample: CaseAgg,
   ): Promise<GitHubIssueApi | null> {
-    const issues = await this.client!.searchIssues(owner, repo, title);
+    const exactIssues = await this.client!.searchIssues(owner, repo, title);
+    const looseCaseName = String(sample.case_name ?? "").trim();
+    const looseIssues = looseCaseName
+      ? await this.client!.searchIssues(owner, repo, title, looseCaseName)
+      : [];
+    const issues = this.mergeIssueCandidates(exactIssues, looseIssues);
     if (!issues || issues.length === 0) return null;
 
-    const normalizedTitle = this.normalizeTitle(title);
-    const exact = issues.filter((i) =>
-      this.normalizeTitle(i.title) === normalizedTitle
-    );
-    const candidates = exact.length > 0 ? exact : issues;
+    const ranked = issues
+      .map((issue) => ({
+        issue,
+        score: this.scoreIssueCandidate(issue, title, sample),
+      }))
+      .sort((a, b) => {
+        if (b.score.state !== a.score.state) {
+          return b.score.state - a.score.state;
+        }
+        if (b.score.match !== a.score.match) {
+          return b.score.match - a.score.match;
+        }
+        return a.issue.number - b.issue.number;
+      });
 
-    const open = candidates.find((i) => i.state === "open");
-    if (open) return open;
-    const closed = candidates.find((i) => i.state === "closed");
-    return closed ?? null;
+    return ranked[0]?.issue ?? null;
   }
 
-  private normalizeTitle(title: string): string {
-    return title.trim().replace(/\s+/g, " ").toLowerCase();
+  private mergeIssueCandidates(
+    exactIssues: GitHubIssueApi[],
+    looseIssues: GitHubIssueApi[],
+  ): GitHubIssueApi[] {
+    const out: GitHubIssueApi[] = [];
+    const seen = new Set<number>();
+    for (const issue of [...exactIssues, ...looseIssues]) {
+      if (!issue || !Number.isFinite(issue.number) || seen.has(issue.number)) {
+        continue;
+      }
+      seen.add(issue.number);
+      out.push(issue);
+    }
+    return out;
+  }
+
+  private scoreIssueCandidate(
+    issue: GitHubIssueApi,
+    exactTitle: string,
+    sample: CaseAgg,
+  ): { state: number; match: number } {
+    const state = issue.state === "open" ? 1 : 0;
+    const match = this.titleMatchLevel(issue.title, exactTitle, sample);
+    return { state, match };
+  }
+
+  private titleMatchLevel(
+    issueTitle: string,
+    exactTitle: string,
+    sample: CaseAgg,
+  ): number {
+    const normalizedIssueTitle = normalizeIssueTitle(issueTitle);
+    const normalizedExactTitle = normalizeIssueTitle(exactTitle);
+    if (normalizedIssueTitle === normalizedExactTitle) {
+      return 3;
+    }
+
+    const caseTerm = normalizeIssueTitle(sample.case_name);
+    const suiteTerm = normalizeIssueTitle(formatSuiteName(sample.suite_name));
+    const hasCase = caseTerm ? normalizedIssueTitle.includes(caseTerm) : false;
+    const hasSuite = suiteTerm
+      ? normalizedIssueTitle.includes(suiteTerm)
+      : false;
+
+    if (hasCase && hasSuite) return 2;
+    if (hasCase) return 1;
+    return 0;
   }
 
   private checkReopenEligibility(
     issue: GitHubIssueApi,
+    report: ReportData,
   ): { eligible: boolean; note?: string } {
     const closedAt = this.parseClosedAt(issue.closed_at);
     if (!closedAt) {
@@ -443,19 +505,18 @@ export class GithubIssueManager {
       };
     }
 
-    const ageMs = this.now().getTime() - closedAt.getTime();
-    if (!Number.isFinite(ageMs) || ageMs < 0) {
+    const windowStart = new Date(report.window.from);
+    if (Number.isNaN(windowStart.getTime())) {
       return {
         eligible: false,
-        note: `skip reopen: invalid closed_at timestamp ${issue.closed_at}`,
+        note: `skip reopen: invalid report window start ${report.window.from}`,
       };
     }
 
-    if (ageMs < ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS * DAY_MS) {
+    if (closedAt.getTime() >= windowStart.getTime()) {
       return {
         eligible: false,
-        note:
-          `skip reopen: issue closed less than ${ISSUE_REOPEN_MIN_CLOSED_AGE_DAYS} days ago`,
+        note: "skip reopen: issue closed in current statistics window",
       };
     }
 

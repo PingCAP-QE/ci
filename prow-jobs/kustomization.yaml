@@ -16,6 +16,7 @@ configMapGenerator:
       - pingcap-inc_tiflash-scripts_presubmits.yaml=pingcap-inc/tiflash-scripts/presubmits.yaml
       - pingcap-inc_tiflow_release-presubmits.yaml=pingcap-inc/tiflow/release-presubmits.yaml
       - pingcap-qe_ci_periodics.yaml=pingcap-qe/ci/periodics.yaml
+      - pingcap-qe_ci_postsubmits.yaml=pingcap-qe/ci/postsubmits.yaml
       - pingcap-qe_ci_presubmits.yaml=pingcap-qe/ci/presubmits.yaml
       - pingcap-qe_ee-apps_presubmits.yaml=pingcap-qe/ee-apps/presubmits.yaml
       - pingcap-qe_tidb-test_latest-presubmits-next-gen.yaml=pingcap-qe/tidb-test/latest-presubmits-next-gen.yaml
@@ -93,6 +94,7 @@ configMapGenerator:
       - pingcap_tiflow_common-postsubmits.yaml=pingcap/tiflow/common-postsubmits.yaml
       - pingcap_tiflow_latest-periodics.yaml=pingcap/tiflow/latest-periodics.yaml
       - pingcap_tiflow_latest-postsubmits.yaml=pingcap/tiflow/latest-postsubmits.yaml
+      - pingcap_tiflow_latest-presubmits-next-gen.yaml=pingcap/tiflow/latest-presubmits-next-gen.yaml
       - pingcap_tiflow_latest-presubmits-wip.yaml=pingcap/tiflow/latest-presubmits-wip.yaml
       - pingcap_tiflow_latest-presubmits.yaml=pingcap/tiflow/latest-presubmits.yaml
       - pingcap_tiflow_release-6.0-presubmits.yaml=pingcap/tiflow/release-6.0-presubmits.yaml

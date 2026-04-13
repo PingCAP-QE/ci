@@ -155,7 +155,7 @@ spec:
         - name: builder-image
           value: "$(tasks.get-binaries-builder.results.image-url)"
         - name: release-dir
-          value: build
+          value: /workspace/release/$(params.component)
         - name: push
           value: "$(params.push)"
         - name: registry
@@ -193,7 +193,7 @@ spec:
         - name: git-sha
           value: $(tasks.checkout.results.commit)
         - name: release-dir
-          value: build
+          value: /workspace/release/$(params.component)
         - name: build
           value: "false"
         - name: registry
