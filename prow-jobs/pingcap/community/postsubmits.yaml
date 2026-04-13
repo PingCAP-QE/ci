@@ -61,14 +61,7 @@ postsubmits:
               - --only_repo.repo=tidb
               - --only_repo.branch=release-8.5
               - --github_private_token=$(GITHUB_API_TOKEN)
-              - --inputs=teams/diagnostic/membership.json
-              - --inputs=teams/docs/membership.json
-              - --inputs=teams/tiunimanager/membership.json
               - --inputs=teams/tidb/membership.json
-              - --inputs=teams/tiflash/membership.json
-              - --inputs=teams/kubernetes/membership.json
-              - --inputs=teams/migration/membership.json
-              - --inputs=teams/bigdata/membership.json
             env:
               - name: GITHUB_API_TOKEN
                 valueFrom:
