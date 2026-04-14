@@ -114,8 +114,8 @@ async function fillRepoTagInfo(
     repos = repos.filter((r) => r.repo !== "ticdc");
   }
 
-  // "tidb-tools" repo will be excluded from release since 9.0.0, its code migrated to `tiflow` repo.
-  const tidbToolsRemovedRange = parseRange(">=9.0.0-0");
+  // "tidb-tools" repo will be excluded from release since v8.5.6, its code migrated to `tiflow` repo.
+  const tidbToolsRemovedRange = parseRange(">=8.5.6-0");
   if (satisfies(v, tidbToolsRemovedRange)) {
     repos = repos.filter((r) => r.repo !== "tidb-tools");
   }
