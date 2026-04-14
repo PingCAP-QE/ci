@@ -34,16 +34,6 @@ spec:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
   volumes:
-    - name: workspace-volume
-      ephemeral:
-        volumeClaimTemplate:
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 150Gi
-            storageClassName: hyperdisk-rwo
     - name: bazel-out-merged
       emptyDir: {}
     - name: bazel-rc
