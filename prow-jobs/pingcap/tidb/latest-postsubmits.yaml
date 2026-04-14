@@ -30,17 +30,6 @@ postsubmits:
       skip_report: false
 
     - <<: *brancher
-      name: pingcap/tidb/merged_integration_common_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: ci/integration-common-test
-      max_concurrency: 1
-      skip_report: true # TODO: change to false after failed test is fixed.
-
-    - <<: *brancher
       name: pingcap/tidb/merged_integration_jdbc_test
       agent: jenkins
       labels:
@@ -147,17 +136,6 @@ postsubmits:
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: wip/integration-lightning-test
-      max_concurrency: 1
-      skip_report: true
-
-    - <<: *brancher
-      name: pingcap/tidb/merged_tiflash_integration_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: wip/tiflash-integration-test
       max_concurrency: 1
       skip_report: true
 
