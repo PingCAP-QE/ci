@@ -12,16 +12,6 @@ spec:
           memory: 16Gi
           cpu: "6"
   volumes:
-    - name: workspace-volume
-      ephemeral:
-        volumeClaimTemplate:
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 150Gi
-            storageClassName: hyperdisk-rwo
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

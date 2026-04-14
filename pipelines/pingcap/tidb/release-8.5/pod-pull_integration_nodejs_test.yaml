@@ -40,15 +40,5 @@ spec:
                 values:
                   - amd64
   volumes:
-    - name: workspace-volume
-      ephemeral:
-        volumeClaimTemplate:
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 150Gi
-            storageClassName: hyperdisk-rwo
     - name: tidb-tmp
       emptyDir: {}
