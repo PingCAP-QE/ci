@@ -4,6 +4,11 @@ global_definitions:
       - ^master$
       - ^release-6[.][1-9].*$
       - ^release-[78][.].*$
+  integration_brancher: &integration_brancher
+    branches:
+      - ^release-8[.]1.*$
+      - ^release-7[.]5.*$
+      - ^release-7[.]1.*$
 
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
@@ -95,40 +100,65 @@ presubmits:
                       operator: In
                       values:
                         - amd64
-    - <<: *brancher
-      name: wip-pull-integration-test # WIP
+    - <<: *integration_brancher
+      name: pull-integration-test
       agent: kubernetes
-      # TODO(@wuhuizuo): migrate images hub.pingcap.net/jenkins/zookeeper and hub.pingcap.net/jenkins/kafka to a public registry.
-      decorate: true # need add this.
-      always_run: false
-      optional: true
-      # skip_if_only_changed: *skip_if_only_changed
-      # context: idc-jenkins-ci-tidb-binlog/integration-test
+      decorate: true
+      decoration_config:
+        timeout: 120m
+      always_run: true
+      optional: false
+      skip_if_only_changed: *skip_if_only_changed
+      # TiDB Binlog is removed from TiDB >= 8.3. Keep this integration job focused on
+      # the maintained legacy-compatible lines only.
       spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        volumes:
+          - name: tools
+            emptyDir: {}
         containers:
           - name: build
             image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-81-gec616ff-go1.21
+            imagePullPolicy: Always
             command: [bash, -ce]
+            env:
+              - name: OCI_ARTIFACT_HOST
+                value: us-docker.pkg.dev/pingcap-testing-account/hub
+              - name: TIDB_BINLOG_SUPPORTED_REFS
+                value: release-8.1,release-7.5,release-7.1
             args:
               - |
-                trap 'touch /tools/run.done' EXIT # notify other containers to exit, `/tools` is shared volume.
-
-                make build
-                ls -l ./bin
-                # KAFKA_ADDRS=127.0.0.1:9092 make integration-test
+                curl -fsSL --retry 3 \
+                  https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/pingcap/tidb-binlog/pull_integration_test.sh \
+                  -o /tmp/pull_integration_test.sh
+                bash /tmp/pull_integration_test.sh
+            volumeMounts:
+              - name: tools
+                mountPath: /tools
             resources:
+              requests:
+                memory: 8Gi
+                cpu: "4"
               limits:
                 memory: 8Gi
                 cpu: "4"
           - name: zookeeper
-            image: hub.pingcap.net/jenkins/zookeeper
+            image: wurstmeister/zookeeper
             command: [bash, -ce]
             args:
               - |
                 echo "🚩 This is the Zookeeper server."
 
                 # Start Zookeeper in the background
-                /usr/bin/start-zk.sh > /logs/artifacts/container-output-zookeeper.log 2>&1 &
+                bash /usr/bin/start-zk.sh > /logs/artifacts/container-output-zookeeper.log 2>&1 &
                 ZK_PID=$!
 
                 # Function to handle termination signal
@@ -151,12 +181,15 @@ presubmits:
                 # Call the terminate function to stop Zookeeper
                 echo "👀 Saw termination flag, exiting."
                 terminate
+            volumeMounts:
+              - name: tools
+                mountPath: /tools
             resources:
               requests:
                 memory: 4Gi
                 cpu: "2"
           - name: kafka
-            image: hub.pingcap.net/jenkins/kafka
+            image: wurstmeister/kafka:2.12-2.4.1
             command: [bash, -ce]
             args:
               - |
@@ -191,26 +224,20 @@ presubmits:
                 value: "1073741824"
               - name: KAFKA_REPLICA_FETCH_MAX_BYTES
                 value: "1073741824"
-              - name: KAFKA_ADVERTISED_PORT
-                value: "9092"
-              - name: KAFKA_ADVERTISED_HOST_NAME
-                value: "127.0.0.1"
               - name: KAFKA_BROKER_ID
                 value: "1"
+              - name: KAFKA_ADVERTISED_LISTENERS
+                value: "PLAINTEXT://127.0.0.1:9092"
+              - name: KAFKA_LISTENERS
+                value: "PLAINTEXT://127.0.0.1:9092"
               - name: ZK
                 value: "zk"
               - name: KAFKA_ZOOKEEPER_CONNECT
                 value: "localhost:2181"
+            volumeMounts:
+              - name: tools
+                mountPath: /tools
             resources:
               requests:
                 memory: 4Gi
                 cpu: "2"
-        affinity:
-          nodeAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              nodeSelectorTerms:
-                - matchExpressions:
-                    - key: kubernetes.io/arch
-                      operator: In
-                      values:
-                        - amd64
