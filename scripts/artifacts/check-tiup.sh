@@ -59,10 +59,9 @@ function gather_results() {
             pingcap/tidb-binlog/package
         )
     fi
-    # if VERSION is greater then v9.0.0, then we:
+    # if VERSION is greater then v8.5.6, then we:
     # - add sync-diff-inspector to the tiup pkgs
-    # - add oci repo for new cdc
-    if [[ "$(printf '%s\n' "v9.0.0" "$VERSION" | sort -V | head -n1)" == "v9.0.0" ]]; then
+    if [[ "$(printf '%s\n' "v8.5.6" "$VERSION" | sort -V | head -n1)" == "v8.5.6" ]]; then
         tiup_pkgs+=(
             sync-diff-inspector
         )
