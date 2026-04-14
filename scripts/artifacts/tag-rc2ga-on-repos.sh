@@ -105,6 +105,7 @@ function tag_oci_image_repos() {
     "pingcap/tiflash/image"
     "pingcap/tiflow/images/cdc"
     "pingcap/tiflow/images/dm"
+    "pingcap/tiflow/images/sync-diff-inspector"
     "pingcap/tiflow/images/tiflow"
     "tikv/pd/image"
     "tikv/tikv/image"
@@ -123,6 +124,12 @@ function tag_oci_image_repos() {
     images=(${images[@]})
     images+=(
       "pingcap/ticdc/image"
+    )
+  fi
+  # tiflow repo will publish sync-diff-inspector image since v8.5.6
+  if [[ "$(printf '%s\n' "v8.5.6" "$ga_ver" | sort -V | tail -n1)" == "$ga_ver" ]]; then
+    images+=(
+      "pingcap/tiflow/images/sync-diff-inspector"
     )
   fi
 
