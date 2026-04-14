@@ -112,7 +112,7 @@ wait_for_port() {
   local port="$2"
 
   for _ in $(seq 1 60); do
-    if bash -c "exec 3<>/dev/tcp/127.0.0.1/${port}" >/dev/null 2>&1; then
+    if (echo > /dev/tcp/127.0.0.1/${port}) >/dev/null 2>&1; then
       log "${name} is ready on 127.0.0.1:${port}"
       return 0
     fi
@@ -245,7 +245,7 @@ main() {
   tar -xzf "${tidb_tools_tarball}" -C "${tidb_tools_extract_dir}"
   tidb_tools_bin_dir="$(find "${tidb_tools_extract_dir}" -type d -name bin | head -n1 || true)"
   if [[ -n "${tidb_tools_bin_dir}" ]]; then
-    cp -f "${tidb_tools_bin_dir}"/* "${REPO_ROOT}/bin/"
+    find "${tidb_tools_bin_dir}" -maxdepth 1 -type f -exec cp -f {} "${REPO_ROOT}/bin/" \;
   else
     log "tidb-tools archive uses flat binary layout"
     find "${tidb_tools_extract_dir}" -maxdepth 1 -type f -exec cp -f {} "${REPO_ROOT}/bin/" \;
