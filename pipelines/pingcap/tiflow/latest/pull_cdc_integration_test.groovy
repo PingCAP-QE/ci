@@ -34,6 +34,7 @@ pipeline {
                 kubernetes {
                     namespace K8S_NAMESPACE
                     yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     defaultContainer 'golang'
                 }
             }
@@ -89,6 +90,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }
