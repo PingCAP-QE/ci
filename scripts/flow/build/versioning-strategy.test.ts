@@ -28,7 +28,7 @@ Deno.test("compute", () => {
       description:
         "history style - create new release branch but no new commit after alpha tag",
       gitVer: "v8.5.0-alpha",
-      branches: ["master", "release-8.5"],
+      branches: ["* (HEAD detached at ae18096e02)", "master", "release-8.5"],
       expect: {
         version: "v8.5.0-pre",
         newBuildTag: "v8.5.0",
@@ -38,7 +38,7 @@ Deno.test("compute", () => {
       description:
         "history style - create new release branch with new commits after alpha tag",
       gitVer: "v8.5.0-alpha-2-g1234567",
-      branches: ["master", "release-8.5"],
+      branches: ["* (HEAD detached at ae18096e02)", " master", " release-8.5"],
       expect: {
         version: "v8.5.0-pre",
         newBuildTag: "v8.5.0",

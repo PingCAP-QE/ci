@@ -34,7 +34,7 @@ function isReleaseBranch(branch: string): boolean {
     return false;
   }
   const standardRelease =
-    /^(?:feature\/)?release-[0-9]+[.][0-9]+(?:-beta\.[0-9]+)?(?![\/.-])(?!-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+)/
+    /\b(?:feature\/)?release-[0-9]+[.][0-9]+(?:-beta\.[0-9]+)?(?![\/.-])(?!-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+)/
       .test(
         branch,
       );
