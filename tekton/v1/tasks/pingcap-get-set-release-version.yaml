@@ -50,11 +50,13 @@ spec:
         echo "Deleting date style tags ..."
         git tag | grep -E "^v20[0-9][0-9].[0-1]{1,2}.[0-3][0-9]" | xargs git tag -d || true
 
-        # Get raw version and save to file for next step
+        echo "📄 Get raw version and save to file for next step:"
         git describe --tags --always --dirty > /workspace/raw-version.txt
+        cat /workspace/raw-version.txt
 
-        # Get the branches which contained the commits
+        echo "🍴Get the branches which contained the commits:"
         git branch --contains > /workspace/branches.txt
+        cat /workspace/branches.txt
     - name: compute-version
       image: denoland/deno:2.7.3
       command:
