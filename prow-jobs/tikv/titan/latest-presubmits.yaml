@@ -165,8 +165,6 @@ global_definitions:
 
 presubmits:
   tikv/titan:
-    # Old titan_ghpr_test also had a mac-i7 branch. We intentionally omit it here
-    # because GCP does not currently provide macOS nodes for native Prow jobs.
     - <<: *titan_presubmit_job
       name: pull-titan-format
       spec:
