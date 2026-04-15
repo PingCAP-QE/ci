@@ -216,7 +216,7 @@ main() {
   tikv_ref="${dependency_ref}"
   pd_ref="${dependency_ref}"
   tidb_ref="${dependency_ref}"
-  sync_diff_inspector_ref="${dependency_ref}"
+  sync_diff_inspector_ref="${SYNC_DIFF_INSPECTOR_REF:-master}"
 
   log "Base ref ${base_ref} uses maintained binlog-compatible TiDB ref ${dependency_ref}"
   log "sync_diff_inspector uses the maintained public artifact line: ${sync_diff_inspector_ref}"
