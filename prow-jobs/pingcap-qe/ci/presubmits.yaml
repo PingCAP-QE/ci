@@ -96,7 +96,7 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
-    - name: pull-verify-pipeline-pod-yaml
+    - name: pull-verify-k8s-pod-yaml
       labels: *labels
       decorate: true
       max_concurrency: 1
@@ -106,8 +106,11 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: python:3.11.13-alpine3.22
-            command: [python3, .ci/verify-pipeline-pod-yaml.py]
+            image: mikefarah/yq:4.44.1
+            command: [sh, -ce]
+            args:
+              - |
+                sh .ci/verify-k8s-pod-yaml.sh
             resources:
               limits:
                 memory: 128Mi
