@@ -14,7 +14,6 @@ spec:
         limits:
           memory: 6Gi
           cpu: "3"
-  volumes:
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
