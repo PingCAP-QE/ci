@@ -107,6 +107,22 @@ prepare_download_tools() {
   chmod +x "${OCI_SCRIPT}"
 }
 
+download_core_dependencies() {
+  local dependency_ref="$1"
+  local tikv_tag="$2"
+  local pd_tag="$3"
+  local tidb_tag="$4"
+
+  log "Downloading TiDB/TiKV/PD artifacts from OCI for ${dependency_ref}"
+  (
+    cd "${REPO_ROOT}/bin"
+    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${OCI_SCRIPT}" \
+      --pd="${pd_tag}" \
+      --tikv="${tikv_tag}" \
+      --tidb="${tidb_tag}"
+  )
+}
+
 wait_for_port() {
   local name="$1"
   local port="$2"
@@ -224,14 +240,7 @@ main() {
   make build
   ls -alh "${REPO_ROOT}/bin"
 
-  log "Downloading TiDB/TiKV/PD artifacts from OCI"
-  (
-    cd "${REPO_ROOT}/bin"
-    OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" bash "${OCI_SCRIPT}" \
-      --pd="${pd_tag}" \
-      --tikv="${tikv_tag}" \
-      --tidb="${tidb_tag}"
-  )
+  download_core_dependencies "${dependency_ref}" "${tikv_tag}" "${pd_tag}" "${tidb_tag}"
 
   log "Downloading tidb-tools artifacts from OCI/public artifact"
   rm -rf "${tidb_tools_extract_dir}"

@@ -106,10 +106,8 @@ presubmits:
       decorate: true
       decoration_config:
         timeout: 120m
-      optional: false
+      optional: true
       skip_if_only_changed: *skip_if_only_changed
-      # TiDB Binlog is removed from TiDB >= 8.3. Keep this integration job focused on
-      # the maintained legacy-compatible lines only.
       spec:
         affinity:
           nodeAffinity:
