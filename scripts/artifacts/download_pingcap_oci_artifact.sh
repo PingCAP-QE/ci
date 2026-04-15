@@ -145,11 +145,6 @@ function main() {
         chmod +x pd-ctl
         echo "🎉 download pd-ctl success"
     fi
-    if [[ -n "$TIDB_TOOLS" ]]; then
-        echo "🚀 start download tidb-tools"
-        download "$tidb_tools_oci_url" '^tidb-tools-v.+.tar.gz$' tidb-tools.tar.gz
-        echo "🎉 download tidb-tools success"
-    fi
     if [[ -n "$TIFLASH" ]]; then
         echo "🚀 start download TiFlash"
         download_and_extract_with_path "$tiflash_oci_url" '^tiflash-v.+.tar.gz$' tiflash.tar.gz tiflash
@@ -277,10 +272,6 @@ function parse_cli_args() {
         PD_CTL="${i#*=}"
         shift # past argument=value
         ;;
-        -tidb-tools=*|--tidb-tools=*)
-        TIDB_TOOLS="${i#*=}"
-        shift # past argument=value
-        ;;
         -tikv=*|--tikv=*)
         TIKV="${i#*=}"
         shift # past argument=value
@@ -365,7 +356,6 @@ function parse_cli_args() {
     [[ -n "${TIKV_CTL}" ]]      && echo "TIKV_CTL    = ${TIKV_CTL}"
     [[ -n "${PD}" ]]            && echo "PD          = ${PD}"
     [[ -n "${PD_CTL}" ]]        && echo "PD_CTL      = ${PD_CTL}"
-    [[ -n "${TIDB_TOOLS}" ]]    && echo "TIDB_TOOLS  = ${TIDB_TOOLS}"
     [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
     [[ -n "${TICDC}" ]]         && echo "TICDC       = ${TICDC}"
     [[ -n "${TICDC_NEW}" ]]     && echo "TICDC_NEW   = ${TICDC_NEW}"
@@ -400,7 +390,6 @@ function parse_cli_args() {
     ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
     ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
     tici_oci_url="${registry_host}/pingcap/tici/package:${TICI}_${tag_suffix}"
-    tidb_tools_oci_url="${registry_host_community}/pingcap/tidb-tools/package:${TIDB_TOOLS}_${tag_suffix}"
     sync_diff_inspector_oci_url="${registry_host_community}/pingcap/tiflow/package:${SYNC_DIFF_INSPECTOR}_${tag_suffix}"
 
     # third party or public test tools.

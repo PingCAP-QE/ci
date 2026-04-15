@@ -195,14 +195,11 @@ main() {
   local tikv_ref
   local pd_ref
   local tidb_ref
-  local tidb_tools_ref
+  local sync_diff_inspector_ref
   local tikv_tag
   local pd_tag
   local tidb_tag
-  local tidb_tools_tag
-  local tidb_tools_tarball="${REPO_ROOT}/bin/tidb-tools.tar.gz"
-  local tidb_tools_extract_dir="/tmp/tidb-tools-bin"
-  local tidb_tools_bin_dir
+  local sync_diff_inspector_tag
 
   if ! command -v git >/dev/null 2>&1; then
     fail "git is required"
@@ -219,20 +216,20 @@ main() {
   tikv_ref="${dependency_ref}"
   pd_ref="${dependency_ref}"
   tidb_ref="${dependency_ref}"
-  tidb_tools_ref="master"
+  sync_diff_inspector_ref="${dependency_ref}"
 
   log "Base ref ${base_ref} uses maintained binlog-compatible TiDB ref ${dependency_ref}"
-  log "tidb-tools uses the maintained public artifact line: ${tidb_tools_ref}"
+  log "sync_diff_inspector uses the maintained public artifact line: ${sync_diff_inspector_ref}"
 
   tikv_tag="$(normalize_oci_tag "${tikv_ref}")"
   pd_tag="$(normalize_oci_tag "${pd_ref}")"
   tidb_tag="$(normalize_oci_tag "${tidb_ref}")"
-  tidb_tools_tag="$(normalize_oci_tag "${tidb_tools_ref}")"
+  sync_diff_inspector_tag="$(normalize_oci_tag "${sync_diff_inspector_ref}")"
 
   log "Resolved TiKV ref: ${tikv_ref} -> OCI tag ${tikv_tag}"
   log "Resolved PD ref: ${pd_ref} -> OCI tag ${pd_tag}"
   log "Resolved TiDB ref: ${tidb_ref} -> OCI tag ${tidb_tag}"
-  log "Resolved tidb-tools ref: ${tidb_tools_ref} -> OCI tag ${tidb_tools_tag}"
+  log "Resolved sync_diff_inspector ref: ${sync_diff_inspector_ref} -> OCI tag ${sync_diff_inspector_tag}"
 
   prepare_download_tools
 
@@ -242,25 +239,13 @@ main() {
 
   download_core_dependencies "${dependency_ref}" "${tikv_tag}" "${pd_tag}" "${tidb_tag}"
 
-  log "Downloading tidb-tools artifacts from OCI/public artifact"
-  rm -rf "${tidb_tools_extract_dir}"
-  mkdir -p "${tidb_tools_extract_dir}"
+  log "Downloading sync_diff_inspector from OCI/public artifact"
   (
     cd "${REPO_ROOT}/bin"
     OCI_ARTIFACT_HOST="${OCI_ARTIFACT_HOST}" \
     OCI_ARTIFACT_HOST_COMMUNITY="${OCI_ARTIFACT_HOST_COMMUNITY}" \
-      bash "${OCI_SCRIPT}" --tidb-tools="${tidb_tools_tag}"
+      bash "${OCI_SCRIPT}" --sync-diff-inspector="${sync_diff_inspector_tag}"
   )
-  tar -xzf "${tidb_tools_tarball}" -C "${tidb_tools_extract_dir}"
-  tidb_tools_bin_dir="$(find "${tidb_tools_extract_dir}" -type d -name bin | head -n1 || true)"
-  if [[ -n "${tidb_tools_bin_dir}" ]]; then
-    find "${tidb_tools_bin_dir}" -maxdepth 1 -type f -exec cp -f {} "${REPO_ROOT}/bin/" \;
-  else
-    log "tidb-tools archive uses flat binary layout"
-    find "${tidb_tools_extract_dir}" -maxdepth 1 -type f -exec cp -f {} "${REPO_ROOT}/bin/" \;
-  fi
-  rm -f "${tidb_tools_tarball}"
-  rm -f "${REPO_ROOT}/bin/ddl_checker" "${REPO_ROOT}/bin/importer"
 
   log "Prepared binary layout"
   ls -alh "${REPO_ROOT}/bin"
