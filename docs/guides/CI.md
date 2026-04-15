@@ -125,6 +125,7 @@ This repository has two related presubmit jobs for pipeline changes:
   - Triggered by pipeline file changes.
 - `pull-verify-k8s-pod-yaml`
   - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests.
+  - When in-cluster Kubernetes API access is available, injects a test `metadata.name` and also runs `kubectl --dry-run=client --validate=strict`.
   - Triggered by `pipelines/**/*.yaml` changes.
 - `pull-replay-jenkins-pipelines`
   - Optional replay validation using `--auto-changed`.

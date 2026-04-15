@@ -106,10 +106,11 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: mikefarah/yq:4.44.1
+            image: alpine:3.22
             command: [sh, -ce]
             args:
               - |
+                apk add --no-cache kubectl yq-go
                 sh .ci/verify-k8s-pod-yaml.sh
             resources:
               limits:
