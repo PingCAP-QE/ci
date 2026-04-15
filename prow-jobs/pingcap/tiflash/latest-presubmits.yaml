@@ -45,6 +45,10 @@ global_definitions:
     repo_root="$(pwd)"
     git config "submodule.contrib/tiflash-proxy-next-gen.update" none
     git submodule sync --recursive
+    if [[ -n "${GITHUB_API_TOKEN:-}" ]]; then
+      git config --local url."https://x-access-token:${GITHUB_API_TOKEN}@github.com/".insteadOf "git@github.com:"
+      git config --local --add url."https://x-access-token:${GITHUB_API_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+    fi
     git submodule update --init --recursive
 
     rm -rf "${repo_root}/.ccache" "${repo_root}/build-${sanitizer}"
@@ -163,6 +167,11 @@ presubmits:
         containers:
           - <<: *pull_sanitizer_container
             env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
               - name: SANITIZER
                 value: ASan
 
@@ -175,6 +184,11 @@ presubmits:
         containers:
           - <<: *pull_sanitizer_container
             env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
               - name: SANITIZER
                 value: TSan
             securityContext:
