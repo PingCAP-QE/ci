@@ -63,6 +63,7 @@ pipeline {
                                         \$script \
                                             --tidb=${OCI_TAG_TIDB} \
                                             --tikv=${OCI_TAG_TIKV} \
+                                            --tikv-worker=${OCI_TAG_TIKV} \
                                             --pd=${OCI_TAG_PD} \
                                             --minio=${OCI_TAG_MINIO} \
                                             --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR}
@@ -81,6 +82,7 @@ pipeline {
                                 ./tidb-server -V
                                 ./pd-server -V
                                 ./tikv-server -V
+                                ./tikv-worker -V
                             """
                         }
                     }
