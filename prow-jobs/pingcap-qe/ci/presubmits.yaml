@@ -96,6 +96,22 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
+    - name: pull-verify-pipeline-pod-yaml
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^pipelines/.*\\.(yaml|yml)$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: python:3.11.13-alpine3.22
+            command: [python3, .ci/verify-pipeline-pod-yaml.py]
+            resources:
+              limits:
+                memory: 128Mi
+                cpu: 200m
     - name: pull-verify-prow-jobs
       labels: *labels
       decorate: true

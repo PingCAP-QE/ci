@@ -123,6 +123,9 @@ This repository has two related presubmit jobs for pipeline changes:
 - `pull-verify-jenkins-pipelines`
   - Validates Jenkins pipeline syntax/model.
   - Triggered by pipeline file changes.
+- `pull-verify-pipeline-pod-yaml`
+  - Verifies pipeline pod YAML files do not keep empty `spec.volumes` nodes.
+  - Triggered by `pipelines/**/*.yaml` changes.
 - `pull-replay-jenkins-pipelines`
   - Optional replay validation using `--auto-changed`.
   - Trigger manually in PR comments:
