@@ -43,9 +43,6 @@ global_definitions:
     fi
 
     repo_root="$(pwd)"
-    git config "submodule.contrib/tiflash-proxy-next-gen.update" none
-    git submodule sync --recursive
-    git submodule update --init --recursive
 
     rm -rf "${repo_root}/.ccache" "${repo_root}/build-${sanitizer}"
     mkdir -p "${repo_root}/build-${sanitizer}"
@@ -111,12 +108,20 @@ global_definitions:
       limits:
         cpu: "12"
         memory: 48Gi
+  pull_sanitizer_decoration_config: &pull_sanitizer_decoration_config
+    timeout: 3h
+    ssh_key_secrets:
+      - github-ssh-secret
+    ssh_host_fingerprints:
+      - github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+      - github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+      - github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
   pull_sanitizer_job: &pull_sanitizer_job
     <<: *brancher
     decorate: true
-    decoration_config:
-      timeout: 3h
-    skip_submodules: true
+    clone_uri: git@github.com:pingcap/tiflash.git
+    decoration_config: *pull_sanitizer_decoration_config
+    skip_submodules: false
     always_run: false
     optional: true
     skip_if_only_changed: *skip_if_only_changed
