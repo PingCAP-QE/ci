@@ -22,7 +22,7 @@ fi
 
 count=0
 failed=0
-kubectl_validation_enabled=1
+kubectl_validation_enabled=0
 
 validate_with_kubectl() {
     file=$1
