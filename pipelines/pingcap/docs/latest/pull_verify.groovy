@@ -94,7 +94,6 @@ pipeline {
                         echo
                     }
 
-                    run_check 'check-file-encoding' python3 ./check-file-encoding.py
                     run_check 'check-conflicts' python3 ./check-conflicts.py
                     run_check 'check-control-char' python3 ./check-control-char.py
                     run_check 'check-tags' python3 ./check-tags.py
@@ -107,6 +106,8 @@ pipeline {
                         echo '==> markdownlint-install: FAIL'
                         failed_checks+=('markdownlint-install')
                     fi
+
+                    run_check 'check-file-encoding' python3 ./check-file-encoding.py
 
                     if ((\${#failed_checks[@]} > 0)); then
                         printf 'pull_verify failed checks (%s):\\n' "\${#failed_checks[@]}"
