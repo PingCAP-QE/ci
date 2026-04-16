@@ -22,7 +22,7 @@ fi
 
 count=0
 failed=0
-kubectl_validation_enabled=1
+kubectl_validation_enabled=0
 
 validate_with_kubectl() {
     file=$1
@@ -42,12 +42,12 @@ validate_with_kubectl() {
         failed=1
     fi
 
-    # : >"$stderr_file"
-    # if ! "$KUBECTL_BIN" apply --dry-run=server --validate=strict -f "$manifest" >/dev/null 2>"$stderr_file"; then
-    #     echo "$file: kubectl server dry-run validation failed:"
-    #     sed 's/^/  /' "$stderr_file"
-    #     failed=1
-    # fi
+    : >"$stderr_file"
+    if ! "$KUBECTL_BIN" apply --dry-run=server --validate=strict -f "$manifest" >/dev/null 2>"$stderr_file"; then
+        echo "$file: kubectl server dry-run validation failed:"
+        sed 's/^/  /' "$stderr_file"
+        failed=1
+    fi
 
     rm -f "$manifest" "$manifest_with_ns" "$stderr_file"
 }
