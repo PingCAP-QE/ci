@@ -22,14 +22,7 @@ fi
 
 count=0
 failed=0
-kubectl_validation_enabled=0
-
-can_run_kubectl_validation() {
-    command -v "$KUBECTL_BIN" >/dev/null 2>&1 &&
-    [ -n "${KUBERNETES_SERVICE_HOST:-}" ] &&
-    [ -n "${KUBERNETES_SERVICE_PORT:-}" ] &&
-    [ -f "$KUBE_SERVICEACCOUNT_TOKEN_PATH" ]
-}
+kubectl_validation_enabled=1
 
 validate_with_kubectl() {
     file=$1
@@ -100,13 +93,6 @@ check_file() {
         validate_with_kubectl "$file"
     fi
 }
-
-if can_run_kubectl_validation; then
-    kubectl_validation_enabled=1
-    echo "kubectl client dry-run validation enabled via in-cluster API discovery."
-else
-    echo "kubectl client dry-run validation skipped: no in-cluster Kubernetes API context detected."
-fi
 
 for file in $files; do
     check_file "$file"
