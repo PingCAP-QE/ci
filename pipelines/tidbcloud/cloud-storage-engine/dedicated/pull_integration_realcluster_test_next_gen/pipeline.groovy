@@ -26,7 +26,7 @@ pipeline {
     }
     options {
         timeout(time: 90, unit: 'MINUTES')
-        // parallelsAlwaysFailFast() // disable for debug.
+        parallelsAlwaysFailFast()
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
