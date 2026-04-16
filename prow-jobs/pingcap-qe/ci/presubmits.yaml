@@ -96,6 +96,26 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
+    - name: pull-verify-k8s-pod-yaml
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^pipelines/.*\\.(yaml|yml)$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.22
+            command: [sh, -ce]
+            args:
+              - |
+                apk add --no-cache kubectl yq-go
+                sh .ci/verify-k8s-pod-yaml.sh
+            resources:
+              limits:
+                memory: 128Mi
+                cpu: 200m
     - name: pull-verify-prow-jobs
       labels: *labels
       decorate: true
