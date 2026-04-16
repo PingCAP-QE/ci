@@ -1,5 +1,8 @@
 apiVersion: v1
 kind: Pod
+metadata:
+  labels:
+    ci.pingcap.com/pod-template: prow-debug
 spec:
   containers:
     - name: jnlp
