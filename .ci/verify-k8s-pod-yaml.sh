@@ -40,7 +40,7 @@ setup_kubeconfig() {
     fi
 
     if [ ! -s "$KUBE_SERVICEACCOUNT_TOKEN_PATH" ]; then
-        echo "error: no kubeconfig context found and service account token is unavailable: $KUBE_SERVICEACCOUNT_TOKEN_PATH (ensure this Prow job sets spec.automountServiceAccountToken: true)" >&2
+        echo "error: no kubeconfig context found and service account token is unavailable: $KUBE_SERVICEACCOUNT_TOKEN_PATH" >&2
         exit 1
     fi
     if [ ! -s "$KUBE_SERVICEACCOUNT_CA_PATH" ]; then

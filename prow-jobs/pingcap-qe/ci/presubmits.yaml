@@ -100,11 +100,10 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^(\\.ci/verify-k8s-pod-yaml\\.sh|pipelines/.*\\.(yaml|yml))$"
+      run_if_changed: "^pipelines/.*\\.(yaml|yml)$"
       branches:
         - ^main$
       spec:
-        automountServiceAccountToken: true
         containers:
           - name: main
             image: alpine:3.22
