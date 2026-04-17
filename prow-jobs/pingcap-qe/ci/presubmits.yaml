@@ -167,7 +167,7 @@ presubmits:
                 memory: 256Mi
                 cpu: 200m
           - name: verify-kustomization
-            image: mikefarah/yq:4.44.1
+            image: mikefarah/yq:4.53.2
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
             command: [sh, -c]
