@@ -14,8 +14,8 @@ spec:
           value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
-          cpu: "12"
-          memory: 48Gi
+          cpu: "16"
+          memory: 64Gi
           ephemeral-storage: 20Gi
         limits:
           memory: 64Gi
