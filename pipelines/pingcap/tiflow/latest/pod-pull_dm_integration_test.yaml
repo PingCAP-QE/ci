@@ -80,12 +80,12 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mariadb1
-      image: "docker.io/library/mariadb:11.3"
+      image: "docker.io/library/mariadb:12.2"
       tty: true
       resources:
         limits:
-          memory: 4Gi
-          cpu: "2"
+          memory: 2Gi
+          cpu: "1"
       env:
         - name: MARIADB_ROOT_PASSWORD
           value: "123456"
