@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 pipelineJob('tiflash-ghpr-sanitizer') {
+    disabled(true)
     logRotator {
         numToKeep(1500)
     }
