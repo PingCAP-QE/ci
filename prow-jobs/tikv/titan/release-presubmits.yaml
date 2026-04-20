@@ -1,0 +1,295 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^tikv-7\.5$
+      - ^tikv-7\.1$
+      - ^tikv-6\.5$
+      - ^tikv-6\.1$
+      - ^tikv-5\.2$
+      - ^tikv-5\.0$
+      - ^tikv-4\.x$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+presubmits:
+  tikv/titan:
+    - <<: *brancher
+      name: pull-titan-format
+      decorate: true
+      extra_refs:
+        - org: PingCAP-QE
+          repo: ci
+          base_ref: main
+          repo_link: https://github.com/PingCAP-QE/ci
+      decoration_config:
+        timeout: 3h
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            imagePullPolicy: Always
+            command:
+              - bash
+              - ../../PingCAP-QE/ci/scripts/tikv/titan/format.sh
+            resources:
+              requests:
+                cpu: "2"
+                memory: 2Gi
+              limits:
+                cpu: "2"
+                memory: 2Gi
+
+    - <<: *brancher
+      name: pull-titan-test
+      decorate: true
+      extra_refs:
+        - org: PingCAP-QE
+          repo: ci
+          base_ref: main
+          repo_link: https://github.com/PingCAP-QE/ci
+      decoration_config:
+        timeout: 3h
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            imagePullPolicy: Always
+            command:
+              - bash
+              - ../../PingCAP-QE/ci/scripts/tikv/titan/test-release.sh
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
+
+    - <<: *brancher
+      name: pull-titan-sanitizer-asan
+      decorate: true
+      extra_refs:
+        - org: PingCAP-QE
+          repo: ci
+          base_ref: main
+          repo_link: https://github.com/PingCAP-QE/ci
+      decoration_config:
+        timeout: 3h
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            imagePullPolicy: Always
+            command:
+              - bash
+              - ../../PingCAP-QE/ci/scripts/tikv/titan/test-release.sh
+            env:
+              - name: SANITIZER
+                value: ASAN
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
+
+    - <<: *brancher
+      name: pull-titan-sanitizer-tsan
+      decorate: true
+      extra_refs:
+        - org: PingCAP-QE
+          repo: ci
+          base_ref: main
+          repo_link: https://github.com/PingCAP-QE/ci
+      decoration_config:
+        timeout: 3h
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            imagePullPolicy: Always
+            command:
+              - bash
+              - ../../PingCAP-QE/ci/scripts/tikv/titan/test-release.sh
+            env:
+              - name: SANITIZER
+                value: TSAN
+            securityContext:
+              # Required for TSAN on GCP. Without privileged mode, the TSAN job hit
+              # `ThreadSanitizer: unexpected memory mapping` during test execution.
+              privileged: true
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
+
+    - <<: *brancher
+      name: pull-titan-sanitizer-ubsan
+      decorate: true
+      extra_refs:
+        - org: PingCAP-QE
+          repo: ci
+          base_ref: main
+          repo_link: https://github.com/PingCAP-QE/ci
+      decoration_config:
+        timeout: 3h
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            imagePullPolicy: Always
+            command:
+              - bash
+              - ../../PingCAP-QE/ci/scripts/tikv/titan/test-release.sh
+            env:
+              - name: SANITIZER
+                value: UBSAN
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
+
+    - <<: *brancher
+      name: pull-titan-release
+      decorate: true
+      extra_refs:
+        - org: PingCAP-QE
+          repo: ci
+          base_ref: main
+          repo_link: https://github.com/PingCAP-QE/ci
+      decoration_config:
+        timeout: 3h
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            imagePullPolicy: Always
+            command:
+              - bash
+              - ../../PingCAP-QE/ci/scripts/tikv/titan/test-release.sh
+            env:
+              - name: BUILD_TYPE
+                value: Release
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
+
+    - <<: *brancher
+      name: pull-titan-test-arm64
+      decorate: true
+      extra_refs:
+        - org: PingCAP-QE
+          repo: ci
+          base_ref: main
+          repo_link: https://github.com/PingCAP-QE/ci
+      decoration_config:
+        timeout: 3h
+      always_run: false
+      optional: true
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - arm64
+        containers:
+          - name: builder
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            imagePullPolicy: Always
+            command:
+              - bash
+              - ../../PingCAP-QE/ci/scripts/tikv/titan/test-release.sh
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "4"
+                memory: 8Gi
