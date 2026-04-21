@@ -1,6 +1,6 @@
 presubmits:
   pingcap/docs-cn:
-    - name: pingcap-docs-cn-pull-verify
+    - name: pull-verify
       agent: kubernetes
       decorate: true
       always_run: true
@@ -24,7 +24,6 @@ presubmits:
               - |
                 #!/usr/bin/env bash
                 set -euo pipefail
-                git config --global --add safe.directory '*'
 
                 base_ref="${PULL_BASE_REF:?missing PULL_BASE_REF}"
                 base_target="origin/${base_ref}"
