@@ -177,9 +177,6 @@ pipeline {
                                             echo "run ${TEST_GROUP} test"
                                         fi
                                         export PATH=/usr/local/go/bin:\$PATH
-                                        export MARIADB_HOST1=127.0.0.1
-                                        export MARIADB_PORT1=3308
-                                        export MARIADB_PASSWORD1=123456
                                         mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
                                         make dm_integration_test_in_group GROUP="${TEST_GROUP}"
                                     """
