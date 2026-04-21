@@ -20,7 +20,6 @@ presubmits:
       agent: kubernetes
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      context: idc-jenkins-ci-binlog/build
       spec:
         containers:
           - name: build
@@ -47,7 +46,6 @@ presubmits:
       agent: kubernetes
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      context: idc-jenkins-ci-binlog/check
       spec:
         containers:
           - name: build
@@ -72,14 +70,12 @@ presubmits:
     - <<: *brancher
       name: pull-unit-test
       agent: kubernetes
-      # TODO(@wuhuizuo): migrate image hub.pingcap.net/jenkins/centos7_golang-1.21:latest to a public registry.
       decorate: true # need add this.
       skip_if_only_changed: *skip_if_only_changed
-      context: idc-jenkins-ci-tidb-binlog/unit-test
       spec:
         containers:
           - name: build
-            image: hub.pingcap.net/jenkins/centos7_golang-1.21:latest # UID is 1000
+            image: ghcr.io/pingcap-qe/cd/builders/tidb:v2024.10.8-12-gb9ffe36-centos7-go1.21
             command: [bash, -ce]
             args:
               - |
@@ -88,9 +84,6 @@ presubmits:
               limits:
                 memory: 16Gi
                 cpu: "8"
-        securityContext:
-          fsGroup: 1000
-          runAsUser: 1000
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -106,7 +99,6 @@ presubmits:
       decorate: true
       decoration_config:
         timeout: 120m
-      optional: true
       skip_if_only_changed: *skip_if_only_changed
       spec:
         affinity:
