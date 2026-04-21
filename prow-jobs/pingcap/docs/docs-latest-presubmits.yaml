@@ -24,6 +24,7 @@ presubmits:
             command: [bash, -ce]
             args:
               - |
+                #!/usr/bin/env bash
                 set -euo pipefail
                 git config --global --add safe.directory '*'
 
@@ -37,23 +38,23 @@ presubmits:
 
                 mkdir -p /tmp/check-scripts
                 for check_script in \
-                  check-file-encoding.py \
                   check-conflicts.py \
                   check-control-char.py \
                   check-tags.py \
-                  check-manual-line-breaks.py; do
+                  check-manual-line-breaks.py \
+                  check-file-encoding.py; do
                   curl -fsSL --retry 3 "https://raw.githubusercontent.com/pingcap/docs/master/scripts/${check_script}" \
                     -o "/tmp/check-scripts/${check_script}"
                 done
                 cp -r /tmp/check-scripts/* ./
 
-                python3 check-file-encoding.py "${diff_docs_files[@]}"
                 python3 check-conflicts.py "${diff_docs_files[@]}"
                 python3 check-control-char.py "${diff_docs_files[@]}"
                 python3 check-tags.py "${diff_docs_files[@]}"
                 python3 check-manual-line-breaks.py "${diff_docs_files[@]}"
                 npm install -g markdownlint-cli@0.17.0
                 markdownlint "${diff_docs_files[@]}"
+                python3 check-file-encoding.py "${diff_docs_files[@]}"
             resources:
               requests:
                 memory: 4Gi
