@@ -161,6 +161,7 @@ pipeline {
                                         # TODO use wait-for-mysql-ready.sh
                                         set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                         set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                        set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3308 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                     """
                                     sh label: "${TEST_GROUP}", script: """
                                         if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then

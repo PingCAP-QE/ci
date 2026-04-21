@@ -79,6 +79,23 @@ spec:
         - "--gtid-mode=ON"
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
+    - name: mariadb1
+      image: "docker.io/library/mariadb:12.2"
+      tty: true
+      resources:
+        limits:
+          memory: 2Gi
+          cpu: "1"
+      env:
+        - name: MARIADB_ROOT_PASSWORD
+          value: "123456"
+        - name: MYSQL_TCP_PORT
+          value: "3308"
+      args:
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--server-id=1"
+        - "--lower_case_table_names=0"
   volumes:
     - name: mysql-config-volume
       emptyDir: {}
