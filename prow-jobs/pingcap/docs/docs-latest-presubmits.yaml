@@ -1,19 +1,72 @@
 presubmits:
   pingcap/docs:
     - name: pingcap/docs/pull_verify
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
+      agent: kubernetes
+      decorate: true
       always_run: true
       skip_report: false
       optional: false
       context: pull-verify
       trigger: "(?m)^/test (?:.*? )?(pull-verify|all)(?: .*?)?$"
       rerun_command: "/test pull-verify"
+      decoration_config:
+        timeout: 40m
       branches:
         - ^master$
         - ^release-\d+\.\d+$
         - ^release-cloud$
         - ^feature/.+
         - ^support-azure$
+      spec:
+        containers:
+          - name: pull-verify
+            image: node:lts
+            command: [bash, -ce]
+            args:
+              - |
+                set -euo pipefail
+                git config --global --add safe.directory '*'
+
+                base_ref="${PULL_BASE_REF:?missing PULL_BASE_REF}"
+                base_target="origin/${base_ref}"
+                if ! git rev-parse --verify --quiet "${base_target}" >/dev/null; then
+                  base_target="${PULL_BASE_SHA:?missing PULL_BASE_SHA}"
+                fi
+
+                mapfile -t diff_docs_files < <(git diff-tree --name-only --no-commit-id -r "${base_target}..HEAD" -- '*.md' ':(exclude).github/*')
+
+                mkdir -p /tmp/check-scripts
+                for check_script in \
+                  check-file-encoding.py \
+                  check-conflicts.py \
+                  check-control-char.py \
+                  check-tags.py \
+                  check-manual-line-breaks.py; do
+                  curl -fsSL --retry 3 "https://raw.githubusercontent.com/pingcap/docs/master/scripts/${check_script}" \
+                    -o "/tmp/check-scripts/${check_script}"
+                done
+                cp -r /tmp/check-scripts/* ./
+
+                python3 check-file-encoding.py "${diff_docs_files[@]}"
+                python3 check-conflicts.py "${diff_docs_files[@]}"
+                python3 check-control-char.py "${diff_docs_files[@]}"
+                python3 check-tags.py "${diff_docs_files[@]}"
+                python3 check-manual-line-breaks.py "${diff_docs_files[@]}"
+                npm install -g markdownlint-cli@0.17.0
+                markdownlint "${diff_docs_files[@]}"
+            resources:
+              requests:
+                memory: 4Gi
+                cpu: "2"
+              limits:
+                memory: 4Gi
+                cpu: "2"
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
