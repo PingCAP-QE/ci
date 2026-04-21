@@ -1,6 +1,6 @@
 presubmits:
   pingcap/docs-cn:
-    - name: pingcap/docs-cn/pull_verify
+    - name: pingcap-docs-cn-pull-verify
       agent: kubernetes
       decorate: true
       always_run: true
