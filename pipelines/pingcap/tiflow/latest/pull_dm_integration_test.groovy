@@ -15,6 +15,7 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, RE
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 def skipRemainingStages = false
+def needBuild = true
 
 pipeline {
     agent {
@@ -51,6 +52,13 @@ pipeline {
                             skipRemainingStages = true
                             return 0
                         }
+
+                        // Check if any diff files affect Go binaries. If only test
+                        // scripts (dm/tests/) changed, skip the build and reuse
+                        // cached binaries from a previous run.
+                        def buildPattern = /(^dm\/(?!tests\/).*\.go$|^pkg\/.*\.go$|^go\.(mod|sum)$|^Makefile$)/
+                        needBuild = component.patternMatchAnyFile(buildPattern, pr_diff_files)
+                        println "needBuild: ${needBuild}"
                     }
                 }
             }
@@ -106,17 +114,18 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
-                        // build dm-master.test for integration test
-                        // only build binarys if not exist, use the cached binarys if exist
-                        // TODO: how to update cached binarys if needed
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test'), restoreKeys: prow.getRestoreKeys('binary', REFS, 'dm-integration-test')) {
                         sh label: "prepare", script: """
-                            if [[ ! -f "bin/sync_diff_inspector" || ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
-                                echo "Building binaries..."
+                            if [[ ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
+                                echo "Building binaries (cache miss)..."
+                                make dm_integration_test_build
+                                mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
+                            elif [ "${needBuild}" = "true" ]; then
+                                echo "Building binaries (Go source changed)..."
                                 make dm_integration_test_build
                                 mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
                             else
-                                echo "Binaries already exist, skipping build..."
+                                echo "Skipping build (only test scripts changed, reusing cached binaries)..."
                             fi
                             ls -alh ./bin
                             ls -alh ./bin/dm-test-tools

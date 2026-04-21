@@ -4,7 +4,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
+final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_TIDB = component.computeArtifactNextGenOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
@@ -12,6 +14,8 @@ final OCI_TAG_PD = component.computeArtifactNextGenOciTagFromPR('pd', REFS.base_
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
+def skipRemainingStages = false
+def needBuild = true
 
 pipeline {
     agent {
@@ -31,7 +35,35 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
+        stage('Check diff files') {
+            steps {
+                container("golang") {
+                    script {
+                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
+                        def pattern = /(^dm\/|^pkg\/|^sync_diff_inspector\/|^go\.mod).*$/
+                        println "pr_diff_files: ${pr_diff_files}"
+                        def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
+                        if (matched) {
+                            println "matched, run the dm integration test"
+                        } else {
+                            println "not matched, skip the dm integration test"
+                            currentBuild.result = 'SUCCESS'
+                            skipRemainingStages = true
+                            return 0
+                        }
+
+                        // Check if any diff files affect Go binaries. If only test
+                        // scripts (dm/tests/) changed, skip the build and reuse
+                        // cached binaries from a previous run.
+                        def buildPattern = /(^dm\/(?!tests\/).*\.go$|^pkg\/.*\.go$|^go\.(mod|sum)$|^Makefile$)/
+                        needBuild = component.patternMatchAnyFile(buildPattern, pr_diff_files)
+                        println "needBuild: ${needBuild}"
+                    }
+                }
+            }
+        }
         stage('Checkout') {
+            when { expression { !skipRemainingStages} }
             steps {
                 dir("tiflow") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -45,6 +77,7 @@ pipeline {
             }
         }
         stage("prepare") {
+            when { expression { !skipRemainingStages} }
             steps {
                 dir("third_party_download") {
                     script {
@@ -88,17 +121,18 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test-next-gen')) {
-                        // build dm-master.test for integration test
-                        // only build binarys if not exist, use the cached binarys if exist
-                        // TODO: how to update cached binarys if needed
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test-next-gen'), restoreKeys: prow.getRestoreKeys('binary', REFS, 'dm-integration-test-next-gen')) {
                         sh label: "prepare", script: """
-                            if [[ ! -f "bin/sync_diff_inspector" || ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
-                                echo "Building binaries..."
+                            if [[ ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
+                                echo "Building binaries (cache miss)..."
+                                make dm_integration_test_build
+                                mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
+                            elif [ "${needBuild}" = "true" ]; then
+                                echo "Building binaries (Go source changed)..."
                                 make dm_integration_test_build
                                 mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
                             else
-                                echo "Binaries already exist, skipping build..."
+                                echo "Skipping build (only test scripts changed, reusing cached binaries)..."
                             fi
                             ls -alh ./bin
                             ls -alh ./bin/dm-test-tools
@@ -122,6 +156,7 @@ pipeline {
         }
 
         stage('Tests') {
+            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {
