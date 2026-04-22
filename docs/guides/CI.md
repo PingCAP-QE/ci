@@ -130,9 +130,18 @@ This repository has two related presubmit jobs for pipeline changes:
 - `pull-verify-secret-scan`
   - Triggered only when changed files are in the Jenkins credentials-risk surface:
     `pipelines/**`, `jobs/**`, `libraries/**`, `prow-jobs/**` (`*.groovy|*.yml|*.yaml`).
+  - Uses pinned scanner image digest and explicit timeout for predictable operations.
   - Runs two fail-fast checks:
     - Jenkins credential policy check (`bash .ci/verify-jenkins-credential-policy.sh`) to block obvious insecure patterns such as secret-like literal assignments, secret value echo, and secret-like env vars with direct `value:` in Prow YAML.
     - Incremental gitleaks check (`.ci/verify-secret-scan.sh`) on `${PULL_BASE_SHA}..${PULL_PULL_SHA}` instead of whole-repo scan.
+  - Supports explicit exemptions via `.ci/security-policy-allowlist.txt`:
+    - format: `<rule><TAB><path-regex>`
+    - supported rules: `hardcoded_literal`, `secret_echo`, `secret_env_plain_value`
+    - exemptions should be narrow and path-scoped to avoid broad bypasses.
+- `pull-test-security-policy-scripts`
+  - Runs regression tests for `.ci/verify-jenkins-credential-policy.sh` with both positive and negative fixtures.
+  - Includes allowlist regression fixtures (allowlisted vs non-allowlisted secret echo).
+  - Triggered when `.ci/verify-jenkins-credential-policy.sh`, `.ci/test-verify-jenkins-credential-policy.sh`, or `.ci/security-policy-allowlist.txt` changes.
 - `pull-replay-jenkins-pipelines`
   - Optional replay validation using `--auto-changed`.
   - Trigger manually in PR comments:
