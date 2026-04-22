@@ -98,7 +98,7 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^\.ci/(verify-jenkins-credential-policy|test-verify-jenkins-credential-policy)\.sh$"
+      run_if_changed: '^\.ci/(verify-jenkins-credential-policy|test-verify-jenkins-credential-policy)\.sh$'
       branches:
         - ^main$
       spec:
