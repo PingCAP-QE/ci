@@ -128,8 +128,11 @@ This repository has two related presubmit jobs for pipeline changes:
   - When in-cluster Kubernetes API access is available, injects a test `metadata.name` and also runs both `kubectl --dry-run=client --validate=strict` and `kubectl --dry-run=server --validate=strict`.
   - Triggered by `pipelines/**/*.yaml` changes.
 - `pull-verify-secret-scan`
-  - Runs gitleaks in presubmit and blocks the PR when new credential leakage is detected.
-  - Always runs for `PingCAP-QE/ci` pull requests to keep a uniform security gate.
+  - Triggered only when changed files are in the Jenkins credentials-risk surface:
+    `pipelines/**`, `jobs/**`, `libraries/**`, `prow-jobs/**` (`*.groovy|*.yml|*.yaml`).
+  - Runs two fail-fast checks:
+    - Jenkins credential policy check (`bash .ci/verify-jenkins-credential-policy.sh`) to block obvious insecure patterns such as secret-like literal assignments, secret value echo, and secret-like env vars with direct `value:` in Prow YAML.
+    - Incremental gitleaks check (`.ci/verify-secret-scan.sh`) on `${PULL_BASE_SHA}..${PULL_PULL_SHA}` instead of whole-repo scan.
 - `pull-replay-jenkins-pipelines`
   - Optional replay validation using `--auto-changed`.
   - Trigger manually in PR comments:

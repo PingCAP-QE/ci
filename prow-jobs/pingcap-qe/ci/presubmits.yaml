@@ -76,7 +76,7 @@ presubmits:
     - name: pull-verify-secret-scan
       labels: *labels
       decorate: true
-      always_run: true
+      run_if_changed: "^(pipelines|jobs|libraries|prow-jobs)/.*\\.(groovy|yaml|yml)$|^\\.ci/verify-(secret-scan|jenkins-credential-policy)\\.sh$"
       max_concurrency: 1
       branches:
         - ^main$
@@ -87,6 +87,8 @@ presubmits:
             command: [sh, -ce]
             args:
               - |
+                apk add --no-cache bash git ripgrep
+                bash .ci/verify-jenkins-credential-policy.sh
                 sh .ci/verify-secret-scan.sh
             resources:
               limits:
