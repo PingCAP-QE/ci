@@ -133,6 +133,9 @@ This repository has two related presubmit jobs for pipeline changes:
   - Runs two fail-fast checks:
     - Jenkins credential policy check (`bash .ci/verify-jenkins-credential-policy.sh`) to block obvious insecure patterns such as secret-like literal assignments, secret value echo, and secret-like env vars with direct `value:` in Prow YAML.
     - Incremental gitleaks check (`.ci/verify-secret-scan.sh`) on `${PULL_BASE_SHA}..${PULL_PULL_SHA}` instead of whole-repo scan.
+- `pull-test-security-policy-scripts`
+  - Runs regression tests for `.ci/verify-jenkins-credential-policy.sh` with both positive and negative fixtures.
+  - Triggered when `.ci/verify-jenkins-credential-policy.sh` or `.ci/test-verify-jenkins-credential-policy.sh` changes.
 - `pull-replay-jenkins-pipelines`
   - Optional replay validation using `--auto-changed`.
   - Trigger manually in PR comments:

@@ -94,6 +94,27 @@ presubmits:
               limits:
                 memory: 256Mi
                 cpu: 200m
+    - name: pull-test-security-policy-scripts
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^\.ci/(verify-jenkins-credential-policy|test-verify-jenkins-credential-policy)\.sh$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.22
+            command: [sh, -ce]
+            args:
+              - |
+                apk add --no-cache bash git ripgrep
+                bash .ci/test-verify-jenkins-credential-policy.sh
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+
     - name: pull-verify-jenkins-pipelines
       labels: *labels
       decorate: true
