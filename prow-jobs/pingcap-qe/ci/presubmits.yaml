@@ -88,7 +88,7 @@ presubmits:
             args:
               - |
                 apk add --no-cache bash git ripgrep
-                sh .ci/verify-jenkins-credential-policy.sh
+                bash .ci/verify-jenkins-credential-policy.sh
                 sh .ci/verify-secret-scan.sh
             resources:
               limits:
