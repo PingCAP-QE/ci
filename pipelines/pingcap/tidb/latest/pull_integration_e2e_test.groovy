@@ -6,8 +6,10 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
-final OCI_TAG_TICDC_NEW = component.computeArtifactOciTagFromPR('ticdc', (REFS.base_ref ==~ /^release-fts-[0-9]+$/ ? 'master' : REFS.base_ref), REFS.pulls[0].title, 'master')
+
+final BASE_REF_SPECIAL = (REFS.base_ref ==~ /^release-fts-[0-9]+$/) ? 'master' : REFS.base_ref
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TICDC = component.computeArtifactOciTagFromPR('ticdc', BASE_REF_SPECIAL, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 final GIT_CREDENTIALS_ID = ''
@@ -50,7 +52,7 @@ pipeline {
                                             --pd=${OCI_TAG_PD} \
                                             --tikv=${OCI_TAG_TIKV} \
                                             --tiflash=${OCI_TAG_TIFLASH} \
-                                            --ticdc-new=${OCI_TAG_TICDC_NEW}
+                                            --ticdc-new=${OCI_TAG_TICDC}
                                     """
                                 }
                             }
