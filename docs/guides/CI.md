@@ -118,8 +118,11 @@ Notes:
 
 ### 4. PR-Level Automation in Prow
 
-This repository has two related presubmit jobs for pipeline changes:
+This repository has several presubmit jobs that help catch problems before merge:
 
+- `pull-verify-pr-title`
+  - Validates the PR title against the repository's title convention.
+  - Uses the same `.ci/check-pr-title.sh` validator that contributors can run locally before opening or updating a PR.
 - `pull-verify-jenkins-pipelines`
   - Validates Jenkins pipeline syntax/model.
   - Triggered by pipeline file changes.

@@ -13,6 +13,16 @@
 
 ## Recommended Checks Before Opening a PR
 
+### PR Title Self-Check
+
+Use the local PR title validator before opening or updating a pull request:
+
+```bash
+.ci/check-pr-title.sh --title "ci(prow): add PR title self-check"
+```
+
+The same validator powers the `pull-verify-pr-title` presubmit, so a PR with an invalid title will fail that check in Prow.
+
 If your changes include `pipelines/**/*.groovy`, run these checks locally first:
 
 1. Static validation:

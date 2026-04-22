@@ -88,6 +88,12 @@ Examples:
 - `pipelines(tiflow): increase pipeline timeout`
 - `docs(agents): document Conventional Commits`
 
+Before opening or updating a PR, you can self-check the PR title locally with:
+```bash
+.ci/check-pr-title.sh --title "ci(prow): add PR title self-check"
+```
+The same validator is used by the `pull-verify-pr-title` presubmit for this repository.
+
 ## Common Tasks for Agents
 
 ### 1. Adding/Modifying CI Jobs
