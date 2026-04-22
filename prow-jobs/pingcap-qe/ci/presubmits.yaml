@@ -76,14 +76,15 @@ presubmits:
     - name: pull-verify-secret-scan
       labels: *labels
       decorate: true
-      run_if_changed: "^(pipelines|jobs|libraries|prow-jobs)/.*\\.(groovy|yaml|yml)$|^\\.ci/verify-(secret-scan|jenkins-credential-policy)\\.sh$"
+      run_if_changed: "^(pipelines|jobs|libraries|prow-jobs)/.*\\.(groovy|yaml|yml)$|^\\.ci/(verify-secret-scan|verify-jenkins-credential-policy|security-policy-allowlist)\\.(sh|txt)$"
       max_concurrency: 1
+      timeout: 15m
       branches:
         - ^main$
       spec:
         containers:
           - name: main
-            image: zricethezav/gitleaks:v8.30.1
+            image: zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
             command: [sh, -ce]
             args:
               - |
@@ -98,7 +99,8 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: '^\.ci/(verify-jenkins-credential-policy|test-verify-jenkins-credential-policy)\.sh$'
+      run_if_changed: '^\.ci/(verify-jenkins-credential-policy|test-verify-jenkins-credential-policy)\.sh$|^\.ci/security-policy-allowlist\.txt$'
+      timeout: 10m
       branches:
         - ^main$
       spec:
