@@ -127,6 +127,9 @@ This repository has two related presubmit jobs for pipeline changes:
   - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests.
   - When in-cluster Kubernetes API access is available, injects a test `metadata.name` and also runs both `kubectl --dry-run=client --validate=strict` and `kubectl --dry-run=server --validate=strict`.
   - Triggered by `pipelines/**/*.yaml` changes.
+- `pull-verify-secret-scan`
+  - Runs gitleaks in presubmit and blocks the PR when new credential leakage is detected.
+  - Always runs for `PingCAP-QE/ci` pull requests to keep a uniform security gate.
 - `pull-replay-jenkins-pipelines`
   - Optional replay validation using `--auto-changed`.
   - Trigger manually in PR comments:
