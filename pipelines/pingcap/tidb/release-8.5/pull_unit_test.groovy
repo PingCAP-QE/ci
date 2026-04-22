@@ -14,7 +14,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -71,6 +71,7 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     sh """
+                        sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                         git diff .
                         git status
                     """
