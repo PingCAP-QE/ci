@@ -37,11 +37,14 @@ function buildCase(): CaseAgg {
     thresholdedCount: 1,
     owner: "@test-owner",
     latestFlakyBuildUrl: "https://ci.example.com/build/1",
-    latestFlakyReportTime: new Date("2026-03-12T12:00:00Z"),
+    latestFlakyFoundAt: new Date("2026-03-12T12:00:00Z"),
   };
 }
 
-function createManager(client: Record<string, unknown>): GithubIssueManager {
+function createManager(
+  client: Record<string, unknown>,
+  fetchFn?: typeof fetch,
+): GithubIssueManager {
   const manager = new GithubIssueManager({
     token: "test-token",
     allowCreate: false,
@@ -50,6 +53,7 @@ function createManager(client: Record<string, unknown>): GithubIssueManager {
     dryRun: false,
     labels: [],
     now: () => new Date("2026-03-13T12:00:00Z"),
+    fetchFn,
     verbose: false,
   });
   Object.defineProperty(manager, "client", {
@@ -124,7 +128,7 @@ Deno.test("GithubIssueManager.sync keeps issue closed when latest flaky build is
   const report = buildReport();
   const flakyCase = {
     ...buildCase(),
-    latestFlakyReportTime: new Date("2026-03-10T12:00:00Z"),
+    latestFlakyFoundAt: new Date("2026-03-10T12:00:00Z"),
   };
 
   await manager.sync(report, [flakyCase], [flakyCase]);
@@ -135,7 +139,7 @@ Deno.test("GithubIssueManager.sync keeps issue closed when latest flaky build is
   assertEquals(flakyCase.issue?.number, 456);
   assertEquals(
     flakyCase.issue?.note,
-    "skip reopen: latest flaky build start 2026-03-10T12:00:00.000Z <= closed_at 2026-03-10T12:00:01.000Z",
+    "skip reopen: latest flaky build started_at 2026-03-10T12:00:00.000Z <= closed_at 2026-03-10T12:00:01.000Z (branch=main)",
   );
 });
 
@@ -162,7 +166,7 @@ Deno.test("GithubIssueManager.sync reopens issue even if it was closed in curren
   const report = buildReport();
   const flakyCase = {
     ...buildCase(),
-    latestFlakyReportTime: new Date("2026-03-12T01:00:00Z"),
+    latestFlakyFoundAt: new Date("2026-03-12T01:00:00Z"),
   };
 
   await manager.sync(report, [flakyCase], [flakyCase]);
@@ -171,6 +175,170 @@ Deno.test("GithubIssueManager.sync reopens issue even if it was closed in curren
   assertEquals(flakyCase.issue?.status, "reopened");
   assertEquals(flakyCase.issue?.state, "open");
   assertEquals(flakyCase.issue?.number, 789);
+});
+
+Deno.test("GithubIssueManager.sync uses Jenkins timestamp when available for reopen check", async () => {
+  const issue: TestIssue = {
+    number: 321,
+    title: "Flaky test: TestFlakyCase in pkg/executor",
+    state: "closed",
+    html_url: "https://github.com/pingcap/tidb/issues/321",
+    closed_at: "2026-03-10T12:00:00Z",
+  };
+
+  const jenkinsBuildUrl = "https://prow.tidb.net/jenkins/job/test/123/";
+  const jenkinsStartedAt = new Date("2026-03-12T00:00:00Z");
+
+  let reopenCalls = 0;
+  const comments: string[] = [];
+
+  const fetchFn: typeof fetch = async (input) => {
+    const url = typeof input === "string" ? input : input.toString();
+    if (url === `${jenkinsBuildUrl}api/json?tree=timestamp`) {
+      return new Response(
+        JSON.stringify({ timestamp: jenkinsStartedAt.getTime() }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    return new Response("not found", { status: 404 });
+  };
+
+  const manager = createManager({
+    searchIssues: async () => [issue],
+    reopenIssue: async () => {
+      reopenCalls += 1;
+      return {
+        ...issue,
+        state: "open",
+        closed_at: null,
+      };
+    },
+    addComment: async (
+      _owner: string,
+      _repo: string,
+      _issueNumber: number,
+      body: string,
+    ) => {
+      comments.push(body);
+    },
+  }, fetchFn);
+
+  const report = buildReport();
+  const flakyCase = {
+    ...buildCase(),
+    latestFlakyBuildUrl: jenkinsBuildUrl,
+    // Make fallback older than closed_at to ensure Jenkins timestamp is used.
+    latestFlakyFoundAt: new Date("2026-03-09T00:00:00Z"),
+  };
+
+  await manager.sync(report, [flakyCase], [flakyCase]);
+
+  assertEquals(reopenCalls, 1);
+  assertEquals(comments.length, 1);
+  assertEquals(comments[0].includes("jenkins.timestamp"), true);
+  assertEquals(comments[0].includes(jenkinsBuildUrl), true);
+  assertEquals(flakyCase.issue?.status, "reopened");
+});
+
+Deno.test("GithubIssueManager.sync uses Prow started.json when available for reopen check", async () => {
+  const issue: TestIssue = {
+    number: 654,
+    title: "Flaky test: TestFlakyCase in pkg/executor",
+    state: "closed",
+    html_url: "https://github.com/pingcap/tidb/issues/654",
+    closed_at: "2026-03-10T12:00:00Z",
+  };
+
+  const prowViewUrl =
+    "https://prow.tidb.net/view/gs/prow-tidb-logs/pr-logs/pull/foo/bar/123";
+  const startedJsonUrl =
+    "https://storage.googleapis.com/prow-tidb-logs/pr-logs/pull/foo/bar/123/started.json";
+  const prowStartedAt = new Date("2026-03-12T00:00:00Z");
+
+  let reopenCalls = 0;
+  const comments: string[] = [];
+
+  const fetchFn: typeof fetch = async (input) => {
+    const url = typeof input === "string" ? input : input.toString();
+    if (url === startedJsonUrl) {
+      // started.json timestamp is seconds.
+      return new Response(
+        JSON.stringify({ timestamp: Math.floor(prowStartedAt.getTime() / 1000) }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    return new Response("not found", { status: 404 });
+  };
+
+  const manager = createManager({
+    searchIssues: async () => [issue],
+    reopenIssue: async () => {
+      reopenCalls += 1;
+      return {
+        ...issue,
+        state: "open",
+        closed_at: null,
+      };
+    },
+    addComment: async (
+      _owner: string,
+      _repo: string,
+      _issueNumber: number,
+      body: string,
+    ) => {
+      comments.push(body);
+    },
+  }, fetchFn);
+
+  const report = buildReport();
+  const flakyCase = {
+    ...buildCase(),
+    latestFlakyBuildUrl: prowViewUrl,
+    // Make fallback older than closed_at to ensure started.json is used.
+    latestFlakyFoundAt: new Date("2026-03-09T00:00:00Z"),
+  };
+
+  await manager.sync(report, [flakyCase], [flakyCase]);
+
+  assertEquals(reopenCalls, 1);
+  assertEquals(comments.length, 1);
+  assertEquals(comments[0].includes("prow.started.json"), true);
+  assertEquals(comments[0].includes(prowViewUrl), true);
+  assertEquals(flakyCase.issue?.status, "reopened");
+});
+
+Deno.test("GithubIssueManager.sync skips reopen when started_at cannot be resolved and no fallback exists", async () => {
+  const issue: TestIssue = {
+    number: 999,
+    title: "Flaky test: TestFlakyCase in pkg/executor",
+    state: "closed",
+    html_url: "https://github.com/pingcap/tidb/issues/999",
+    closed_at: "2026-03-10T12:00:00Z",
+  };
+  let reopenCalls = 0;
+  const manager = createManager({
+    searchIssues: async () => [issue],
+    reopenIssue: async () => {
+      reopenCalls += 1;
+      return issue;
+    },
+  });
+  const report = buildReport();
+  const flakyCase = {
+    ...buildCase(),
+    latestFlakyBuildUrl: "https://ci.example.com/unknown/1",
+    // No fallback time available.
+    latestFlakyFoundAt: undefined,
+  };
+
+  await manager.sync(report, [flakyCase], [flakyCase]);
+
+  assertEquals(reopenCalls, 0);
+  assertEquals(flakyCase.issue?.status, "closed");
+  assertEquals(
+    flakyCase.issue?.note,
+    "skip reopen: missing latest flaky evidence (build_url/started_at/fallback time)",
+  );
 });
 
 Deno.test("GithubIssueManager.sync prefers open issue over closed exact title match", async () => {

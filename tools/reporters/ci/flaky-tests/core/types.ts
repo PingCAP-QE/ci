@@ -162,7 +162,7 @@ export interface CaseAgg {
    * Used for GitHub issue reopen evidence.
    */
   latestFlakyBuildUrl?: string;
-  latestFlakyReportTime?: Date;
+  latestFlakyFoundAt?: Date;
   previousWeekFlakyCount?: number;
   issue?: GithubIssueInfo;
 }
