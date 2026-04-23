@@ -157,6 +157,12 @@ export interface CaseAgg {
   owner: string;
   latestBuildUrl?: string;
   latestReportTime?: Date;
+  /**
+   * Latest build (report_time/build_url) where flaky > 0 for this case.
+   * Used for GitHub issue reopen evidence.
+   */
+  latestFlakyBuildUrl?: string;
+  latestFlakyReportTime?: Date;
   previousWeekFlakyCount?: number;
   issue?: GithubIssueInfo;
 }

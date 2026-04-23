@@ -208,8 +208,10 @@ Defaults:
 - When a GitHub token is provided, the reporter searches issues by title using
   exact + loose matching (branch is not part of the title).
 - New issues are created only with `--issue-create`; closed issues are reopened
-  only with `--issue-reopen`, and only when the issue was closed before the
-  current report window starts.
+  only with `--issue-reopen`, and only when the latest build (on the same
+  branch) that observed the flaky case started after the issue's `closed_at`
+  timestamp. When reopening, a comment is added with the reopen evidence
+  (including the build link).
 - The configured labels are applied to any matched/created issue.
 - For open or reopened issues, a comment is appended with the current window’s
   stats only when `--issue-comment` is enabled.

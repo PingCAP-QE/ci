@@ -315,12 +315,26 @@ export class GithubIssueManager {
         status = "open";
       } else if (issue?.state === "closed") {
         const reopenCheck = this.allowReopen && canMutate
-          ? this.checkReopenEligibility(issue, report)
+          ? this.checkReopenEligibility(issue, group)
           : { eligible: false, note: undefined };
         if (reopenCheck.eligible) {
           status = "reopened";
           if (!this.dryRun) {
             issue = await this.client!.reopenIssue(owner, repo, issue.number);
+            if (reopenCheck.evidence) {
+              const comment = this.buildReopenEvidenceComment(
+                report,
+                reopenCheck.evidence,
+              );
+              try {
+                await this.client!.addComment(owner, repo, issue.number, comment);
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                if (this.verbose) {
+                  console.error(`[github] add reopen evidence comment failed: ${msg}`);
+                }
+              }
+            }
           }
         } else {
           status = "closed";
@@ -495,8 +509,18 @@ export class GithubIssueManager {
 
   private checkReopenEligibility(
     issue: GitHubIssueApi,
-    report: ReportData,
-  ): { eligible: boolean; note?: string } {
+    group: CaseAgg[],
+  ): {
+    eligible: boolean;
+    note?: string;
+    evidence?: {
+      closedAt: Date;
+      buildStart: Date;
+      buildUrl?: string;
+      usedFallbackTime: boolean;
+      sample: CaseAgg;
+    };
+  } {
     const closedAt = this.parseClosedAt(issue.closed_at);
     if (!closedAt) {
       return {
@@ -505,22 +529,92 @@ export class GithubIssueManager {
       };
     }
 
-    const windowStart = new Date(report.window.from);
-    if (Number.isNaN(windowStart.getTime())) {
+    const evidence = this.pickLatestFlakyBuildEvidence(group);
+    if (!evidence) {
       return {
         eligible: false,
-        note: `skip reopen: invalid report window start ${report.window.from}`,
+        note: "skip reopen: missing latest flaky build timestamp",
       };
     }
 
-    if (closedAt.getTime() >= windowStart.getTime()) {
+    if (evidence.buildStart.getTime() <= closedAt.getTime()) {
       return {
         eligible: false,
-        note: "skip reopen: issue closed in current statistics window",
+        note: `skip reopen: latest flaky build start ${evidence.buildStart.toISOString()} <= closed_at ${closedAt.toISOString()}`,
       };
     }
 
-    return { eligible: true };
+    return {
+      eligible: true,
+      evidence: {
+        closedAt,
+        buildStart: evidence.buildStart,
+        buildUrl: evidence.buildUrl,
+        usedFallbackTime: evidence.usedFallbackTime,
+        sample: evidence.sample,
+      },
+    };
+  }
+
+  private pickLatestFlakyBuildEvidence(
+    group: CaseAgg[],
+  ): {
+    buildStart: Date;
+    buildUrl?: string;
+    usedFallbackTime: boolean;
+    sample: CaseAgg;
+  } | null {
+    let best: {
+      buildStart: Date;
+      buildUrl?: string;
+      usedFallbackTime: boolean;
+      sample: CaseAgg;
+    } | null = null;
+
+    for (const c of group) {
+      const buildStart = c.latestFlakyReportTime ?? c.latestReportTime;
+      if (!buildStart) continue;
+
+      const usedFallbackTime = !c.latestFlakyReportTime;
+      const buildUrl = c.latestFlakyBuildUrl ?? c.latestBuildUrl;
+      if (!best || buildStart.getTime() > best.buildStart.getTime()) {
+        best = { buildStart, buildUrl, usedFallbackTime, sample: c };
+      }
+    }
+
+    return best;
+  }
+
+  private buildReopenEvidenceComment(
+    report: ReportData,
+    evidence: {
+      closedAt: Date;
+      buildStart: Date;
+      buildUrl?: string;
+      usedFallbackTime: boolean;
+      sample: CaseAgg;
+    },
+  ): string {
+    const c = evidence.sample;
+    const lines = [
+      "Automated reopen: flaky detected after this issue was closed.",
+      "",
+      `- Repo: ${c.repo}`,
+      `- Branch: ${c.branch}`,
+      `- Package: ${formatSuiteName(c.suite_name)}`,
+      `- Case: ${c.case_name}`,
+      "",
+      `- Issue closed_at: ${evidence.closedAt.toISOString()}`,
+      `- Latest flaky build start: ${evidence.buildStart.toISOString()}`,
+      evidence.buildUrl ? `- Build: ${evidence.buildUrl}` : `- Build: N/A`,
+      evidence.usedFallbackTime
+        ? "- Note: latestFlakyReportTime missing; fallback to latestReportTime"
+        : undefined,
+      "",
+      `Window: ${report.window.from} → ${report.window.to}`,
+      `Threshold: ${report.window.thresholdMs} ms`,
+    ].filter((x) => x !== undefined) as string[];
+    return lines.join("\n");
   }
 
   private parseClosedAt(value?: string | null): Date | null {
