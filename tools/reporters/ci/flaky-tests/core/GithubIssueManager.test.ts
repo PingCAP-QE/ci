@@ -36,10 +36,12 @@ function buildCase(): CaseAgg {
     flakyCount: 3,
     thresholdedCount: 1,
     owner: "@test-owner",
+    latestFlakyBuildUrl: "https://ci.example.com/build/1",
+    latestFlakyReportTime: new Date("2026-03-12T12:00:00Z"),
   };
 }
 
-function createManager(client: object): GithubIssueManager {
+function createManager(client: Record<string, unknown>): GithubIssueManager {
   const manager = new GithubIssueManager({
     token: "test-token",
     allowCreate: false,
@@ -51,14 +53,17 @@ function createManager(client: object): GithubIssueManager {
     verbose: false,
   });
   Object.defineProperty(manager, "client", {
-    value: client,
+    value: {
+      addComment: async () => {},
+      ...client,
+    },
     configurable: true,
     writable: true,
   });
   return manager;
 }
 
-Deno.test("GithubIssueManager.sync reopens issues closed before report window", async () => {
+Deno.test("GithubIssueManager.sync reopens issues when latest flaky build started after issue closed", async () => {
   const issue: TestIssue = {
     number: 123,
     title: "Flaky test: TestFlakyCase in pkg/executor",
@@ -67,6 +72,7 @@ Deno.test("GithubIssueManager.sync reopens issues closed before report window", 
     closed_at: "2026-03-03T12:00:00Z",
   };
   let reopenCalls = 0;
+  const comments: string[] = [];
   const manager = createManager({
     searchIssues: async () => [issue],
     reopenIssue: async () => {
@@ -77,6 +83,14 @@ Deno.test("GithubIssueManager.sync reopens issues closed before report window", 
         closed_at: null,
       };
     },
+    addComment: async (
+      _owner: string,
+      _repo: string,
+      _issueNumber: number,
+      body: string,
+    ) => {
+      comments.push(body);
+    },
   });
   const report = buildReport();
   const flakyCase = buildCase();
@@ -84,12 +98,14 @@ Deno.test("GithubIssueManager.sync reopens issues closed before report window", 
   await manager.sync(report, [flakyCase], [flakyCase]);
 
   assertEquals(reopenCalls, 1);
+  assertEquals(comments.length, 1);
+  assertEquals(comments[0].includes("https://ci.example.com/build/1"), true);
   assertEquals(flakyCase.issue?.status, "reopened");
   assertEquals(flakyCase.issue?.state, "open");
   assertEquals(flakyCase.issue?.number, 123);
 });
 
-Deno.test("GithubIssueManager.sync keeps issues closed in report window closed", async () => {
+Deno.test("GithubIssueManager.sync keeps issue closed when latest flaky build is not newer than closed_at", async () => {
   const issue: TestIssue = {
     number: 456,
     title: "Flaky test: TestFlakyCase in pkg/executor",
@@ -106,7 +122,10 @@ Deno.test("GithubIssueManager.sync keeps issues closed in report window closed",
     },
   });
   const report = buildReport();
-  const flakyCase = buildCase();
+  const flakyCase = {
+    ...buildCase(),
+    latestFlakyReportTime: new Date("2026-03-10T12:00:00Z"),
+  };
 
   await manager.sync(report, [flakyCase], [flakyCase]);
 
@@ -116,8 +135,42 @@ Deno.test("GithubIssueManager.sync keeps issues closed in report window closed",
   assertEquals(flakyCase.issue?.number, 456);
   assertEquals(
     flakyCase.issue?.note,
-    "skip reopen: issue closed in current statistics window",
+    "skip reopen: latest flaky build start 2026-03-10T12:00:00.000Z <= closed_at 2026-03-10T12:00:01.000Z",
   );
+});
+
+Deno.test("GithubIssueManager.sync reopens issue even if it was closed in current window (build after closed_at)", async () => {
+  const issue: TestIssue = {
+    number: 789,
+    title: "Flaky test: TestFlakyCase in pkg/executor",
+    state: "closed",
+    html_url: "https://github.com/pingcap/tidb/issues/789",
+    closed_at: "2026-03-10T12:00:01Z",
+  };
+  let reopenCalls = 0;
+  const manager = createManager({
+    searchIssues: async () => [issue],
+    reopenIssue: async () => {
+      reopenCalls += 1;
+      return {
+        ...issue,
+        state: "open",
+        closed_at: null,
+      };
+    },
+  });
+  const report = buildReport();
+  const flakyCase = {
+    ...buildCase(),
+    latestFlakyReportTime: new Date("2026-03-12T01:00:00Z"),
+  };
+
+  await manager.sync(report, [flakyCase], [flakyCase]);
+
+  assertEquals(reopenCalls, 1);
+  assertEquals(flakyCase.issue?.status, "reopened");
+  assertEquals(flakyCase.issue?.state, "open");
+  assertEquals(flakyCase.issue?.number, 789);
 });
 
 Deno.test("GithubIssueManager.sync prefers open issue over closed exact title match", async () => {
