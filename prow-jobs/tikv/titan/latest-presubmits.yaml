@@ -248,7 +248,7 @@ presubmits:
       branches:
         - ^master$
       decoration_config:
-        timeout: 3h
+        timeout: 1h
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       spec:
         affinity:
