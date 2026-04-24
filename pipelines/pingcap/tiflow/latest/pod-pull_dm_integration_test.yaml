@@ -80,7 +80,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mariadb1
-      image: "docker.io/library/mariadb:12.2"
+      image: "docker.io/library/mariadb:11.3"
       tty: true
       resources:
         limits:

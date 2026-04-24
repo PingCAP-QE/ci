@@ -13,7 +13,7 @@ presubmits:
         master: "1"
       decorate: false # need add this.
       always_run: false
-      run_if_changed: "^(dm/.*|pkg/.*|sync_diff_inspector/.*|go\\.mod)$"
+      run_if_changed: "^(dm/.*|pkg/.*|sync_diff_inspector/.*|go\\.(mod|sum)|Makefile)$"
       optional: true
       context: pull-dm-integration-test-next-gen
       trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test-next-gen|next-gen-dm|next-gen)(?: .*?)?$"

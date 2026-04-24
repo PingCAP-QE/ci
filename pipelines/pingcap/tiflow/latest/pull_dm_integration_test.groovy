@@ -15,7 +15,6 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, RE
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 def skipRemainingStages = false
-def needBuild = true
 
 pipeline {
     agent {
@@ -39,26 +38,19 @@ pipeline {
                 container("golang") {
                     script {
                         def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                        def pattern = /(^dm\/|^pkg\/|^sync_diff_inspector\/|^go\.mod).*$/
+                        def pattern = /(^dm\/|^pkg\/|^sync_diff_inspector\/|^go\.(mod|sum)$|^Makefile$)/
                         println "pr_diff_files: ${pr_diff_files}"
-                        // if any diff files start with dm/ or pkg/ or file go.mod, run the dm integration test
+                        // if any diff files start with dm/ or pkg/ or sync_diff_inspector/, or are go.mod/go.sum/Makefile, run the dm integration test
                         // besides, any changes in sync_diff_inspector also need to run test
                         def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
                         if (matched) {
-                            println "matched, some diff files full path start with dm/, sync_diff_inspector/ or pkg/ or go.mod, run the dm integration test"
+                            println "matched, run the dm integration test"
                         } else {
-                            println "not matched, all files full path not start with dm/, sync_diff_inspector/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
+                            println "not matched, current pr is not related to dm, skip the dm integration test"
                             currentBuild.result = 'SUCCESS'
                             skipRemainingStages = true
                             return 0
                         }
-
-                        // Check if any diff files affect Go binaries. If only test
-                        // scripts (dm/tests/) changed, skip the build and reuse
-                        // cached binaries from a previous run.
-                        def buildPattern = /(^dm\/(?!tests\/).*\.go$|^pkg\/.*\.go$|^go\.(mod|sum)$|^Makefile$)/
-                        needBuild = component.patternMatchAnyFile(buildPattern, pr_diff_files)
-                        println "needBuild: ${needBuild}"
                     }
                 }
             }
@@ -114,18 +106,14 @@ pipeline {
                     }
                 }
                 dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test'), restoreKeys: prow.getRestoreKeys('binary', REFS, 'dm-integration-test')) {
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
                         sh label: "prepare", script: """
-                            if [[ ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
-                                echo "Building binaries (cache miss)..."
-                                make dm_integration_test_build
-                                mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
-                            elif [ "${needBuild}" = "true" ]; then
-                                echo "Building binaries (Go source changed)..."
+                            if [[ ! -f "bin/sync_diff_inspector" || ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
+                                echo "Building binaries..."
                                 make dm_integration_test_build
                                 mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
                             else
-                                echo "Skipping build (only test scripts changed, reusing cached binaries)..."
+                                echo "Binaries already exist, skipping build..."
                             fi
                             ls -alh ./bin
                             ls -alh ./bin/dm-test-tools
