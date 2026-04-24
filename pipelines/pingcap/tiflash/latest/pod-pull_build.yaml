@@ -45,8 +45,8 @@ spec:
           name: "volume-8"
           readOnly: false
     - name: util
-      image: hub.pingcap.net/jenkins/ks3util
-      args: ["sleep", "infinity"]
+      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v2026.3.29-14-g90ae7ef
+      tty: true
       resources:
         requests:
           cpu: "500m"
