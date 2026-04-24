@@ -40,8 +40,7 @@ pipeline {
                         def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
                         def pattern = /(^dm\/|^pkg\/|^sync_diff_inspector\/|^go\.(mod|sum)$|^Makefile$)/
                         println "pr_diff_files: ${pr_diff_files}"
-                        // if any diff files start with dm/ or pkg/ or sync_diff_inspector/, or are go.mod/go.sum/Makefile, run the dm integration test
-                        // besides, any changes in sync_diff_inspector also need to run test
+                        // Run DM integration tests when changed files touch dm/, pkg/, sync_diff_inspector/, go.mod, go.sum, or Makefile.
                         def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
                         if (matched) {
                             println "matched, run the dm integration test"
