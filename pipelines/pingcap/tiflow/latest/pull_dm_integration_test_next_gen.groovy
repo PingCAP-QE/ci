@@ -89,6 +89,9 @@ pipeline {
                 }
                 dir("tiflow") {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test-next-gen')) {
+                        // build dm-master.test for integration test
+                        // only build binarys if not exist, use the cached binarys if exist
+                        // TODO: how to update cached binarys if needed
                         sh label: "prepare", script: """
                             if [[ ! -f "bin/sync_diff_inspector" || ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
                                 echo "Building binaries..."
