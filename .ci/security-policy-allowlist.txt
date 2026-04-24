@@ -1,0 +1,8 @@
+# Format: <rule>\t<path-regex>
+# Rules:
+# - hardcoded_literal
+# - secret_echo
+# - secret_env_plain_value
+#
+# Example:
+# secret_echo	^pipelines/pingcap/example/legacy-debug\.groovy$

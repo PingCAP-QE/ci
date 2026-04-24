@@ -26,6 +26,8 @@ spec:
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -46,8 +48,10 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 200Gi
+                storage: 300Gi
             storageClassName: hyperdisk-rwo
+    - name: bazel-repository-cache
+      emptyDir: {}
     - name: bazel-rc
       configMap:
         name: bazel

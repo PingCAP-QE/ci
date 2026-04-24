@@ -86,6 +86,8 @@ export class FlakyReporter {
           owner: ownerRes.owner,
           latestBuildUrl: undefined,
           latestReportTime: undefined,
+          latestFlakyBuildUrl: undefined,
+          latestFlakyFoundAt: undefined,
         };
         caseMap.set(key, agg);
 
@@ -109,6 +111,16 @@ export class FlakyReporter {
       ) {
         agg.latestReportTime = rt;
         agg.latestBuildUrl = r.build_url;
+      }
+
+      if (r.flaky && Number(r.flaky) > 0) {
+        if (
+          !agg.latestFlakyFoundAt ||
+          rt.getTime() > agg.latestFlakyFoundAt.getTime()
+        ) {
+          agg.latestFlakyFoundAt = rt;
+          agg.latestFlakyBuildUrl = r.build_url;
+        }
       }
     }
 

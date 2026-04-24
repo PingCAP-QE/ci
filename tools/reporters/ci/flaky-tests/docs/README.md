@@ -208,8 +208,15 @@ Defaults:
 - When a GitHub token is provided, the reporter searches issues by title using
   exact + loose matching (branch is not part of the title).
 - New issues are created only with `--issue-create`; closed issues are reopened
-  only with `--issue-reopen`, and only when the issue was closed before the
-  current report window starts.
+  only with `--issue-reopen`, and only when the latest build (for a specific
+  branch) that observed the flaky case started after the issue's `closed_at`
+  timestamp.
+  - Build `started_at` is resolved best-effort from `build_url`:
+    - Jenkins build: `GET <build_url>/api/json?tree=timestamp`
+    - Prow (view/gs or view/gcs URL): `GET <build_url>/started.json`
+    - Fallback: latest flaky `report_time` (max report_time where flaky > 0)
+  - When reopening, an evidence comment is always added (includes branch, build
+    link, and the started_at vs closed_at comparison).
 - The configured labels are applied to any matched/created issue.
 - For open or reopened issues, a comment is appended with the current window’s
   stats only when `--issue-comment` is enabled.

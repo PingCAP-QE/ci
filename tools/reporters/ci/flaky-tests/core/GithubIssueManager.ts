@@ -24,6 +24,7 @@ interface IssueManagerOptions {
   repoOverride?: string;
   titleIncludesRepo?: boolean;
   now?: () => Date;
+  fetchFn?: typeof fetch;
   verbose?: boolean;
 }
 
@@ -201,7 +202,12 @@ export class GithubIssueManager {
   private readonly repoOverride?: string;
   private readonly titleIncludesRepo: boolean;
   private readonly now: () => Date;
+  private readonly fetchFn: typeof fetch;
   private readonly verbose: boolean;
+  private readonly buildStartedAtCache = new Map<
+    string,
+    { startedAt: Date; source: string } | null
+  >();
 
   constructor(opts: IssueManagerOptions) {
     this.enabled = !!opts.token;
@@ -216,6 +222,7 @@ export class GithubIssueManager {
     this.repoOverride = opts.repoOverride;
     this.titleIncludesRepo = !!opts.titleIncludesRepo;
     this.now = opts.now ?? (() => new Date());
+    this.fetchFn = opts.fetchFn ?? fetch;
     this.verbose = !!opts.verbose;
   }
 
@@ -315,12 +322,26 @@ export class GithubIssueManager {
         status = "open";
       } else if (issue?.state === "closed") {
         const reopenCheck = this.allowReopen && canMutate
-          ? this.checkReopenEligibility(issue, report)
+          ? await this.checkReopenEligibility(issue, group)
           : { eligible: false, note: undefined };
         if (reopenCheck.eligible) {
           status = "reopened";
           if (!this.dryRun) {
             issue = await this.client!.reopenIssue(owner, repo, issue.number);
+            if (reopenCheck.evidence) {
+              const comment = this.buildReopenEvidenceComment(
+                report,
+                reopenCheck.evidence,
+              );
+              try {
+                await this.client!.addComment(owner, repo, issue.number, comment);
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                if (this.verbose) {
+                  console.error(`[github] add reopen evidence comment failed: ${msg}`);
+                }
+              }
+            }
           }
         } else {
           status = "closed";
@@ -493,10 +514,20 @@ export class GithubIssueManager {
     return 0;
   }
 
-  private checkReopenEligibility(
+  private async checkReopenEligibility(
     issue: GitHubIssueApi,
-    report: ReportData,
-  ): { eligible: boolean; note?: string } {
+    group: CaseAgg[],
+  ): Promise<{
+    eligible: boolean;
+    note?: string;
+    evidence?: {
+      closedAt: Date;
+      buildStartedAt: Date;
+      buildUrl: string;
+      startedAtSource: string;
+      sample: CaseAgg;
+    };
+  }> {
     const closedAt = this.parseClosedAt(issue.closed_at);
     if (!closedAt) {
       return {
@@ -505,22 +536,273 @@ export class GithubIssueManager {
       };
     }
 
-    const windowStart = new Date(report.window.from);
-    if (Number.isNaN(windowStart.getTime())) {
+    const candidates = await this.collectLatestFlakyBuildCandidates(group);
+    if (candidates.length === 0) {
       return {
         eligible: false,
-        note: `skip reopen: invalid report window start ${report.window.from}`,
+        note:
+          "skip reopen: missing latest flaky evidence (build_url/started_at/fallback time)",
       };
     }
 
-    if (closedAt.getTime() >= windowStart.getTime()) {
+    const latest = candidates.reduce((best, cur) => {
+      if (cur.buildStartedAt.getTime() > best.buildStartedAt.getTime()) {
+        return cur;
+      }
+      return best;
+    }, candidates[0]);
+
+    const reopenCandidates = candidates.filter((c) =>
+      c.buildStartedAt.getTime() > closedAt.getTime()
+    );
+
+    if (reopenCandidates.length === 0) {
       return {
         eligible: false,
-        note: "skip reopen: issue closed in current statistics window",
+        note:
+          `skip reopen: latest flaky build started_at ${latest.buildStartedAt.toISOString()} <= closed_at ${closedAt.toISOString()} (branch=${latest.sample.branch})`,
       };
     }
 
-    return { eligible: true };
+    const best = reopenCandidates.reduce((b, c) => {
+      if (c.buildStartedAt.getTime() > b.buildStartedAt.getTime()) return c;
+      return b;
+    }, reopenCandidates[0]);
+
+    return {
+      eligible: true,
+      evidence: {
+        closedAt,
+        buildStartedAt: best.buildStartedAt,
+        buildUrl: best.buildUrl,
+        startedAtSource: best.startedAtSource,
+        sample: best.sample,
+      },
+    };
+  }
+
+  private async collectLatestFlakyBuildCandidates(
+    group: CaseAgg[],
+  ): Promise<
+    Array<{
+      buildStartedAt: Date;
+      buildUrl: string;
+      startedAtSource: string;
+      sample: CaseAgg;
+    }>
+  > {
+    const out: Array<{
+      buildStartedAt: Date;
+      buildUrl: string;
+      startedAtSource: string;
+      sample: CaseAgg;
+    }> = [];
+
+    for (const c of group) {
+      if (!c || (c.flakyCount ?? 0) <= 0) continue;
+
+      const buildUrl = String(c.latestFlakyBuildUrl ?? "").trim();
+      if (!buildUrl) continue;
+
+      const resolved = await this.resolveBuildStartedAt(buildUrl);
+      const fallback = c.latestFlakyFoundAt;
+      if (!resolved && !fallback) continue;
+
+      out.push({
+        buildStartedAt: resolved?.startedAt ?? fallback!,
+        buildUrl,
+        startedAtSource: resolved?.source ?? "fallback latestFlakyFoundAt",
+        sample: c,
+      });
+    }
+
+    return out;
+  }
+
+  private async resolveBuildStartedAt(
+    buildUrl: string,
+  ): Promise<{ startedAt: Date; source: string } | null> {
+    const normalized = this.normalizeBuildUrl(buildUrl);
+    if (!normalized) return null;
+
+    if (this.buildStartedAtCache.has(normalized)) {
+      return this.buildStartedAtCache.get(normalized) ?? null;
+    }
+
+    let out: { startedAt: Date; source: string } | null = null;
+    try {
+      const j = await this.tryResolveJenkinsBuildStartedAt(normalized);
+      if (j) out = { startedAt: j, source: "jenkins.timestamp" };
+    } catch (_e: unknown) {
+      // best-effort only
+    }
+
+    if (!out) {
+      try {
+        const p = await this.tryResolveProwBuildStartedAt(normalized);
+        if (p) out = { startedAt: p, source: "prow.started.json" };
+      } catch (_e: unknown) {
+        // best-effort only
+      }
+    }
+
+    this.buildStartedAtCache.set(normalized, out);
+    return out;
+  }
+
+  private normalizeBuildUrl(value: string): string | null {
+    const v = String(value ?? "").trim();
+    if (!v) return null;
+    return v;
+  }
+
+  private async tryResolveJenkinsBuildStartedAt(
+    buildUrl: string,
+  ): Promise<Date | null> {
+    if (!this.looksLikeJenkinsBuildUrl(buildUrl)) return null;
+
+    const apiUrl = this.joinUrl(buildUrl, "api/json?tree=timestamp");
+    const res = await this.fetchJson(apiUrl);
+    const ts = this.parseEpochMs((res as { timestamp?: unknown })?.timestamp);
+    if (ts === null) return null;
+    const startedAt = new Date(ts);
+    if (Number.isNaN(startedAt.getTime())) return null;
+    return startedAt;
+  }
+
+  private async tryResolveProwBuildStartedAt(
+    buildUrl: string,
+  ): Promise<Date | null> {
+    const startedJsonUrl = this.buildProwStartedJsonUrl(buildUrl);
+    if (!startedJsonUrl) return null;
+
+    const res = await this.fetchJson(startedJsonUrl);
+    const ts = this.parseEpochMs((res as { timestamp?: unknown })?.timestamp);
+    if (ts === null) return null;
+    const startedAt = new Date(ts);
+    if (Number.isNaN(startedAt.getTime())) return null;
+    return startedAt;
+  }
+
+  private buildProwStartedJsonUrl(buildUrl: string): string | null {
+    const v = this.normalizeBuildUrl(buildUrl);
+    if (!v) return null;
+
+    if (v.startsWith("gs://")) {
+      const rest = v.slice("gs://".length).replace(/^\/+/, "");
+      return this.ensureEndsWithStartedJson(
+        `https://storage.googleapis.com/${rest}`,
+      );
+    }
+
+    let u: URL;
+    try {
+      u = new URL(v);
+    } catch (_e: unknown) {
+      return null;
+    }
+
+    if (u.hostname === "storage.googleapis.com") {
+      return this.ensureEndsWithStartedJson(
+        `https://storage.googleapis.com${u.pathname}`,
+      );
+    }
+
+    if (u.hostname !== "prow.tidb.net") return null;
+
+    const path = u.pathname;
+    const prefixes = ["/view/gs/", "/view/gcs/"];
+    for (const prefix of prefixes) {
+      if (!path.startsWith(prefix)) continue;
+      const rest = path.slice(prefix.length).replace(/^\/+/, "");
+      return this.ensureEndsWithStartedJson(
+        `https://storage.googleapis.com/${rest}`,
+      );
+    }
+
+    return null;
+  }
+
+  private ensureEndsWithStartedJson(url: string): string {
+    const cleaned = url.replace(/\/+$/, "");
+    if (cleaned.endsWith("started.json")) return cleaned;
+    return `${cleaned}/started.json`;
+  }
+
+  private looksLikeJenkinsBuildUrl(buildUrl: string): boolean {
+    try {
+      const u = new URL(buildUrl);
+      if (u.hostname.includes("jenkins")) return true;
+      if (u.pathname.includes("/jenkins/")) return true;
+      if (u.pathname.includes("/job/")) return true;
+      return false;
+    } catch (_e: unknown) {
+      return false;
+    }
+  }
+
+  private joinUrl(baseUrl: string, suffix: string): string {
+    const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+    const s = suffix.startsWith("/") ? suffix.slice(1) : suffix;
+    return `${base}${s}`;
+  }
+
+  private async fetchJson(url: string): Promise<unknown | null> {
+    try {
+      const res = await this.fetchFn(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "flaky-reporter",
+        },
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e: unknown) {
+      if (this.verbose) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error(`[build] fetch json failed: ${url}: ${msg}`);
+      }
+      return null;
+    }
+  }
+
+  private parseEpochMs(value: unknown): number | null {
+    if (value === null || value === undefined) return null;
+    const n = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    // Jenkins "timestamp" is ms; Prow started.json "timestamp" is seconds.
+    return n < 1e12 ? n * 1000 : n;
+  }
+
+  private buildReopenEvidenceComment(
+    report: ReportData,
+    evidence: {
+      closedAt: Date;
+      buildStartedAt: Date;
+      buildUrl: string;
+      startedAtSource: string;
+      sample: CaseAgg;
+    },
+  ): string {
+    const c = evidence.sample;
+    const lines = [
+      "Automated reopen: flaky detected after this issue was closed.",
+      "",
+      `- Repo: ${c.repo}`,
+      `- Branch: ${c.branch}`,
+      `- Package: ${formatSuiteName(c.suite_name)}`,
+      `- Case: ${c.case_name}`,
+      "",
+      `- Issue closed_at: ${evidence.closedAt.toISOString()}`,
+      `- Build started_at: ${evidence.buildStartedAt.toISOString()}`,
+      `- Build started_at source: ${evidence.startedAtSource}`,
+      `- Build: ${evidence.buildUrl}`,
+      "",
+      `Window: ${report.window.from} → ${report.window.to}`,
+      `Threshold: ${report.window.thresholdMs} ms`,
+    ].filter((x) => x !== undefined) as string[];
+    return lines.join("\n");
   }
 
   private parseClosedAt(value?: string | null): Date | null {
