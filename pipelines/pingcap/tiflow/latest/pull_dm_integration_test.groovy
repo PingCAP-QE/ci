@@ -4,9 +4,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
@@ -14,7 +12,6 @@ final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
-def skipRemainingStages = false
 
 pipeline {
     agent {
@@ -33,29 +30,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Check diff files') {
-            steps {
-                container("golang") {
-                    script {
-                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                        def pattern = /(^dm\/|^pkg\/|^sync_diff_inspector\/|^go\.(mod|sum)$|^Makefile$)/
-                        println "pr_diff_files: ${pr_diff_files}"
-                        // Run DM integration tests when changed files touch dm/, pkg/, sync_diff_inspector/, go.mod, go.sum, or Makefile.
-                        def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
-                        if (matched) {
-                            println "matched, run the dm integration test"
-                        } else {
-                            println "not matched, current pr is not related to dm, skip the dm integration test"
-                            currentBuild.result = 'SUCCESS'
-                            skipRemainingStages = true
-                            return 0
-                        }
-                    }
-                }
-            }
-        }
         stage('Checkout') {
-            when { expression { !skipRemainingStages} }
             steps {
                 dir("tiflow") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
@@ -69,7 +44,6 @@ pipeline {
             }
         }
         stage("prepare") {
-            when { expression { !skipRemainingStages} }
             steps {
                 dir("third_party_download") {
                     script {
@@ -139,7 +113,6 @@ pipeline {
         }
 
         stage('Tests') {
-            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {
