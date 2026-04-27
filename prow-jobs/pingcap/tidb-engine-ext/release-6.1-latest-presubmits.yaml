@@ -1,5 +1,4 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
-# TODO(@wuhuizuo): migrate image hub.pingcap.net/tiflash/tiflash-llvm-base:amd64 to a public registry.
 presubmits:
   pingcap/tidb-engine-ext:
     - name: pull-unit-test
@@ -12,7 +11,7 @@ presubmits:
       spec:
         containers:
           - name: unit-test
-            image: hub.pingcap.net/tiflash/tiflash-llvm-base:amd64
+            image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2026.3.8-1-g9d412f4_linux_amd64
             command: [bash, -ce]
             args:
               - |
