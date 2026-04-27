@@ -48,6 +48,10 @@ pipeline {
                     # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
                     sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
 
+                    # Batch failpoint enable/disable to avoid argv limits on large repos.
+                    sed -i 's|xargs bazel $(BAZEL_GLOBAL_CONFIG) run $(BAZEL_CMD_CONFIG) @com_github_pingcap_failpoint//failpoint-ctl:failpoint-ctl -- enable|xargs -n 200 bazel $(BAZEL_GLOBAL_CONFIG) run $(BAZEL_CMD_CONFIG) @com_github_pingcap_failpoint//failpoint-ctl:failpoint-ctl -- enable|' Makefile || true
+                    sed -i 's|xargs bazel $(BAZEL_GLOBAL_CONFIG) run $(BAZEL_CMD_CONFIG) @com_github_pingcap_failpoint//failpoint-ctl:failpoint-ctl -- disable|xargs -n 200 bazel $(BAZEL_GLOBAL_CONFIG) run $(BAZEL_CMD_CONFIG) @com_github_pingcap_failpoint//failpoint-ctl:failpoint-ctl -- disable|' Makefile || true
+
                     # Replay-only timeout hotfix: raise ci shard timeout to avoid timeout flakes.
                     if [ -f .bazelrc ]; then
                       echo 'test:ci --test_timeout=600,900,1800,3600' >> .bazelrc
@@ -62,6 +66,7 @@ pipeline {
 
                     grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                     grep -n '^check:' Makefile | head -n 3 || true
+                    grep -n 'xargs -n 200 bazel .*failpoint-ctl:failpoint-ctl --' Makefile | head -n 4 || true
                     grep -n 'test:ci --test_timeout=' .bazelrc | tail -n 3 || true
                     grep -n 'pkg/ddl/ingest:ingest_test' Makefile || true
                     grep -n 'timeout = "long"' pkg/executor/test/distsqltest/BUILD.bazel || true

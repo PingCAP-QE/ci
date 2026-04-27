@@ -48,6 +48,10 @@ pipeline {
                         # Avoid "check" targets re-writing legacy cache settings during migration replay.
                         sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
 
+                        # Batch failpoint enable/disable to avoid argv limits on large repos.
+                        sed -i 's|xargs bazel $(BAZEL_GLOBAL_CONFIG) run $(BAZEL_CMD_CONFIG) @com_github_pingcap_failpoint//failpoint-ctl:failpoint-ctl -- enable|xargs -n 200 bazel $(BAZEL_GLOBAL_CONFIG) run $(BAZEL_CMD_CONFIG) @com_github_pingcap_failpoint//failpoint-ctl:failpoint-ctl -- enable|' Makefile || true
+                        sed -i 's|xargs bazel $(BAZEL_GLOBAL_CONFIG) run $(BAZEL_CMD_CONFIG) @com_github_pingcap_failpoint//failpoint-ctl:failpoint-ctl -- disable|xargs -n 200 bazel $(BAZEL_GLOBAL_CONFIG) run $(BAZEL_CMD_CONFIG) @com_github_pingcap_failpoint//failpoint-ctl:failpoint-ctl -- disable|' Makefile || true
+
                         # Ensure expected bazel tmp dir exists after mount point change.
                         mkdir -p /home/jenkins/.tidb/tmp
 
@@ -59,6 +63,7 @@ pipeline {
                             echo "shared bazel repository cache unavailable or not writable, keep repository_cache=/home/jenkins/.tidb/tmp"
                         fi
 
+                        grep -n 'xargs -n 200 bazel .*failpoint-ctl:failpoint-ctl --' Makefile | head -n 4 || true
                         git diff .
                         git status
                     '''
