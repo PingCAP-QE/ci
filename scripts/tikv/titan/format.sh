@@ -14,14 +14,14 @@ fi
 find . \( -iname "*.h" -o -iname "*.cc" \) -print0 | \
   xargs -0 -L1 clang-format -style=google -i
 
-if [[ -n "$(git diff --stat)" ]]; then
-  echo "ERROR: titan format check failed."
-  echo "clang-format produced changes for the following files:"
-  git diff --name-only
+if [[ -n "$(git diff --stat .)" ]]; then
+  echo "❌ [ERROR] these files are not formatted: 👇👇👇"
+  git diff --name-only .
+  echo "👆👆👆 Please format these files and run it again!"
   echo
   echo "Diff summary:"
-  git diff --stat
+  git diff --stat .
   echo
-  echo "To fix locally, run scripts/format-diff.sh in the titan repository and commit the formatting changes."
+  echo "To fix locally, run clang-format -style=google -i on the listed files, then commit the formatting changes."
   exit 1
 fi
