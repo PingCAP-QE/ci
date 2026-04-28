@@ -14,8 +14,14 @@ fi
 find . \( -iname "*.h" -o -iname "*.cc" \) -print0 | \
   xargs -0 -L1 clang-format -style=google -i
 
-if [[ -n "$(git diff --stat)" ]]; then
-  echo "Run scripts/format-diff.sh to format your code."
-  git diff --stat
+if [[ -n "$(git diff --stat .)" ]]; then
+  echo "❌ [ERROR] these files are not formatted: 👇👇👇"
+  git diff --name-only .
+  echo "👆👆👆 Please format these files and run it again!"
+  echo
+  echo "Diff summary:"
+  git diff --stat .
+  echo
+  echo "To fix locally, run clang-format -style=google -i on the listed files, then commit the formatting changes."
   exit 1
 fi
