@@ -10,6 +10,11 @@ repositories:
       - name: "variables_and_functions"
         description: "Pattern for variables and function calls"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"
     approvers:
       - "zanmato1984"
       - "fixdb"
@@ -32,6 +37,11 @@ repositories:
       - name: "variables_and_functions"
         description: "Pattern for variables and function calls"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"
     approvers:
       - "niubell"
 
@@ -43,6 +53,11 @@ repositories:
       - name: "variables_and_functions"
         description: "Pattern for variables and function calls"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"
     approvers:
       - "Benjamin2037"
       - "flowbehappy"
@@ -59,6 +74,11 @@ repositories:
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
         excludes:
           - "tests/**"
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"
     approvers:
       - "flowbehappy"
 
@@ -70,6 +90,11 @@ repositories:
       - name: "error_variables"
         description: "Pattern for error variables"
         regex: '(?:^|\s)error!\s*(\?%?\w+(?:\s*,\s*[^)]*)?)'
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"
     approvers:
       - "zhangjinpeng87"
       - "BornChanger"
@@ -86,6 +111,11 @@ repositories:
       - name: "default_messages"
         description: "Default pattern for other message types"
         regex: '(?:^|\s)LOG_(ERROR|FATAL)\s*\(\s*[^,]+,\s*([^,)]+?)(?:\s*,\s*[^)]+)?\s*\)'
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"
     approvers:
       - "windtalker"
       - "kolafish"
@@ -105,4 +135,4 @@ settings:
     # "check_and_warn" - Check and log warning, but don't fail check
     mode: "check_and_fail"
   # Optional hint printed when approval is required
-  hint: "Update error log patterns and approvers at https://github.com/PingCAP-QE/ci/blob/main/configs/error-log-review/config.yaml."
+  hint: "Update review patterns and approvers at https://github.com/PingCAP-QE/ci/blob/main/configs/error-log-review/config.yaml."

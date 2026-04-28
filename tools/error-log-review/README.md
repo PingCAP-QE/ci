@@ -1,10 +1,11 @@
 # Error Log Review
 
-A lightweight Go program to automatically check PR diffs for error logging changes and enforce approval requirements.
+A lightweight Go program to automatically check PR diffs for protected changes such as error logging edits and selected `go.mod` version upgrades, then enforce approval requirements.
 
 ## Features
 
 - Regex-based pattern matching for different repositories
+- Optional file-scoped rules, including `go.mod` `go`/`toolchain` directives
 - GitHub API integration for PR diff analysis
 - Approval verification through ti-chi-bot approval comments
 - Configurable CI behavior (fail or warn)
@@ -59,7 +60,8 @@ go build -o error-log-review
 
 The tool uses a YAML configuration file to define:
 
-- Repository-specific log patterns to detect
+- Repository-specific patterns to detect
+- Optional file scopes for patterns that should only match specific files
 - Required approvers for each repository
 - Exclusion patterns to skip certain files/directories
 - Global behavior settings
@@ -75,6 +77,8 @@ repositories:
       - name: "pattern_name"
         description: "Pattern description"
         regex: "regular_expression"
+        files:     # Optional: restrict the pattern to specific files
+          - "go.mod"
         excludes:  # Optional: pattern-specific exclusions
           - "tests/**"
           - "*_test.go"

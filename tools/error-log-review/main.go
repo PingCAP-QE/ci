@@ -59,7 +59,7 @@ func main() {
 	// Check if this repository is configured
 	repo := config.GetRepository(repoName)
 	if repo == nil {
-		fmt.Printf("Repository %s is not configured for error log review - skipping\n", repoName)
+		fmt.Printf("Repository %s is not configured for protected change review - skipping\n", repoName)
 		os.Exit(0)
 	}
 
@@ -75,19 +75,19 @@ func main() {
 	// Initialize checker
 	checker := NewErrorLogChecker(config)
 
-	// Check for error log patterns
+	// Check for protected change patterns
 	matches, err := checker.CheckPRDiff(repoName, diff)
 	if err != nil {
 		log.Fatalf("Failed to check PR diff: %v", err)
 	}
 
-	// If no error log matches found, exit successfully
+	// If no protected change matches are found, exit successfully
 	if len(matches) == 0 {
-		fmt.Println("No error log changes detected - check passed")
+		fmt.Println("No protected changes detected - check passed")
 		os.Exit(0)
 	}
 
-	fmt.Printf("Found %d error log matches\n", len(matches))
+	fmt.Printf("Found %d protected change matches\n", len(matches))
 	for _, match := range matches {
 		fmt.Printf("  %s [%s]: %s\n", match.File, match.Pattern, match.Line)
 	}
@@ -99,25 +99,25 @@ func main() {
 	}
 
 	if hasApproval {
-		fmt.Printf("Error log changes approved by: %s\n", strings.Join(approvers, ", "))
+		fmt.Printf("Protected changes approved by: %s\n", strings.Join(approvers, ", "))
 
 		// Show additional repository information
 		requiredApprovers := checker.GetRequiredApprovers(repoName)
 		minApprovals := config.Settings.MinApprovals
 
-		fmt.Printf("Repository %s error log approvers: %s\n", repoName, strings.Join(requiredApprovers, ", "))
+		fmt.Printf("Repository %s approvers: %s\n", repoName, strings.Join(requiredApprovers, ", "))
 		fmt.Printf("Approval status: %d/%d required approvals received\n", len(approvers), minApprovals)
 
 		os.Exit(0)
 	}
 
 	// No approval found - handle based on configuration
-	fmt.Println("Error log changes found but not approved by repository log approvers")
+	fmt.Println("Protected changes found but not approved by repository approvers")
 
 	// Always show required approvers, regardless of comment settings
 	requiredApprovers := checker.GetRequiredApprovers(repoName)
 	if len(requiredApprovers) > 0 {
-		fmt.Printf("Repository log approvers for %s: %s\n", repoName, strings.Join(requiredApprovers, ", "))
+		fmt.Printf("Repository approvers for %s: %s\n", repoName, strings.Join(requiredApprovers, ", "))
 	}
 
 	// Print optional hint from config to guide contributors/maintainers
@@ -138,10 +138,10 @@ func main() {
 
 	// Decide CI result based on configuration
 	if ciMode == "check_and_fail" {
-		fmt.Println("Error log changes require approval - failing CI")
+		fmt.Println("Protected changes require approval - failing CI")
 		os.Exit(1)
 	} else {
-		fmt.Println("Error log changes require approval - continuing with warning")
+		fmt.Println("Protected changes require approval - continuing with warning")
 		os.Exit(0)
 	}
 }
