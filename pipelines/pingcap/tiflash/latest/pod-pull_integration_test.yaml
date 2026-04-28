@@ -2,43 +2,43 @@ apiVersion: "v1"
 kind: "Pod"
 spec:
   containers:
-  - image: "docker:18.09.6-dind"
-    imagePullPolicy: "IfNotPresent"
-    name: "dockerd"
-    resources:
-      limits:
-        memory: "32Gi"
-        cpu: "16000m"
-      requests:
-        memory: "12Gi"
-        cpu: "5000m"
-    securityContext:
-      privileged: true
-    tty: false
-    volumeMounts:
-    - mountPath: "/tmp"
-      name: "volume-tmp"
-      readOnly: false
-  - command:
-    - "cat"
-    env:
-    - name: "DOCKER_HOST"
-      value: "tcp://localhost:2375"
-    image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/docker:build-essential-java"
-    imagePullPolicy: "Always"
-    name: "docker"
-    resources:
-      requests:
-        memory: "8Gi"
-        cpu: "5000m"
-    tty: true
-    volumeMounts:
-    - mountPath: "/tmp"
-      name: "volume-tmp"
-      readOnly: false
+    - image: "docker:18.09.6-dind"
+      imagePullPolicy: "IfNotPresent"
+      name: "dockerd"
+      resources:
+        limits:
+          memory: "32Gi"
+          cpu: "16000m"
+        requests:
+          memory: "12Gi"
+          cpu: "5000m"
+      securityContext:
+        privileged: true
+      tty: false
+      volumeMounts:
+        - mountPath: "/tmp"
+          name: "volume-tmp"
+          readOnly: false
+    - command:
+        - "cat"
+      env:
+        - name: "DOCKER_HOST"
+          value: "tcp://localhost:2375"
+      image: us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/docker:build-essential-java
+      imagePullPolicy: "Always"
+      name: "docker"
+      resources:
+        requests:
+          memory: "8Gi"
+          cpu: "5000m"
+      tty: true
+      volumeMounts:
+        - mountPath: "/tmp"
+          name: "volume-tmp"
+          readOnly: false
   volumes:
-  - name: "volume-tmp"
-    emptyDir: {}
+    - name: "volume-tmp"
+      emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
