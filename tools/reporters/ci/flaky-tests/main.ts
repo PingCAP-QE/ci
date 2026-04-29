@@ -261,6 +261,7 @@ export async function main(args: string[]): Promise<number> {
     allowCreate: cli.issueCreate,
     allowReopen: cli.issueReopen,
     allowComment: cli.issueComment,
+    mutationLimit: cli.issueMutationLimit,
     dryRun: cli.issueDryRun,
     labels: cli.issueLabels,
     repoOverride: cli.issueRepoOverride,
@@ -274,11 +275,8 @@ export async function main(args: string[]): Promise<number> {
   const casesForIssue = report.byCase.filter((c: CaseAgg) =>
     (c.flakyCount || 0) > 0 || (c.thresholdedCount || 0) > 0
   );
-  const topCasesForIssue = report.byCase.filter((c: CaseAgg) =>
-    (c.flakyCount || 0) > 0 || (c.thresholdedCount || 0) > 0
-  ).slice(0, Math.max(1, cli.issueMutationLimit || 10));
   if (casesForIssue.length > 0) {
-    await issueManager.sync(report, casesForIssue, topCasesForIssue);
+    await issueManager.sync(report, casesForIssue);
   }
 
   const reportFileHtml = new HtmlRenderer().render(report);
