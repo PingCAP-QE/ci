@@ -23,7 +23,7 @@ presubmits:
                         - amd64
         containers:
           - name: rust
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2026.3.22-3-g892e449
             command: [bash, -ce]
             args:
               - |
@@ -38,11 +38,7 @@ presubmits:
 
                 # Check C++ formatting
                 if ! command -v clang-format &> /dev/null; then
-                  # CentOS 7 uses yum and llvm-toolset-7.0
-                  yum install -y llvm-toolset-7.0
-                  if [ -f /opt/rh/llvm-toolset-7.0/enable ]; then
-                    source /opt/rh/llvm-toolset-7.0/enable
-                  fi
+                  dnf install -y clang-tools-extra
                 fi
                 find librocksdb_sys/crocksdb/ \( -iname "*.h" -o -iname "*.cc" \) | while read f; do
                   diff -q <(clang-format "$f") "$f" || (echo "❌ $f" && exit 1)
@@ -72,7 +68,7 @@ presubmits:
                         - amd64
         containers:
           - name: rust
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2026.3.22-3-g892e449
             command: [bash, -ce]
             env:
               - name: RUST_BACKTRACE
@@ -82,12 +78,6 @@ presubmits:
                 #!/usr/bin/env bash
                 set -exo pipefail
 
-                yum install -y openssl-devel
-
-                # Setup GCC 8
-                if [ -f /opt/rh/devtoolset-8/enable ]; then
-                  source /opt/rh/devtoolset-8/enable
-                fi
                 g++ --version
                 cmake --version
 
@@ -149,7 +139,7 @@ presubmits:
                         - arm64
         containers:
           - name: rust
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2025.12.14-1-g33e22ac-centos7-devtoolset8
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2026.3.22-3-g892e449
             command: [bash, -ce]
             env:
               - name: RUST_BACKTRACE
@@ -159,12 +149,6 @@ presubmits:
                 #!/usr/bin/env bash
                 set -exo pipefail
 
-                yum install -y openssl-devel
-
-                # Setup GCC 8
-                if [ -f /opt/rh/devtoolset-8/enable ]; then
-                  source /opt/rh/devtoolset-8/enable
-                fi
                 g++ --version
                 cmake --version
 
