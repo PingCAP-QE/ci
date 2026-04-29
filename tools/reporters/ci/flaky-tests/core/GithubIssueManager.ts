@@ -19,6 +19,7 @@ interface IssueManagerOptions {
   allowCreate: boolean;
   allowReopen: boolean;
   allowComment: boolean;
+  mutationLimit: number;
   dryRun: boolean;
   labels: string[];
   repoOverride?: string;
@@ -197,6 +198,7 @@ export class GithubIssueManager {
   private readonly allowCreate: boolean;
   private readonly allowReopen: boolean;
   private readonly allowComment: boolean;
+  private readonly mutationLimit: number;
   private readonly dryRun: boolean;
   private readonly labels: string[];
   private readonly repoOverride?: string;
@@ -217,6 +219,7 @@ export class GithubIssueManager {
     this.allowCreate = !!opts.allowCreate;
     this.allowReopen = !!opts.allowReopen;
     this.allowComment = !!opts.allowComment;
+    this.mutationLimit = Math.max(1, opts.mutationLimit || 10);
     this.dryRun = !!opts.dryRun;
     this.labels = opts.labels ?? [];
     this.repoOverride = opts.repoOverride;
@@ -245,7 +248,6 @@ export class GithubIssueManager {
   async sync(
     report: ReportData,
     cases: CaseAgg[],
-    mutateCases?: CaseAgg[],
   ): Promise<void> {
     if (!cases || cases.length === 0) return;
 
@@ -260,14 +262,31 @@ export class GithubIssueManager {
     }
 
     const groups = this.groupCasesByIssueKey(cases);
-    const mutateKeys = mutateCases
-      ? new Set(this.groupCasesByIssueKey(mutateCases).keys())
-      : null;
+    const mutableCases = this.selectMutableCases(cases);
 
-    for (const [key, group] of groups.entries()) {
-      const canMutate = mutateKeys ? mutateKeys.has(key) : true;
-      await this.processGroup(report, group, canMutate);
+    for (const group of groups.values()) {
+      const rankedGroup = this.sortCasesByPriority(group);
+      const mutableGroup = rankedGroup.filter((c) => mutableCases.has(c));
+      await this.processGroup(report, rankedGroup, mutableGroup);
     }
+  }
+
+  private selectMutableCases(cases: CaseAgg[]): Set<CaseAgg> {
+    return new Set(
+      this.sortCasesByPriority(cases).slice(0, this.mutationLimit),
+    );
+  }
+
+  private sortCasesByPriority(cases: CaseAgg[]): CaseAgg[] {
+    return [...cases].sort((a, b) => {
+      if (b.flakyCount !== a.flakyCount) return b.flakyCount - a.flakyCount;
+      if (b.thresholdedCount !== a.thresholdedCount) {
+        return b.thresholdedCount - a.thresholdedCount;
+      }
+      const ak = `${a.repo}/${a.branch}/${a.suite_name}/${a.case_name}`;
+      const bk = `${b.repo}/${b.branch}/${b.suite_name}/${b.case_name}`;
+      return ak.localeCompare(bk);
+    });
   }
 
   private groupCasesByIssueKey(cases: CaseAgg[]): Map<string, CaseAgg[]> {
@@ -290,9 +309,10 @@ export class GithubIssueManager {
   private async processGroup(
     report: ReportData,
     group: CaseAgg[],
-    canMutate: boolean,
+    mutableGroup: CaseAgg[],
   ): Promise<void> {
-    const sample = group[0];
+    const canMutate = mutableGroup.length > 0;
+    const sample = mutableGroup[0] ?? group[0];
     const issueRepo = this.resolveIssueRepo(sample);
     const parsed = parseRepo(issueRepo);
     if (!parsed) {
@@ -334,11 +354,18 @@ export class GithubIssueManager {
                 reopenCheck.evidence,
               );
               try {
-                await this.client!.addComment(owner, repo, issue.number, comment);
+                await this.client!.addComment(
+                  owner,
+                  repo,
+                  issue.number,
+                  comment,
+                );
               } catch (e: unknown) {
                 const msg = e instanceof Error ? e.message : String(e);
                 if (this.verbose) {
-                  console.error(`[github] add reopen evidence comment failed: ${msg}`);
+                  console.error(
+                    `[github] add reopen evidence comment failed: ${msg}`,
+                  );
                 }
               }
             }
@@ -411,13 +438,13 @@ export class GithubIssueManager {
     if (this.dryRun) {
       if (this.verbose) {
         console.debug(
-          `[github] dryrun comment: ${issueRepo}#${issue.number} cases=${group.length}`,
+          `[github] dryrun comment: ${issueRepo}#${issue.number} cases=${mutableGroup.length}`,
         );
       }
       return;
     }
 
-    for (const c of group) {
+    for (const c of mutableGroup) {
       const comment = buildIssueComment(report, c);
       try {
         await this.client!.addComment(owner, repo, issue.number, comment);
