@@ -342,7 +342,7 @@ ${rows}
       <th>Package</th>
       <th>Case</th>
       <th>Flaky Count</th>
-      <th>Flaky WoW</th>
+      <th>Flaky Comparison</th>
       <th>Issue</th>
       <th>Latest Build</th>
       <th>Time Thresholded Count</th>
@@ -401,7 +401,7 @@ ${rows}
       <th>Package</th>
       <th>Case</th>
       <th>Flaky Count</th>
-      <th>Flaky WoW</th>
+      <th>Flaky Comparison</th>
       <th>Issue</th>
       <th>Latest Build</th>
       <th>Time Thresholded Count</th>
@@ -570,7 +570,7 @@ ${rows}
   private wowLegend(): string {
     return `
 <div class="wow-legend">
-  <span class="muted">Flaky WoW:</span>
+  <span class="muted">Flaky Comparison:</span>
   <span>↔️ no change</span>
   <span>• 🧨 new this duration (last duration 0)</span>
   <span>• ⬆️ increase vs last duration</span>
