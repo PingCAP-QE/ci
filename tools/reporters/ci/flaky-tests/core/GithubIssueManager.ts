@@ -54,6 +54,9 @@ function createOctokit(token: string, verbose?: boolean): Octokit {
   return new OctokitWithPlugins({
     auth: token,
     userAgent: "flaky-reporter",
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
     log: verbose
       ? {
         debug: (msg: string) => console.debug(`[github] ${msg}`),
