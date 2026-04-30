@@ -7,6 +7,6 @@ spec:
     - name: registry
       value: us-docker.pkg.dev/pingcap-testing-account/internal
     - name: publisher-auth-secret-name
-      value: ""
+      value: publisher-auth
     - name: publisher-url
       value: "https://do2.pingcap.net/publisher"
