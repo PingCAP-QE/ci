@@ -38,6 +38,9 @@ spec:
       default: "{}"
     - name: force-builder-image
       default: ""
+    - name: publisher-auth-secret-name
+      description: Name of the Secret containing publisher basic auth credentials.
+      default: publisher-auth
     - name: publisher-url
       default: "https://publisher.pingcap.net"
   resourcetemplates:
@@ -110,4 +113,4 @@ spec:
                     storage: $(tt.params.source-ws-size)
           - name: publisher-auth
             secret:
-              secretName: publisher-auth
+              secretName: $(tt.params.publisher-auth-secret-name)

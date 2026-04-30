@@ -11,6 +11,7 @@ spec:
     - { name: component, value: $(extensions.component) }
     - { name: force-builder-image, value: $(extensions.custom-params.builder-image) }
     - { name: profile, value: $(extensions.custom-params.profile) }
+    - { name: publisher-auth-secret-name, value: "" }
     - { name: publisher-url, value: "" } # no need publish in dev-builds
     - { name: registry, value: $(extensions.registry) }
     - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }

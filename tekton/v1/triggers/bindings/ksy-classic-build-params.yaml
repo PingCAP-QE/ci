@@ -8,6 +8,8 @@ spec:
       value: us-docker.pkg.dev/pingcap-testing-account/hub
     - name: boskos-server-url
       value: http://boskos.ee-cd.svc
+    - name: publisher-auth-secret-name
+      value: ""
     - name: publisher-url
       value: https://publisher.pingcap.net
     - name: git-instead-of

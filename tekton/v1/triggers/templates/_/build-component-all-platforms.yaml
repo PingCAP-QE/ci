@@ -36,6 +36,9 @@ spec:
       default: ""
     - name: boskos-server-url
       default: "http://boskos"
+    - name: publisher-auth-secret-name
+      description: Name of the Secret containing publisher basic auth credentials.
+      default: publisher-auth
     - name: publisher-url
       default: "https://publisher.pingcap.net"
     - name: git-instead-of
@@ -127,7 +130,7 @@ spec:
           #     claimName: cypress-cache
           - name: publisher-auth
             secret:
-              secretName: publisher-auth
+              secretName: $(tt.params.publisher-auth-secret-name)
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
@@ -210,7 +213,7 @@ spec:
           #     claimName: cypress-cache
           - name: publisher-auth
             secret:
-              secretName: publisher-auth
+              secretName: $(tt.params.publisher-auth-secret-name)
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
@@ -275,7 +278,7 @@ spec:
               secretName: mac-ssh-credentials
           - name: publisher-auth
             secret:
-              secretName: publisher-auth
+              secretName: $(tt.params.publisher-auth-secret-name)
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
@@ -340,4 +343,4 @@ spec:
               secretName: mac-ssh-credentials
           - name: publisher-auth
             secret:
-              secretName: publisher-auth
+              secretName: $(tt.params.publisher-auth-secret-name)
