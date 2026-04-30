@@ -125,6 +125,9 @@ spec:
           # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
+          - name: publisher-auth
+            secret:
+              secretName: publisher-auth
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
@@ -205,6 +208,9 @@ spec:
           # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
+          - name: publisher-auth
+            secret:
+              secretName: publisher-auth
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
@@ -267,6 +273,9 @@ spec:
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
+          - name: publisher-auth
+            secret:
+              secretName: publisher-auth
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
@@ -329,3 +338,6 @@ spec:
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
+          - name: publisher-auth
+            secret:
+              secretName: publisher-auth

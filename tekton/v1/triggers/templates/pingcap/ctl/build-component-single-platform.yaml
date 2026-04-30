@@ -108,3 +108,6 @@ spec:
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
+          - name: publisher-auth
+            secret:
+              secretName: publisher-auth

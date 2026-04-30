@@ -134,3 +134,6 @@ spec:
           - name: mac-ssh-credentials # for darwin platforms
             secret:
               secretName: mac-ssh-credentials
+          - name: publisher-auth
+            secret:
+              secretName: publisher-auth
