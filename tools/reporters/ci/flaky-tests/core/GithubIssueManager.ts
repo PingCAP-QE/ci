@@ -1,3 +1,6 @@
+import { Octokit } from "@octokit/rest";
+import { throttling } from "@octokit/plugin-throttling";
+import { retry } from "@octokit/plugin-retry";
 import {
   buildIssueBody,
   buildIssueComment,
@@ -14,6 +17,16 @@ import type {
   ReportData,
 } from "./types.ts";
 
+// --- Types ---
+
+type IssueData = {
+  number: number;
+  title: string;
+  state: "open" | "closed";
+  html_url: string;
+  closed_at?: string | null;
+};
+
 interface IssueManagerOptions {
   token?: string;
   allowCreate: boolean;
@@ -27,173 +40,316 @@ interface IssueManagerOptions {
   now?: () => Date;
   fetchFn?: typeof fetch;
   verbose?: boolean;
+  /** For testing - inject a mock Octokit instance */
+  octokit?: Octokit;
 }
 
-interface GitHubIssueApi {
-  number: number;
-  title: string;
-  state: "open" | "closed";
-  html_url: string;
-  closed_at?: string | null;
+// --- Octokit factory ---
+
+/**
+ * Creates an Octokit instance with retry and throttling plugins.
+ */
+function createOctokit(token: string, verbose?: boolean): Octokit {
+  const OctokitWithPlugins = Octokit.plugin(throttling, retry);
+  return new OctokitWithPlugins({
+    auth: token,
+    userAgent: "flaky-reporter",
+    headers: {
+      "X-GitHub-Api-Version": "2026-03-10",
+    },
+    log: verbose
+      ? {
+        debug: (msg: string) => console.debug(`[github] ${msg}`),
+        info: (msg: string) => console.info(`[github] ${msg}`),
+        warn: (msg: string) => console.warn(`[github] ${msg}`),
+        error: (msg: string) => console.error(`[github] ${msg}`),
+      }
+      : undefined,
+    throttle: {
+      onRateLimit: (
+        retryAfter: number,
+        _options: object,
+        _octokit: unknown,
+        retryCount: number,
+      ) => {
+        console.warn(
+          `[github] rate-limited, retrying in ${retryAfter}s (attempt ${retryCount})`,
+        );
+        return retryCount < 5;
+      },
+      onSecondaryRateLimit: (
+        retryAfter: number,
+        _options: object,
+        _octokit: unknown,
+        retryCount: number,
+      ) => {
+        console.warn(
+          `[github] secondary rate-limited, retrying in ${retryAfter}s (attempt ${retryCount})`,
+        );
+        return retryCount < 5;
+      },
+    },
+    retry: {
+      doNotRetry: [],
+    },
+  });
 }
 
-class GitHubClient {
-  constructor(
-    private readonly token: string,
-    private readonly opts?: { verbose?: boolean },
-  ) {}
+// --- Helpers ---
 
-  async searchIssues(
-    owner: string,
-    repo: string,
-    title: string,
-    looseCaseName?: string,
-  ): Promise<GitHubIssueApi[]> {
-    const searchExpr = buildIssueTitleSearchExpr(
-      title,
-      looseCaseName ? String(looseCaseName) : "",
-    );
-    const query = `${searchExpr} in:title is:issue repo:${owner}/${repo}`;
-    const url = `https://api.github.com/search/issues?q=${
-      encodeURIComponent(query)
-    }`;
-    const res = await this.request("GET", url) as { items?: GitHubIssueApi[] };
-    const items = Array.isArray(res.items) ? res.items : [];
-    return items
-      .filter((i: GitHubIssueApi) => i && i.title)
-      .map((i: GitHubIssueApi) => ({
-        number: i.number,
-        title: i.title,
-        state: i.state,
-        html_url: i.html_url,
-        closed_at: i.closed_at,
-      }));
+function buildRepoLabel(owner: string, repo: string): string {
+  return `${owner}/${repo}`;
+}
+
+/**
+ * Search issues matching the given title (and optionally a loose case name)
+ * in the given repo.
+ */
+async function searchIssues(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  title: string,
+  looseCaseName?: string,
+): Promise<IssueData[]> {
+  const searchExpr = buildIssueTitleSearchExpr(
+    title,
+    looseCaseName ? String(looseCaseName) : "",
+  );
+  const query = `${searchExpr} in:title is:issue repo:${
+    buildRepoLabel(owner, repo)
+  }`;
+  const res = await octokit.rest.search.issuesAndPullRequests({ q: query });
+  return (res.data.items ?? [])
+    .filter((i) => i && i.title)
+    .map((i) => ({
+      number: i.number,
+      title: i.title,
+      state: i.state as "open" | "closed",
+      html_url: i.html_url,
+      closed_at: i.closed_at,
+    }));
+}
+
+async function createIssue(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  title: string,
+  body: string,
+): Promise<IssueData> {
+  const res = await octokit.rest.issues.create({ owner, repo, title, body });
+  return {
+    number: res.data.number,
+    title: res.data.title,
+    state: res.data.state as "open" | "closed",
+    html_url: res.data.html_url,
+    closed_at: res.data.closed_at,
+  };
+}
+
+async function reopenIssue(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number,
+): Promise<IssueData> {
+  const res = await octokit.rest.issues.update({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    state: "open",
+  });
+  return {
+    number: res.data.number,
+    title: res.data.title,
+    state: res.data.state as "open" | "closed",
+    html_url: res.data.html_url,
+    closed_at: res.data.closed_at,
+  };
+}
+
+async function addLabels(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  labels: string[],
+): Promise<void> {
+  if (!labels || labels.length === 0) return;
+  await octokit.rest.issues.addLabels({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    labels,
+  });
+}
+
+async function addComment(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  body: string,
+): Promise<void> {
+  await octokit.rest.issues.createComment({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    body,
+  });
+}
+
+/**
+ * Resolve the started_at timestamp from a build URL.
+ * Tries Jenkins first, then Prow.
+ */
+async function resolveBuildStartedAt(
+  buildUrl: string,
+  fetchFn: typeof fetch,
+  cache: Map<string, { startedAt: Date; source: string } | null>,
+): Promise<{ startedAt: Date; source: string } | null> {
+  const normalized = String(buildUrl ?? "").trim();
+  if (!normalized) return null;
+
+  if (cache.has(normalized)) {
+    return cache.get(normalized) ?? null;
   }
 
-  async createIssue(
-    owner: string,
-    repo: string,
-    title: string,
-    body: string,
-  ): Promise<GitHubIssueApi> {
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${
-      encodeURIComponent(repo)
-    }/issues`;
-    const res = await this.request("POST", url, {
-      title,
-      body,
-      type: "Task",
-    });
-    return res as GitHubIssueApi;
+  let out: { startedAt: Date; source: string } | null = null;
+  try {
+    const j = await tryResolveJenkinsBuildStartedAt(normalized, fetchFn);
+    if (j) out = { startedAt: j, source: "jenkins.timestamp" };
+  } catch {
+    // best-effort only
   }
 
-  async reopenIssue(
-    owner: string,
-    repo: string,
-    issueNumber: number,
-  ): Promise<GitHubIssueApi> {
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${
-      encodeURIComponent(repo)
-    }/issues/${issueNumber}`;
-    const res = await this.request("PATCH", url, { state: "open" });
-    return res as GitHubIssueApi;
-  }
-
-  async addLabels(
-    owner: string,
-    repo: string,
-    issueNumber: number,
-    labels: string[],
-  ): Promise<void> {
-    if (!labels || labels.length === 0) return;
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${
-      encodeURIComponent(repo)
-    }/issues/${issueNumber}/labels`;
-    await this.request("POST", url, { labels });
-  }
-
-  async addComment(
-    owner: string,
-    repo: string,
-    issueNumber: number,
-    body: string,
-  ): Promise<void> {
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${
-      encodeURIComponent(repo)
-    }/issues/${issueNumber}/comments`;
-    await this.request("POST", url, { body });
-  }
-
-  private async request(
-    method: string,
-    url: string,
-    body?: Record<string, unknown>,
-  ): Promise<unknown> {
-    const maxAttempts = 3;
-    const headers = {
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      Authorization: `Bearer ${this.token}`,
-      "User-Agent": "flaky-reporter",
-      ...(body ? { "Content-Type": "application/json" } : {}),
-    };
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      if (this.opts?.verbose) {
-        console.debug(`[github] ${method} ${url} (attempt ${attempt})`);
-      }
-
-      let res: Response;
-      try {
-        res = await fetch(url, {
-          method,
-          headers,
-          body: body ? JSON.stringify(body) : undefined,
-        });
-      } catch (e: unknown) {
-        if (attempt < maxAttempts) {
-          await this.sleep(this.backoffMs(attempt));
-          continue;
-        }
-        throw e instanceof Error ? e : new Error(String(e));
-      }
-
-      if (res.ok) {
-        if (res.status === 204) return null;
-        return await res.json();
-      }
-
-      if (this.isRetryableStatus(res.status) && attempt < maxAttempts) {
-        await this.sleep(this.backoffMs(attempt));
-        continue;
-      }
-
-      const text = await res.text();
-      throw new Error(
-        `GitHub API ${method} ${url} failed: ${res.status} ${res.statusText} ${text}`,
-      );
+  if (!out) {
+    try {
+      const p = await tryResolveProwBuildStartedAt(normalized, fetchFn);
+      if (p) out = { startedAt: p, source: "prow.started.json" };
+    } catch {
+      // best-effort only
     }
-
-    throw new Error(`GitHub API ${method} ${url} failed after retries`);
   }
 
-  private isRetryableStatus(status: number): boolean {
-    return status === 429 || (status >= 500 && status <= 599);
+  cache.set(normalized, out);
+  return out;
+}
+
+async function tryResolveJenkinsBuildStartedAt(
+  buildUrl: string,
+  fetchFn: typeof fetch,
+): Promise<Date | null> {
+  if (!looksLikeJenkinsBuildUrl(buildUrl)) return null;
+  const apiUrl = joinUrl(buildUrl, "api/json?tree=timestamp");
+  const res = await fetchJson(apiUrl, fetchFn);
+  const ts = parseEpochMs((res as { timestamp?: unknown })?.timestamp);
+  if (ts === null) return null;
+  const startedAt = new Date(ts);
+  return Number.isNaN(startedAt.getTime()) ? null : startedAt;
+}
+
+async function tryResolveProwBuildStartedAt(
+  buildUrl: string,
+  fetchFn: typeof fetch,
+): Promise<Date | null> {
+  const startedJsonUrl = buildProwStartedJsonUrl(buildUrl);
+  if (!startedJsonUrl) return null;
+  const res = await fetchJson(startedJsonUrl, fetchFn);
+  const ts = parseEpochMs((res as { timestamp?: unknown })?.timestamp);
+  if (ts === null) return null;
+  const startedAt = new Date(ts);
+  return Number.isNaN(startedAt.getTime()) ? null : startedAt;
+}
+
+function buildProwStartedJsonUrl(buildUrl: string): string | null {
+  const v = String(buildUrl ?? "").trim();
+  if (!v) return null;
+
+  if (v.startsWith("gs://")) {
+    const rest = v.slice("gs://".length).replace(/^\/+/, "");
+    return ensureEndsWithStartedJson(`https://storage.googleapis.com/${rest}`);
   }
 
-  private backoffMs(attempt: number): number {
-    const base = 500;
-    const max = 5000;
-    return Math.min(max, base * Math.pow(2, attempt - 1));
+  let u: URL;
+  try {
+    u = new URL(v);
+  } catch {
+    return null;
   }
 
-  private async sleep(ms: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, ms));
+  if (u.hostname === "storage.googleapis.com") {
+    return ensureEndsWithStartedJson(
+      `https://storage.googleapis.com${u.pathname}`,
+    );
+  }
+
+  if (u.hostname !== "prow.tidb.net") return null;
+
+  const path = u.pathname;
+  const prefixes = ["/view/gs/", "/view/gcs/"];
+  for (const prefix of prefixes) {
+    if (!path.startsWith(prefix)) continue;
+    const rest = path.slice(prefix.length).replace(/^\/+/, "");
+    return ensureEndsWithStartedJson(
+      `https://storage.googleapis.com/${rest}`,
+    );
+  }
+
+  return null;
+}
+
+function ensureEndsWithStartedJson(url: string): string {
+  const cleaned = url.replace(/\/+$/, "");
+  if (cleaned.endsWith("started.json")) return cleaned;
+  return `${cleaned}/started.json`;
+}
+
+function looksLikeJenkinsBuildUrl(buildUrl: string): boolean {
+  try {
+    const u = new URL(buildUrl);
+    return u.hostname.includes("jenkins") ||
+      u.pathname.includes("/jenkins/") ||
+      u.pathname.includes("/job/");
+  } catch {
+    return false;
   }
 }
+
+function joinUrl(baseUrl: string, suffix: string): string {
+  const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const s = suffix.startsWith("/") ? suffix.slice(1) : suffix;
+  return `${base}${s}`;
+}
+
+async function fetchJson(
+  url: string,
+  fetchFn: typeof fetch,
+): Promise<unknown | null> {
+  try {
+    const res = await fetchFn(url, {
+      method: "GET",
+      headers: { Accept: "application/json", "User-Agent": "flaky-reporter" },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function parseEpochMs(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n < 1e12 ? n * 1000 : n;
+}
+
+// --- GithubIssueManager ---
 
 export class GithubIssueManager {
-  private readonly client?: GitHubClient;
+  private readonly octokit?: Octokit;
   private readonly enabled: boolean;
   private readonly allowCreate: boolean;
   private readonly allowReopen: boolean;
@@ -203,7 +359,6 @@ export class GithubIssueManager {
   private readonly labels: string[];
   private readonly repoOverride?: string;
   private readonly titleIncludesRepo: boolean;
-  private readonly now: () => Date;
   private readonly fetchFn: typeof fetch;
   private readonly verbose: boolean;
   private readonly buildStartedAtCache = new Map<
@@ -212,10 +367,9 @@ export class GithubIssueManager {
   >();
 
   constructor(opts: IssueManagerOptions) {
-    this.enabled = !!opts.token;
-    this.client = opts.token
-      ? new GitHubClient(opts.token, { verbose: opts.verbose })
-      : undefined;
+    this.enabled = !!opts.token || !!opts.octokit;
+    this.octokit = opts.octokit ??
+      (opts.token ? createOctokit(opts.token, opts.verbose) : undefined);
     this.allowCreate = !!opts.allowCreate;
     this.allowReopen = !!opts.allowReopen;
     this.allowComment = !!opts.allowComment;
@@ -224,7 +378,6 @@ export class GithubIssueManager {
     this.labels = opts.labels ?? [];
     this.repoOverride = opts.repoOverride;
     this.titleIncludesRepo = !!opts.titleIncludesRepo;
-    this.now = opts.now ?? (() => new Date());
     this.fetchFn = opts.fetchFn ?? fetch;
     this.verbose = !!opts.verbose;
   }
@@ -330,31 +483,33 @@ export class GithubIssueManager {
       includeRepo: this.titleIncludesRepo,
     });
     const { owner, repo } = parsed;
+    const octokit = this.octokit!;
 
-    let issue: GitHubIssueApi | null = null;
+    let issue: IssueData | null = null;
     let status: GithubIssueStatus = "missing";
     let created = false;
     let note: string | undefined;
 
     try {
-      issue = await this.findBestIssue(owner, repo, title, sample);
+      issue = await this.findBestIssue(octokit, owner, repo, title, sample);
       if (issue?.state === "open") {
         status = "open";
       } else if (issue?.state === "closed") {
         const reopenCheck = this.allowReopen && canMutate
           ? await this.checkReopenEligibility(issue, group)
-          : { eligible: false, note: undefined };
+          : { eligible: false, note: undefined as string | undefined };
         if (reopenCheck.eligible) {
           status = "reopened";
           if (!this.dryRun) {
-            issue = await this.client!.reopenIssue(owner, repo, issue.number);
+            issue = await reopenIssue(octokit, owner, repo, issue.number);
             if (reopenCheck.evidence) {
               const comment = this.buildReopenEvidenceComment(
                 report,
                 reopenCheck.evidence,
               );
               try {
-                await this.client!.addComment(
+                await addComment(
+                  octokit,
                   owner,
                   repo,
                   issue.number,
@@ -378,13 +533,18 @@ export class GithubIssueManager {
         if (this.allowCreate && canMutate) {
           status = "new";
           created = true;
-          if (!this.dryRun) {
+          if (this.dryRun) {
+            console.log(
+              `[github] would create issue: ${title} 🧪 dry-run mode`,
+            );
+          } else {
             const body = buildIssueBody(report, sample, {
               includeRepo: this.titleIncludesRepo,
             });
-            issue = await this.client!.createIssue(owner, repo, title, body);
+            issue = await createIssue(octokit, owner, repo, title, body);
           }
         } else {
+          console.log(`[github] no issue found for: ${title}`);
           status = "missing";
         }
       }
@@ -421,10 +581,12 @@ export class GithubIssueManager {
         }
       } else {
         try {
-          await this.client!.addLabels(owner, repo, issue.number, this.labels);
+          await addLabels(octokit, owner, repo, issue.number, this.labels);
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-          if (this.verbose) console.error(`[github] add labels failed: ${msg}`);
+          if (this.verbose) {
+            console.error(`[github] add labels failed: ${msg}`);
+          }
         }
       }
     }
@@ -447,30 +609,56 @@ export class GithubIssueManager {
     for (const c of mutableGroup) {
       const comment = buildIssueComment(report, c);
       try {
-        await this.client!.addComment(owner, repo, issue.number, comment);
+        await addComment(octokit, owner, repo, issue.number, comment);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        if (this.verbose) console.error(`[github] add comment failed: ${msg}`);
+        if (this.verbose) {
+          console.error(`[github] add comment failed: ${msg}`);
+        }
       }
     }
   }
 
   private allowCommentForStatus(status: GithubIssueStatus): boolean {
-    if (status === "open" || status === "reopened") return true;
-    return false;
+    return status === "open" || status === "reopened";
   }
 
   private async findBestIssue(
+    octokit: Octokit,
     owner: string,
     repo: string,
     title: string,
     sample: CaseAgg,
-  ): Promise<GitHubIssueApi | null> {
-    const exactIssues = await this.client!.searchIssues(owner, repo, title);
+  ): Promise<IssueData | null> {
+    const exactIssues = await searchIssues(octokit, owner, repo, title);
+
+    const exactRanked = exactIssues
+      .map((issue) => ({
+        issue,
+        score: this.scoreIssueCandidate(issue, title, sample),
+      }))
+      .sort((a, b) => {
+        if (b.score.state !== a.score.state) {
+          return b.score.state - a.score.state;
+        }
+        if (b.score.match !== a.score.match) {
+          return b.score.match - a.score.match;
+        }
+        return a.issue.number - b.issue.number;
+      });
+
+    const bestExact = exactRanked[0];
+    if (
+      bestExact && bestExact.score.match === 3 && bestExact.score.state === 1
+    ) {
+      return bestExact.issue;
+    }
+
     const looseCaseName = String(sample.case_name ?? "").trim();
     const looseIssues = looseCaseName
-      ? await this.client!.searchIssues(owner, repo, title, looseCaseName)
+      ? await searchIssues(octokit, owner, repo, title, looseCaseName)
       : [];
+
     const issues = this.mergeIssueCandidates(exactIssues, looseIssues);
     if (!issues || issues.length === 0) return null;
 
@@ -493,10 +681,10 @@ export class GithubIssueManager {
   }
 
   private mergeIssueCandidates(
-    exactIssues: GitHubIssueApi[],
-    looseIssues: GitHubIssueApi[],
-  ): GitHubIssueApi[] {
-    const out: GitHubIssueApi[] = [];
+    exactIssues: IssueData[],
+    looseIssues: IssueData[],
+  ): IssueData[] {
+    const out: IssueData[] = [];
     const seen = new Set<number>();
     for (const issue of [...exactIssues, ...looseIssues]) {
       if (!issue || !Number.isFinite(issue.number) || seen.has(issue.number)) {
@@ -509,13 +697,14 @@ export class GithubIssueManager {
   }
 
   private scoreIssueCandidate(
-    issue: GitHubIssueApi,
+    issue: IssueData,
     exactTitle: string,
     sample: CaseAgg,
   ): { state: number; match: number } {
-    const state = issue.state === "open" ? 1 : 0;
-    const match = this.titleMatchLevel(issue.title, exactTitle, sample);
-    return { state, match };
+    return {
+      state: issue.state === "open" ? 1 : 0,
+      match: this.titleMatchLevel(issue.title, exactTitle, sample),
+    };
   }
 
   private titleMatchLevel(
@@ -525,9 +714,7 @@ export class GithubIssueManager {
   ): number {
     const normalizedIssueTitle = normalizeIssueTitle(issueTitle);
     const normalizedExactTitle = normalizeIssueTitle(exactTitle);
-    if (normalizedIssueTitle === normalizedExactTitle) {
-      return 3;
-    }
+    if (normalizedIssueTitle === normalizedExactTitle) return 3;
 
     const caseTerm = normalizeIssueTitle(sample.case_name);
     const suiteTerm = normalizeIssueTitle(formatSuiteName(sample.suite_name));
@@ -542,7 +729,7 @@ export class GithubIssueManager {
   }
 
   private async checkReopenEligibility(
-    issue: GitHubIssueApi,
+    issue: IssueData,
     group: CaseAgg[],
   ): Promise<{
     eligible: boolean;
@@ -572,12 +759,9 @@ export class GithubIssueManager {
       };
     }
 
-    const latest = candidates.reduce((best, cur) => {
-      if (cur.buildStartedAt.getTime() > best.buildStartedAt.getTime()) {
-        return cur;
-      }
-      return best;
-    }, candidates[0]);
+    const latest = candidates.reduce((best, cur) =>
+      cur.buildStartedAt.getTime() > best.buildStartedAt.getTime() ? cur : best
+    );
 
     const reopenCandidates = candidates.filter((c) =>
       c.buildStartedAt.getTime() > closedAt.getTime()
@@ -591,10 +775,9 @@ export class GithubIssueManager {
       };
     }
 
-    const best = reopenCandidates.reduce((b, c) => {
-      if (c.buildStartedAt.getTime() > b.buildStartedAt.getTime()) return c;
-      return b;
-    }, reopenCandidates[0]);
+    const best = reopenCandidates.reduce((b, c) =>
+      c.buildStartedAt.getTime() > b.buildStartedAt.getTime() ? c : b
+    );
 
     return {
       eligible: true,
@@ -631,7 +814,11 @@ export class GithubIssueManager {
       const buildUrl = String(c.latestFlakyBuildUrl ?? "").trim();
       if (!buildUrl) continue;
 
-      const resolved = await this.resolveBuildStartedAt(buildUrl);
+      const resolved = await resolveBuildStartedAt(
+        buildUrl,
+        this.fetchFn,
+        this.buildStartedAtCache,
+      );
       const fallback = c.latestFlakyFoundAt;
       if (!resolved && !fallback) continue;
 
@@ -644,162 +831,6 @@ export class GithubIssueManager {
     }
 
     return out;
-  }
-
-  private async resolveBuildStartedAt(
-    buildUrl: string,
-  ): Promise<{ startedAt: Date; source: string } | null> {
-    const normalized = this.normalizeBuildUrl(buildUrl);
-    if (!normalized) return null;
-
-    if (this.buildStartedAtCache.has(normalized)) {
-      return this.buildStartedAtCache.get(normalized) ?? null;
-    }
-
-    let out: { startedAt: Date; source: string } | null = null;
-    try {
-      const j = await this.tryResolveJenkinsBuildStartedAt(normalized);
-      if (j) out = { startedAt: j, source: "jenkins.timestamp" };
-    } catch (_e: unknown) {
-      // best-effort only
-    }
-
-    if (!out) {
-      try {
-        const p = await this.tryResolveProwBuildStartedAt(normalized);
-        if (p) out = { startedAt: p, source: "prow.started.json" };
-      } catch (_e: unknown) {
-        // best-effort only
-      }
-    }
-
-    this.buildStartedAtCache.set(normalized, out);
-    return out;
-  }
-
-  private normalizeBuildUrl(value: string): string | null {
-    const v = String(value ?? "").trim();
-    if (!v) return null;
-    return v;
-  }
-
-  private async tryResolveJenkinsBuildStartedAt(
-    buildUrl: string,
-  ): Promise<Date | null> {
-    if (!this.looksLikeJenkinsBuildUrl(buildUrl)) return null;
-
-    const apiUrl = this.joinUrl(buildUrl, "api/json?tree=timestamp");
-    const res = await this.fetchJson(apiUrl);
-    const ts = this.parseEpochMs((res as { timestamp?: unknown })?.timestamp);
-    if (ts === null) return null;
-    const startedAt = new Date(ts);
-    if (Number.isNaN(startedAt.getTime())) return null;
-    return startedAt;
-  }
-
-  private async tryResolveProwBuildStartedAt(
-    buildUrl: string,
-  ): Promise<Date | null> {
-    const startedJsonUrl = this.buildProwStartedJsonUrl(buildUrl);
-    if (!startedJsonUrl) return null;
-
-    const res = await this.fetchJson(startedJsonUrl);
-    const ts = this.parseEpochMs((res as { timestamp?: unknown })?.timestamp);
-    if (ts === null) return null;
-    const startedAt = new Date(ts);
-    if (Number.isNaN(startedAt.getTime())) return null;
-    return startedAt;
-  }
-
-  private buildProwStartedJsonUrl(buildUrl: string): string | null {
-    const v = this.normalizeBuildUrl(buildUrl);
-    if (!v) return null;
-
-    if (v.startsWith("gs://")) {
-      const rest = v.slice("gs://".length).replace(/^\/+/, "");
-      return this.ensureEndsWithStartedJson(
-        `https://storage.googleapis.com/${rest}`,
-      );
-    }
-
-    let u: URL;
-    try {
-      u = new URL(v);
-    } catch (_e: unknown) {
-      return null;
-    }
-
-    if (u.hostname === "storage.googleapis.com") {
-      return this.ensureEndsWithStartedJson(
-        `https://storage.googleapis.com${u.pathname}`,
-      );
-    }
-
-    if (u.hostname !== "prow.tidb.net") return null;
-
-    const path = u.pathname;
-    const prefixes = ["/view/gs/", "/view/gcs/"];
-    for (const prefix of prefixes) {
-      if (!path.startsWith(prefix)) continue;
-      const rest = path.slice(prefix.length).replace(/^\/+/, "");
-      return this.ensureEndsWithStartedJson(
-        `https://storage.googleapis.com/${rest}`,
-      );
-    }
-
-    return null;
-  }
-
-  private ensureEndsWithStartedJson(url: string): string {
-    const cleaned = url.replace(/\/+$/, "");
-    if (cleaned.endsWith("started.json")) return cleaned;
-    return `${cleaned}/started.json`;
-  }
-
-  private looksLikeJenkinsBuildUrl(buildUrl: string): boolean {
-    try {
-      const u = new URL(buildUrl);
-      if (u.hostname.includes("jenkins")) return true;
-      if (u.pathname.includes("/jenkins/")) return true;
-      if (u.pathname.includes("/job/")) return true;
-      return false;
-    } catch (_e: unknown) {
-      return false;
-    }
-  }
-
-  private joinUrl(baseUrl: string, suffix: string): string {
-    const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-    const s = suffix.startsWith("/") ? suffix.slice(1) : suffix;
-    return `${base}${s}`;
-  }
-
-  private async fetchJson(url: string): Promise<unknown | null> {
-    try {
-      const res = await this.fetchFn(url, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "flaky-reporter",
-        },
-      });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e: unknown) {
-      if (this.verbose) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error(`[build] fetch json failed: ${url}: ${msg}`);
-      }
-      return null;
-    }
-  }
-
-  private parseEpochMs(value: unknown): number | null {
-    if (value === null || value === undefined) return null;
-    const n = typeof value === "number" ? value : Number(value);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    // Jenkins "timestamp" is ms; Prow started.json "timestamp" is seconds.
-    return n < 1e12 ? n * 1000 : n;
   }
 
   private buildReopenEvidenceComment(
@@ -835,13 +866,12 @@ export class GithubIssueManager {
   private parseClosedAt(value?: string | null): Date | null {
     if (!value) return null;
     const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return null;
-    return parsed;
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private buildIssueInfo(
     repo: string,
-    issue: GitHubIssueApi | null,
+    issue: IssueData | null,
     status: GithubIssueStatus,
     note?: string,
   ): GithubIssueInfo {

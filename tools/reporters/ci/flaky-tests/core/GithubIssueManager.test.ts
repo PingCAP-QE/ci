@@ -10,6 +10,53 @@ type TestIssue = {
   closed_at?: string | null;
 };
 
+/**
+ * Minimal octokit-like shape that matches what GithubIssueManager uses.
+ */
+type MockOctokit = {
+  rest: {
+    search: {
+      issuesAndPullRequests: (
+        params: { q: string },
+      ) => Promise<{ data: { items: TestIssue[] } }>;
+    };
+    issues: {
+      create: (
+        params: {
+          owner: string;
+          repo: string;
+          title: string;
+          body: string;
+        },
+      ) => Promise<{ data: TestIssue }>;
+      update: (
+        params: {
+          owner: string;
+          repo: string;
+          issue_number: number;
+          state: string;
+        },
+      ) => Promise<{ data: TestIssue }>;
+      addLabels: (
+        _params: {
+          owner: string;
+          repo: string;
+          issue_number: number;
+          labels: string[];
+        },
+      ) => Promise<void>;
+      createComment: (
+        _params: {
+          owner: string;
+          repo: string;
+          issue_number: number;
+          body: string;
+        },
+      ) => Promise<void>;
+    };
+  };
+};
+
 function buildReport(): ReportData {
   return {
     window: { from: "2026-03-06", to: "2026-03-13", thresholdMs: 1000 },
@@ -41,8 +88,44 @@ function buildCase(): CaseAgg {
   };
 }
 
+type MockOverrides = {
+  search?: {
+    issuesAndPullRequests?:
+      MockOctokit["rest"]["search"]["issuesAndPullRequests"];
+  };
+  issues?: {
+    create?: MockOctokit["rest"]["issues"]["create"];
+    update?: MockOctokit["rest"]["issues"]["update"];
+    addLabels?: MockOctokit["rest"]["issues"]["addLabels"];
+    createComment?: MockOctokit["rest"]["issues"]["createComment"];
+  };
+};
+
+function mockOctokit(overrides: MockOverrides = {}): MockOctokit {
+  return {
+    rest: {
+      search: {
+        issuesAndPullRequests: overrides.search?.issuesAndPullRequests ??
+          (async () => ({ data: { items: [] as TestIssue[] } })),
+      },
+      issues: {
+        create: overrides.issues?.create ??
+          (async () => {
+            throw new Error("unexpected create");
+          }),
+        update: overrides.issues?.update ??
+          (async () => {
+            throw new Error("unexpected update");
+          }),
+        addLabels: overrides.issues?.addLabels ?? (async () => {}),
+        createComment: overrides.issues?.createComment ?? (async () => {}),
+      },
+    },
+  };
+}
+
 function createManager(
-  client: Record<string, unknown>,
+  mock: MockOctokit,
   opts?: {
     allowCreate?: boolean;
     allowReopen?: boolean;
@@ -52,7 +135,9 @@ function createManager(
   },
   fetchFn?: typeof fetch,
 ): GithubIssueManager {
-  const manager = new GithubIssueManager({
+  return new GithubIssueManager({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    octokit: mock as any,
     token: "test-token",
     allowCreate: opts?.allowCreate ?? false,
     allowReopen: opts?.allowReopen ?? true,
@@ -60,19 +145,9 @@ function createManager(
     mutationLimit: opts?.mutationLimit ?? 10,
     dryRun: opts?.dryRun ?? false,
     labels: [],
-    now: () => new Date("2026-03-13T12:00:00Z"),
     fetchFn,
     verbose: false,
   });
-  Object.defineProperty(manager, "client", {
-    value: {
-      addComment: async () => {},
-      ...client,
-    },
-    configurable: true,
-    writable: true,
-  });
-  return manager;
 }
 
 Deno.test("GithubIssueManager.sync reopens issues when latest flaky build started after issue closed", async () => {
@@ -85,25 +160,20 @@ Deno.test("GithubIssueManager.sync reopens issues when latest flaky build starte
   };
   let reopenCalls = 0;
   const comments: string[] = [];
-  const manager = createManager({
-    searchIssues: async () => [issue],
-    reopenIssue: async () => {
-      reopenCalls += 1;
-      return {
-        ...issue,
-        state: "open",
-        closed_at: null,
-      };
+  const manager = createManager(mockOctokit({
+    search: {
+      issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
     },
-    addComment: async (
-      _owner: string,
-      _repo: string,
-      _issueNumber: number,
-      body: string,
-    ) => {
-      comments.push(body);
+    issues: {
+      update: async () => {
+        reopenCalls += 1;
+        return { data: { ...issue, state: "open", closed_at: null } };
+      },
+      createComment: async (_params) => {
+        comments.push(_params.body);
+      },
     },
-  });
+  }));
   const report = buildReport();
   const flakyCase = buildCase();
 
@@ -126,13 +196,17 @@ Deno.test("GithubIssueManager.sync keeps issue closed when latest flaky build is
     closed_at: "2026-03-10T12:00:01Z",
   };
   let reopenCalls = 0;
-  const manager = createManager({
-    searchIssues: async () => [issue],
-    reopenIssue: async () => {
-      reopenCalls += 1;
-      return issue;
+  const manager = createManager(mockOctokit({
+    search: {
+      issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
     },
-  });
+    issues: {
+      update: async () => {
+        reopenCalls += 1;
+        return { data: issue };
+      },
+    },
+  }));
   const report = buildReport();
   const flakyCase = {
     ...buildCase(),
@@ -160,17 +234,17 @@ Deno.test("GithubIssueManager.sync reopens issue even if it was closed in curren
     closed_at: "2026-03-10T12:00:01Z",
   };
   let reopenCalls = 0;
-  const manager = createManager({
-    searchIssues: async () => [issue],
-    reopenIssue: async () => {
-      reopenCalls += 1;
-      return {
-        ...issue,
-        state: "open",
-        closed_at: null,
-      };
+  const manager = createManager(mockOctokit({
+    search: {
+      issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
     },
-  });
+    issues: {
+      update: async () => {
+        reopenCalls += 1;
+        return { data: { ...issue, state: "open", closed_at: null } };
+      },
+    },
+  }));
   const report = buildReport();
   const flakyCase = {
     ...buildCase(),
@@ -212,25 +286,20 @@ Deno.test("GithubIssueManager.sync uses Jenkins timestamp when available for reo
   };
 
   const manager = createManager(
-    {
-      searchIssues: async () => [issue],
-      reopenIssue: async () => {
-        reopenCalls += 1;
-        return {
-          ...issue,
-          state: "open",
-          closed_at: null,
-        };
+    mockOctokit({
+      search: {
+        issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
       },
-      addComment: async (
-        _owner: string,
-        _repo: string,
-        _issueNumber: number,
-        body: string,
-      ) => {
-        comments.push(body);
+      issues: {
+        update: async () => {
+          reopenCalls += 1;
+          return { data: { ...issue, state: "open", closed_at: null } };
+        },
+        createComment: async (_params) => {
+          comments.push(_params.body);
+        },
       },
-    },
+    }),
     undefined,
     fetchFn,
   );
@@ -239,7 +308,6 @@ Deno.test("GithubIssueManager.sync uses Jenkins timestamp when available for reo
   const flakyCase = {
     ...buildCase(),
     latestFlakyBuildUrl: jenkinsBuildUrl,
-    // Make fallback older than closed_at to ensure Jenkins timestamp is used.
     latestFlakyFoundAt: new Date("2026-03-09T00:00:00Z"),
   };
 
@@ -273,7 +341,6 @@ Deno.test("GithubIssueManager.sync uses Prow started.json when available for reo
   const fetchFn: typeof fetch = async (input) => {
     const url = typeof input === "string" ? input : input.toString();
     if (url === startedJsonUrl) {
-      // started.json timestamp is seconds.
       return new Response(
         JSON.stringify({
           timestamp: Math.floor(prowStartedAt.getTime() / 1000),
@@ -285,25 +352,20 @@ Deno.test("GithubIssueManager.sync uses Prow started.json when available for reo
   };
 
   const manager = createManager(
-    {
-      searchIssues: async () => [issue],
-      reopenIssue: async () => {
-        reopenCalls += 1;
-        return {
-          ...issue,
-          state: "open",
-          closed_at: null,
-        };
+    mockOctokit({
+      search: {
+        issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
       },
-      addComment: async (
-        _owner: string,
-        _repo: string,
-        _issueNumber: number,
-        body: string,
-      ) => {
-        comments.push(body);
+      issues: {
+        update: async () => {
+          reopenCalls += 1;
+          return { data: { ...issue, state: "open", closed_at: null } };
+        },
+        createComment: async (_params) => {
+          comments.push(_params.body);
+        },
       },
-    },
+    }),
     undefined,
     fetchFn,
   );
@@ -312,7 +374,6 @@ Deno.test("GithubIssueManager.sync uses Prow started.json when available for reo
   const flakyCase = {
     ...buildCase(),
     latestFlakyBuildUrl: prowViewUrl,
-    // Make fallback older than closed_at to ensure started.json is used.
     latestFlakyFoundAt: new Date("2026-03-09T00:00:00Z"),
   };
 
@@ -334,18 +395,21 @@ Deno.test("GithubIssueManager.sync skips reopen when started_at cannot be resolv
     closed_at: "2026-03-10T12:00:00Z",
   };
   let reopenCalls = 0;
-  const manager = createManager({
-    searchIssues: async () => [issue],
-    reopenIssue: async () => {
-      reopenCalls += 1;
-      return issue;
+  const manager = createManager(mockOctokit({
+    search: {
+      issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
     },
-  });
+    issues: {
+      update: async () => {
+        reopenCalls += 1;
+        return { data: issue };
+      },
+    },
+  }));
   const report = buildReport();
   const flakyCase = {
     ...buildCase(),
     latestFlakyBuildUrl: "https://ci.example.com/unknown/1",
-    // No fallback time available.
     latestFlakyFoundAt: undefined,
   };
 
@@ -375,20 +439,19 @@ Deno.test("GithubIssueManager.sync prefers open issue over closed exact title ma
   };
 
   const searchModes: Array<"exact" | "loose"> = [];
-  const manager = createManager({
-    searchIssues: async (
-      _owner: string,
-      _repo: string,
-      _title: string,
-      looseCaseName?: string,
-    ) => {
-      searchModes.push(
-        looseCaseName ? "loose" : "exact",
-      );
-      if (looseCaseName) return [openLoose];
-      return [closedExact];
+  const manager = createManager(mockOctokit({
+    search: {
+      issuesAndPullRequests: async (
+        _params: { q: string },
+      ) => {
+        const q = _params.q ?? "";
+        // Loose search includes a case name term, exact search does not.
+        searchModes.push(q.includes('"Flaky"') ? "loose" : "exact");
+        if (q.includes('"Flaky"')) return { data: { items: [openLoose] } };
+        return { data: { items: [closedExact] } };
+      },
     },
-  });
+  }));
   const report = buildReport();
   const flakyCase = buildCase();
 
@@ -414,17 +477,17 @@ Deno.test("GithubIssueManager.sync prefers exact title when issue state is same"
     html_url: "https://github.com/pingcap/tidb/issues/120",
   };
 
-  const manager = createManager({
-    searchIssues: async (
-      _owner: string,
-      _repo: string,
-      _title: string,
-      looseCaseName?: string,
-    ) => {
-      if (looseCaseName) return [openLoose];
-      return [openExact];
+  const manager = createManager(mockOctokit({
+    search: {
+      issuesAndPullRequests: async (
+        _params: { q: string },
+      ) => {
+        const q = _params.q ?? "";
+        if (q.includes('"Flaky"')) return { data: { items: [openLoose] } };
+        return { data: { items: [openExact] } };
+      },
     },
-  });
+  }));
   const report = buildReport();
   const flakyCase = buildCase();
 
@@ -445,21 +508,21 @@ Deno.test("GithubIssueManager.sync can match issue from loose title query", asyn
 
   let exactCalls = 0;
   let looseCalls = 0;
-  const manager = createManager({
-    searchIssues: async (
-      _owner: string,
-      _repo: string,
-      _title: string,
-      looseCaseName?: string,
-    ) => {
-      if (looseCaseName) {
-        looseCalls += 1;
-        return [openLoose];
-      }
-      exactCalls += 1;
-      return [];
+  const manager = createManager(mockOctokit({
+    search: {
+      issuesAndPullRequests: async (
+        _params: { q: string },
+      ) => {
+        const q = _params.q ?? "";
+        if (q.includes('"Flaky"')) {
+          looseCalls += 1;
+          return { data: { items: [openLoose] } };
+        }
+        exactCalls += 1;
+        return { data: { items: [] } };
+      },
     },
-  });
+  }));
   const report = buildReport();
   const flakyCase = buildCase();
 
@@ -480,20 +543,19 @@ Deno.test("GithubIssueManager.sync comments only top-N cases within the same iss
     html_url: "https://github.com/pingcap/tidb/issues/555",
   };
   const comments: string[] = [];
-  const manager = createManager({
-    searchIssues: async () => [issue],
-    addComment: async (
-      _owner: string,
-      _repo: string,
-      _issueNumber: number,
-      body: string,
-    ) => {
-      comments.push(body);
-    },
-  }, {
-    allowComment: true,
-    mutationLimit: 1,
-  });
+  const manager = createManager(
+    mockOctokit({
+      search: {
+        issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
+      },
+      issues: {
+        createComment: async (_params) => {
+          comments.push(_params.body);
+        },
+      },
+    }),
+    { allowComment: true, mutationLimit: 1 },
+  );
   const report = buildReport();
   const mainCase = {
     ...buildCase(),
@@ -516,26 +578,27 @@ Deno.test("GithubIssueManager.sync comments only top-N cases within the same iss
 
 Deno.test("GithubIssueManager.sync creates shared issue from the top-ranked case in a mutable group", async () => {
   const createBodies: string[] = [];
-  const manager = createManager({
-    searchIssues: async () => [],
-    createIssue: async (
-      _owner: string,
-      _repo: string,
-      _title: string,
-      body: string,
-    ) => {
-      createBodies.push(body);
-      return {
-        number: 556,
-        title: "Flaky test: TestFlakyCase in pkg/executor",
-        state: "open",
-        html_url: "https://github.com/pingcap/tidb/issues/556",
-      };
-    },
-  }, {
-    allowCreate: true,
-    mutationLimit: 1,
-  });
+  const manager = createManager(
+    mockOctokit({
+      search: {
+        issuesAndPullRequests: async () => ({ data: { items: [] } }),
+      },
+      issues: {
+        create: async (_params) => {
+          createBodies.push(_params.body);
+          return {
+            data: {
+              number: 556,
+              title: "Flaky test: TestFlakyCase in pkg/executor",
+              state: "open" as const,
+              html_url: "https://github.com/pingcap/tidb/issues/556",
+            },
+          };
+        },
+      },
+    }),
+    { allowCreate: true, mutationLimit: 1 },
+  );
   const report = buildReport();
   const mainCase = {
     ...buildCase(),
