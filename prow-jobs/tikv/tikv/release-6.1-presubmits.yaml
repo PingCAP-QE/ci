@@ -34,11 +34,11 @@ presubmits:
       rerun_command: "/debug pull-integration-test"
       branches: *branches
 
-    - name: tikv/tikv/release-6.1/pull-clippy-linux-arm64
+    - name: pull-clippy-linux-arm64-release-6.1
       agent: kubernetes
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
-      context: release-6.1/pull-clippy-linux-arm64
+      context: pull-clippy-linux-arm64-release-6.1
       branches: *branches
       spec:
         containers:

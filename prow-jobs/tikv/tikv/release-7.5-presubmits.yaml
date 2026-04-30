@@ -34,11 +34,11 @@ presubmits:
       branches:
         - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?$
 
-    - name: tikv/tikv/release-7.5/pull-clippy-linux-arm64
+    - name: pull-clippy-linux-arm64-release-7.5
       agent: kubernetes
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
-      context: release-7.5/pull-clippy-linux-arm64
+      context: pull-clippy-linux-arm64-release-7.5
       branches: *branches
       spec:
         containers:

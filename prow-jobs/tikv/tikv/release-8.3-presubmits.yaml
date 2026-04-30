@@ -18,11 +18,11 @@ presubmits:
       rerun_command: "/test pull-unit-test"
       branches: *branches
 
-    - name: tikv/tikv/release-8.3/pull-clippy-linux-arm64
+    - name: pull-clippy-linux-arm64-release-8.3
       agent: kubernetes
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
-      context: release-8.3/pull-clippy-linux-arm64
+      context: pull-clippy-linux-arm64-release-8.3
       branches: *branches
       spec:
         containers:
