@@ -73,6 +73,9 @@ spec:
       description: The workspace where the git repo will be cloned.
     - name: mac-ssh-credentials
       description: secret contains ssh private key in `id_rsa` key for login mac
+    - name: publisher-auth
+      description: Optional. Credentials for publisher basic auth.
+      optional: true
   tasks:
     - name: checkout
       retries: 2
@@ -191,6 +194,9 @@ spec:
           value: $(tasks.build-binaries.results.pushed)
         - name: publisher-url
           value: "$(params.publisher-url)"
+      workspaces:
+        - name: publisher-auth
+          workspace: publisher-auth
     - name: deliver-images
       when:
         - input: "$(params.push)"
