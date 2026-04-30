@@ -572,9 +572,9 @@ ${rows}
 <div class="wow-legend">
   <span class="muted">Flaky WoW:</span>
   <span>↔️ no change</span>
-  <span>• 🧨 new this week (last week 0)</span>
-  <span>• ⬆️ increase vs last week</span>
-  <span>• ⬇️ decrease vs last week</span>
+  <span>• 🧨 new this duration (last duration 0)</span>
+  <span>• ⬆️ increase vs last duration</span>
+  <span>• ⬇️ decrease vs last duration</span>
 </div>
     `.trim();
   }
