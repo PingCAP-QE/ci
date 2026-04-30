@@ -11,8 +11,11 @@ aliases:
 
   sig-approvers-ee: # approvers for engineering efficiency scopes.
     - wuhuizuo
-    - purelind
     - dillon-zheng
+
+  sig-reviewers-ee:
+    - lybcodes
+    - timzxz
 
   sig-approvers-raft-engine: # approvers for raft-engine project.
     - LykxSassinator
@@ -39,5 +42,9 @@ aliases:
     - kennedy8312
     - XuHuaiyu
 
-  emeritus_reviewers: # emeritus reviewers will be keeped here, but will not be used.
-    - lijie0123 # ee reviewer
+  emeritus: # emeritus will be keeped here, but will not be used.
+    # reviewers:
+    - lijie0123 # emeritus since 2024-04
+
+    # approvers:
+    - purelind # emeritus since 2026-04

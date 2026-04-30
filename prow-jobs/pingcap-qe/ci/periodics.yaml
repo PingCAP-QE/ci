@@ -68,7 +68,7 @@ periodics:
             - name: PARAM_ISSUE_OPS_OPTIONS
               value: --issue-create --issue-reopen --issue-comment
             - name: PARAM_ISSUE_LABELS
-              value: "component/test,flaky-test,severity/critical"
+              value: "component/test,flaky-test,type/enhancement"
             - name: ISSUE_MUTATION_LIMIT
               value: "10000"
             - name: PARAM_DSN
@@ -135,7 +135,7 @@ periodics:
             - name: PARAM_ISSUE_OPS_OPTIONS
               value: --issue-comment
             - name: PARAM_ISSUE_LABELS
-              value: "component/test,flaky-test,severity/critical,affects-8.5"
+              value: "component/test,flaky-test,type/enhancement,affects-8.5"
             - name: ISSUE_MUTATION_LIMIT
               value: "10000"
             - name: PARAM_DSN
