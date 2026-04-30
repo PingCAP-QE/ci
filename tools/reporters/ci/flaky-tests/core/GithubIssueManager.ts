@@ -549,7 +549,6 @@ export class GithubIssueManager {
         }
       }
     } catch (e: unknown) {
-      console.error("Error occurred:", e);
       const msg = e instanceof Error ? e.message : String(e);
       if (this.verbose) console.error(`[github] ${msg}`);
       for (const c of group) {
