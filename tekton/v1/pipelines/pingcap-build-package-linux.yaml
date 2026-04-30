@@ -76,6 +76,9 @@ spec:
     - name: cypress-cache
       description: cache for cypress installation files when building frontend projects.
       optional: true
+    - name: publisher-auth
+      description: Optional. Credentials for publisher basic auth.
+      optional: true
   tasks:
     - name: checkout
       retries: 2
@@ -218,6 +221,9 @@ spec:
           value: $(tasks.build-binaries.results.pushed)
         - name: publisher-url
           value: "$(params.publisher-url)"
+      workspaces:
+        - name: publisher-auth
+          workspace: publisher-auth
     - name: deliver-images
       retries: 2
       when:

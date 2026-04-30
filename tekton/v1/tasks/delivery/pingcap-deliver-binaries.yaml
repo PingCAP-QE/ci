@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: pingcap-deliver-binaries
   labels:
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.2.0"
   annotations:
     tekton.dev/pipelines.minVersion: "1.0.0"
     tekton.dev/categories: delivery
@@ -26,6 +26,12 @@ spec:
     - name: notify-webhook-url
       description: URL of the webhook for notification
       default: "http://el-harbor:8080"
+  workspaces:
+    - name: publisher-auth
+      description: |
+        Optional. Kubernetes Secret with keys 'username' and 'password'.
+        If provided, the task will use basic auth when calling the publisher.
+      optional: true
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
     computeResources:
@@ -45,11 +51,22 @@ spec:
         targetsInfo="/workspace/delivery-targets.yaml"
         oci_src="$(params.src)"
         publisher_url="$(params.publisher-url)/tiup/delivery-by-rules"
+        auth_opt=""
+
+        # If publisher-auth workspace is provided, use basic auth
+        if [ -f "$(workspaces.publisher-auth.path)/username" ] && \
+           [ -f "$(workspaces.publisher-auth.path)/password" ]; then
+          user="$(cat $(workspaces.publisher-auth.path)/username)"
+          pass="$(cat $(workspaces.publisher-auth.path)/password)"
+          auth_opt="-u '${user}:${pass}'"
+        fi
 
         deliver() {
           local artifact_url="$1"
           echo "Delivering artifact_url: $artifact_url"
+          # shellcheck disable=SC2086
           response=$(curl -s -X POST "$publisher_url" \
+            $auth_opt \
             -H "Content-Type: application/json" \
             -d "{\"artifact_url\":\"$artifact_url\"}")
           echo "Response: $response"

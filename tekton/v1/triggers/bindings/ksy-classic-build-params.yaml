@@ -8,9 +8,11 @@ spec:
       value: us-docker.pkg.dev/pingcap-testing-account/hub
     - name: boskos-server-url
       value: http://boskos.ee-cd.svc
+    - name: publisher-auth-secret-name
+      value: publisher-auth
     - name: publisher-url
       value: https://publisher.pingcap.net
     - name: git-instead-of
       value: >-
-        https://github.com/ => http://git-cdn.cache.svc:8000/,
-        git@github.com: => http://git-cdn.cache.svc:8000/
+        https://github.com/ => http://git-cdn.cache.svc:8000/, git@github.com:
+        => http://git-cdn.cache.svc:8000/

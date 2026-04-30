@@ -4,18 +4,19 @@ metadata:
   name: ksy-dev-build-params # only use in KSY clusters for dev-builds
 spec:
   params:
-    - { name: boskos-server-url, value: http://boskos.ee-cd.svc }
-    - { name: builder-resources-cpu, value: $(extensions.resource-config.cpu) }
-    - { name: builder-resources-memory, value: $(extensions.resource-config.memory) }
-    - { name: ce-context, value: $(extensions.ce-context) }
-    - { name: component, value: $(extensions.component) }
-    - { name: force-builder-image, value: $(extensions.custom-params.builder-image) }
-    - { name: profile, value: $(extensions.custom-params.profile) }
-    - { name: publisher-url, value: "" } # no need publish in dev-builds
-    - { name: registry, value: $(extensions.registry) }
-    - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
-    - { name: timeout, value: $(extensions.resource-config.timeout) }
+    - {name: boskos-server-url, value: http://boskos.ee-cd.svc}
+    - {name: builder-resources-cpu, value: $(extensions.resource-config.cpu)}
+    - {name: builder-resources-memory, value: $(extensions.resource-config.memory)}
+    - {name: ce-context, value: $(extensions.ce-context)}
+    - {name: component, value: $(extensions.component)}
+    - {name: force-builder-image, value: $(extensions.custom-params.builder-image)}
+    - {name: profile, value: $(extensions.custom-params.profile)}
+    - {name: publisher-auth-secret-name, value: publisher-auth}
+    - {name: publisher-url, value: ""} # no need publish in dev-builds
+    - {name: registry, value: $(extensions.registry)}
+    - {name: source-ws-size, value: $(extensions.resource-config.sourceWsSize)}
+    - {name: timeout, value: $(extensions.resource-config.timeout)}
     - name: git-instead-of
       value: >-
-        https://github.com/ => http://git-cdn.cache.svc:8000/,
-        git@github.com: => http://git-cdn.cache.svc:8000/
+        https://github.com/ => http://git-cdn.cache.svc:8000/, git@github.com:
+        => http://git-cdn.cache.svc:8000/
