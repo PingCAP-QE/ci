@@ -60,7 +60,7 @@ first, you need to prepare the components.json file, which contains the image li
 ```
 ```shell
 export IS_RC_BUILD=true
-python3 main.py image --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json'
+python3 main.py image --components_url='https://raw.githubusercontent.com/wuhuizuo/test-ci/main/components.json'
 ```
 
 
@@ -75,7 +75,7 @@ example to check the rc build of pd
 ### check all package
 ```shell
 export IS_RC_BUILD=true
-python3 main.py tiup --components_url='https://raw.githubusercontent.com/purelind/test-ci/main/components.json'
+python3 main.py tiup --components_url='https://raw.githubusercontent.com/wuhuizuo/test-ci/main/components.json'
 ```
 
 

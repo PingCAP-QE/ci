@@ -19,7 +19,7 @@ pipeline {
             trim: true
         )
         string(
-            defaultValue: 'https://raw.githubusercontent.com/purelind/test-ci/main/components-v8.0.0.json' ,
+            defaultValue: 'https://raw.githubusercontent.com/wuhuizuo/test-ci/main/components-v8.5.6.json' ,
             name: 'COMPONENT_JSON_URL',
             description: 'The URL of the component json file',
             trim: true
