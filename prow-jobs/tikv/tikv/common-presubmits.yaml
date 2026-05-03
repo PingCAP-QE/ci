@@ -15,7 +15,7 @@ presubmits:
       spec:
         containers:
           - name: build
-            image: mikefarah/yq:4.47.2
+            image: mikefarah/yq:4.53.2
             command: [sh, -c]
             args:
               - |
