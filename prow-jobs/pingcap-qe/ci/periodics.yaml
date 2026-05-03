@@ -41,12 +41,12 @@ periodics:
               #!/usr/bin/env bash
               set -euo pipefail
 
-              script_url="https://github.com/PingCAP-QE/ci/raw/main/tools/reporters/ci/flaky-tests/main.ts"
+              project_url="https://github.com/PingCAP-QE/ci/raw/main/tools/reporters/ci/flaky-tests/deno.json"
               start_date=$(date -d "1 days ago" +%Y-%m-%d)
               end_date=$(date +%Y-%m-%d)
               email_subject="Flaky Tests Report of $PARAM_REPO repository (branch: $PARAM_BRANCH) between ${start_date} and ${end_date}"
 
-              deno run --allow-env --allow-net --allow-write ${script_url} \
+              deno task run --allow-env --allow-net --allow-write ${project_url} \
                 --repo ${PARAM_REPO} \
                 --branch ${PARAM_BRANCH} \
                 --from ${start_date} \
