@@ -1,6 +1,6 @@
-import { Octokit } from "@octokit/rest";
-import { throttling } from "@octokit/plugin-throttling";
-import { retry } from "@octokit/plugin-retry";
+import { Octokit } from "npm:@octokit/rest";
+import { throttling } from "npm:@octokit/plugin-throttling";
+import { retry } from "npm:@octokit/plugin-retry";
 import {
   buildIssueBody,
   buildIssueComment,
