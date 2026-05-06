@@ -20,6 +20,7 @@ It contains both trigger configurations and detailed pipeline implementations.
 - [Guides](./guides/README.md)
   - Finding Pipelines for a Specific Repository
   - How to Modify and Test a Pipeline
+  - [Testing Library Code](./guides/testing-library-code.md) — Run unit tests for shared library functions locally
   - Common Use Cases `WIP`
   - Troubleshooting `WIP`
   - [FAQ](./guides/FAQ.md)
