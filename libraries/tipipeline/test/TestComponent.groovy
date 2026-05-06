@@ -190,6 +190,13 @@ class TestComponent {
                     'feat: xx | tidb=pr/100 (#12345)'))
         }
 
+        @Test
+        void testCherryPickMixedParams() {
+            assertEquals('pr/200',
+                branch('tidb', 'release-8.5',
+                    'feat: xx | tidb=pr/100 (#12345) | tidb=pr/200 pd=pr/300'))
+        }
+
         // ---------- No param in title → branch derivation ----------
 
         @Test

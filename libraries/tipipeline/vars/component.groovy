@@ -109,8 +109,6 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
         println("The CI params in title seem to be inherited from the master PR. To set CI params, add them as a suffix to the title after the PR number (e.g., 'Fix: ... (#123) | component=value').")
     }
 
-    final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
-
     // - release-6.2
     // - release-9.0-beta.1, it's new style for beta release.
     final releaseBranchReg = /^release\-((\d+\.\d+)(-beta\.\d+)?)$/
@@ -134,12 +132,9 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     final componentsSupportPatchReleaseBranch = ['tidb-test', 'plugin']
 
     def componentBranch = prTargetBranch
-    if (prTitle =~ componentParamReg && !(prTitle =~ cherryPickTitleReg)) {
-        // example PR tiltes:
-        // - feat: add new feature | tidb=pr/123
-        // - feat: add new faeture | tidb=release-8.1
-        // - feat: add new faeture | tidb=<tidb-repo-commit-sha1>
-        componentBranch = (prTitle =~ componentParamReg)[0][1]
+    def ciParams = parseCIParamsFromPRTitle(prTitle)
+    if (ciParams.containsKey(component)) {
+         componentBranch = ciParams[component]
     } else if (prTargetBranch =~ releaseBranchReg ) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ releaseBranchReg)[0][1]) // => release-X.Y or release-X.Y-beta.M
     } else if (prTargetBranch =~ wipReleaseFeatureBranchReg ) {
