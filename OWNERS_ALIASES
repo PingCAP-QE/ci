@@ -1,15 +1,18 @@
 # Sort the member alphabetically.
 aliases:
-  sig-approvers-docs: # approvers for CI scope of tidb document repository.
+  sig-approvers-docs:
+    # approvers for CI scope of tidb document repository.
     - hfxsd
     - lilin90
     - Oreoxmt
     - qiancai
 
-  sig-approvers-tidb-tools: # approvers for CI scope of tidb-tools project.
+  sig-approvers-tidb-tools:
+    # approvers for CI scope of tidb-tools project.
     - Benjamin2037
 
-  sig-approvers-ee: # approvers for engineering efficiency scopes.
+  sig-approvers-ee:
+    # approvers for engineering efficiency scopes.
     - wuhuizuo
     - dillon-zheng
 
@@ -17,19 +20,23 @@ aliases:
     - lybcodes
     - timzxz
 
-  sig-approvers-raft-engine: # approvers for raft-engine project.
+  sig-approvers-raft-engine:
+    # approvers for raft-engine project.
     - LykxSassinator
     - zhangjinpeng87
 
-  sig-reviewers-security: # reviewers for security scopes.
-    - TopScrew
-    - xiabee
+  sig-reviewers-security:
+    # reviewers for security scopes.
+    - BugBuster9
+    - pccs25
 
-  sig-approvers-ticdc: # approvers for ticdc project.
+  sig-approvers-ticdc:
+    # approvers for ticdc project.
     - asddongmen
     - wlwilliamx
 
-  sig-approvers-tiflash: # approvers for tiflash project.
+  sig-approvers-tiflash:
+    # approvers for tiflash project.
     - Lloyd-Pottiger
     - JaySon-Huang
 
@@ -38,11 +45,17 @@ aliases:
     - kolafish
     - wshwsh12
 
-  sig-approvers-error-log-review: # approvers for error log review.
+  sig-approvers-tidb-operator:
+    - csuzhangxc
+    - liubog2008
+
+  sig-approvers-error-log-review:
+    # approvers for error log review.
     - kennedy8312
     - XuHuaiyu
 
-  emeritus: # emeritus will be keeped here, but will not be used.
+  emeritus:
+    # emeritus will be keeped here, but will not be used.
     # reviewers:
     - lijie0123 # emeritus since 2024-04
 
