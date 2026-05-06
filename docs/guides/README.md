@@ -14,6 +14,10 @@ Welcome to the guides section of our CI repository. This directory contains docu
 
 - [Cherry-Pick Pull Request](./cherry-pick-pull-request.md) - How to cherry-pick changes from one pull request to another branch using our helper script, with step-by-step instructions and conflict resolution guidance
 
+### Testing
+
+- [Testing Library Code](./testing-library-code.md) - How to write and run unit tests for Jenkins shared library functions (pure functions) locally using Groovy and JUnit 4, with table-driven test style
+
 ### Reference
 
 - [FAQ](./FAQ.md) - Frequently Asked Questions about our CI/CD infrastructure, covering topics such as pipeline troubleshooting, Prow bot usage, and CLA/DCO issues
