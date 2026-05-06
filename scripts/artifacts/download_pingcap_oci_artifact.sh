@@ -399,7 +399,9 @@ function parse_cli_args() {
             real_tag="${real_tag%_${tag_suffix}}_${tag_suffix}"
             echo "${registry_host_dev}/${image_path}:${real_tag}"
         else
-            echo "${registry}/${image_path}:${tag_value}_${tag_suffix}"
+            # Strip "_<os>_<arch>" suffix if present
+            real_tag="${tag_value%_${tag_suffix}}_${tag_suffix}"
+            echo "${registry}/${image_path}:${real_tag}"
         fi
     }
 
