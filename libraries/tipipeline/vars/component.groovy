@@ -1,10 +1,37 @@
-// Parse all CI params from PR title (e.g., "feat: xxx | tidb=pr/123 pd=@v8.5.0")
-// Returns a map of component -> value pairs
+// Parse all CI params from PR title.
+//
+// Supported inputs:
+//   "feat: xxx | tidb=pr/123 pd=@v8.5.0"
+//   "feat: xxx | tidb=pr/123"
+//   "feat: xxx (#12467)| tidb=pr/123"
+//   "feat: xxx (#12467) | tidb=pr/123 pd=@v8.5.0"
+//   "feat: xxx | tidb=pr/123 (#12456) | tidb=pr/456 pd=@v8.5.0"  → match the last: tidb=pr/456 pd=@v8.5.0
+//
+// Rejected (cherry-pick suffix after the pipe — params are inherited, ignored):
+//   "feat: xxx | tidb=pr/123 pd=@v8.5.0 (#1235)"
+//   "feat: xxx | tidb=pr/123 (#12456)"
+//
+// Returns a map of component -> value pairs.
 def parseCIParamsFromPRTitle(String prTitle) {
     def params = [:]
-    // Match all "key=value" patterns after a '|' separator in the PR title
-    def paramReg = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)\s*=\s*([^\s\\|]+)/
-    def matcher = (prTitle =~ paramReg)
+    // Use lastIndexOf to take the segment after the LAST '|'.
+    // This handles cases like:
+    //   "feat: xxx | tidb=pr/123 (#12456) | tidb=pr/456 pd=@v8.5.0"
+    // where only the part after the second pipe is the actual CI params.
+    def pipeIdx = prTitle.lastIndexOf('|')
+    if (pipeIdx < 0) {
+        return params
+    }
+    // Take everything after the last '|'
+    def afterPipe = prTitle.substring(pipeIdx + 1)
+    // If the segment after '|' ends with a PR number suffix like "(#12345)",
+    // the params are likely inherited from a cherry-pick — skip them entirely.
+    if (afterPipe =~ /\(#\d+\)\s*$/) {
+        return params
+    }
+    // Match all "key=val" patterns in the segment after '|'
+    def paramReg = /\b([a-zA-Z][a-zA-Z0-9_-]*)\s*=\s*([^\s]+)/
+    def matcher = (afterPipe =~ paramReg)
     matcher.each { match ->
         params[match[1]] = match[2]
     }
