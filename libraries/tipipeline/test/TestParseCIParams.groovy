@@ -8,8 +8,6 @@
  * It is a pure function with no Jenkins API dependencies, so it can be tested standalone.
  */
 
-import static groovy.test.GroovyAssert.*
-
 // ============================================================
 // Function under test (copied from component.groovy)
 // ============================================================
@@ -32,7 +30,7 @@ def parseCIParamsFromPRTitle(String prTitle) {
 }
 
 // ============================================================
-// Test cases
+// Test harness
 // ============================================================
 int passed = 0
 int failed = 0
@@ -40,10 +38,10 @@ int failed = 0
 def assertEquals(Map expected, Map actual, String desc) {
     if (expected == actual) {
         passed++
-        println "  ✅ PASS: ${desc}"
+        println "  \u2705 PASS: ${desc}"
     } else {
         failed++
-        println "  ❌ FAIL: ${desc}"
+        println "  \u274c FAIL: ${desc}"
         println "      expected: ${expected}"
         println "      actual:   ${actual}"
     }
@@ -97,7 +95,7 @@ assertEquals(
     'no pipe: return empty'
 )
 
-// No params after pipe (cherry-pick suffix at end)
+// No params after pipe (just PR number before)
 assertEquals(
     [:],
     parseCIParamsFromPRTitle('feat: xxx (#12467)'),
@@ -110,14 +108,14 @@ assertEquals(
 assertEquals(
     [:],
     parseCIParamsFromPRTitle('feat: xxx | tidb=pr/123 pd=@v8.5.0 (#1235)'),
-    'cherry-pick: | ... (#1235) → return empty'
+    'cherry-pick: | ... (#1235) \u2192 return empty'
 )
 
 // Cherry-pick: PR number at end with single param
 assertEquals(
     [:],
     parseCIParamsFromPRTitle('feat: xxx | tidb=pr/123 (#12456)'),
-    'cherry-pick: | tidb=pr/123 (#12456) → return empty'
+    'cherry-pick: | tidb=pr/123 (#12456) \u2192 return empty'
 )
 
 // Cherry-pick in multi-pipe: first pipe has cherry-pick, last pipe has valid params
@@ -146,7 +144,7 @@ assertEquals(
 
 // Component name with hyphen
 assertEquals(
-    [:'my-component', value: 'test'],
+    ['my-component': 'test'],
     parseCIParamsFromPRTitle('feat: xxx | my-component=test'),
     'hyphen in component name: my-component=test'
 )
@@ -162,7 +160,7 @@ assertEquals(
 assertEquals(
     [:],
     parseCIParamsFromPRTitle('feat: xxx |  '),
-    'empty after pipe: | (whitespace) → return empty'
+    'empty after pipe: | (whitespace) \u2192 return empty'
 )
 
 // ============================================
