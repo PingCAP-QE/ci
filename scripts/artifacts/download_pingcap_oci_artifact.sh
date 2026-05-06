@@ -383,8 +383,8 @@ function parse_cli_args() {
     registry_host_dev="${OCI_ARTIFACT_HOST_DEV:-us-docker.pkg.dev/pingcap-testing-account/dev}"
 
     # Build OCI URL from registry, image path, and tag value.
-    # If the tag value starts with "pre-built-", it is a pre-built binary marker:
-    #   - Strip the "pre-built-" prefix to get the raw tag
+    # If the tag value starts with "@", it is a pre-built binary marker:
+    #   - Strip the "@" prefix to get the raw tag
     #   - Strip any trailing "_<os>_<arch>" suffix (e.g., _linux_amd64) if present
     #   - Use the dev registry instead of the hub registry
     #   - Do NOT append any suffix (the tag is already the complete OCI tag)
@@ -393,8 +393,8 @@ function parse_cli_args() {
         local image_path="$2"
         local tag_value="$3"
         local tag_suffix="$4"
-        if [[ "${tag_value}" == pre-built-* ]]; then
-            local real_tag="${tag_value#pre-built-}"
+        if [[ "${tag_value}" == @* ]]; then
+            local real_tag="${tag_value#@}"
             # Strip "_<os>_<arch>" suffix if present
             real_tag="${real_tag%_${tag_suffix}}_${tag_suffix}"
             echo "${registry_host_dev}/${image_path}:${real_tag}"
