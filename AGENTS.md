@@ -33,6 +33,7 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 │   ├── core-concepts.md     # CI architecture overview
 │   ├── designs/             # Design documents
 │   ├── guides/              # User guides
+│   │   └── testing-library-code.md  # Testing shared library code
 │   └── jobs/                # Job documentation
 ├── prow-jobs/               # Prow job trigger configurations
 │   └── <org>/<repo>/        # Organized by GitHub org/repo
@@ -46,6 +47,9 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 │   └── v<version>/
 ├── libraries/               # Jenkins shared libraries
 │   └── tipipeline/
+│       ├── vars/            # Library functions (source)
+│       ├── src/             # Helper classes
+│       └── test/            # Unit tests (table-driven JUnit 4)
 ├── tools/                   # CI helper tools
 │   ├── error-log-review/    # PR error log checker (Go)
 │   ├── gomod-sync/          # Go module sync tool (Go)
@@ -80,13 +84,14 @@ Follow the **Conventional Commits** specification for commit messages:
 - Spec: https://www.conventionalcommits.org/en/v1.0.0/
 - Format: `<type>(<scope>): <subject>`
   - `type`: e.g. `feat`, `fix`, `docs`, `chore`, `ci`, `refactor`, `test`
-  - `scope`: optional but recommended for this repo (e.g. `prow`, `pipelines`, `jobs`, `tekton`, `tools`)
-  - `subject`: imperative, present tense (e.g. “add”, “fix”, “update”)
+  - `scope`: optional but recommended for this repo (e.g. `prow`, `pipelines`, `jobs`, `tekton`, `tools`, `libraries`)
+  - `subject`: imperative, present tense (e.g. "add", "fix", "update")
 
 Examples:
 - `ci(prow): add presubmit for tiflow lint`
 - `pipelines(tiflow): increase pipeline timeout`
 - `docs(agents): document Conventional Commits`
+- `test(libraries): add unit tests for parseCIParamsFromPRTitle`
 
 ## Common Tasks for Agents
 
@@ -106,7 +111,30 @@ Per `docs/contributing.md`:
 4. Create PR to move from staging to production
 5. Include test results and links in PR
 
-### 3. Running Verification Scripts
+### 3. Testing Library Code
+
+Pure functions in `libraries/tipipeline/vars/` can be tested locally with Groovy + JUnit 4.
+
+See the full guide at `docs/guides/testing-library-code.md`.
+
+**Quick start:**
+
+```bash
+# Install Groovy (macOS)
+brew install groovy
+
+# Run tests
+groovy libraries/tipipeline/test/TestComponent.groovy
+```
+
+**Key practices:**
+- Load functions from source via `GroovyShell.parse()` — do not duplicate code
+- Use **table-driven** tests: define a table of cases, iterate with `each`
+- Name methods in `should` style: `shouldExtractParamsFromTitle()`
+- Include assertion messages for failure diagnosis
+- Tests live in `libraries/tipipeline/test/`
+
+### 4. Running Verification Scripts
 
 ```bash
 # Verify Jenkins pipelines syntax
@@ -119,7 +147,7 @@ Per `docs/contributing.md`:
 .ci/update-tekton-kustomizations.sh
 ```
 
-### 4. Pre-commit Hooks
+### 5. Pre-commit Hooks
 
 This repository uses pre-commit with:
 - `end-of-file-fixer` - Ensures files end with a newline
@@ -169,6 +197,7 @@ go build -o gomod-sync
 ## Getting Help
 
 - **FAQ**: `docs/guides/FAQ.md`
+- **Testing Guide**: `docs/guides/testing-library-code.md`
 - **Contributing Guide**: `docs/contributing.md`
 - **DeepWiki**: https://deepwiki.com/PingCAP-QE/ci
 - **GitHub Issues**: https://github.com/PingCAP-QE/ci/issues
