@@ -1,9 +1,99 @@
+// Parse all CI params from PR title.
+//
+// Supported inputs:
+//   "feat: xxx | tidb=pr/123 pd=@v8.5.0"
+//   "feat: xxx | tidb=pr/123"
+//   "feat: xxx (#12467)| tidb=pr/123"
+//   "feat: xxx (#12467) | tidb=pr/123 pd=@v8.5.0"
+//   "feat: xxx | tidb=pr/123 (#12456) | tidb=pr/456 pd=@v8.5.0"  → match the last: tidb=pr/456 pd=@v8.5.0
+//
+// Rejected (cherry-pick suffix after the pipe — params are inherited, ignored):
+//   "feat: xxx | tidb=pr/123 pd=@v8.5.0 (#1235)"
+//   "feat: xxx | tidb=pr/123 (#12456)"
+//
+// Returns a map of component -> value pairs.
+def parseCIParamsFromPRTitle(String prTitle) {
+    def params = [:]
+    // Use lastIndexOf to take the segment after the LAST '|'.
+    // This handles cases like:
+    //   "feat: xxx | tidb=pr/123 (#12456) | tidb=pr/456 pd=@v8.5.0"
+    // where only the part after the second pipe is the actual CI params.
+    def pipeIdx = prTitle.lastIndexOf('|')
+    if (pipeIdx < 0) {
+        return params
+    }
+    // Take everything after the last '|'
+    def afterPipe = prTitle.substring(pipeIdx + 1)
+    // If the segment after '|' ends with a PR number suffix like "(#12345)",
+    // the params are likely inherited from a cherry-pick — skip them entirely.
+    if (afterPipe =~ /\(#\d+\)\s*$/) {
+        return params
+    }
+    // Match all "key=val" patterns in the segment after '|'
+    def paramReg = /\b([a-zA-Z][a-zA-Z0-9_-]*)\s*=\s*([^\s]+)/
+    def matcher = (afterPipe =~ paramReg)
+    matcher.each { match ->
+        params[match[1]] = match[2]
+    }
+    return params
+}
+
+// Supported components for pre-built binary download
+// Only these components are allowed to use the @<tag> format
+final List<String> PREBUILT_SUPPORTED_COMPONENTS = [
+    'tidb', 'tikv', 'pd', 'tiflash', 'ticdc'
+]
+
+// Standard core branch patterns where pre-built mode is REJECTED.
+// These are the mainline/stable/release branches where the standard CI build
+// pipeline must be used to ensure quality — pre-built would bypass it.
+// Pre-built mode is only intended for feature/hotfix/development branches.
+final String PREBUILT_DENIED_BRANCH_REG = /^(main|master|release-\d+\.\d+(-beta\.\d+)?|release-nextgen-\d{6,8})$/
+
+// Validate pre-built component params in PR title and target branch.
+// prTargetBranch is checked to REJECT pre-built mode on standard core branches
+// (main/master/release-X.Y/release-nextgen-YYYYMM/release-nextgen-YYYYMMDD).
+// This prevents workaround usage that could bypass standard CI and cause quality issues.
+// Returns a list of error messages; empty list means no errors.
+def validatePreBuiltComponentParams(String prTitle, String prTargetBranch) {
+    def errors = []
+    def params = parseCIParamsFromPRTitle(prTitle)
+    def hasPreBuilt = false
+
+    params.each { component, value ->
+        if (value.startsWith('@')) {
+            hasPreBuilt = true
+            if (!PREBUILT_SUPPORTED_COMPONENTS.contains(component)) {
+                errors.add("Error: component '${component}' does not support pre-built binary download. " +
+                    "Supported components are: ${PREBUILT_SUPPORTED_COMPONENTS.join(', ')}. " +
+                    "Please remove '${component}=${value}' from the PR title or use a supported component.")
+            }
+        }
+    }
+
+    if (hasPreBuilt && (prTargetBranch =~ PREBUILT_DENIED_BRANCH_REG)) {
+        errors.add("Error: pre-built binary download is not allowed on branch '${prTargetBranch}'. " +
+            "This feature is restricted to non-standard branches (feature/hotfix/dev branches) to avoid " +
+            "bypassing the standard CI build pipeline on core branches and risking quality issues. " +
+            "Please remove the pre-built parameters from the PR title or retarget this PR to a non-core branch.")
+    }
+
+    return errors
+}
+
 def computeArtifactNextGenOciTagFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     def ret = computeArtifactOciTagFromPR(component, prTargetBranch, prTitle, trunkBranch)
     return ret.contains("nextgen") ? ret : "${ret}-nextgen"
 }
 
 def computeArtifactOciTagFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
+    // Validate pre-built component params before computing the tag.
+    // This ensures unsupported component keys or core-branch usage are rejected early.
+    def errors = validatePreBuiltComponentParams(prTitle, prTargetBranch)
+    if (!errors.isEmpty()) {
+        throw new Exception(errors.join('\n'))
+    }
+
     def branchName = computeBranchFromPR(component, prTargetBranch, prTitle, trunkBranch)
     return branchName.replaceAll('/', '-')
 }
@@ -18,8 +108,6 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     if (prTitle =~ cherryPickTitleReg) {
         println("The CI params in title seem to be inherited from the master PR. To set CI params, add them as a suffix to the title after the PR number (e.g., 'Fix: ... (#123) | component=value').")
     }
-
-    final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
 
     // - release-6.2
     // - release-9.0-beta.1, it's new style for beta release.
@@ -44,12 +132,9 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     final componentsSupportPatchReleaseBranch = ['tidb-test', 'plugin']
 
     def componentBranch = prTargetBranch
-    if (prTitle =~ componentParamReg && !(prTitle =~ cherryPickTitleReg)) {
-        // example PR tiltes:
-        // - feat: add new feature | tidb=pr/123
-        // - feat: add new faeture | tidb=release-8.1
-        // - feat: add new faeture | tidb=<tidb-repo-commit-sha1>
-        componentBranch = (prTitle =~ componentParamReg)[0][1]
+    def ciParams = parseCIParamsFromPRTitle(prTitle)
+    if (ciParams.containsKey(component)) {
+         componentBranch = ciParams[component]
     } else if (prTargetBranch =~ releaseBranchReg ) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ releaseBranchReg)[0][1]) // => release-X.Y or release-X.Y-beta.M
     } else if (prTargetBranch =~ wipReleaseFeatureBranchReg ) {
