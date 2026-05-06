@@ -377,29 +377,53 @@ function parse_cli_args() {
 
     # get the tag suffix by current runtime os and arch, it will be "[linux|darwin]_[amd64|arm64]" format.
     local tag_suffix=$(compute_tag_platform_suffix)
-    registry_host="${OCI_ARTIFACT_HOST:-hub.pingcap.net}"
+    registry_host="${OCI_ARTIFACT_HOST:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     registry_host_community="${OCI_ARTIFACT_HOST_COMMUNITY:-us-docker.pkg.dev/pingcap-testing-account/hub}"
-    tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
-    dumpling_oci_url="${registry_host}/pingcap/tidb/package:${DUMPLING}_${tag_suffix}"
-    tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
-    tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
-    tikv_worker_oci_url="${registry_host}/tikv/tikv/package:${TIKV_WORKER}_${tag_suffix}"
-    tikv_ctl_oci_url="${registry_host}/tikv/tikv/package:${TIKV_CTL}_${tag_suffix}"
-    pd_oci_url="${registry_host}/tikv/pd/package:${PD}_${tag_suffix}"
-    pd_ctl_oci_url="${registry_host}/tikv/pd/package:${PD_CTL}_${tag_suffix}"
-    ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
-    ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
-    tici_oci_url="${registry_host}/pingcap/tici/package:${TICI}_${tag_suffix}"
-    sync_diff_inspector_oci_url="${registry_host_community}/pingcap/tiflow/package:${SYNC_DIFF_INSPECTOR}_${tag_suffix}"
+    # dev registry for pre-built binaries
+    registry_host_dev="${OCI_ARTIFACT_HOST_DEV:-us-docker.pkg.dev/pingcap-testing-account/dev}"
+
+    # Build OCI URL from registry, image path, and tag value.
+    # If the tag value starts with "pre-built-", it is a pre-built binary marker:
+    #   - Strip the "pre-built-" prefix to get the raw tag
+    #   - Strip any trailing "_<os>_<arch>" suffix (e.g., _linux_amd64) if present
+    #   - Use the dev registry instead of the hub registry
+    #   - Do NOT append any suffix (the tag is already the complete OCI tag)
+    function build_oci_url() {
+        local registry="$1"
+        local image_path="$2"
+        local tag_value="$3"
+        local tag_suffix="$4"
+        if [[ "${tag_value}" == pre-built-* ]]; then
+            local real_tag="${tag_value#pre-built-}"
+            # Strip "_<os>_<arch>" suffix if present
+            real_tag="${real_tag%_${tag_suffix}}_${tag_suffix}"
+            echo "${registry_host_dev}/${image_path}:${real_tag}"
+        else
+            echo "${registry}/${image_path}:${tag_value}_${tag_suffix}"
+        fi
+    }
+
+    tidb_oci_url="$(build_oci_url "${registry_host}" "pingcap/tidb/package" "${TIDB}" "${tag_suffix}")"
+    dumpling_oci_url="$(build_oci_url "${registry_host}" "pingcap/tidb/package" "${DUMPLING}" "${tag_suffix}")"
+    tiflash_oci_url="$(build_oci_url "${registry_host}" "pingcap/tiflash/package" "${TIFLASH}" "${tag_suffix}")"
+    tikv_oci_url="$(build_oci_url "${registry_host}" "tikv/tikv/package" "${TIKV}" "${tag_suffix}")"
+    tikv_worker_oci_url="$(build_oci_url "${registry_host}" "tikv/tikv/package" "${TIKV_WORKER}" "${tag_suffix}")"
+    tikv_ctl_oci_url="$(build_oci_url "${registry_host}" "tikv/tikv/package" "${TIKV_CTL}" "${tag_suffix}")"
+    pd_oci_url="$(build_oci_url "${registry_host}" "tikv/pd/package" "${PD}" "${tag_suffix}")"
+    pd_ctl_oci_url="$(build_oci_url "${registry_host}" "tikv/pd/package" "${PD_CTL}" "${tag_suffix}")"
+    ticdc_oci_url="$(build_oci_url "${registry_host}" "pingcap/tiflow/package" "${TICDC}" "${tag_suffix}")"
+    ticdc_new_oci_url="$(build_oci_url "${registry_host}" "pingcap/ticdc/package" "${TICDC_NEW}" "${tag_suffix}")"
+    tici_oci_url="$(build_oci_url "${registry_host}" "pingcap/tici/package" "${TICI}" "${tag_suffix}")"
+    sync_diff_inspector_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/tiflow/package" "${SYNC_DIFF_INSPECTOR}" "${tag_suffix}")"
 
     # third party or public test tools.
-    minio_oci_url="${registry_host_community}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
-    etcd_oci_url="${registry_host_community}/pingcap/third-party/etcd:${ETCDCTL}_${tag_suffix}"
-    ycsb_oci_url="${registry_host_community}/pingcap/go-ycsb/package:${YCSB}_${tag_suffix}"
-    schema_registry_oci_url="${registry_host_community}/pingcap/third-party/schema-registry:${SCHEMA_REGISTRY}_${tag_suffix}"
-    fake_gcs_server_oci_url="${registry_host_community}/pingcap/third-party/fake-gcs-server:${FAKE_GCS_SERVER}_${tag_suffix}"
-    kes_oci_url="${registry_host_community}/pingcap/third-party/kes:${KES}_${tag_suffix}"
-    license_eye_oci_url="${registry_host_community}/pingcap/third-party/license-eye:${LICENSE_EYE}_${tag_suffix}"
+    minio_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/minio" "${MINIO}" "${tag_suffix}")"
+    etcd_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/etcd" "${ETCDCTL}" "${tag_suffix}")"
+    ycsb_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/go-ycsb/package" "${YCSB}" "${tag_suffix}")"
+    schema_registry_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/schema-registry" "${SCHEMA_REGISTRY}" "${tag_suffix}")"
+    fake_gcs_server_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/fake-gcs-server" "${FAKE_GCS_SERVER}" "${tag_suffix}")"
+    kes_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/kes" "${KES}" "${tag_suffix}")"
+    license_eye_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/license-eye" "${LICENSE_EYE}" "${tag_suffix}")"
 }
 
 function check_tools() {
