@@ -148,6 +148,8 @@ spec:
           value: "$(params.component)"
         - name: version
           value: "$(tasks.get-release-ver.results.version)"
+        - name: git-url
+          value: "$(params.git-url)"
         - name: git-ref
           value: "$(tasks.get-release-ver.results.build-ref)"
         - name: git-sha
@@ -188,6 +190,8 @@ spec:
           value: "$(params.component)"
         - name: version
           value: "$(tasks.get-release-ver.results.version)"
+        - name: git-url
+          value: "$(params.git-url)"
         - name: git-ref
           value: "$(tasks.get-release-ver.results.build-ref)"
         - name: git-sha

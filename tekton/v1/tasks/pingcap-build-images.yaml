@@ -39,6 +39,7 @@ spec:
         supports: 'release' or 'failpoint'.
     - name: git-ref
     - name: git-sha
+    - name: git-url
     - name: release-dir
       default: build
     - name: build
@@ -75,7 +76,8 @@ spec:
           "$git_sha" \
           /workspace/artifacts/packages/packages.yaml.tmpl \
           "$out_script" \
-          $(params.registry) || true
+          $(params.registry) \
+          "$(params.git-url)" || true
 
         if [ -f "$out_script" ]; then
           echo -n "true" > $(step.results.generated.path)
@@ -97,6 +99,8 @@ spec:
           value: /kaniko/executor
         - name: CREDS_DIR
           value: /tekton/creds-secrets
+        - name: GIT_URL
+          value: $(params.git-url)
       computeResources:
         requests:
           cpu: "4"
