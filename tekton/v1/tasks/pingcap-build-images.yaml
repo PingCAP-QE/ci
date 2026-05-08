@@ -76,8 +76,7 @@ spec:
           "$git_sha" \
           /workspace/artifacts/packages/packages.yaml.tmpl \
           "$out_script" \
-          $(params.registry) \
-          "$(params.git-url)" || true
+          $(params.registry) || true
 
         if [ -f "$out_script" ]; then
           echo -n "true" > $(step.results.generated.path)
