@@ -10,11 +10,14 @@ spec:
         - sh
         - -c
         - |
+          chmod 1777 /tmp/tidb
           echo "[client]" > /mysql-config/.my.cnf
           echo "ssl-mode=DISABLED" >> /mysql-config/.my.cnf
       volumeMounts:
         - mountPath: "/mysql-config"
           name: "mysql-config-volume"
+        - mountPath: "/tmp/tidb"
+          name: "tidb-temp-dir-volume"
   containers:
     - name: golang
       image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
@@ -33,6 +36,8 @@ spec:
         - mountPath: "/home/jenkins/.my.cnf"
           name: "mysql-config-volume"
           subPath: ".my.cnf"
+        - mountPath: "/tmp/tidb"
+          name: "tidb-temp-dir-volume"
     - name: utils
       image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
@@ -59,3 +64,13 @@ spec:
   volumes:
     - name: mysql-config-volume
       emptyDir: {}
+    - name: tidb-temp-dir-volume
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 200Gi
+            storageClassName: hyperdisk-rwo
