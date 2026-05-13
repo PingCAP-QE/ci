@@ -24,7 +24,7 @@ spec:
       env:
         - name: "DOCKER_HOST"
           value: "tcp://localhost:2375"
-      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-11-g402978f-go1.25
+      image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-11-g402978f-go1.25
       imagePullPolicy: "Always"
       name: "docker"
       resources:
