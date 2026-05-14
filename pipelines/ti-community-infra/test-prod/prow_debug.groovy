@@ -3,6 +3,7 @@
 // should triggerd for master and latest release branches
 @Library('tipipeline') _
 final POD_TEMPLATE_FILE = 'pipelines/ti-community-infra/test-prod/pod-prow_debug.yaml'
+final REFS = params.JOB_SPEC ? readJSON(text: params.JOB_SPEC).refs : [org: 'ti-community-infra', repo: 'ci', base_sha: 'local']
 
 pipeline {
     agent {
@@ -39,31 +40,17 @@ pipeline {
                 }
                 stages {
                     stage('Verify Matrix Cache Key Inputs') {
-                        steps {
-                            script {
-                                def refs = params.JOB_SPEC ? readJSON(text: params.JOB_SPEC).refs : [org: 'ti-community-infra', repo: 'ci', base_sha: 'local']
-                                def stageName = 'matrix-cache-debug'
-
-                                def skipWithoutAxisParams = matrixCache.shouldSkip(refs, stageName)
-                                def skipWithAxisParams = matrixCache.shouldSkip(refs, stageName, [
-                                    axis_os  : env.AXIS_OS,
-                                    axis_arch: env.AXIS_ARCH,
-                                ])
-
-                                echo "matrixCache debug axis=${env.AXIS_OS}/${env.AXIS_ARCH}"
-                                echo "matrixCache key-mode default(no extraParams): skip=${skipWithoutAxisParams}"
-                                echo "matrixCache key-mode explicit(extraParams axis_os/axis_arch): skip=${skipWithAxisParams}"
+                        when {
+                            expression {
+                                return matrixCache.shouldSkip(REFS, env.STAGE_NAME)
                             }
+                        }
+                        steps {
+                            echo 'matrixCache debug axis=${AXIS_OS}/${AXIS_ARCH}'
                         }
                         post {
                             success {
-                                script {
-                                    def refs = params.JOB_SPEC ? readJSON(text: params.JOB_SPEC).refs : [org: 'ti-community-infra', repo: 'ci', base_sha: 'local']
-                                    matrixCache.markDone(refs, 'matrix-cache-debug', [
-                                        axis_os  : env.AXIS_OS,
-                                        axis_arch: env.AXIS_ARCH,
-                                    ])
-                                }
+                                matrixCache.markDone(REFS, env.STAGE_NAME)
                             }
                         }
                     }
