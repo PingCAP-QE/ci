@@ -65,7 +65,7 @@ pipeline {
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
-                        make bazel_coverage_test_ddlargsv1 2>&1 | tee bazel-test.log
+                        ./build/jenkins_unit_test_ddlargsv1.sh 2>&1 | tee bazel-test.log
                     '''
                 }
             }
