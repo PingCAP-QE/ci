@@ -257,12 +257,13 @@ class TestMatrixCache {
             return script.invokeMethod('shouldSkip', [refs, stageName, extraParams])
         }
 
-        /** Helper: write cache content directly for a given script context. */
-        private void writeCache(def script, Map data) {
+        /** Helper: create a marker file directly for a given script context. */
+        private void writeCacheMarker(def script, String key, String content = 'SUCCESS') {
             def jobName = script.binding.getVariable('env').JOB_NAME
-            def cacheFile = new File("${jenkinsHome}/matrix-cache/${jobName.replaceAll('/', '_')}.json")
-            cacheFile.parentFile.mkdirs()
-            cacheFile.text = groovy.json.JsonOutput.toJson(data)
+            def cacheDir = new File("${jenkinsHome}/matrix-cache/${jobName.replaceAll('/', '_')}")
+            cacheDir.mkdirs()
+            def markerFile = new File(cacheDir, "${key}.success")
+            markerFile.text = content
         }
 
         @Test
@@ -285,8 +286,8 @@ class TestMatrixCache {
             // First, determine what the generated key will be
             def key = script.invokeMethod('_generateContextKey', [refs, stageName, extraParams])
 
-            // Write the cache with this key marked as SUCCESS
-            writeCache(script, [(key): 'SUCCESS'])
+            // Write the marker file for this key
+            writeCacheMarker(script, key)
 
             def result = callShouldSkip(script, refs, stageName, extraParams)
             assertTrue('should return true when key is cached as SUCCESS', result)
@@ -298,40 +299,26 @@ class TestMatrixCache {
             def refs = [org: 'pingcap', repo: 'tidb', base_sha: 'abc']
             def stageName = 'build'
 
-            // Write cache but with a different key
-            writeCache(script, ['some-other-key': 'SUCCESS'])
+            // Write marker but with a different key
+            writeCacheMarker(script, 'some-other-key')
 
             def result = callShouldSkip(script, refs, stageName, [:])
             assertFalse('should return false when key is not in cache', result)
         }
 
         @Test
-        void shouldReturnFalseWhenCacheValueIsNotSuccess() {
+        void shouldReturnTrueWhenMarkerFileExistsRegardlessOfContent() {
             def script = load(envFor())
             def refs = [org: 'pingcap', repo: 'tidb', base_sha: 'abc']
             def stageName = 'build'
 
             def key = script.invokeMethod('_generateContextKey', [refs, stageName, [:]])
 
-            // Write cache with a non-SUCCESS value for the key
-            writeCache(script, [(key): 'FAILURE'])
+            // Marker existence indicates success, regardless of content.
+            writeCacheMarker(script, key, 'FAILURE')
 
             def result = callShouldSkip(script, refs, stageName, [:])
-            assertFalse('should return false when cached value is not "SUCCESS"', result)
-        }
-
-        @Test
-        void shouldReturnFalseWhenCacheIsCorrupt() {
-            def script = load(envFor())
-            def jobName = script.binding.getVariable('env').JOB_NAME
-            def cacheFile = new File("${jenkinsHome}/matrix-cache/${jobName.replaceAll('/', '_')}.json")
-            cacheFile.parentFile.mkdirs()
-            cacheFile.text = 'this is not valid json'
-
-            def refs = [org: 'pingcap', repo: 'tidb', base_sha: 'abc']
-
-            def result = callShouldSkip(script, refs, 'build', [:])
-            assertFalse('should return false when cache is corrupt', result)
+            assertTrue('should return true when marker file exists', result)
         }
 
         @Test
@@ -342,7 +329,7 @@ class TestMatrixCache {
 
             // Cache the key WITH extraParams
             def keyWithExtras = script.invokeMethod('_generateContextKey', [refs, stageName, [os: 'linux']])
-            writeCache(script, [(keyWithExtras): 'SUCCESS'])
+            writeCacheMarker(script, keyWithExtras)
 
             // Check without extraParams — should miss the cache
             def resultWithout = callShouldSkip(script, refs, stageName, [:])
@@ -365,10 +352,7 @@ class TestMatrixCache {
 
             // Write cache for job1 only
             def key1 = script1.invokeMethod('_generateContextKey', [refs, 'build', [:]])
-            def cacheDir = new File("${jenkinsHome}/matrix-cache")
-            cacheDir.mkdirs()
-            new File(cacheDir, 'project_component_job1.json').text =
-                groovy.json.JsonOutput.toJson([(key1): 'SUCCESS'])
+            writeCacheMarker(script1, key1)
 
             def result1 = script1.invokeMethod('shouldSkip', [refs, 'build', [:]])
             def result2 = script2.invokeMethod('shouldSkip', [refs, 'build', [:]])
@@ -418,13 +402,14 @@ class TestMatrixCache {
             script.invokeMethod('markDone', [refs, stageName, [:]])
 
             // Verify the cache directory was created
-            def cacheDir = new File("${jenkinsHome}/matrix-cache")
+            def cacheDir = new File("${jenkinsHome}/matrix-cache/test_matrix-job")
             assertTrue('cache directory should exist', cacheDir.exists())
 
-            // Verify the cache file was created
-            def cacheFile = new File(cacheDir, 'test_matrix-job.json')
-            assertTrue('cache file should exist', cacheFile.exists())
-            assertTrue('cache file should not be empty', cacheFile.length() > 0)
+            // Verify the marker file was created
+            def expectedKey = script.invokeMethod('_generateContextKey', [refs, stageName, [:]])
+            def markerFile = new File(cacheDir, "${expectedKey}.success")
+            assertTrue('marker file should exist', markerFile.exists())
+            assertTrue('marker file should not be empty', markerFile.length() > 0)
         }
 
         @Test
@@ -439,11 +424,10 @@ class TestMatrixCache {
             // Determine the expected key
             def expectedKey = script.invokeMethod('_generateContextKey', [refs, stageName, extraParams])
 
-            // Read the cache file
-            def cacheFile = new File("${jenkinsHome}/matrix-cache/test_matrix-job.json")
-            def data = new groovy.json.JsonSlurper().parse(cacheFile)
-
-            assertEquals('cached value should be SUCCESS', 'SUCCESS', data[expectedKey])
+            // Read the marker file
+            def markerFile = new File("${jenkinsHome}/matrix-cache/test_matrix-job/${expectedKey}.success")
+            assertTrue('marker file should exist', markerFile.exists())
+            assertEquals('marker file content should be SUCCESS', 'SUCCESS', markerFile.text)
         }
 
         @Test
@@ -456,15 +440,13 @@ class TestMatrixCache {
             script.invokeMethod('markDone', [refs1, 'build', [:]])
             script.invokeMethod('markDone', [refs2, 'build', [:]])
 
-            def cacheFile = new File("${jenkinsHome}/matrix-cache/test_matrix-job.json")
-            def data = new groovy.json.JsonSlurper().parse(cacheFile)
-
             def key1 = script.invokeMethod('_generateContextKey', [refs1, 'build', [:]])
             def key2 = script.invokeMethod('_generateContextKey', [refs2, 'build', [:]])
+            def cacheDir = new File("${jenkinsHome}/matrix-cache/test_matrix-job")
 
-            assertEquals('first key should be SUCCESS', 'SUCCESS', data[key1])
-            assertEquals('second key should be SUCCESS', 'SUCCESS', data[key2])
-            assertEquals('cache should contain exactly 2 entries', 2, data.size())
+            assertTrue('first key marker should exist', new File(cacheDir, "${key1}.success").exists())
+            assertTrue('second key marker should exist', new File(cacheDir, "${key2}.success").exists())
+            assertEquals('cache should contain exactly 2 marker files', 2, cacheDir.listFiles().size())
         }
 
         @Test
@@ -476,11 +458,13 @@ class TestMatrixCache {
             script.invokeMethod('markDone', [refs, 'build', [:]])
             script.invokeMethod('markDone', [refs, 'build', [:]])
 
-            def cacheFile = new File("${jenkinsHome}/matrix-cache/test_matrix-job.json")
-            def data = new groovy.json.JsonSlurper().parse(cacheFile)
+            def expectedKey = script.invokeMethod('_generateContextKey', [refs, 'build', [:]])
+            def cacheDir = new File("${jenkinsHome}/matrix-cache/test_matrix-job")
+            def markerFile = new File(cacheDir, "${expectedKey}.success")
 
-            assertEquals('cache should contain 1 entry', 1, data.size())
-            assertEquals('value should be SUCCESS', 'SUCCESS', data.values().first())
+            assertEquals('cache should contain 1 marker file', 1, cacheDir.listFiles().size())
+            assertTrue('marker file should exist', markerFile.exists())
+            assertEquals('marker file content should be SUCCESS', 'SUCCESS', markerFile.text)
         }
 
         @Test
@@ -492,12 +476,13 @@ class TestMatrixCache {
             script1.invokeMethod('markDone', [refs, 'build', [:]])
 
             // Job A's cache should exist
-            def cacheFileA = new File("${jenkinsHome}/matrix-cache/job_a.json")
-            assertTrue('job A cache file should exist', cacheFileA.exists())
+            def key = script1.invokeMethod('_generateContextKey', [refs, 'build', [:]])
+            def cacheFileA = new File("${jenkinsHome}/matrix-cache/job_a/${key}.success")
+            assertTrue('job A marker file should exist', cacheFileA.exists())
 
             // Job B's cache should NOT exist
-            def cacheFileB = new File("${jenkinsHome}/matrix-cache/job_b.json")
-            assertFalse('job B cache file should not exist', cacheFileB.exists())
+            def cacheDirB = new File("${jenkinsHome}/matrix-cache/job_b")
+            assertFalse('job B cache directory should not exist', cacheDirB.exists())
         }
 
         @Test
@@ -510,14 +495,12 @@ class TestMatrixCache {
             script.invokeMethod('markDone', [refs, stageName, [os: 'linux']])
             script.invokeMethod('markDone', [refs, stageName, [os: 'macos']])
 
-            def cacheFile = new File("${jenkinsHome}/matrix-cache/test_matrix-job.json")
-            def data = new groovy.json.JsonSlurper().parse(cacheFile)
+            def cacheDir = new File("${jenkinsHome}/matrix-cache/test_matrix-job")
+            assertEquals('should have 2 marker files for different extraParams', 2, cacheDir.listFiles().size())
 
-            assertEquals('should have 2 entries for different extraParams', 2, data.size())
-
-            // Each entry should be SUCCESS
-            data.each { k, v ->
-                assertEquals("key ${k} should be SUCCESS", 'SUCCESS', v)
+            // Each marker should contain SUCCESS
+            cacheDir.listFiles().each { file ->
+                assertEquals("marker ${file.name} should be SUCCESS", 'SUCCESS', file.text)
             }
         }
     }

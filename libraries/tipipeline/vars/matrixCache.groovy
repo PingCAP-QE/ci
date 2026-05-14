@@ -1,5 +1,3 @@
-import groovy.json.JsonSlurper
-import groovy.json.JsonOutput
 import java.security.MessageDigest
 
 /**
@@ -29,17 +27,9 @@ def _generateContextKey(Map refs, String stageName, Map extraParams = [:]) {
  */
 def shouldSkip(Map refs, String stageName, Map extraParams = [:]) {
     def key = _generateContextKey(refs, stageName, extraParams)
-    def cacheFile = new File("${env.JENKINS_HOME}/matrix-cache/${env.JOB_NAME.replaceAll('/', '_')}.json")
-
-    if (!cacheFile.exists()) return false
-
-    try {
-        def json = new JsonSlurper().parse(cacheFile)
-        return json[key] == "SUCCESS"
-    } catch (e) {
-        println "MatrixCache: failed to read cache: ${e.message}"
-        return false
-    }
+    def cacheDir = new File("${env.JENKINS_HOME}/matrix-cache/${env.JOB_NAME.replaceAll('/', '_')}")
+    def markerFile = new File(cacheDir, "${key}.success")
+    return markerFile.exists()
 }
 
 /**
@@ -47,18 +37,11 @@ def shouldSkip(Map refs, String stageName, Map extraParams = [:]) {
  */
 def markDone(Map refs, String stageName, Map extraParams = [:]) {
     def key = _generateContextKey(refs, stageName, extraParams)
-    def cacheDir = new File("${env.JENKINS_HOME}/matrix-cache")
+    def cacheDir = new File("${env.JENKINS_HOME}/matrix-cache/${env.JOB_NAME.replaceAll('/', '_')}")
     if (!cacheDir.exists()) cacheDir.mkdirs()
 
-    def cacheFile = new File(cacheDir, "${env.JOB_NAME.replaceAll('/', '_')}.json")
-    def data = [:]
-
-    // Use synchronized to ensure safe concurrent writes (matrix stages run in parallel).
-    synchronized(this) {
-        if (cacheFile.exists()) {
-            data = new JsonSlurper().parse(cacheFile)
-        }
-        data[key] = "SUCCESS"
-        cacheFile.text = JsonOutput.toJson(data)
+    def markerFile = new File(cacheDir, "${key}.success")
+    if (!markerFile.exists()) {
+        markerFile.text = "SUCCESS"
     }
 }
