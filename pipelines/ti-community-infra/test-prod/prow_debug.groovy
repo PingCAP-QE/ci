@@ -24,5 +24,51 @@ pipeline {
                 sh "pwd && ls -l"
             }
         }
+
+        stage('Matrix Cache Debug') {
+            matrix {
+                axes {
+                    axis {
+                        name 'AXIS_OS'
+                        values 'linux', 'darwin'
+                    }
+                    axis {
+                        name 'AXIS_ARCH'
+                        values 'amd64', 'arm64'
+                    }
+                }
+                stages {
+                    stage('Verify Matrix Cache Key Inputs') {
+                        steps {
+                            script {
+                                def refs = params.JOB_SPEC ? readJSON(text: params.JOB_SPEC).refs : [org: 'ti-community-infra', repo: 'ci', base_sha: 'local']
+                                def stageName = 'matrix-cache-debug'
+
+                                def skipWithoutAxisParams = matrixCache.shouldSkip(refs, stageName)
+                                def skipWithAxisParams = matrixCache.shouldSkip(refs, stageName, [
+                                    axis_os  : env.AXIS_OS,
+                                    axis_arch: env.AXIS_ARCH,
+                                ])
+
+                                echo "matrixCache debug axis=${env.AXIS_OS}/${env.AXIS_ARCH}"
+                                echo "matrixCache key-mode default(no extraParams): skip=${skipWithoutAxisParams}"
+                                echo "matrixCache key-mode explicit(extraParams axis_os/axis_arch): skip=${skipWithAxisParams}"
+                            }
+                        }
+                        post {
+                            success {
+                                script {
+                                    def refs = params.JOB_SPEC ? readJSON(text: params.JOB_SPEC).refs : [org: 'ti-community-infra', repo: 'ci', base_sha: 'local']
+                                    matrixCache.markDone(refs, 'matrix-cache-debug', [
+                                        axis_os  : env.AXIS_OS,
+                                        axis_arch: env.AXIS_ARCH,
+                                    ])
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

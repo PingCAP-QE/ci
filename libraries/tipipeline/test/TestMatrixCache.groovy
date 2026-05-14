@@ -171,9 +171,9 @@ class TestMatrixCache {
         }
 
         @Test
-        void shouldIncorporateMatrixAxisVariables() {
-            // Scripts loaded with different axis envs must produce different keys
-            // even when all other inputs are identical.
+        void shouldNotIncorporateMatrixAxisVariablesAutomatically() {
+            // Matrix env variables should not affect keys unless callers pass them
+            // through extraParams explicitly.
             def refs = [org: 'pingcap', repo: 'tidb', base_sha: 'abc']
 
             def script1 = loadScript([AXIS_OS: 'linux', AXIS_ARCH: 'amd64'])
@@ -181,27 +181,24 @@ class TestMatrixCache {
 
             def k1 = script1.invokeMethod('_generateContextKey', [refs, 'build', [:]])
             def k2 = script2.invokeMethod('_generateContextKey', [refs, 'build', [:]])
-            assertNotEquals('different matrix axes should produce different keys', k1, k2)
+            assertEquals('different matrix axes should not change key automatically', k1, k2)
         }
 
         @Test
-        void shouldIgnoreJenkinsDefaultEnvVars() {
-            // Default vars like WORKSPACE, HOME, PATH, BUILD_NUMBER, JOB_NAME
-            // should be filtered out and not affect the key.
+        void shouldAllowCallerToIncludeMatrixAxisViaExtraParams() {
             def refs = [org: 'pingcap', repo: 'tidb', base_sha: 'abc']
 
-            def script1 = loadScript([MY_AXIS: 'val1', WORKSPACE: '/ws', HOME: '/home', PATH: '/bin', BUILD_NUMBER: '42', JOB_NAME: 'job'])
-            def script2 = loadScript([MY_AXIS: 'val1'])
+            def script = loadScript([AXIS_OS: 'linux', AXIS_ARCH: 'amd64'])
 
-            def k1 = script1.invokeMethod('_generateContextKey', [refs, 'build', [:]])
-            def k2 = script2.invokeMethod('_generateContextKey', [refs, 'build', [:]])
-            assertEquals('default env vars should be filtered out', k1, k2)
+            def k1 = script.invokeMethod('_generateContextKey', [refs, 'build', [axis_os: 'linux', axis_arch: 'amd64']])
+            def k2 = script.invokeMethod('_generateContextKey', [refs, 'build', [axis_os: 'linux', axis_arch: 'arm64']])
+
+            assertNotEquals('callers can control axis-sensitive key parts via extraParams', k1, k2)
         }
 
         @Test
         void shouldBeIndependentOfJOB_NAMEValue() {
-            // JOB_NAME is filtered out from env.getEnvironment() results,
-            // so it should NOT affect the generated key.
+            // JOB_NAME is used only to isolate cache files, not to build key.
             def refs = [org: 'pingcap', repo: 'tidb', base_sha: 'abc']
 
             def script1 = loadScript([MY_AXIS: 'val', JOB_NAME: 'job/a'])
@@ -210,22 +207,7 @@ class TestMatrixCache {
             def k1 = script1.invokeMethod('_generateContextKey', [refs, 'build', [:]])
             def k2 = script2.invokeMethod('_generateContextKey', [refs, 'build', [:]])
 
-            assertEquals('JOB_NAME should be filtered out', k1, k2)
-        }
-
-        @Test
-        void shouldSortMatrixContextDeterministically() {
-            // Matrix axis variables should be sorted alphabetically so that
-            // the same set produces the same key regardless of insertion order.
-            def refs = [org: 'pingcap', repo: 'tidb', base_sha: 'abc']
-
-            def script1 = loadScript([AXIS_Z: 'z', AXIS_A: 'a'])
-            def script2 = loadScript([AXIS_A: 'a', AXIS_Z: 'z'])
-
-            def k1 = script1.invokeMethod('_generateContextKey', [refs, 'build', [:]])
-            def k2 = script2.invokeMethod('_generateContextKey', [refs, 'build', [:]])
-
-            assertEquals('sorted env should produce same key regardless of input order', k1, k2)
+            assertEquals('JOB_NAME should not affect generated key', k1, k2)
         }
 
         @Test

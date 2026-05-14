@@ -117,6 +117,29 @@ presubmits:
                 memory: 256Mi
                 cpu: 200m
 
+    - name: pull-test-tipipeline-libraries
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^libraries/.*\\.groovy$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: groovy:4.0.29-jdk17
+            command: [sh, -ce]
+            args:
+              - |
+                for test_file in libraries/tipipeline/test/Test*.groovy; do
+                  echo "Running ${test_file}"
+                  groovy "${test_file}"
+                done
+            resources:
+              limits:
+                memory: 512Mi
+                cpu: 500m
+
     - name: pull-verify-jenkins-pipelines
       labels: *labels
       decorate: true

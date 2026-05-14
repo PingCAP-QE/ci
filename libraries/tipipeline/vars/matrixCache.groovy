@@ -12,20 +12,13 @@ def _generateContextKey(Map refs, String stageName, Map extraParams = [:]) {
     def baseSha = refs.base_sha ?: ''
     def pullShas = refs.pulls?.collect { it.sha }?.join('_') ?: 'no-pulls'
 
-    // 2. Automatically retrieve matrix axis variables.
-    // Jenkins injects axis variables into env when running a matrix stage.
-    // We filter out common axis variables based on naming conventions.
-    def matrixContext = env.getEnvironment().findAll { k, v ->
-        // Assume axis variables are uppercase or identifiable by a specific prefix.
-        // It is recommended to pass them via function parameters or to exclude Jenkins default variables by convention.
-        return k ==~ /[A-Z0-9_]+/ && !['WORKSPACE', 'HOME', 'PATH', 'BUILD_NUMBER', 'JOB_NAME'].contains(k)
-    }.sort().collect { k, v -> "${k}=${v}" }.join(',')
-
-    // 3. Combine extra parameters
+    // 2. Combine extra parameters.
+    // Matrix axis/env values are NOT auto-included. Callers decide what to include
+    // by passing explicit fields through extraParams.
     def extras = extraParams.sort().collect { k, v -> "${k}=${v}" }.join(',')
 
     // Assemble the raw string
-    def rawKey = "${org}/${repo}/${baseSha}/${pullShas}/${stageName}/${matrixContext}/${extras}"
+    def rawKey = "${org}/${repo}/${baseSha}/${pullShas}/${stageName}/${extras}"
 
     // Use MD5 to compress the key length, preventing overly long filenames or JSON keys.
     return MessageDigest.getInstance("MD5").digest(rawKey.getBytes()).encodeHex().toString()
