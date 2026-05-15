@@ -18,18 +18,12 @@ postsubmits:
       spec:
         containers:
           - name: build-pdf
-            image: pandoc/extra:latest-ubuntu
-            imagePullPolicy: Always
+            image: us-docker.pkg.dev/pingcap-testing-account/hub/pingcap-qe/docs-merged-update-runtime@sha256:ce3647630176a08c939ad665956dedd3a855b083f84b93f4bd3b9a98eeb1436f
+            imagePullPolicy: IfNotPresent
             command: [bash, -ce]
             args:
               - |
                 set -euo pipefail
-
-                export DEBIAN_FRONTEND=noninteractive
-                apt-get update
-                apt-get install -y --no-install-recommends python3 rclone fonts-wqy-microhei
-                rm -rf /var/lib/apt/lists/*
-                fc-cache -fv >/dev/null || true
 
                 branch="${PULL_BASE_REF:?missing PULL_BASE_REF}"
                 repo_dir="/home/prow/go/src/github.com/${REPO_OWNER:?missing REPO_OWNER}/${REPO_NAME:?missing REPO_NAME}"
@@ -87,8 +81,6 @@ postsubmits:
               limits:
                 memory: 12Gi
                 cpu: "4"
-            securityContext:
-              runAsUser: 0
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
