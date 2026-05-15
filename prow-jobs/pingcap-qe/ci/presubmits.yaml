@@ -127,7 +127,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: groovy:4.0.29-jdk17
+            image: groovy:4.0.32-jdk17
             command: [sh, -ce]
             args:
               - |
