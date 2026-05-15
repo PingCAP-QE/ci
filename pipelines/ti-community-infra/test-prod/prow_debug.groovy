@@ -11,15 +11,12 @@ pipeline {
     options { skipDefaultCheckout() }
     stages {
         stage('Checkout') {
-            when { expression { return params.JOB_SPEC } }
             steps {
                 dir('test') {
                     script {
                         prow.checkoutRefs(readJSON(text: params.JOB_SPEC).refs)
                     }
-                    sh "pwd && ls -l"
                 }
-                sh "pwd && ls -l"
             }
         }
 
@@ -36,14 +33,15 @@ pipeline {
                     }
                 }
                 stages {
-                    stage('Verify Matrix Cache Key Inputs') {
+                    stage('Test Cache Able') {
                         when {
                             expression {
-                                return matrixCache.shouldSkip(REFS, env.STAGE_NAME)
+                                return !matrixCache.shouldSkip(REFS, env.STAGE_NAME)
                             }
                         }
                         steps {
-                            echo 'matrixCache debug axis=${AXIS_OS}/${AXIS_ARCH}'
+                            echo "STAGE_NAME=${env.STAGE_NAME}"
+                            echo "matrixCache debug axis=${env.AXIS_OS}/${env.AXIS_ARCH}"
                         }
                         post {
                             success {
