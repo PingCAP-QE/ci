@@ -34,6 +34,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         environment {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
@@ -53,6 +54,8 @@ pipeline {
                             success {
                                 dir('tiflow') {
                                     script {
+                                        matrixCache.markDone(REFS, env.STAGE_NAME)
+
                                         def testConfigs = [
                                             dm_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
                                             unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/tidb_cdc_test/cov.unit.out"],

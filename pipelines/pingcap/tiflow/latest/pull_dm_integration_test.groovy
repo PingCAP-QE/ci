@@ -132,6 +132,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         environment {
                             DM_CODECOV_TOKEN = credentials('codecov-token-tiflow')
                             DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
@@ -183,6 +184,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", allowEmptyArchive: true
                             }
+                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
                         }
                     }
                 }

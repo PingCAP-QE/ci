@@ -101,6 +101,7 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
@@ -139,6 +140,7 @@ pipeline {
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
                         }
                     }
                 }

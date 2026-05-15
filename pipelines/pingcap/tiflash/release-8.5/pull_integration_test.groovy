@@ -371,6 +371,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         steps {
                             dir("${WORKSPACE}/tiflash") {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'it-build')){
@@ -416,6 +417,7 @@ pipeline {
                                     }
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
                         }
                     }
                 }

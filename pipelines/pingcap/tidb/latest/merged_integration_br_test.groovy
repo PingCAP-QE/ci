@@ -120,6 +120,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
                             dir(REFS.repo) {
@@ -149,6 +150,8 @@ pipeline {
                             success {
                                 dir(REFS.repo) {
                                     script {
+                                        matrixCache.markDone(REFS, env.STAGE_NAME)
+
                                         if (env.TEST_GROUP == 'G07' || env.TEST_GROUP == 'G08') {
                                             echo "Temporary hotfix: skip coverage upload for skipped ${env.TEST_GROUP}"
                                         } else {

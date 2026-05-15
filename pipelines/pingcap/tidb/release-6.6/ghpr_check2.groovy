@@ -90,6 +90,7 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
@@ -107,6 +108,7 @@ pipeline {
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, explain-test.out', allowEmptyArchive: true)
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
                         }
                     }
                 }

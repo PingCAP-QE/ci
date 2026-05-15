@@ -94,6 +94,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
                             dir(REFS.repo) {
@@ -119,6 +120,10 @@ pipeline {
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
+                                script {
+                                    matrixCache.markDone(REFS, env.STAGE_NAME)
+                                }
+
                                 dir(REFS.repo) {
                                     sh label: "upload coverage", script: """
                                         ls -alh /tmp/group_cover

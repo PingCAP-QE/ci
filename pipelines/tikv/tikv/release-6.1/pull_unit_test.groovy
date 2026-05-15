@@ -156,6 +156,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         steps {
                             dir('/home/jenkins/agent/tikv-presubmit/unit-test') {
                                 sh label: 'os info', script:"""
@@ -240,6 +241,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-ut.tar.gz", allowEmptyArchive: true
                             }
+                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
                         }
                     }
                 }

@@ -34,11 +34,7 @@ pipeline {
                 }
                 stages {
                     stage('Test Cache Able') {
-                        when {
-                            expression {
-                                return !matrixCache.shouldSkip(REFS, env.STAGE_NAME)
-                            }
-                        }
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         steps {
                             echo "STAGE_NAME=${env.STAGE_NAME}"
                             echo "matrixCache debug axis=${env.AXIS_OS}/${env.AXIS_ARCH}"

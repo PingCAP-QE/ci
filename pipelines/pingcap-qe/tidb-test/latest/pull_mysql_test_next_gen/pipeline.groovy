@@ -97,6 +97,7 @@ pipeline {
                 }
                 stages {
                     stage('Test') {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         steps {
                             dir(REFS.repo) {
                                 // restore the cache saved by previous stage.
@@ -126,6 +127,7 @@ pipeline {
                             unsuccessful {
                                 archiveArtifacts(artifacts: 'tidb-test/mysql_test/mysql-test.out*', allowEmptyArchive: true)
                             }
+                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
                         }
                     }
                 }

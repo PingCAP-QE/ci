@@ -102,6 +102,7 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
@@ -143,6 +144,8 @@ pipeline {
                             success {
                                 dir("tidb") {
                                     script {
+                                        matrixCache.markDone(REFS, env.STAGE_NAME)
+
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                                     }
                                 }

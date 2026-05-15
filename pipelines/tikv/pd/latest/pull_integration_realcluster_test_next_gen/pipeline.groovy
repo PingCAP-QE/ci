@@ -134,6 +134,7 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
+                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         environment {
                             MINIO_BIN_PATH = "bin/minio"
                         }
@@ -193,6 +194,7 @@ pipeline {
                                     }
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
                         }
                     }
                 }
