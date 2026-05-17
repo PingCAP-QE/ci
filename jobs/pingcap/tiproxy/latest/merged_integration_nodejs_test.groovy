@@ -10,10 +10,6 @@ pipelineJob('pingcap/tiproxy/merged_integration_nodejs_test') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tiproxy")
-    }
 
     definition {
         cpsScm {

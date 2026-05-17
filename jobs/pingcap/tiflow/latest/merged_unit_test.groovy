@@ -10,9 +10,6 @@ pipelineJob('pingcap/tiflow/merged_unit_test') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/tiflow")
-    }
 
     definition {
         cpsScm {

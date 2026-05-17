@@ -10,9 +10,6 @@ pipelineJob('pingcap/docs-tidb-operator/merged_update') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/docs-tidb-operator")
-    }
 
     definition {
         cpsScm {

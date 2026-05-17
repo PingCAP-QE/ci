@@ -10,10 +10,6 @@ pipelineJob('pingcap/tiflash/merged_build_next_gen') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tiflash")
-    }
 
     definition {
         cpsScm {

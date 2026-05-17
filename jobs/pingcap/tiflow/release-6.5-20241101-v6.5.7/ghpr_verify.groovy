@@ -9,9 +9,6 @@ pipelineJob('pingcap/tiflow/release-6.5-20241101-v6.5.7/ghpr_verify') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/tiflow")
-    }
 
     definition {
         cpsScm {

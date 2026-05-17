@@ -9,9 +9,6 @@ pipelineJob('pingcap/tiflow/release-6.1/pull_cdc_integration_test') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/tiflow")
-    }
 
     definition {
         cpsScm {

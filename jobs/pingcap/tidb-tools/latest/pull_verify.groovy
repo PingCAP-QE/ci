@@ -10,9 +10,6 @@ pipelineJob('pingcap/tidb-tools/pull_verify') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/tidb-tools")
-    }
 
     definition {
         cpsScm {
