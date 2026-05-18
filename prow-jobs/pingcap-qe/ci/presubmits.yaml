@@ -132,7 +132,7 @@ presubmits:
             args:
               - |
                 # system global trusted libraries
-                for test_file in libraries/tisys/test/Test*.groovy; do
+                for test_file in libraries/tisys/tests/Test*.groovy; do
                   echo "Running ${test_file}"
                   groovy "${test_file}"
                 done
