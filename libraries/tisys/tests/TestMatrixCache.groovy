@@ -14,7 +14,7 @@ import static org.junit.Assert.*
  * (e.g. env.JENKINS_HOME) and the getEnvironment() method call.
  *
  * Usage:
- *   groovy libraries/tisys/test/TestMatrixCache.groovy
+ *   groovy libraries/tisys/tests/TestMatrixCache.groovy
  */
 @RunWith(Suite.class)
 @SuiteClasses([
