@@ -3,11 +3,11 @@ def withCiLabels(String podTemplateFile, def refs) {
     try {
         podYaml = readTrusted(podTemplateFile)
     } catch (Exception e) {
-        echo "WARNING: pod_label: failed to read pod template ${podTemplateFile}: ${e.message}"
+        echo "[pod_label] ⚠️ failed to read pod template ${podTemplateFile}: ${e.message}"
         return ''
     }
     if (podYaml == null || !podYaml.toString().trim()) {
-        echo "WARNING: pod_label: empty pod template ${podTemplateFile}, skip label injection"
+        echo "[pod_label] ⚠️ empty pod template ${podTemplateFile}, skip label injection"
         return podYaml ?: ''
     }
 
@@ -15,11 +15,11 @@ def withCiLabels(String podTemplateFile, def refs) {
     try {
         podSpec = readYaml(text: podYaml)
     } catch (Exception e) {
-        echo "WARNING: pod_label: invalid pod yaml in ${podTemplateFile}: ${e.message}, skip label injection"
+        echo "[pod_label] ⚠️ invalid pod yaml in ${podTemplateFile}: ${e.message}, skip label injection"
         return podYaml
     }
     if (!(podSpec instanceof Map)) {
-        echo "WARNING: pod_label: pod yaml in ${podTemplateFile} is not a map, skip label injection"
+        echo "[pod_label] ⚠️ pod yaml in ${podTemplateFile} is not a map, skip label injection"
         return podYaml
     }
 
@@ -36,7 +36,7 @@ def withCiLabels(String podTemplateFile, def refs) {
     try {
         return writeYaml(returnText: true, data: podSpec).trim()
     } catch (Exception e) {
-        echo "WARNING: pod_label: failed to render pod yaml in ${podTemplateFile}: ${e.message}, skip label injection"
+        echo "[pod_label] ⚠️ failed to render pod yaml in ${podTemplateFile}: ${e.message}, skip label injection"
         return podYaml.toString().trim()
     }
 }
@@ -57,7 +57,7 @@ def buildCiAnnotationsYaml(def refs) {
     try {
         return writeYaml(returnText: true, data: data).trim()
     } catch (Exception e) {
-        echo "WARNING: pod_label: failed to build annotations yaml: ${e.message}"
+        echo "[pod_label] ⚠️ failed to build annotations yaml: ${e.message}"
         return ''
     }
 }
