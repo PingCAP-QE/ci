@@ -3,7 +3,7 @@ def withCiLabels(String podTemplateFile, def refs) {
     try {
         podYaml = readTrusted(podTemplateFile)
     } catch (Exception e) {
-        log.warning("pod_label: failed to read pod template ${podTemplateFile}: ${e.message}")
+        echo "WARNING: pod_label: failed to read pod template ${podTemplateFile}: ${e.message}"
         return ''
     }
     if (podYaml == null || !podYaml.toString().trim()) {
