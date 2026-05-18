@@ -124,7 +124,7 @@ See the full guide at `docs/guides/testing-library-code.md`.
 brew install groovy
 
 # Run tests
-groovy libraries/tipipeline/test/TestComponent.groovy
+groovy libraries/tipipeline/tests/TestComponent.groovy
 ```
 
 **Key practices:**
@@ -132,7 +132,7 @@ groovy libraries/tipipeline/test/TestComponent.groovy
 - Use **table-driven** tests: define a table of cases, iterate with `each`
 - Name methods in `should` style: `shouldExtractParamsFromTitle()`
 - Include assertion messages for failure diagnosis
-- Tests live in `libraries/tipipeline/test/`
+- Tests live in `libraries/tipipeline/tests/`
 
 ### 4. Running Verification Scripts
 

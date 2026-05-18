@@ -2,7 +2,7 @@
  * Unit tests for parseCIParamsFromPRTitle.
  *
  * Usage:
- *   groovy libraries/tipipeline/test/TestParseCIParams.groovy
+ *   groovy libraries/tipipeline/tests/TestParseCIParams.groovy
  *
  * The function under test is a copy from libraries/tipipeline/vars/component.groovy.
  * It is a pure function with no Jenkins API dependencies, so it can be tested standalone.
