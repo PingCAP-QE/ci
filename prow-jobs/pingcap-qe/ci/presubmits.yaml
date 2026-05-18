@@ -117,7 +117,7 @@ presubmits:
                 memory: 256Mi
                 cpu: 200m
 
-    - name: pull-test-tipipeline-libraries
+    - name: pull-test-jenkins-libraries
       labels: *labels
       decorate: true
       max_concurrency: 1
@@ -131,10 +131,18 @@ presubmits:
             command: [sh, -ce]
             args:
               - |
+                # system global trusted libraries
+                for test_file in libraries/tisys/test/Test*.groovy; do
+                  echo "Running ${test_file}"
+                  groovy "${test_file}"
+                done
+
+                # untrusted libraries
                 for test_file in libraries/tipipeline/test/Test*.groovy; do
                   echo "Running ${test_file}"
                   groovy "${test_file}"
                 done
+
             resources:
               limits:
                 memory: 512Mi
