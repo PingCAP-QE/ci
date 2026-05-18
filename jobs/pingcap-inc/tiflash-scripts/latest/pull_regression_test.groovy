@@ -10,9 +10,6 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_regression_test') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap-inc/tiflash-scripts")
-    }
 
     definition {
         cpsScm {

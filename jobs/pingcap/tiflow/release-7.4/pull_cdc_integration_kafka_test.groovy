@@ -9,9 +9,6 @@ pipelineJob('pingcap/tiflow/release-7.4/pull_cdc_integration_kafka_test') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/tiflow")
-    }
 
     definition {
         cpsScm {

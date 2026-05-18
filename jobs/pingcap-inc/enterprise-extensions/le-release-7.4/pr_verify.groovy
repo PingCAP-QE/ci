@@ -13,10 +13,6 @@ pipelineJob("${fullRepoName}/le-release-7.4/${jobName}") {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/${fullRepoName}")
-    }
 
     definition {
         cpsScm {

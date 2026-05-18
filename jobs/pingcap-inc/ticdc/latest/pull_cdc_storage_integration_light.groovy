@@ -10,9 +10,6 @@ pipelineJob('pingcap-inc/ticdc/pull_cdc_storage_integration_light') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap-inc/ticdc")
-    }
 
     definition {
         cpsScm {

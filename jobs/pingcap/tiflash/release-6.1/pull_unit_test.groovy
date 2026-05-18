@@ -10,10 +10,6 @@ pipelineJob('pingcap/tiflash/release-6.1/pull_unit_test') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tiflash")
-    }
 
     definition {
         cpsScm {

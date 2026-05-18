@@ -9,10 +9,6 @@ pipelineJob('pingcap/tidb/release-6.5-with-kv-timeout-feature/ghpr_build') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb")
-    }
 
     definition {
         cpsScm {
