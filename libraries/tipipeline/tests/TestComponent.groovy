@@ -8,7 +8,7 @@ import static org.junit.Assert.*
  * Table-driven unit tests for component.groovy utility functions.
  *
  * Usage:
- *   groovy libraries/tipipeline/test/TestComponent.groovy
+ *   groovy libraries/tipipeline/tests/TestComponent.groovy
  */
 @RunWith(Enclosed.class)
 class TestComponent {

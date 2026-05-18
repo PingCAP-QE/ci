@@ -32,7 +32,7 @@ groovy --version
 
 ## Test Directory Structure
 
-Tests live under `libraries/tipipeline/test/`, mirroring the source layout:
+Tests live under `libraries/tipipeline/tests/`, mirroring the source layout:
 
 ```
 libraries/tipipeline/
@@ -156,7 +156,7 @@ This makes test failures instantly readable.
 Run a single test file with the `groovy` command:
 
 ```bash
-groovy libraries/tipipeline/test/TestComponent.groovy
+groovy libraries/tipipeline/tests/TestComponent.groovy
 ```
 
 Groovy automatically detects JUnit 4 annotations and runs the tests. Example output:
@@ -169,7 +169,7 @@ JUnit 4 Runner, Tests: 6, Failures: 0, Time: 925
 Exit code is `0` on success and `1` on failure, so it integrates with CI scripts:
 
 ```bash
-groovy libraries/tipipeline/test/TestComponent.groovy || {
+groovy libraries/tipipeline/tests/TestComponent.groovy || {
     echo "Tests failed!"
     exit 1
 }
@@ -195,7 +195,7 @@ groovy libraries/tipipeline/test/TestComponent.groovy || {
 
 ## Example: Real Test File
 
-See `libraries/tipipeline/test/TestComponent.groovy` for a complete example testing:
+See `libraries/tipipeline/tests/TestComponent.groovy` for a complete example testing:
 
 - `parseCIParamsFromPRTitle` — extracting CI parameters from PR titles
 - `computeBranchFromPR` — deriving component branches from target branches and PR titles
@@ -204,8 +204,8 @@ Both functions are pure (no Jenkins API calls) and the tests cover 27+ cases acr
 
 ## Adding a New Test File
 
-1. Create `libraries/tipipeline/test/Test<YourFunction>.groovy`
+1. Create `libraries/tipipeline/tests/Test<YourFunction>.groovy`
 2. Import JUnit 4 classes and `@RunWith(Enclosed.class)` for nested suites
 3. Load the source function via `GroovyShell` in `@Before`
 4. Write table-driven `@Test` methods
-5. Run with `groovy libraries/tipipeline/test/Test<YourFunction>.groovy`
+5. Run with `groovy libraries/tipipeline/tests/Test<YourFunction>.groovy`

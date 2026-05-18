@@ -14,7 +14,7 @@ import static org.junit.Assert.*
  * (e.g. env.JENKINS_HOME) and the getEnvironment() method call.
  *
  * Usage:
- *   groovy libraries/tipipeline/test/TestMatrixCache.groovy
+ *   groovy libraries/tisys/tests/TestMatrixCache.groovy
  */
 @RunWith(Suite.class)
 @SuiteClasses([
@@ -65,7 +65,7 @@ class TestMatrixCache {
         def binding = new Binding()
         binding.setVariable('env', envMock)
         def shell = new GroovyShell(binding)
-        return shell.parse(new File("libraries/tipipeline/vars/matrixCache.groovy"))
+        return shell.parse(new File("libraries/tisys/vars/matrixCache.groovy"))
     }
 
     // ============================================================
