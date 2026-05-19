@@ -250,6 +250,22 @@ pipeline {
                                     if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
                                         sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
                                         prow.sendTestCaseRunReport("pingcap/tidb", "${TARGET_BRANCH_TIDB}")
+                                        sh label: "Stage flaky analysis artifacts", script: """#!/usr/bin/env bash
+                                            cell_id="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
+                                            analysis_dir="tidb/flaky-analysis/\${cell_id}"
+                                            mkdir -p "\${analysis_dir}"
+
+                                            mv bazel-go-test-problem-cases.json "\${analysis_dir}/" 2>/dev/null || true
+                                            mv bazel-go-test-index.log "\${analysis_dir}/" 2>/dev/null || true
+                                            mv bazel-flaky-summaries.log "\${analysis_dir}/" 2>/dev/null || true
+                                            mv bazel-target-output-*.log "\${analysis_dir}/" 2>/dev/null || true
+                                            mv tidb/bazel-test.log "\${analysis_dir}/" 2>/dev/null || true
+                                        """
+                                        archiveArtifacts(
+                                            artifacts: 'tidb/flaky-analysis/**/*.json,tidb/flaky-analysis/**/*.log',
+                                            fingerprint: false,
+                                            allowEmptyArchive: true
+                                        )
                                     }
                                 }
                             }
@@ -264,18 +280,6 @@ pipeline {
                                     tar -czvf "\${logs_dir}.tar.gz" "\${logs_dir}" || true
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
-                                }
-                                script {
-                                    if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
-                                        sh """
-                                            logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
-                                            mkdir -p \$logs_dir
-                                            mv tidb/bazel-test.log \$logs_dir 2>/dev/null || true
-                                            mv bazel-*.log \$logs_dir 2>/dev/null || true
-                                            mv bazel-*.json \$logs_dir 2>/dev/null || true
-                                        """
-                                        archiveArtifacts(artifacts: '*/bazel-*.log,*/bazel-*.json', fingerprint: false, allowEmptyArchive: true)
-                                    }
                                 }
                             }
                         }
