@@ -52,17 +52,6 @@ postsubmits:
       skip_report: false
 
     - <<: *brancher
-      name: pingcap/tidb/merged_sqllogic_test
-      agent: jenkins
-      labels:
-        master: "1"
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: ci/sqllogic-test
-      max_concurrency: 1
-      skip_report: true
-
-    - <<: *brancher
       name: pingcap/tidb/merged_integration_copr_test
       agent: jenkins
       labels:
@@ -105,28 +94,6 @@ postsubmits:
       context: ci/integration-python-orm-test
       max_concurrency: 1
       skip_report: false
-
-    - <<: *brancher
-      name: pingcap/tidb/merged_integration_nodejs_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: ci/integration-nodejs-test
-      max_concurrency: 1
-      skip_report: true
-
-    - <<: *brancher
-      name: pingcap/tidb/merged_integration_br_test
-      agent: jenkins
-      labels:
-        master: "1"
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: wip/integration-br-test
-      max_concurrency: 1
-      skip_report: true
 
     - <<: *brancher
       name: pingcap/tidb/merged_integration_lightning_test
