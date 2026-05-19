@@ -177,6 +177,14 @@ pipeline {
                                     if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
                                         sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
                                         prow.sendTestCaseRunReport("${REFS.org}/${REFS.repo}", "${REFS.base_ref}")
+                                        sh """
+                                            logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
+                                            mkdir -p \$logs_dir
+                                            mv tidb/bazel-test.log \$logs_dir 2>/dev/null || true
+                                            mv bazel-*.log \$logs_dir 2>/dev/null || true
+                                            mv bazel-*.json \$logs_dir 2>/dev/null || true
+                                        """
+                                        archiveArtifacts(artifacts: '*/bazel-*.log,*/bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                                     }
                                 }
                             }
@@ -191,18 +199,6 @@ pipeline {
                                     tar -czvf "\${logs_dir}.tar.gz" "\${logs_dir}" || true
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
-                                }
-                                script {
-                                    if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
-                                        sh """
-                                            logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
-                                            mkdir -p \$logs_dir
-                                            mv tidb/bazel-test.log \$logs_dir 2>/dev/null || true
-                                            mv bazel-*.log \$logs_dir 2>/dev/null || true
-                                            mv bazel-*.json \$logs_dir 2>/dev/null || true
-                                        """
-                                        archiveArtifacts(artifacts: '*/bazel-*.log,*/bazel-*.json', fingerprint: false, allowEmptyArchive: true)
-                                    }
                                 }
                             }
                         }
