@@ -107,12 +107,7 @@ pipeline {
                                             fi
                                             cd /git
                                             rm -rf sqllogictest sqllogictest_v20241212.tar.gz
-                                            # Prefer GAR mirror on GCP; keep hub-zot as fallback for compatibility.
-                                            for source in \
-                                                "${OCI_ARTIFACT_HOST}/pingcap/case-data/sqllogic:v20241212" \
-                                                "hub-zot.pingcap.net/mirrors/hub/pingcap/case-data/sqllogic:v20241212"; do
-                                                timeout 60 oras pull "${source}" && break || true
-                                            done
+                                            timeout 60 oras pull "${OCI_ARTIFACT_HOST}/pingcap/case-data/sqllogic:v20241212" || true
                                             if [ -f sqllogictest_v20241212.tar.gz ]; then
                                                 tar xzf sqllogictest_v20241212.tar.gz
                                                 rm -f sqllogictest_v20241212.tar.gz
@@ -194,12 +189,7 @@ pipeline {
                                             fi
                                             cd /git
                                             rm -rf sqllogictest sqllogictest_v20241212.tar.gz
-                                            # Prefer GAR mirror on GCP; keep hub-zot as fallback for compatibility.
-                                            for source in \
-                                                "${OCI_ARTIFACT_HOST}/pingcap/case-data/sqllogic:v20241212" \
-                                                "hub-zot.pingcap.net/mirrors/hub/pingcap/case-data/sqllogic:v20241212"; do
-                                                timeout 60 oras pull "${source}" && break || true
-                                            done
+                                            timeout 60 oras pull "${OCI_ARTIFACT_HOST}/pingcap/case-data/sqllogic:v20241212" || true
                                             if [ -f sqllogictest_v20241212.tar.gz ]; then
                                                 tar xzf sqllogictest_v20241212.tar.gz
                                                 rm -f sqllogictest_v20241212.tar.gz
