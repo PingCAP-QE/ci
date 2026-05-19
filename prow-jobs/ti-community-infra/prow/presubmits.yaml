@@ -9,7 +9,7 @@ presubmits:
       clone_depth: 1
       spec:
         containers:
-          - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20240515-17c6d50e24-test-infra
+          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:latest-master
             command:
               - runner.sh
             args:
@@ -24,7 +24,7 @@ presubmits:
       spec:
         serviceAccountName: prow-pusher
         containers:
-          - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20240515-17c6d50e24-test-infra
+          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:latest-master
             command:
               - runner.sh
             args:
@@ -48,7 +48,7 @@ presubmits:
       clone_depth: 1
       spec:
         containers:
-          - image: gcr.io/k8s-staging-test-infra/kubekins-e2e:v20240515-17c6d50e24-test-infra
+          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:latest-master
             command:
               - runner.sh
             args:
