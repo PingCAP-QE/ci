@@ -22,7 +22,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/hub
     }
     options {
         timeout(time: 60, unit: 'MINUTES')

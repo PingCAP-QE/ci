@@ -24,7 +24,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
         CI = "1"
     }
     stages {
