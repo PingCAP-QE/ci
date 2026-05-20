@@ -99,12 +99,13 @@ pipeline {
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-jdbc-test") {
-                                    container("java") {
-                                        sh label: "test_cmds=${TEST_CMDS} ", script: """
-                                            #!/usr/bin/env bash
-                                            ${TEST_CMDS}
-                                        """
-                                    }
+                                    sh "echo 'restore tidb-test workspace'"
+                                }
+                                container("java") {
+                                    sh label: "test_cmds=${TEST_CMDS} ", script: """
+                                        #!/usr/bin/env bash
+                                        ${TEST_CMDS}
+                                    """
                                 }
                             }
                         }
