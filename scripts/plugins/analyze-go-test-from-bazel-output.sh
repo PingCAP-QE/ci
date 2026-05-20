@@ -32,7 +32,7 @@ function parse_bazel_target_output_log() {
                 append="$append.race"
             fi
 
-        elif grep -E "(---|===) (PASS|FAIL|RUN)" "$saveFlag.log" | grep -oE "\bTest\w+\b" | sort | uniq -c | grep "^\s*1\b" >/dev/null; then
+        elif grep -E "(---|===) (PASS|FAIL|RUN|SKIP)" "$saveFlag.log" | grep -oE "\bTest\w+\b" | sort | uniq -c | grep "^\s*1\b" >/dev/null; then
             append="$append.fatal"
         fi
 
