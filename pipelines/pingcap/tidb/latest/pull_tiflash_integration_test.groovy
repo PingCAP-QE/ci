@@ -140,6 +140,7 @@ pipeline {
                         }
                     }
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_script: env.TEST_SCRIPT]) } }
                         steps {
                             dir('tidb') {
                                 sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash
@@ -164,6 +165,7 @@ pipeline {
                                     archiveArtifacts artifacts: 'tidb/tests/clusterintegrationtest/logs', fingerprint: true
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_script: env.TEST_SCRIPT]) } }
                         }
                     }
                 }

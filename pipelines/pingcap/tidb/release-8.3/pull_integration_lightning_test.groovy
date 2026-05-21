@@ -120,6 +120,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
@@ -142,6 +143,7 @@ pipeline {
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
+
                                 dir('tidb'){
                                     sh label: "upload coverage", script: """
                                         ls -alh /tmp/group_cover
@@ -149,6 +151,7 @@ pipeline {
                                         codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number} || true
                                     """
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                             }
                         }
                     }

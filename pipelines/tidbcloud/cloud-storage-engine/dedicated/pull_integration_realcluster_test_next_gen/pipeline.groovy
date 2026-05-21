@@ -192,6 +192,7 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) } }
                         environment {
                             MINIO_BIN_PATH = "bin/minio"
                         }
@@ -274,6 +275,7 @@ pipeline {
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) } }
                         }
                     }
                 }

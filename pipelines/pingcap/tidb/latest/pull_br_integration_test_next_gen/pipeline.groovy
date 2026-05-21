@@ -90,6 +90,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
                             dir(REFS.repo) {
@@ -112,9 +113,11 @@ pipeline {
                                 dir(REFS.repo) {
                                     sh 'ls -alh /tmp/group_cover && gocovmerge /tmp/group_cover/cov.* > coverage.txt'
                                     script {
+
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.txt')
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                             }
                         }
                     }

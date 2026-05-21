@@ -132,6 +132,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tiflow') {
@@ -163,6 +164,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

@@ -34,18 +34,14 @@ pipeline {
                 }
                 stages {
                     stage('Test Cache Able') {
-                        when {
-                            expression {
-                                return !matrixCache.shouldSkip(REFS, env.STAGE_NAME)
-                            }
-                        }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test Cache Able', [axis_os: env.AXIS_OS, axis_arch: env.AXIS_ARCH]) } }
                         steps {
                             echo "STAGE_NAME=${env.STAGE_NAME}"
                             echo "matrixCache debug axis=${env.AXIS_OS}/${env.AXIS_ARCH}"
                         }
                         post {
                             success {
-                                script { matrixCache.markDone(REFS, env.STAGE_NAME) }
+                                script { matrixCache.markDone(REFS, 'Test Cache Able', [axis_os: env.AXIS_OS, axis_arch: env.AXIS_ARCH]) }
                             }
                         }
                     }

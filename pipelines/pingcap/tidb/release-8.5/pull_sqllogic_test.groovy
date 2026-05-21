@@ -87,6 +87,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } }
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
@@ -116,6 +117,7 @@ pipeline {
                                 }
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }
@@ -144,6 +146,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } }
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
@@ -173,6 +176,7 @@ pipeline {
                                 }
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }

@@ -134,6 +134,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         options { timeout(time: 60, unit: 'MINUTES') }
                         environment {
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
@@ -161,6 +162,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

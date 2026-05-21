@@ -86,6 +86,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
@@ -114,6 +115,7 @@ pipeline {
                                 }
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }
@@ -142,6 +144,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
@@ -170,6 +173,7 @@ pipeline {
                                 }
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }

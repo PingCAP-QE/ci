@@ -74,6 +74,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART]) } }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
@@ -97,6 +98,7 @@ pipeline {
                             unsuccessful {
                                 archiveArtifacts artifacts: "tidb-test/mysql_test/mysql-test.out", fingerprint: true, allowEmptyArchive: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [part: env.PART]) } }
                         }
                     }
                 }

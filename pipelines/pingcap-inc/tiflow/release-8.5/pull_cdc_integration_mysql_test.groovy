@@ -100,7 +100,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
@@ -135,6 +135,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

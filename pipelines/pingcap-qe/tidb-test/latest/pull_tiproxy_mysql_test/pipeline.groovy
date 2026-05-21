@@ -90,6 +90,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART]) } }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
@@ -104,6 +105,7 @@ pipeline {
                             always {
                                 junit(testResults: "**/result.xml")
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [part: env.PART]) } }
                         }
                     }
                 }

@@ -56,6 +56,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_cmd: env.TEST_CMD]) } }
                         options { timeout(time: 40, unit: 'MINUTES') }
                         environment {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
@@ -73,6 +74,7 @@ pipeline {
                             success {
                                 dir('tiflow') {
                                     script {
+
                                         def testConfigs = [
                                             dm_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
                                             unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/tidb_cdc_test/cov.unit.out"],
@@ -84,6 +86,7 @@ pipeline {
                                         }
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_cmd: env.TEST_CMD]) }
                             }
                             always {
                                 junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)

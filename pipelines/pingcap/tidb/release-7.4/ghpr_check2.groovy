@@ -95,6 +95,7 @@ pipeline {
                 }
                 stages {
                     stage('Test')  {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) } }
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         options { timeout(time: 60, unit: 'MINUTES') }
                         steps {
@@ -124,6 +125,7 @@ pipeline {
                                     archiveArtifacts(artifacts: 'pd*.log, tikv*.log, integration-test.out', allowEmptyArchive: true)
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) } }
                         }
                     }
                 }

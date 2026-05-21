@@ -96,6 +96,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_dir: env.TEST_DIR]) } }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
@@ -123,6 +124,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_dir: env.TEST_DIR]) } }
                         }
                     }
                 }
