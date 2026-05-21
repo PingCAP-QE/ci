@@ -227,7 +227,7 @@ PATH="${mock_bin}:${PATH}" MOCK_FIXTURE_DIR="${fixture_dir}" \
 
 jq -e '
     .image_ref == "example.com/team/app:v1.2.3" and
-    .pushed_at == "2026-05-20T12:34:56Z" and
+    .created_at == "2026-05-20T12:34:56Z" and
     .digest == "sha256:singlemanifest" and
     .multi_arch == false and
     .platforms == ["linux/amd64"] and
@@ -243,7 +243,7 @@ PATH="${mock_bin}:${PATH}" MOCK_FIXTURE_DIR="${fixture_dir}" \
 
 jq -e '
     .image_ref == "registry.example.com/org/app:multi" and
-    .pushed_at == "2026-05-20T11:05:00Z" and
+    .created_at == "2026-05-20T11:05:00Z" and
     .digest == "sha256:multimanifest" and
     .multi_arch == true and
     .platforms == ["linux/amd64", "linux/arm64"] and

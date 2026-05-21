@@ -27,6 +27,7 @@ jobs:
   inspect-image:
     name: Inspect image metadata
     runs-on: ubuntu-latest
+    timeout-minutes: 300
     environment:
       name: ${{ inputs.credential_ref != '' && inputs.credential_ref || 'query-image-public' }}
     env:

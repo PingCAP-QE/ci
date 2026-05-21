@@ -57,7 +57,7 @@ main() {
     local manifest_file
     local descriptor_file
     local manifest_created
-    local pushed_at=""
+    local created_at=""
     local digest
     local media_type
     local multi_arch=false
@@ -123,10 +123,11 @@ main() {
 
             labels_json="$(jq -cs 'reduce .[] as $config ({}; . * ($config.config.Labels // {}))' "${config_files[@]}")"
 
+            # This workflow exposes image creation time, not registry-side push time.
             if [[ -n "${manifest_created}" ]]; then
-                pushed_at="${manifest_created}"
+                created_at="${manifest_created}"
             elif [[ "${#created_values[@]}" -gt 0 ]]; then
-                pushed_at="$(printf '%s\n' "${created_values[@]}" | sort | tail -n 1)"
+                created_at="$(printf '%s\n' "${created_values[@]}" | sort | tail -n 1)"
             fi
             ;;
         *)
@@ -137,20 +138,20 @@ main() {
             labels_json="$(jq -c '.config.Labels // {}' "${config_file}")"
 
             if [[ -n "${manifest_created}" ]]; then
-                pushed_at="${manifest_created}"
+                created_at="${manifest_created}"
             else
-                pushed_at="$(jq -r '.created // empty' "${config_file}")"
+                created_at="$(jq -r '.created // empty' "${config_file}")"
             fi
             ;;
     esac
 
-    if [[ -z "${pushed_at}" ]]; then
+    if [[ -z "${created_at}" ]]; then
         echo "image ${image_ref} does not expose a created timestamp" >&2
         exit 1
     fi
 
-    if ! jq -en --arg timestamp "${pushed_at}" '$timestamp | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T")' >/dev/null; then
-        echo "image ${image_ref} returned a non-ISO8601 timestamp: ${pushed_at}" >&2
+    if ! jq -en --arg timestamp "${created_at}" '$timestamp | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T")' >/dev/null; then
+        echo "image ${image_ref} returned a non-ISO8601 timestamp: ${created_at}" >&2
         exit 1
     fi
 
@@ -158,14 +159,14 @@ main() {
 
     jq -n \
         --arg image_ref "${image_ref}" \
-        --arg pushed_at "${pushed_at}" \
+        --arg created_at "${created_at}" \
         --arg digest "${digest}" \
         --argjson multi_arch "${multi_arch}" \
         --argjson platforms "${platforms_json}" \
         --argjson labels "${labels_json}" \
         '{
             image_ref: $image_ref,
-            pushed_at: $pushed_at,
+            created_at: $created_at,
             digest: $digest,
             multi_arch: $multi_arch,
             platforms: $platforms,
@@ -174,7 +175,7 @@ main() {
 
     jq -e '
         (.image_ref | type == "string") and
-        (.pushed_at | type == "string") and
+        (.created_at | type == "string") and
         (.digest | type == "string") and
         (.multi_arch | type == "boolean") and
         (.platforms | type == "array") and
