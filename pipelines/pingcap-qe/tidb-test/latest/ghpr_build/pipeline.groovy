@@ -10,18 +10,20 @@ final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 30, unit: 'MINUTES')
     }
     stages {
         stage('Checkout') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                    defaultContainer 'golang'
+                }
+            }
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
@@ -45,8 +47,24 @@ pipeline {
             }
         }
         stage("Build"){
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                    defaultContainer 'golang'
+                }
+            }
             steps {
+                dir("tidb") {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        sh label: 'restore tidb', script: 'git rev-parse HEAD'
+                    }
+                }
                 dir("tidb-test") {
+                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                        sh label: 'restore tidb-test', script: 'git rev-parse HEAD'
+                    }
                     sh """
                     TIDB_SRC_PATH=${WORKSPACE}/tidb make check
                     """

@@ -10,18 +10,20 @@ final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
         stage('Checkout') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                    defaultContainer 'golang'
+                }
+            }
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tiproxy") {
@@ -45,11 +47,25 @@ pipeline {
             }
         }
         stage('Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                    defaultContainer 'golang'
+                }
+            }
             steps {
                 dir('tiproxy') {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
+                        sh label: 'restore tiproxy', script: 'git rev-parse HEAD'
+                    }
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        sh label: 'restore tidb-test', script: 'git rev-parse HEAD'
+                    }
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         retry(2) {
                             sh "touch ws-${BUILD_TAG}"
@@ -89,6 +105,7 @@ pipeline {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                     }
                 }
                 stages {

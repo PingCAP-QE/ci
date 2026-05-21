@@ -12,18 +12,20 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, RE
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
         stage('Checkout') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                    defaultContainer 'golang'
+                }
+            }
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
@@ -47,8 +49,19 @@ pipeline {
             }
         }
         stage('Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                    defaultContainer 'golang'
+                }
+            }
             steps {
                 dir('tidb') {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        sh label: 'restore tidb', script: 'git rev-parse HEAD'
+                    }
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'make'
                         container("utils") {
@@ -69,6 +82,9 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        sh label: 'restore tidb-test', script: 'git rev-parse HEAD'
+                    }
                     cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                         sh "touch ws-${BUILD_TAG}"
                     }
@@ -88,6 +104,7 @@ pipeline {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                     }
                 }
                 stages {

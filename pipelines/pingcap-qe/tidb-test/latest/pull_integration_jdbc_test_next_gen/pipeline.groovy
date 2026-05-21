@@ -15,13 +15,7 @@ final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         NEXT_GEN = '1'
     }
@@ -30,6 +24,14 @@ pipeline {
     }
     stages {
         stage('Checkout') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                    defaultContainer 'golang'
+                }
+            }
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
@@ -53,11 +55,25 @@ pipeline {
             }
         }
         stage('Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                    defaultContainer 'golang'
+                }
+            }
             steps {
                 dir('tidb') {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        sh label: 'restore tidb', script: 'git rev-parse HEAD'
+                    }
                     sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                 }
                 dir(REFS.repo) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        sh label: 'restore tidb-test', script: 'git rev-parse HEAD'
+                    }
                     // Prepare component binaries.
                     dir('bin') {
                         container("utils") {
@@ -127,6 +143,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                         defaultContainer 'java'
                     }
                 }

@@ -11,18 +11,20 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-        }
-    }
+    agent none
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                }
+            }
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
@@ -46,8 +48,18 @@ pipeline {
             }
         }
         stage('Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yamlFile POD_TEMPLATE_FILE
+                    retries 2
+                }
+            }
             steps {
                 dir('tidb') {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                        sh label: 'restore tidb', script: 'git rev-parse HEAD'
+                    }
                     container('nodejs') {
                         cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                             sh label: 'tidb-server', script: 'make'
@@ -86,6 +98,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                         defaultContainer 'nodejs'
                     }
                 }
