@@ -13,6 +13,11 @@ It contains both trigger configurations and detailed pipeline implementations.
   - CI Job Components
   - Design Principles
 
+- [matrixCache](./matrixCache.md)
+  - Background and design
+  - Implementation and usage
+  - Effect examples
+
 - [Designs](./designs/README.md)
   - Folder Structure
   - File Structure and Naming Conventions
