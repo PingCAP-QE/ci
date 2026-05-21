@@ -102,7 +102,6 @@ pipeline {
                 }
                 stages {
                     stage('Restore cache') {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
                         steps {
                             dir("tidb") {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
@@ -140,10 +139,9 @@ pipeline {
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } } }
                     }
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_script: env.TEST_SCRIPT]) } }
                         steps {
                             dir('tidb') {
                                 sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash
@@ -168,7 +166,7 @@ pipeline {
                                     archiveArtifacts artifacts: 'tidb/tests/clusterintegrationtest/logs', fingerprint: true
                                 }
                             }
-                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_script: env.TEST_SCRIPT]) } }
                         }
                     }
                 }

@@ -132,7 +132,7 @@ pipeline {
                 }
                 stages {
                     stage('Test') {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_params: env.TEST_PARAMS, store: env.STORE]) } }
                         steps {
                             dir(REFS.repo) {
                                 // restore the cache saved by previous stage.
@@ -159,7 +159,7 @@ pipeline {
                                 """
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } } }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [test_params: env.TEST_PARAMS, store: env.STORE]) } } }
                     }
                 }
             }

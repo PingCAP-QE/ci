@@ -86,7 +86,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
@@ -146,7 +146,7 @@ pipeline {
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } } }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }
@@ -175,7 +175,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
@@ -235,7 +235,7 @@ pipeline {
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } } }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }

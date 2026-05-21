@@ -87,7 +87,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED]) } }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
@@ -120,7 +120,7 @@ pipeline {
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } } }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED]) } } }
                     }
                 }
             }

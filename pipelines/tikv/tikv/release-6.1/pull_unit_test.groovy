@@ -156,7 +156,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [chunk_suffix: env.CHUNK_SUFFIX]) } }
                         steps {
                             dir('/home/jenkins/agent/tikv-presubmit/unit-test') {
                                 sh label: 'os info', script:"""
@@ -241,7 +241,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-ut.tar.gz", allowEmptyArchive: true
                             }
-                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
+                            success { script { matrixCache.markDone(REFS, 'Test', [chunk_suffix: env.CHUNK_SUFFIX]) } }
                         }
                     }
                 }

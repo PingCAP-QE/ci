@@ -94,7 +94,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART]) } }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -105,7 +105,7 @@ pipeline {
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } } }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [part: env.PART]) } } }
                     }
                 }
             }

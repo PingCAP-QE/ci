@@ -96,7 +96,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_dir: env.TEST_DIR]) } }
                         options { timeout(time: 75, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
@@ -125,7 +125,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
-                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_dir: env.TEST_DIR]) } }
                         }
                     }
                 }

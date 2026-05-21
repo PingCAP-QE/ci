@@ -55,7 +55,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, env.STAGE_NAME) } }
+                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_cmd: env.TEST_CMD]) } }
                         options { timeout(time: 40, unit: 'MINUTES') }
                         environment {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
@@ -73,7 +73,7 @@ pipeline {
                             always {
                                 junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)
                             }
-                            success { script { matrixCache.markDone(REFS, env.STAGE_NAME) } }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_cmd: env.TEST_CMD]) } }
                         }
                     }
                 }
