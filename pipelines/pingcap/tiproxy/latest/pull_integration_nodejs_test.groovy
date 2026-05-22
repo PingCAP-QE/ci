@@ -93,9 +93,12 @@ pipeline {
                         defaultContainer 'nodejs'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_cmds: env.TEST_CMDS]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_cmds: env.TEST_CMDS]) } }
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {

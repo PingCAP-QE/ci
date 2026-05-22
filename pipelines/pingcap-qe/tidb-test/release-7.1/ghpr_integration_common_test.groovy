@@ -89,9 +89,12 @@ pipeline {
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_params: env.TEST_PARAMS, test_store: env.TEST_STORE]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_params: env.TEST_PARAMS, test_store: env.TEST_STORE]) } }
                         steps {
                             dir('tidb') {
                                 cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {

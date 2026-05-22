@@ -107,9 +107,12 @@ pipeline {
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
                             dir(REFS.repo) {

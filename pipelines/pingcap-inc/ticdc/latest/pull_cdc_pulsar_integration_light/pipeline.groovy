@@ -102,9 +102,12 @@ pipeline {
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {

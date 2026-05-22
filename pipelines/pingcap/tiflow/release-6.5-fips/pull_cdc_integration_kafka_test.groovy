@@ -98,9 +98,12 @@ pipeline {
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         options { timeout(time: 45, unit: 'MINUTES') }
                         environment {
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')

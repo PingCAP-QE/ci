@@ -99,6 +99,10 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_script: env.TEST_SCRIPT]) }
+                }
                 stages {
                     stage('Restore cache') {
                         steps {
@@ -140,7 +144,6 @@ pipeline {
                         }
                     }
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_script: env.TEST_SCRIPT]) } }
                         steps {
                             dir('tidb') {
                                 sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash

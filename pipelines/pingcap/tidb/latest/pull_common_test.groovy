@@ -79,9 +79,12 @@ pipeline {
                         defaultContainer 'java'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_dir: env.TEST_DIR, test_cmd: env.TEST_CMD]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_dir: env.TEST_DIR, test_cmd: env.TEST_CMD]) } }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {

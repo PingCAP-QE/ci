@@ -32,9 +32,12 @@ pipeline {
                         values 'amd64', 'arm64'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test Cache Able', [axis_os: env.AXIS_OS, axis_arch: env.AXIS_ARCH]) }
+                }
                 stages {
                     stage('Test Cache Able') {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test Cache Able', [axis_os: env.AXIS_OS, axis_arch: env.AXIS_ARCH]) } }
                         steps {
                             echo "STAGE_NAME=${env.STAGE_NAME}"
                             echo "matrixCache debug axis=${env.AXIS_OS}/${env.AXIS_ARCH}"

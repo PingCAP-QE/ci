@@ -98,9 +98,12 @@ pipeline {
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART, store: env.STORE]) }
+                }
                 stages {
                     stage('Test') {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART, store: env.STORE]) } }
                         steps {
                             dir('tidb-test') {
                                 // restore the cache saved by previous stage.

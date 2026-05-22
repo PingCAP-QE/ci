@@ -89,9 +89,12 @@ pipeline {
                         yamlFile POD_TEMPLATE_FILE
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) }
+                }
                 stages {
                     stage('Test')  {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) } }
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {

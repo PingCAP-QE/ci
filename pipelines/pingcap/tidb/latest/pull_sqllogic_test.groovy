@@ -84,9 +84,12 @@ pipeline {
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
@@ -142,9 +145,12 @@ pipeline {
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } }
                         steps {
                             dir('tidb-test') {
                                 cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {

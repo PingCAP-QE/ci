@@ -95,9 +95,12 @@ pipeline {
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART, store: env.STORE]) }
+                }
                 stages {
                     stage('Test') {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART, store: env.STORE]) } }
                         steps {
                             dir(REFS.repo) {
                                 // restore the cache saved by previous stage.
