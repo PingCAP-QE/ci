@@ -143,7 +143,7 @@ pipeline {
                     allOf {
                         expression {
                             // Skip bazel_pushdowntest when base_ref is release-nextgen-20251011
-                            return !(REFS.base_ref == 'release-nextgen-20251011' && "${SCRIPT_AND_ARGS}".contains(' bazel_pushdowntest'))
+                            return !(REFS.base_ref == 'release-nextgen-20251011' && env.SCRIPT_AND_ARGS.contains(' bazel_pushdowntest'))
                         }
                         expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) }
                     }
