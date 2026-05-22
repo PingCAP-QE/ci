@@ -154,9 +154,12 @@ pipeline {
                         retries 5
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [chunk_suffix: env.CHUNK_SUFFIX]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [chunk_suffix: env.CHUNK_SUFFIX]) } }
                         steps {
                             dir('/home/jenkins/agent/tikv-presubmit/unit-test') {
                                 sh label: 'os info', script:"""

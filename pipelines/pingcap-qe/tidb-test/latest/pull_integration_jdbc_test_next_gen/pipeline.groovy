@@ -130,9 +130,12 @@ pipeline {
                         defaultContainer 'java'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_params: env.TEST_PARAMS, store: env.STORE]) }
+                }
                 stages {
                     stage('Test') {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_params: env.TEST_PARAMS, store: env.STORE]) } }
                         steps {
                             dir(REFS.repo) {
                                 // restore the cache saved by previous stage.

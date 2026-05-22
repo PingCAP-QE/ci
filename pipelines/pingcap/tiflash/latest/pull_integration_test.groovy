@@ -406,9 +406,12 @@ pipeline {
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_path: env.TEST_PATH]) }
+                }
                 stages {
                     stage("Test") {
-                        when { expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_path: env.TEST_PATH]) } }
                         steps {
                             dir("${WORKSPACE}/tiflash") {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'it-build')){
