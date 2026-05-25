@@ -116,6 +116,10 @@ global_definitions:
                 operator: In
                 values:
                   - amd64
+              - key: node.kubernetes.io/instance-type
+                operator: In
+                values:
+                  - c4-standard-32
   pull_sanitizer_container: &pull_sanitizer_container
     name: run-sanitizer
     image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
