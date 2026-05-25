@@ -5,11 +5,8 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
-      env:
-        - name: GOPROXY
-          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 12Gi
@@ -18,7 +15,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: utils
-      image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:

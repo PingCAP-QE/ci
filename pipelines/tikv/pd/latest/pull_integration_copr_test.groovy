@@ -2,8 +2,8 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tidb"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final K8S_NAMESPACE = "jenkins-pd"
+final GIT_CREDENTIALS_ID = ''
 final GIT_FULL_REPO_NAME = 'tikv/pd'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/latest/pod-pull_integration_copr_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
