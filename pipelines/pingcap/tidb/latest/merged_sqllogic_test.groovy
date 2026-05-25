@@ -27,7 +27,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
@@ -45,7 +45,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                         container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
@@ -91,7 +91,7 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                                 }
@@ -178,7 +178,7 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                                 }

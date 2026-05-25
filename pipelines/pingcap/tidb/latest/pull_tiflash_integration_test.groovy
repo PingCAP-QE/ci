@@ -29,7 +29,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
@@ -38,7 +38,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'vector-search-test')) {
                         container("utils") {
@@ -106,12 +106,12 @@ pipeline {
                 stages {
                     stage('Restore cache') {
                         steps {
-                            dir("tidb") {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh 'ls -lh'
                                 }
                             }
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'vector-search-test')) {
                                     sh label: 'print version', script: """
                                         bin/tidb-server -V
@@ -145,7 +145,7 @@ pipeline {
                     }
                     stage("Test") {
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash
                                     export PATH="\$HOME/.tiup/bin:\$PATH"
                                     export PATH="\$HOME/.local/bin:\$PATH"

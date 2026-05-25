@@ -34,7 +34,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
@@ -75,7 +75,7 @@ pipeline {
                         '''
                     }
                 }
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                         chmod +x lightning/tests/*.sh
                         ./lightning/tests/run_group_lightning_tests.sh others
@@ -118,7 +118,7 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                         chmod +x lightning/tests/*.sh
