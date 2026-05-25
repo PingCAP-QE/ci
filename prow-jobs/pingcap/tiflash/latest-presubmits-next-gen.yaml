@@ -44,7 +44,7 @@ presubmits:
       context: pull-integration-next-gen-columnar
       decorate: false # need add this.
       name: pingcap/tiflash/pull_integration_next_gen_columnar
-      optional: false
+      optional: true # optional because the columnar pipeline is still under development and may be unstable.
       rerun_command: "/test pull-integration-next-gen-columnar"
       skip_if_only_changed: *skip_if_only_changed
       skip_report: false
