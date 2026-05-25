@@ -73,18 +73,18 @@ pipeline {
 
                             // Get next-gen tiflash-proxy commit hash.
                             // For submodule, we need to enter the submodule directory and get the commit hash from there.
-                            dir("contrib/tiflash-proxy-next-gen") {
-                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                println "proxy_commit_hash: ${proxy_commit_hash}"
-                            }
+                            // dir("contrib/tiflash-proxy-next-gen") {
+                            //     proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
+                            //     println "proxy_commit_hash: ${proxy_commit_hash}"
+                            // }
 
                             // get clara commit hash
-                            libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
-                            println "libclara_commit_hash: ${libclara_commit_hash}"
+                            // libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
+                            // println "libclara_commit_hash: ${libclara_commit_hash}"
 
-                            sh """
-                            chown 1000:1000 -R ./
-                            """
+                            // sh """
+                            // chown 1000:1000 -R ./
+                            // """
                         }
                     }
                 }
@@ -147,6 +147,8 @@ pipeline {
                     }
 
                 }
+                // Unlike "pull_integration" / "pull_integration_next_gen", the proxy does not work as a submodule in pingcap/tiflash.
+                // So we cannot rely on proxy_commit_hash to determine whether the proxy cache is ready.
                 // stage("Proxy-Cache") {
                 //     steps {
                 //         script {
@@ -164,29 +166,6 @@ pipeline {
                 //                 chown 1000:1000 ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
                 //             else
                 //                 echo "proxy cache not found"
-                //             fi
-                //             """
-                //         }
-                //     }
-                // }
-                // stage("Libclara Cache") {
-                //     steps {
-                //         script {
-                //             def libclara_suffix = "amd64-linux-debug"
-                //             libclara_cache_ready = sh(script: "test -d /home/jenkins/agent/libclara-cache/${libclara_commit_hash}-${libclara_suffix} && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                //             println "libclara_cache_ready: ${libclara_cache_ready}"
-
-                //             sh label: "copy libclara if exist", script: """
-                //             libclara_cache_dir="/home/jenkins/agent/libclara-cache/${libclara_commit_hash}-${libclara_suffix}"
-                //             if [ -d \$libclara_cache_dir ]; then
-                //                 echo "libclara cache found"
-                //                 mkdir -p ${WORKSPACE}/tiflash/libs/libclara-prebuilt
-                //                 cp -r \$libclara_cache_dir/* ${WORKSPACE}/tiflash/libs/libclara-prebuilt/
-                //                 chmod +x ${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so
-                //                 chown -R 1000:1000 ${WORKSPACE}/tiflash/libs/libclara-prebuilt
-                //                 ls -R ${WORKSPACE}/tiflash/libs/libclara-prebuilt
-                //             else
-                //                 echo "libclara cache not found"
                 //             fi
                 //             """
                 //         }
