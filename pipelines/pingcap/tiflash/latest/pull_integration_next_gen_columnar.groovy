@@ -14,6 +14,9 @@ final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "ma
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 
+// Note:
+// Unlike "pull_integration" / "pull_integration_next_gen", the proxy does not work as a submodule in pingcap/tiflash.
+// So we cannot rely on proxy_commit_hash to determine whether the proxy cache is ready.
 Boolean proxy_cache_ready = false
 Boolean build_cache_ready = false
 String proxy_commit_hash = null
@@ -70,21 +73,6 @@ pipeline {
                             prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
-
-                            // Get next-gen tiflash-proxy commit hash.
-                            // For submodule, we need to enter the submodule directory and get the commit hash from there.
-                            // dir("contrib/tiflash-proxy-next-gen") {
-                            //     proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                            //     println "proxy_commit_hash: ${proxy_commit_hash}"
-                            // }
-
-                            // get clara commit hash
-                            // libclara_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H" -- libs/libclara').trim()
-                            // println "libclara_commit_hash: ${libclara_commit_hash}"
-
-                            // sh """
-                            // chown 1000:1000 -R ./
-                            // """
                         }
                     }
                 }
@@ -147,30 +135,6 @@ pipeline {
                     }
 
                 }
-                // Unlike "pull_integration" / "pull_integration_next_gen", the proxy does not work as a submodule in pingcap/tiflash.
-                // So we cannot rely on proxy_commit_hash to determine whether the proxy cache is ready.
-                // stage("Proxy-Cache") {
-                //     steps {
-                //         script {
-                //             def proxy_suffix = "amd64-linux-llvm-next-gen"
-                //             proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix} && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                //             println "proxy_cache_ready: ${proxy_cache_ready}"
-
-                //             sh label: "copy proxy if exist", script: """
-                //             proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-${proxy_suffix}"
-                //             if [ -f \$proxy_cache_file ]; then
-                //                 echo "proxy cache found"
-                //                 mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
-                //                 cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                //                 chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                //                 chown 1000:1000 ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                //             else
-                //                 echo "proxy cache not found"
-                //             fi
-                //             """
-                //         }
-                //     }
-                // }
                 stage("Cargo-Cache") {
                     steps {
                         sh label: "link cargo cache", script: """
@@ -212,17 +176,6 @@ pipeline {
                     def openssl_root_dir = ""
                     def prebuilt_dir_flag = ""
                     def libclara_flag = ""
-                    // if (proxy_cache_ready) {
-                    //     // only for toolchain is llvm
-                    //     prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy-next-gen/'"
-                    //     sh """
-                    //     mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy-next-gen/target/release
-                    //     cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy-next-gen/target/release/
-                    //     """
-                    // }
-                    // if (libclara_cache_ready) {
-                    //     libclara_flag = "-DLIBCLARA_CXXBRIDGE_DIR='${WORKSPACE}/tiflash/libs/libclara-prebuilt/cxxbridge' -DLIBCLARA_LIBRARY='${WORKSPACE}/tiflash/libs/libclara-prebuilt/libclara_sharedd.so'"
-                    // }
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
