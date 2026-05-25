@@ -16,16 +16,18 @@ spec:
           value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
-          memory: 24Gi
-          cpu: "8"
-          ephemeral-storage: 80Gi
+          memory: 48Gi
+          cpu: "24"
+          ephemeral-storage: 20Gi
         limits:
           memory: 64Gi
-          cpu: "16"
-          ephemeral-storage: 300Gi
+          cpu: "24"
+          ephemeral-storage: 200Gi
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
+        - mountPath: /share/.cache/bazel-repository-cache
+          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -39,6 +41,16 @@ spec:
               - /data/bazel-prepare-in-container.sh
   volumes:
     - name: bazel-out-merged
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 300Gi
+            storageClassName: hyperdisk-rwo
+    - name: bazel-repository-cache
       emptyDir: {}
     - name: bazel-rc
       configMap:

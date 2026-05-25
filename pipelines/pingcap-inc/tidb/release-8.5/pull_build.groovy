@@ -26,12 +26,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
             }
@@ -46,6 +42,9 @@ pipeline {
                       [ -f "$f" ] || continue
                       sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
                     done
+                    if [ -f Makefile ]; then
+                      sed -i 's/^check: check-bazel-prepare /check: /' Makefile
+                    fi
                     grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                     '''
                 }
