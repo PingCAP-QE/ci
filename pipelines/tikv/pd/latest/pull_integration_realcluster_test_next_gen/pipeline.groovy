@@ -4,6 +4,7 @@
 
 final BRANCH_ALIAS = 'latest'
 final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final GIT_FULL_REPO_NAME = "${REFS.org}/${REFS.repo}"
 final MAIN_POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/main-pod.yaml"
@@ -20,7 +21,9 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile MAIN_POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(MAIN_POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+            defaultContainer 'builder'
         }
     }
     options {
@@ -29,18 +32,14 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/tidbx'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/tidbx
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
     }
     stages {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
                 }
                 dir('tidb') {
@@ -51,6 +50,35 @@ pipeline {
                             }
                         }
                     }
+                }
+            }
+        }
+        stage('Hotfix bazel deps/cache (temporary)') {
+            steps {
+                dir('tidb') {
+                    sh '''#!/usr/bin/env bash
+                        set -euxo pipefail
+
+                        # Clean legacy cache/mirror URLs that are unstable on GCP workers.
+                        for f in WORKSPACE DEPS.bzl; do
+                          [ -f "$f" ] || continue
+                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                        done
+
+                        # Avoid "check" targets re-writing legacy cache settings during migration replay.
+                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                        # Disable remote cache usage for this migration replay path.
+                        if [ -f .bazelrc ]; then
+                          sed -i '/^try-import \\/data\\/bazel$/d' .bazelrc
+                          grep -q '^build --noremote_accept_cached$' .bazelrc || echo 'build --noremote_accept_cached' >> .bazelrc
+                          grep -q '^build --noremote_upload_local_results$' .bazelrc || echo 'build --noremote_upload_local_results' >> .bazelrc
+                          grep -q '^test --noremote_accept_cached$' .bazelrc || echo 'test --noremote_accept_cached' >> .bazelrc
+                          grep -q '^test --noremote_upload_local_results$' .bazelrc || echo 'test --noremote_upload_local_results' >> .bazelrc
+                          grep -q '^run --noremote_accept_cached$' .bazelrc || echo 'run --noremote_accept_cached' >> .bazelrc
+                          grep -q '^run --noremote_upload_local_results$' .bazelrc || echo 'run --noremote_upload_local_results' >> .bazelrc
+                        fi
+                    '''
                 }
             }
         }
@@ -66,6 +94,12 @@ pipeline {
                 }
                 dir('tidb') {
                     container("utils") {
+                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                            sh label: "prepare docker auth", script: '''
+                                mkdir -p ~/.docker
+                                cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                            '''
+                        }
                         dir('bin') {
                             sh label: 'download peer component binaries', script: """#!/usr/bin/env bash
                                 set -eo pipefail
@@ -123,7 +157,8 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile TEST_POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(TEST_POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
                     }
                 }
                 when {
@@ -148,9 +183,9 @@ pipeline {
                                 }
 
                                 sh """
-                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
-                                git diff .
-                                git status
+                                mkdir -p /home/jenkins/.tidb/tmp
+                                git diff . || true
+                                git status || true
                                 """
                                 sh """#! /usr/bin/env bash
                                     set -o pipefail
