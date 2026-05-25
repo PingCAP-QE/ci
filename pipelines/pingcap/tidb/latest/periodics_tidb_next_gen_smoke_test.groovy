@@ -25,7 +25,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${OCI_TAG_TIDB}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                         retry(2) {
                             script {
@@ -104,7 +104,7 @@ EOF
                         }
                     }
                 }
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: "build tidb", script: """
                         set -e
                         export NEXT_GEN=1

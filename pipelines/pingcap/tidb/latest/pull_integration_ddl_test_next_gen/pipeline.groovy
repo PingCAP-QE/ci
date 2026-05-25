@@ -50,7 +50,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }

@@ -31,7 +31,7 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
@@ -50,7 +50,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'build', script: """
                         make server
                         make build_dumpling

@@ -28,7 +28,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
@@ -47,7 +47,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 container("golang") {
-                    dir('tidb') {
+                    dir(REFS.repo) {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
                 }
