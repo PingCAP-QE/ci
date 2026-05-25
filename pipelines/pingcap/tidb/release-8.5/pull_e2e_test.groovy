@@ -29,7 +29,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
@@ -38,7 +38,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     container('utils') {
                         dir('bin') {
@@ -57,7 +57,7 @@ pipeline {
         stage('Tests') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'check version', script: """
                     ls -alh bin/
                     ./bin/tidb-server -V

@@ -30,7 +30,7 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
@@ -52,7 +52,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     container("utils") {
                         dir("bin") {
                             retry(2) {
@@ -68,7 +68,7 @@ pipeline {
         stage('Tests') {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'check version', script: """
                     ls -alh bin/
                     ./bin/tikv-server -V
