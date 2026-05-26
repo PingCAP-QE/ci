@@ -6,8 +6,9 @@ final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
-final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
-final POD_TEMPLATE_FILE_TEST = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
+final COLUMNAR_JOB_NAME = 'pull_integration_next_gen_columnar'
+final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${COLUMNAR_JOB_NAME}/pod-build.yaml"
+final POD_TEMPLATE_FILE_TEST = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${COLUMNAR_JOB_NAME}/pod-test.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
@@ -44,6 +45,7 @@ pipeline {
                     steps {
                         dir(REFS.repo) {
                             script {
+                                sh label: "trust Jenkins workspace for git", script: 'git config --global --add safe.directory "*"'
                                 prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
                                 tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "tiflash_commit_hash: ${tiflash_commit_hash}"
