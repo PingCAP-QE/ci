@@ -149,6 +149,7 @@ pipeline {
                             cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
                                 sh label: "save test workspace", script: """
                                     test -e tests/.build/tiflash
+                                    chmod +x tests/fullstack-test-next-gen-columnar/run.sh
                                     test -x tests/fullstack-test-next-gen-columnar/run.sh
                                 """
                             }
@@ -214,6 +215,7 @@ pipeline {
                                             '''
                                         }
                                         sh label: "run columnar integration test", script: """
+                                            chmod +x ./run.sh
                                             TAG=${tiflash_commit_hash} \\
                                             BRANCH=${REFS.base_ref} \\
                                             ENABLE_NEXT_GEN=true \\
