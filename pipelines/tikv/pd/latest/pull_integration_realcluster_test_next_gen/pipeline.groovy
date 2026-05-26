@@ -3,7 +3,7 @@
 @Library('tipipeline') _
 
 final BRANCH_ALIAS = 'latest'
-final K8S_NAMESPACE = "jenkins-pd"
+final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = ''
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final GIT_FULL_REPO_NAME = "${REFS.org}/${REFS.repo}"
