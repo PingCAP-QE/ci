@@ -1,37 +1,6 @@
-# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
 postsubmits:
-  pingcap/tiflash:
-    - name: pingcap/tiflash/merged_unit_test
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
-      context: merged-unit-test # need change this after test pass.
-      max_concurrency: 1
-      skip_report: true # need change this after test pass.
-      branches:
-        - ^master$
-    - name: pingcap/tiflash/merged_build
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
-      context: merged-build # need change this after test pass.
-      max_concurrency: 1
-      skip_report: true # need change this after test pass.
-      branches:
-        - ^master$
-    - name: pingcap/tiflash/merged_build_next_gen
-      agent: jenkins
-      labels:
-        master: "0"
-      decorate: false # need add this.
-      context: merged-build-next-gen
-      max_concurrency: 1
-      skip_report: true # need change this after test pass.
-      branches:
-        - ^master$
-        - ^feature/next-gen.*$
+  pingcap/ticdc:
     - name: sync-owners-to-release-branches
       decorate: true
       decoration_config:
@@ -54,8 +23,6 @@ postsubmits:
               - --owner=$(REPO_OWNER)
               - --repository=$(REPO_NAME)
               - --source_branch=$(PULL_BASE_REF)
-              - --target_branch=release-7.5
-              - --target_branch=release-8.1
               - --target_branch=release-8.5
               - --github_private_token=$(GITHUB_API_TOKEN)
             env:
