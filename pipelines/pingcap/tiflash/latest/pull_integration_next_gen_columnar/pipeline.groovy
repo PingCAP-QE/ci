@@ -118,12 +118,20 @@ pipeline {
                 stage('Build TiFlash') {
                     steps {
                         dir(REFS.repo) {
-                            sh label: "build tiflash", script: """
-                                cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
-                                cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
-                                ccache -s
-                                ls -alh ${WORKSPACE}/install/tiflash
-                            """
+                            sshagent(credentials: [GIT_CREDENTIALS_ID]) {
+                                sh label: "trust github host for cargo", script: """
+                                    [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                                    ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
+                                """
+                                withEnv(['CARGO_NET_GIT_FETCH_WITH_CLI=true']) {
+                                    sh label: "build tiflash", script: """
+                                        cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
+                                        cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
+                                        ccache -s
+                                        ls -alh ${WORKSPACE}/install/tiflash
+                                    """
+                                }
+                            }
                         }
                     }
                 }
