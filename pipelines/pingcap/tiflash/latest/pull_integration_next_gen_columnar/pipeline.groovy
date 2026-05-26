@@ -119,9 +119,10 @@ pipeline {
                     steps {
                         dir(REFS.repo) {
                             sshagent(credentials: [GIT_CREDENTIALS_ID]) {
-                                sh label: "trust github host for cargo", script: """
+                                sh label: "prepare git auth for cargo", script: """
                                     [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
                                     ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
+                                    git config --global url."git@github.com:tidbcloud/cloud-storage-engine.git".insteadOf "https://github.com/tidbcloud/cloud-storage-engine.git"
                                 """
                                 withEnv(['CARGO_NET_GIT_FETCH_WITH_CLI=true']) {
                                     sh label: "build tiflash", script: """
