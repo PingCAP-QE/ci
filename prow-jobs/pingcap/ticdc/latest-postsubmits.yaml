@@ -1,3 +1,0 @@
-# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
-postsubmits:
-  pingcap/ticdc:
