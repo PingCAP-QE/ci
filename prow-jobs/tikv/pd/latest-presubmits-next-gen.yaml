@@ -17,7 +17,7 @@ global_definitions:
   jenkins_job: &jenkins_job
     agent: jenkins
     labels:
-      master: "0"
+      master: "1"
     decorate: false
   kubernetes_job: &kubernetes_job
     agent: kubernetes
