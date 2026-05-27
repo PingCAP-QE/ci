@@ -14,6 +14,8 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
+final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
+final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
 final TEST_WORKSPACE_CACHE_FOLDER = 'tiflash-next-gen-columnar'
 
 String tiflash_commit_hash = null
@@ -192,6 +194,8 @@ pipeline {
                                         "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_PD}",
                                         "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${OCI_TAG_TIKV}",
                                         "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${OCI_TAG_TIDB}",
+                                        "MINIO_IMAGE=quay.io/minio/minio:${MINIO_VERSION}",
+                                        "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
                                     ]) {
                                         withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
                                             sh label: "prepare docker images", script: '''
@@ -210,6 +214,8 @@ pipeline {
                                                 timeout 300 docker pull "${PD_IMAGE}"
                                                 timeout 300 docker pull "${TIKV_IMAGE}"
                                                 timeout 300 docker pull "${TIDB_IMAGE}"
+                                                timeout 300 docker pull "${MINIO_IMAGE}"
+                                                timeout 600 docker pull "${TIFLASH_IMAGE}"
 
                                                 rm -rf ~/.docker
                                             '''
