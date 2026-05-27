@@ -220,13 +220,19 @@ pipeline {
                                                 rm -rf ~/.docker
                                             '''
                                         }
-                                        sh label: "run columnar integration test", script: """
+                                        sh label: "run columnar integration test", script: """#!/usr/bin/env bash
+                                            set -o pipefail
                                             chmod +x ./run.sh
                                             TAG=${tiflash_commit_hash} \\
                                             BRANCH=${REFS.base_ref} \\
                                             ENABLE_NEXT_GEN=true \\
                                             ENABLE_NEXT_GEN_COLUMNAR=true \\
-                                            ./run.sh
+                                            ./run.sh 2>&1 | tee columnar-integration-test.log
+                                            run_status=\${PIPESTATUS[0]}
+                                            if grep -E 'Total failed: [1-9][0-9]* test[(]s[)]' columnar-integration-test.log; then
+                                                exit 1
+                                            fi
+                                            exit \${run_status}
                                         """
                                     }
                                 }
