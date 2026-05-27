@@ -36,3 +36,17 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-integration-next-gen)(?: .*?)?$"
+
+    - <<: *brancher
+      agent: jenkins
+      labels:
+        master: "1"
+      context: pull-integration-next-gen-columnar
+      decorate: false # need add this.
+      name: pingcap/tiflash/pull_integration_next_gen_columnar
+      always_run: false
+      optional: true # optional because the columnar pipeline is still under development.
+      rerun_command: "/test pull-integration-next-gen-columnar"
+      # skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-integration-next-gen-columnar)(?: .*?)?$"
