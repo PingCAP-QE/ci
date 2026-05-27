@@ -34,11 +34,9 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
-                            }
+                    retry(2) {
+                        script {
+                            component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
                         }
                     }
                 }
