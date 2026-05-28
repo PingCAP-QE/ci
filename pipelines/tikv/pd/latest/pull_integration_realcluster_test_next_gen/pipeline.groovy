@@ -157,6 +157,7 @@ pipeline {
                         defaultContainer 'golang'
                         yaml pod_label.withCiLabels(TEST_POD_TEMPLATE_FILE, REFS)
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
+                        retries 2
                     }
                 }
                 when {

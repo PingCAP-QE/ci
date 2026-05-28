@@ -106,6 +106,7 @@ pipeline {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         defaultContainer 'golang'
+                        retries 2
                     }
                 }
                 when {
