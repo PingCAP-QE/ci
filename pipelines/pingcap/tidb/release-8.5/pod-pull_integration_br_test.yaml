@@ -17,6 +17,13 @@ spec:
         limits:
           memory: 24Gi
           cpu: "6"
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - chmod 1777 /tmp/tidb
       volumeMounts:
         - mountPath: "/tmp/tidb"
           name: "tidb-temp-dir-volume"
