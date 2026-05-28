@@ -3,6 +3,17 @@ kind: Pod
 spec:
   securityContext:
     fsGroup: 1000
+  initContainers:
+    - name: init-tidb-temp-dir
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
+      command:
+        - sh
+        - -c
+        - |
+          chmod 1777 /tmp/tidb
+      volumeMounts:
+        - mountPath: "/tmp/tidb"
+          name: "tidb-temp-dir-volume"
   containers:
     - name: golang
       image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
@@ -17,13 +28,6 @@ spec:
         limits:
           memory: 24Gi
           cpu: "6"
-      lifecycle:
-        postStart:
-          exec:
-            command:
-              - /bin/sh
-              - -c
-              - chmod 1777 /tmp/tidb
       volumeMounts:
         - mountPath: "/tmp/tidb"
           name: "tidb-temp-dir-volume"
