@@ -8,11 +8,8 @@ spec:
       image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
       tty: true
       resources:
-        requests:
-          memory: 12Gi
-          cpu: "4"
         limits:
-          memory: 16Gi
+          memory: 24Gi
           cpu: "6"
   affinity:
     nodeAffinity:
