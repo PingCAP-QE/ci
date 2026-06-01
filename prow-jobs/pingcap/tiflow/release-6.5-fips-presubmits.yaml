@@ -1,0 +1,66 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tiflow:
+    - name: pingcap/tiflow/release-6.5-fips/ghpr_verify
+      agent: jenkins
+      labels:
+        master: "0"
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-verify
+      trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
+      rerun_command: "/test pull-verify"
+      branches:
+        - ^feature/release-6.5-fips$
+    - name: pingcap/tiflow/release-6.5-fips/pull_cdc_integration_kafka_test
+      agent: jenkins
+      labels:
+        master: "0"
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: "(^dm/|^engine/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
+      run_before_merge: true
+      context: pull-cdc-integration-kafka-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-kafka-test"
+      branches:
+        - ^feature/release-6.5-fips$
+    - name: pingcap/tiflow/release-6.5-fips/pull_cdc_integration_test
+      agent: jenkins
+      labels:
+        master: "0"
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: "(^dm/|^engine/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
+      run_before_merge: true
+      context: pull-cdc-integration-mysql-test
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-integration-mysql-test"
+      branches:
+        - ^feature/release-6.5-fips$
+    - name: pingcap/tiflow/release-6.5-fips/pull_dm_compatibility_test
+      agent: jenkins
+      labels:
+        master: "0"
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
+      context: pull-dm-compatibility-test
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-compatibility-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-dm-compatibility-test"
+      branches:
+        - ^feature/release-6.5-fips$
+    - name: pingcap/tiflow/release-6.5-fips/pull_dm_integration_test
+      agent: jenkins
+      labels:
+        master: "0"
+      decorate: false # need add this.
+      always_run: false
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      run_before_merge: true
+      context: pull-dm-integration-test
+      trigger: "(?m)^/test (?:.*? )?(pull-dm-integration-test|all)(?: .*?)?$"
+      rerun_command: "/test pull-dm-integration-test"
+      branches:
+        - ^feature/release-6.5-fips$

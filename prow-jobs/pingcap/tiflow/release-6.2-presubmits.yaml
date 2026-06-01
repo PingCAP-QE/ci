@@ -1,0 +1,14 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tiflow:
+    - name: pingcap/tiflow/release-6.2/ghpr_verify
+      agent: jenkins
+      labels:
+        master: "0"
+      decorate: false # need add this.
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      context: pull-verify
+      trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"
+      rerun_command: "/test pull-verify"
+      branches:
+        - ^release-6\.[2-4](\.\d+)?(-\d+)?(-v[\.\d]+)?$
