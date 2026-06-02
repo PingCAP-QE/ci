@@ -330,25 +330,33 @@ pipeline {
                         sh label: "change permission", script: """
                             chown -R 1000:1000 ./
                         """
-                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'ut-build')) {
+                        def binaryCacheKey = prow.getCacheKey('ng-binary', REFS, 'ut-build-artifacts')
+                        sh label: "prepare binary cache dir", script: """
+                            mkdir -p tests/.build
+                        """
+                        cache(path: "tests/.build", includes: '**/*', key: binaryCacheKey) {
+                            // Fallback for cases where build_cache_ready was not set before this stage.
+                            build_cache_ready = build_cache_ready || (sh(
+                                script: "test -x tests/.build/tiflash/gtests_dbms",
+                                returnStatus: true
+                            ) == 0)
+
                             if (build_cache_ready) {
-                                println "build cache exist, restore from cache key: ${prow.getCacheKey('ng-binary', REFS, 'ut-build')}"
+                                println "build cache exist, restore from cache key: ${binaryCacheKey}"
                                 sh """
-                                du -sh ./
-                                ls -alh ./
                                 ls -alh tests/.build/
+                                du -sh tests/.build/
                                 """
                             } else {
-                                println "build cache not exist, clean git repo for cache"
-                                sh label: "clean git repo", script: """
+                                println "build cache not exist, save build artifacts to cache"
+                                sh label: "copy build artifacts", script: """
                                 git status
                                 git show --oneline -s
-                                mkdir tests/.build
+                                rm -rf tests/.build
+                                mkdir -p tests/.build
                                 cp -r ${WORKSPACE}/install/* tests/.build/
-                                rm -rf .git
-                                rm -rf contrib
-                                du -sh ./
-                                ls -alh
+                                ls -alh tests/.build/
+                                du -sh tests/.build/
                                 """
                             }
                         }

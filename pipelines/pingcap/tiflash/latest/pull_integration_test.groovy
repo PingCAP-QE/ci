@@ -420,11 +420,14 @@ pipeline {
                                             def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                            def tidbImage = "${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}"
+                                            def tidbFailpointImage = "${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}-failpoint"
+                                            def tidbRuntimeImage = env.TEST_PATH == 'tidb-ci' ? tidbFailpointImage : tidbImage
                                             withEnv([
                                                 "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${pdBranch}",
                                                 "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${tikvBranch}",
-                                                "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}",
-                                                "TIDB_FAILPOINT_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}-failpoint",
+                                                "TIDB_IMAGE=${tidbRuntimeImage}",
+                                                "TIDB_FAILPOINT_IMAGE=${tidbFailpointImage}",
                                                 "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
                                             ]) {
                                                 withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
