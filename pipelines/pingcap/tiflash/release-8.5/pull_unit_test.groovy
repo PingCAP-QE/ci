@@ -18,7 +18,8 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'runner'
             retries 5
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
@@ -40,27 +41,13 @@ pipeline {
             steps {
                 dir("tiflash") {
                     script {
-                        container("util") {
-                            withCredentials(
-                                [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) {
-                                sh "rm -rf ./*"
-                                sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
-                                sh """
-                                ls -alh
-                                chown 1000:1000 src-tiflash.tar.gz
-                                tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
-                                ls -alh
-                                """
-                            }
-                        }
                         sh """
                         git config --global --add safe.directory "*"
                         git version
-                        git status
                         """
+                        prow.checkoutRefsWithCacheLock(REFS, 5, '', true, 'https://github.com')
                         retry(2) {
-                            prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                            sh "git status"
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"

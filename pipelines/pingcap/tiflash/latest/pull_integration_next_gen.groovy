@@ -13,6 +13,9 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
+final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
+final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
+final TEST_WORKSPACE_CACHE_FOLDER = 'tiflash-next-gen-it-build'
 
 Boolean proxy_cache_ready = false
 Boolean build_cache_ready = false
@@ -25,7 +28,8 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'runner'
             retries 5
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
@@ -47,27 +51,13 @@ pipeline {
             steps {
                 dir("tiflash") {
                     script {
-                        container("util") {
-                            withCredentials(
-                                [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) {
-                                sh "rm -rf ./*"
-                                sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
-                                sh """
-                                ls -alh
-                                chown 1000:1000 src-tiflash.tar.gz
-                                tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
-                                ls -alh
-                                """
-                            }
-                        }
                         sh """
                         git config --global --add safe.directory "*"
                         git version
-                        git status
                         """
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
                         retry(2) {
-                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                            sh "git status"
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
 
@@ -374,7 +364,7 @@ pipeline {
                     sh label: "change permission", script: """
                         chown -R 1000:1000 ./
                     """
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')){
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
                        dir('tests/.build') {
                             sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
@@ -386,6 +376,7 @@ pipeline {
                         git show --oneline -s
                         rm -rf .git
                         rm -rf contrib
+                        rm -rf tests/fullstack-test-next-gen-columnar
                         du -sh ./
                         ls -alh
                         """
@@ -405,7 +396,8 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_INTEGRATIONTEST_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_INTEGRATIONTEST_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'docker'
                         retries 5
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
@@ -419,23 +411,46 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir("${WORKSPACE}/tiflash") {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'it-build')){
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
                                     dir("tests/${TEST_PATH}") {
                                         withEnv([
                                             "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_PD}",
                                             "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${OCI_TAG_TIKV}",
                                             "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${OCI_TAG_TIDB}",
+                                            "MINIO_IMAGE=quay.io/minio/minio:${MINIO_VERSION}",
+                                            "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
                                         ]) {
                                             withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
                                                 sh label: "prepare docker images", script: '''
+                                                    set -eux
                                                     mkdir -p ~/.docker
-                                                    cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
-                                                    docker ps -a && docker version
+                                                    cp "${DOCKER_CONFIG_JSON}" ~/.docker/config.json
+                                                    for i in $(seq 1 30); do
+                                                        if docker version; then
+                                                            break
+                                                        fi
+                                                        sleep 2
+                                                    done
+                                                    docker ps -a
 
-                                                    docker pull $PD_IMAGE
-                                                    docker pull $TIKV_IMAGE
-                                                    docker pull $TIDB_IMAGE
+                                                    timeout 300 docker pull "${PD_IMAGE}"
+                                                    timeout 300 docker pull "${TIKV_IMAGE}"
+                                                    timeout 300 docker pull "${TIDB_IMAGE}"
+                                                    timeout 300 docker pull "${MINIO_IMAGE}"
+                                                    timeout 600 docker pull "${TIFLASH_IMAGE}"
 
+                                                    find ../docker . -name '*.yaml' -type f -exec sed -i \
+                                                        -e "s#hub.pingcap.net/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
+                                                        -e "s#hub.pingcap.net/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
+                                                        -e 's#hub.pingcap.net/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
+                                                        -e "s#hub.pingcap.net/test-infra/minio:latest#${MINIO_IMAGE}#g" \
+                                                        -e "s#hub.pingcap.net/tikv/pd/image:master#${PD_IMAGE}#g" \
+                                                        -e "s#hub.pingcap.net/tikv/tikv/image:master#${TIKV_IMAGE}#g" \
+                                                        -e "s#hub.pingcap.net/pingcap/tidb/images/tidb-server:master#${TIDB_IMAGE}#g" \
+                                                        -e 's#hub.pingcap.net/qa/pd:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
+                                                        -e 's#hub.pingcap.net/qa/tikv:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
+                                                        -e 's#hub.pingcap.net/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
+                                                        {} +
                                                     rm -rf ~/.docker
                                                 '''
                                             }
