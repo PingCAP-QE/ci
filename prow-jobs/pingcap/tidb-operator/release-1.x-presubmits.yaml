@@ -38,7 +38,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 300Gi
@@ -152,7 +152,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 300Gi
@@ -266,7 +266,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 300Gi
@@ -381,7 +381,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 300Gi
@@ -495,7 +495,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 300Gi
@@ -610,7 +610,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 300Gi
@@ -724,7 +724,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 300Gi
@@ -839,7 +839,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 300Gi
