@@ -97,6 +97,8 @@ spec:
       env:
         - name: CARGO_NET_GIT_FETCH_WITH_CLI
           value: "true"
+        - name: GIT_SSH_COMMAND
+          value: "ssh -o StrictHostKeyChecking=no"
         # - name: RUSTUP_DIST_SERVER
         #   value: https://rsproxy.cn
         # - name: RUSTUP_UPDATE_ROOT
