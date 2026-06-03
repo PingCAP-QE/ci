@@ -90,7 +90,7 @@ spec:
                     'memory': '16Gi'
                   },
                   'tiflash': {
-                    'timeout': '2h',
+                    'timeout': '5h',
                     'sourceWsSize': '100Gi',
                     'cpu': '16',
                     'memory': '64Gi'
