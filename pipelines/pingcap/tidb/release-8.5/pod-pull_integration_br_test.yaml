@@ -27,7 +27,6 @@ spec:
               - /bin/sh
               - -c
               - |
-                chmod 1777 /tmp/tidb
                 cat > /home/jenkins/.my.cnf <<'EOF'
                 [client]
                 ssl-mode=DISABLED
