@@ -64,7 +64,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: golang:1.23
+            image: golang:1.26
             env:
               - name: TARGET_FULL_REPO
                 value: pingcap-inc/enterprise-plugin
