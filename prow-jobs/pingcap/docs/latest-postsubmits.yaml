@@ -19,7 +19,7 @@ postsubmits:
           - name: build-pdf
             image: us-docker.pkg.dev/pingcap-testing-account/hub/pingcap-qe/docs-merged-update-runtime@sha256:ce3647630176a08c939ad665956dedd3a855b083f84b93f4bd3b9a98eeb1436f
             imagePullPolicy: IfNotPresent
-            command: [bash, -ce]
+            command: [bash, -c]
             args:
               - |
                 set -euo pipefail
