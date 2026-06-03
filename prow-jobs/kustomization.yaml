@@ -28,11 +28,11 @@ configMapGenerator:
       - pingcap-qe_tidb-test_release-8.5-presubmits.yaml=pingcap-qe/tidb-test/release-8.5-presubmits.yaml
       - pingcap_community_postsubmits.yaml=pingcap/community/postsubmits.yaml
       - pingcap_community_presubmits.yaml=pingcap/community/presubmits.yaml
-      - pingcap_docs_docs-cn-latest-presubmits.yaml=pingcap/docs/docs-cn-latest-presubmits.yaml
-      - pingcap_docs_docs-cn-postsubmits.yaml=pingcap/docs/docs-cn-postsubmits.yaml
-      - pingcap_docs_docs-latest-presubmits.yaml=pingcap/docs/docs-latest-presubmits.yaml
-      - pingcap_docs_docs-postsubmits.yaml=pingcap/docs/docs-postsubmits.yaml
-      - pingcap_docs_docs-tidb-operator-postsubmits.yaml=pingcap/docs/docs-tidb-operator-postsubmits.yaml
+      - pingcap_docs-cn_latest-postsubmits.yaml=pingcap/docs-cn/latest-postsubmits.yaml
+      - pingcap_docs-cn_latest-presubmits.yaml=pingcap/docs-cn/latest-presubmits.yaml
+      - pingcap_docs-tidb-operator_latest-postsubmits.yaml=pingcap/docs-tidb-operator/latest-postsubmits.yaml
+      - pingcap_docs_latest-postsubmits.yaml=pingcap/docs/latest-postsubmits.yaml
+      - pingcap_docs_latest-presubmits.yaml=pingcap/docs/latest-presubmits.yaml
       - pingcap_monitoring_periodics.yaml=pingcap/monitoring/periodics.yaml
       - pingcap_ng-monitoring_postsubmits.yaml=pingcap/ng-monitoring/postsubmits.yaml
       - pingcap_ticdc_common-postsubmits.yaml=pingcap/ticdc/common-postsubmits.yaml

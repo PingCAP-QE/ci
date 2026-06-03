@@ -1,15 +1,14 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
 postsubmits:
-  pingcap/docs-cn:
-    - name: docs-cn-merged-update-docs
+  pingcap/docs:
+    - name: docs-merged-update-docs
       agent: kubernetes
       cluster: default
       decorate: true
       decoration_config:
-        timeout: 60m
-      context: docs-cn/merged-ci
+        timeout: 100m
+      context: docs/merged-ci
       max_concurrency: 5
-      skip_report: false
       branches:
         - ^master$
         - ^release-6\.[15]$
@@ -37,6 +36,11 @@ postsubmits:
                 python3 scripts/merge_by_toc.py
                 scripts/generate_pdf.sh
 
+                if [ "${branch}" = "release-8.5" ]; then
+                  python3 scripts/merge_by_toc.py TOC-tidb-cloud.md doc_cloud.md tidb-cloud
+                  scripts/generate_cloud_pdf.sh
+                fi
+
                 dst="${TENCENTCLOUD_RCLONE_CONN:?missing TENCENTCLOUD_RCLONE_CONN}:${TENCENTCLOUD_BUCKET_ID:?missing TENCENTCLOUD_BUCKET_ID}/pdf"
                 case "${branch}" in
                   master)
@@ -54,18 +58,21 @@ postsubmits:
                     ;;
                 esac
 
-                rclone copyto output.pdf "${dst}/tidb-${version}-zh-manual.pdf"
+                rclone copyto output.pdf "${dst}/tidb-${version}-en-manual.pdf"
+                if [ -f output_cloud.pdf ]; then
+                  rclone copyto output_cloud.pdf "${dst}/tidbcloud-en-manual.pdf"
+                fi
             env:
               - name: TENCENTCLOUD_RCLONE_CONN
                 valueFrom:
                   secretKeyRef:
                     name: docs-cn
-                    key: docs-cn-tencent-ak
+                    key: tencent-ak
               - name: TENCENTCLOUD_BUCKET_ID
                 valueFrom:
                   secretKeyRef:
                     name: docs-cn
-                    key: docs-cn-tencent-bn
+                    key: tencent-bn
             resources:
               requests:
                 memory: 12Gi
