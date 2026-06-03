@@ -23,6 +23,7 @@ spec:
               - /bin/sh
               - -c
               - |
+                mkdir -p /home/jenkins
                 cat > /home/jenkins/.my.cnf <<'EOF'
                 [client]
                 ssl-mode=DISABLED
