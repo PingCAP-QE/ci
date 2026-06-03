@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: init-mysql-config
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "alpine:3.23"
       command:
         - sh
         - -c
