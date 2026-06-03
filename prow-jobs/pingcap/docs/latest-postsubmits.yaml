@@ -1,0 +1,91 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
+postsubmits:
+  pingcap/docs:
+    - name: docs-merged-update-docs
+      agent: kubernetes
+      cluster: default
+      decorate: true
+      decoration_config:
+        timeout: 100m
+      context: docs/merged-ci
+      max_concurrency: 5
+      branches:
+        - ^master$
+        - ^release-6\.[15]$
+        - ^release-7\.[15]$
+        - ^release-8\.[15]$
+      spec:
+        containers:
+          - name: build-pdf
+            image: us-docker.pkg.dev/pingcap-testing-account/hub/pingcap-qe/docs-merged-update-runtime@sha256:ce3647630176a08c939ad665956dedd3a855b083f84b93f4bd3b9a98eeb1436f
+            imagePullPolicy: IfNotPresent
+            command: [bash, -c]
+            args:
+              - |
+                set -euo pipefail
+
+                branch="${PULL_BASE_REF:?missing PULL_BASE_REF}"
+                repo_dir="/home/prow/go/src/github.com/${REPO_OWNER:?missing REPO_OWNER}/${REPO_NAME:?missing REPO_NAME}"
+                cd "${repo_dir}"
+
+                if find . -name '*.md' -print0 | xargs -0 grep -P '\t'; then
+                  echo "Found tab characters in markdown sources." >&2
+                  exit 1
+                fi
+
+                python3 scripts/merge_by_toc.py
+                scripts/generate_pdf.sh
+
+                if [ "${branch}" = "release-8.5" ]; then
+                  python3 scripts/merge_by_toc.py TOC-tidb-cloud.md doc_cloud.md tidb-cloud
+                  scripts/generate_cloud_pdf.sh
+                fi
+
+                dst="${TENCENTCLOUD_RCLONE_CONN:?missing TENCENTCLOUD_RCLONE_CONN}:${TENCENTCLOUD_BUCKET_ID:?missing TENCENTCLOUD_BUCKET_ID}/pdf"
+                case "${branch}" in
+                  master)
+                    version="dev"
+                    ;;
+                  release-8.5)
+                    version="stable"
+                    ;;
+                  release-*)
+                    version="v${branch#release-}"
+                    ;;
+                  *)
+                    echo "Error: Unexpected base ref: ${branch}" >&2
+                    exit 1
+                    ;;
+                esac
+
+                rclone copyto output.pdf "${dst}/tidb-${version}-en-manual.pdf"
+                if [ -f output_cloud.pdf ]; then
+                  rclone copyto output_cloud.pdf "${dst}/tidbcloud-en-manual.pdf"
+                fi
+            env:
+              - name: TENCENTCLOUD_RCLONE_CONN
+                valueFrom:
+                  secretKeyRef:
+                    name: docs-cn
+                    key: tencent-ak
+              - name: TENCENTCLOUD_BUCKET_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: docs-cn
+                    key: tencent-bn
+            resources:
+              requests:
+                memory: 12Gi
+                cpu: "4"
+              limits:
+                memory: 12Gi
+                cpu: "4"
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
