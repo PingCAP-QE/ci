@@ -440,16 +440,21 @@ pipeline {
                                                     timeout 600 docker pull "${TIFLASH_IMAGE}"
 
                                                     find ../docker . -name '*.yaml' -type f -exec sed -i \
-                                                        -e "s#hub.pingcap.net/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
-                                                        -e "s#hub.pingcap.net/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
-                                                        -e 's#hub.pingcap.net/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
-                                                        -e "s#hub.pingcap.net/test-infra/minio:latest#${MINIO_IMAGE}#g" \
-                                                        -e "s#hub.pingcap.net/tikv/pd/image:master#${PD_IMAGE}#g" \
-                                                        -e "s#hub.pingcap.net/tikv/tikv/image:master#${TIKV_IMAGE}#g" \
-                                                        -e "s#hub.pingcap.net/pingcap/tidb/images/tidb-server:master#${TIDB_IMAGE}#g" \
-                                                        -e 's#hub.pingcap.net/qa/pd:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
-                                                        -e 's#hub.pingcap.net/qa/tikv:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
-                                                        -e 's#hub.pingcap.net/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
+                                                        -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
+                                                        -e 's#${TIKV_IMAGE:[^}]*}#'"${TIKV_IMAGE}"'#g' \
+                                                        -e 's#${TIDB_IMAGE:[^}]*}#'"${TIDB_IMAGE}"'#g' \
+                                                        -e 's#${MINIO_IMAGE:[^}]*}#'"${MINIO_IMAGE}"'#g' \
+                                                        -e 's#${TIFLASH_IMAGE:[^}]*}#'"${TIFLASH_IMAGE}"'#g' \
+                                                        -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
+                                                        -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
+                                                        -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
+                                                        -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/test-infra/minio:latest#${MINIO_IMAGE}#g" \
+                                                        -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:master#${PD_IMAGE}#g" \
+                                                        -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:master#${TIKV_IMAGE}#g" \
+                                                        -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master#${TIDB_IMAGE}#g" \
+                                                        -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
+                                                        -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
+                                                        -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
                                                         {} +
                                                     rm -rf ~/.docker
                                                 '''
