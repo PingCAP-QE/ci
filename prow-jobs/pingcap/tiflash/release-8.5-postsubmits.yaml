@@ -4,7 +4,7 @@ postsubmits:
     - name: pingcap/tiflash/release-8.5/merged_unit_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       context: merged-unit-test
       max_concurrency: 1
@@ -14,7 +14,7 @@ postsubmits:
     - name: pingcap/tiflash/release-8.5/merged_build
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       context: merged-build
       max_concurrency: 1
