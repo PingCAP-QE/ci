@@ -9,12 +9,6 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.5/pod-merged_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
-final dependency_dir = "/home/jenkins/agent/dependency"
-final proxy_cache_dir = "/home/jenkins/agent/proxy-cache/refactor-pipelines"
-Boolean proxy_cache_ready = false
-Boolean update_proxy_cache = true
-Boolean update_ccache = true
-String proxy_commit_hash = null
 
 pipeline {
     agent {
@@ -49,10 +43,6 @@ pipeline {
                             sh """
                             git status
                             """
-                            dir("contrib/tiflash-proxy") {
-                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                println "proxy_commit_hash: ${proxy_commit_hash}"
-                            }
                             sh """
                             chown 1000:1000 -R ./
                             """
@@ -67,18 +57,6 @@ pipeline {
                     steps {
                         script {
                             dir("tiflash") {
-                                sh label: "copy ccache if exist", script: """
-                                ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
-                                if [ -f \$ccache_tar_file ]; then
-                                    echo "ccache found"
-                                    cd /tmp
-                                    cp -r \$ccache_tar_file ccache.tar
-                                    tar -xf ccache.tar
-                                    ls -lha /tmp
-                                else
-                                    echo "ccache not found"
-                                fi
-                                """
                                 sh label: "config ccache", script: """
                                 ccache -o cache_dir="/tmp/.ccache"
                                 ccache -o max_size=2G
@@ -92,28 +70,6 @@ pipeline {
                         }
                     }
 
-                }
-                stage("Proxy-Cache") {
-                    steps {
-                        script {
-                            proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                            println "proxy_cache_ready: ${proxy_cache_ready}"
-
-                            sh label: "copy proxy if exist", script: """
-                            proxy_suffix="amd64-linux-llvm"
-                            proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
-                            if [ -f \$proxy_cache_file ]; then
-                                echo "proxy cache found"
-                                mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
-                                cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                                chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                            else
-                                echo "proxy cache not found"
-                            fi
-                            """
-                        }
-                    }
                 }
                 stage("Cargo-Cache") {
                     steps {
@@ -150,15 +106,6 @@ pipeline {
                     def diagnostic_flag = ""
                     def compatible_flag = ""
                     def openssl_root_dir = ""
-                    def prebuilt_dir_flag = ""
-                    if (proxy_cache_ready) {
-                        // only for toolchain is llvm
-                        prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
-                        sh """
-                        mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
-                        """
-                    }
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -166,7 +113,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
+                        cmake '${WORKSPACE}/tiflash' ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -175,7 +122,7 @@ pipeline {
                             -DENABLE_TESTS=false \\
                             -DUSE_CCACHE=true \\
                             -DDEBUG_WITHOUT_DEBUG_INFO=true \\
-                            -DUSE_INTERNAL_TIFLASH_PROXY=${!proxy_cache_ready} \\
+                            -DUSE_INTERNAL_TIFLASH_PROXY=true \\
                             -DRUN_HAVE_STD_REGEX=0 \\
                         """
                     }
@@ -218,42 +165,16 @@ pipeline {
             }
         }
         stage("Post Build") {
-            parallel {
-                stage("Upload Build Artifacts") {
-                    steps {
-                        dir("${WORKSPACE}/install") {
-                            sh label: "archive tiflash binary", script: """
-                            tar -czf 'tiflash.tar.gz' 'tiflash'
-                            """
-                            archiveArtifacts artifacts: "tiflash.tar.gz"
-                            sh """
-                            du -sh tiflash.tar.gz
-                            rm -rf tiflash.tar.gz
-                            """
-                        }
-                    }
-                }
-                stage("Upload Ccache") {
-                    steps {
-                        dir("${WORKSPACE}/tiflash") {
-                            sh label: "upload ccache", script: """
-                            cd /tmp
-                            rm -rf ccache.tar
-                            tar -cf ccache.tar .ccache
-                            ls -alh ccache.tar
-                            mkdir -p /home/jenkins/agent/ccache/ccache-4.10.2
-                            cp ccache.tar /home/jenkins/agent/ccache/ccache-4.10.2/tiflash-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar
-                            cd -
-                            """
-                        }
-                    }
-                }
-                stage("Upload Proxy Cache") {
-                    steps {
-                        sh label: "upload proxy cache", script: """
-                            echo "TODO: upload proxy cache"
-                        """
-                    }
+            steps {
+                dir("${WORKSPACE}/install") {
+                    sh label: "archive tiflash binary", script: """
+                    tar -czf 'tiflash.tar.gz' 'tiflash'
+                    """
+                    archiveArtifacts artifacts: "tiflash.tar.gz"
+                    sh """
+                    du -sh tiflash.tar.gz
+                    rm -rf tiflash.tar.gz
+                    """
                 }
             }
         }
