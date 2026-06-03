@@ -20,6 +20,18 @@ spec:
       volumeMounts:
         - mountPath: "/tmp/tidb"
           name: "tidb-temp-dir-volume"
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - |
+                mkdir -p /home/jenkins
+                cat > /home/jenkins/.my.cnf <<'EOF'
+                [client]
+                ssl-mode=DISABLED
+                EOF
     - name: utils
       image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
