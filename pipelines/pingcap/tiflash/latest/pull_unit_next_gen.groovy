@@ -20,7 +20,8 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'runner'
             retries 5
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
@@ -42,27 +43,13 @@ pipeline {
             steps {
                 dir("tiflash") {
                     script {
-                        container("util") {
-                            withCredentials(
-                                [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) {
-                                sh "rm -rf ./*"
-                                sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
-                                sh """
-                                ls -alh
-                                chown 1000:1000 src-tiflash.tar.gz
-                                tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
-                                ls -alh
-                                """
-                            }
-                        }
                         sh """
                         git config --global --add safe.directory "*"
                         git version
-                        git status
                         """
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
                         retry(2) {
-                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                            sh "git status"
 
                             // Get next-gen tiflash-proxy commit hash.
                             // For submodule, we need to enter the submodule directory and get the commit hash from there.
@@ -343,25 +330,33 @@ pipeline {
                         sh label: "change permission", script: """
                             chown -R 1000:1000 ./
                         """
-                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('ng-binary', REFS, 'ut-build')) {
+                        def binaryCacheKey = prow.getCacheKey('ng-binary', REFS, 'ut-build-artifacts')
+                        sh label: "prepare binary cache dir", script: """
+                            mkdir -p tests/.build
+                        """
+                        cache(path: "tests/.build", includes: '**/*', key: binaryCacheKey) {
+                            // Fallback for cases where build_cache_ready was not set before this stage.
+                            build_cache_ready = build_cache_ready || (sh(
+                                script: "test -x tests/.build/tiflash/gtests_dbms",
+                                returnStatus: true
+                            ) == 0)
+
                             if (build_cache_ready) {
-                                println "build cache exist, restore from cache key: ${prow.getCacheKey('ng-binary', REFS, 'ut-build')}"
+                                println "build cache exist, restore from cache key: ${binaryCacheKey}"
                                 sh """
-                                du -sh ./
-                                ls -alh ./
                                 ls -alh tests/.build/
+                                du -sh tests/.build/
                                 """
                             } else {
-                                println "build cache not exist, clean git repo for cache"
-                                sh label: "clean git repo", script: """
+                                println "build cache not exist, save build artifacts to cache"
+                                sh label: "copy build artifacts", script: """
                                 git status
                                 git show --oneline -s
-                                mkdir tests/.build
+                                rm -rf tests/.build
+                                mkdir -p tests/.build
                                 cp -r ${WORKSPACE}/install/* tests/.build/
-                                rm -rf .git
-                                rm -rf contrib
-                                du -sh ./
-                                ls -alh
+                                ls -alh tests/.build/
+                                du -sh tests/.build/
                                 """
                             }
                         }

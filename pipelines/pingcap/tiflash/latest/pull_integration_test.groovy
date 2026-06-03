@@ -10,6 +10,8 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final dependency_dir = "/home/jenkins/agent/dependency"
+final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
+final TEST_WORKSPACE_CACHE_FOLDER = 'tiflash-it-build'
 Boolean proxy_cache_ready = false
 Boolean build_cache_ready = false
 String proxy_commit_hash = null
@@ -21,7 +23,8 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'runner'
             retries 5
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
@@ -43,27 +46,13 @@ pipeline {
             steps {
                 dir("tiflash") {
                     script {
-                        container("util") {
-                            withCredentials(
-                                [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) {
-                                sh "rm -rf ./*"
-                                sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
-                                sh """
-                                ls -alh
-                                chown 1000:1000 src-tiflash.tar.gz
-                                tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
-                                ls -alh
-                                """
-                            }
-                        }
                         sh """
                         git config --global --add safe.directory "*"
                         git version
-                        git status
                         """
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
                         retry(2) {
-                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                            sh "git status"
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
 
@@ -369,7 +358,7 @@ pipeline {
                     sh label: "change permission", script: """
                         chown -R 1000:1000 ./
                     """
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'it-build')){
+                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
                        dir('tests/.build') {
                             sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
@@ -381,6 +370,7 @@ pipeline {
                         git show --oneline -s
                         rm -rf .git
                         rm -rf contrib
+                        rm -rf tests/fullstack-test-next-gen-columnar
                         du -sh ./
                         ls -alh
                         """
@@ -400,7 +390,8 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_INTEGRATIONTEST_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_INTEGRATIONTEST_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'docker'
                         retries 5
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
@@ -414,8 +405,8 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir("${WORKSPACE}/tiflash") {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'it-build')){
-                                    println "restore from cache key: ${prow.getCacheKey('binary', REFS, 'it-build')}"
+                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
+                                    println "restore from cache key: ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}"
                                     sh label: "debug info", script: """
                                     printenv
                                     pwd && ls -alh
@@ -429,9 +420,69 @@ pipeline {
                                             def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
                                             def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                            sh label: "run integration tests", script: """
-                                            PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
-                                            """
+                                            def tidbImage = "${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}"
+                                            def tidbFailpointImage = "${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}-failpoint"
+                                            def tidbRuntimeImage = env.TEST_PATH == 'tidb-ci' ? tidbFailpointImage : tidbImage
+                                            withEnv([
+                                                "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${pdBranch}",
+                                                "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${tikvBranch}",
+                                                "TIDB_IMAGE=${tidbRuntimeImage}",
+                                                "TIDB_FAILPOINT_IMAGE=${tidbFailpointImage}",
+                                                "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
+                                            ]) {
+                                                withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                                                    sh label: "prepare docker images", script: '''
+                                                        set -eux
+                                                        mkdir -p ~/.docker
+                                                        cp "${DOCKER_CONFIG_JSON}" ~/.docker/config.json
+                                                        for i in $(seq 1 30); do
+                                                            if docker version; then
+                                                                break
+                                                            fi
+                                                            sleep 2
+                                                        done
+                                                        docker ps -a
+
+                                                        timeout 300 docker pull "${PD_IMAGE}"
+                                                        timeout 300 docker pull "${TIKV_IMAGE}"
+                                                        timeout 300 docker pull "${TIDB_IMAGE}"
+                                                        timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}" || true
+                                                        timeout 600 docker pull "${TIFLASH_IMAGE}"
+
+                                                        find ../docker . -name '*.yaml' -type f -exec sed -i \
+                                                            -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
+                                                            -e 's#${TIKV_IMAGE:[^}]*}#'"${TIKV_IMAGE}"'#g' \
+                                                            -e 's#${TIDB_IMAGE:[^}]*-failpoint}#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                                                            -e 's#${TIDB_IMAGE:[^}]*}#'"${TIDB_IMAGE}"'#g' \
+                                                            -e 's#${TIFLASH_IMAGE:[^}]*}#'"${TIFLASH_IMAGE}"'#g' \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:master#${PD_IMAGE}#g" \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:master#${TIKV_IMAGE}#g" \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master#${TIDB_IMAGE}#g" \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:master#${PD_IMAGE}#g" \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:master#${TIKV_IMAGE}#g" \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
+                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master#${TIDB_IMAGE}#g" \
+                                                            {} +
+                                                        rm -rf ~/.docker
+                                                    '''
+                                                }
+
+                                                sh label: "run integration tests", script: """
+                                                PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
+                                                """
+                                            }
                                         }
                                     }
                                 }

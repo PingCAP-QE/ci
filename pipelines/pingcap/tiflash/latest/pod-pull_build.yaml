@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:rocky8-llvm-17.0.6-v2"
+      image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2
       imagePullPolicy: Always
       command:
         - "/bin/bash"
@@ -16,9 +16,11 @@ spec:
         requests:
           memory: 32Gi
           cpu: "12"
+          ephemeral-storage: 20Gi
         limits:
           memory: 48Gi
           cpu: "12"
+          ephemeral-storage: 150Gi
       volumeMounts:
         - mountPath: "/home/jenkins/agent/rust"
           name: "volume-0"
@@ -44,16 +46,6 @@ spec:
         - mountPath: "/tmp-memfs"
           name: "volume-8"
           readOnly: false
-    - name: util
-      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v2026.3.29-14-g90ae7ef
-      tty: true
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "500Mi"
-        limits:
-          cpu: "500m"
-          memory: "500Mi"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       args: ["sleep", "infinity"]
@@ -66,35 +58,17 @@ spec:
           memory: "4Gi"
   volumes:
     - name: "volume-0"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/rust"
-        readOnly: false
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-2"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/dependency"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-1"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/ccache"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-4"
-      nfs:
-        path: "/data/nvme1n1/nfs/git"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-5"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-6"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/libclara-cache"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-7"
       emptyDir: {}
     - name: "volume-8"
@@ -109,7 +83,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
