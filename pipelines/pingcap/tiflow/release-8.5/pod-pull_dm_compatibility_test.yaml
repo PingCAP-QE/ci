@@ -3,6 +3,18 @@ kind: Pod
 spec:
   securityContext:
     fsGroup: 1000
+  initContainers:
+    - name: init-mysql-config
+      image: "alpine:3.23"
+      command:
+        - sh
+        - -c
+        - |
+          echo "[client]" > /mysql-config/.my.cnf
+          echo "ssl-mode=DISABLED" >> /mysql-config/.my.cnf
+      volumeMounts:
+        - mountPath: "/mysql-config"
+          name: "mysql-config-volume"
   containers:
     - name: golang
       image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
@@ -14,6 +26,10 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
+      volumeMounts:
+        - mountPath: "/home/jenkins/.my.cnf"
+          name: "mysql-config-volume"
+          subPath: ".my.cnf"
     - name: mysql1
       image: 'hub.pingcap.net/jenkins/mysql:5.7'
       tty: true
@@ -52,6 +68,9 @@ spec:
         - "--gtid-mode=ON"
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
+  volumes:
+    - name: mysql-config-volume
+      emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
