@@ -3,9 +3,7 @@
 // should triggerd for master branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tiflash"  // TODO: need to adjust namespace after test
-final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final K8S_NAMESPACE = "jenkins-tiflash"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.5/pod-merged_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
@@ -21,12 +19,8 @@ pipeline {
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-    }
     options {
         timeout(time: 120, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {
@@ -51,66 +45,19 @@ pipeline {
                 }
             }
         }
-        stage("Prepare Cache") {
-            parallel {
-                stage("Ccache") {
-                    steps {
-                    script {
-                        dir("tiflash") {
-                            sh label: "config ccache", script: """
-                            ccache -o cache_dir="/tmp/.ccache"
-                            ccache -o max_size=2G
-                            ccache -o hash_dir=false
-                            ccache -o compression=true
-                            ccache -o compression_level=6
-                            ccache -o read_only=false
-                            ccache -z
-                            """
-                        }
-                    }
-                    }
-                }
-                stage("Cargo-Cache") {
-                    steps {
-                        script {
-                            sh label: "link cargo cache", script: """
-                                mkdir -p ~/.cargo/registry
-                                mkdir -p ~/.cargo/git
-                                mkdir -p /home/jenkins/agent/rust/registry/cache
-                                mkdir -p /home/jenkins/agent/rust/registry/index
-                                mkdir -p /home/jenkins/agent/rust/git/db
-                                mkdir -p /home/jenkins/agent/rust/git/checkouts
-
-                                rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-                                rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
-                                rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
-                                rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
-
-                                rm -rf ~/.rustup/tmp
-                                rm -rf ~/.rustup/toolchains
-                                mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
-                                mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
-                                ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
-                                ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
-                            """
-                        }
-                    }
-                }
-            }
-        }
-        stage("Build Dependency and Utils") {
-            parallel {
-                stage("Cluster Manage") {
-                    steps {
-                        // NOTE: cluster_manager is deprecated since release-6.0 (include)
-                        echo "cluster_manager is deprecated"
-                    }
-                }
-                stage("TiFlash Proxy") {
-                    steps {
-                        script {
-                            echo "skip because proxy build is integrated(llvm)"
-                        }
+        stage("Prepare Ccache") {
+            steps {
+                script {
+                    dir("tiflash") {
+                        sh label: "config ccache", script: """
+                        ccache -o cache_dir="/tmp/.ccache"
+                        ccache -o max_size=2G
+                        ccache -o hash_dir=false
+                        ccache -o compression=true
+                        ccache -o compression_level=6
+                        ccache -o read_only=false
+                        ccache -z
+                        """
                     }
                 }
             }
@@ -119,12 +66,7 @@ pipeline {
             // TODO: need to simplify this part, all config and build logic should be in script in tiflash repo
             steps {
                 script {
-                    def toolchain = "llvm"
                     def generator = 'Ninja'
-                    def coverage_flag = ""
-                    def diagnostic_flag = ""
-                    def compatible_flag = ""
-                    def openssl_root_dir = ""
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -132,7 +74,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
+                        cmake '${WORKSPACE}/tiflash' \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -176,32 +118,18 @@ pipeline {
         }
 
         stage("Post Build") {
-            parallel {
-                stage("Archive Build Artifacts") {
-                    steps {
-                        dir("${WORKSPACE}/install") {
-                            sh """
-                            tar -czf 'tiflash.tar.gz' 'tiflash'
-                            """
-                            archiveArtifacts artifacts: "tiflash.tar.gz"
-                        }
-                    }
+            steps {
+                dir("${WORKSPACE}/build") {
+                    sh """
+                    tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
+                    """
+                    archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
                 }
-                stage("Archive Build Data") {
-                    steps {
-                        dir("${WORKSPACE}/build") {
-                            sh """
-                            tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
-                            """
-                            archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
-                        }
-                        dir("${WORKSPACE}/tiflash") {
-                            sh """
-                            tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
-                            """
-                            archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
-                        }
-                    }
+                dir("${WORKSPACE}/tiflash") {
+                    sh """
+                    tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
+                    """
+                    archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
                 }
             }
         }

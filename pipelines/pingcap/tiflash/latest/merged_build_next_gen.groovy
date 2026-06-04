@@ -3,8 +3,7 @@
 // should triggerd for master branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tiflash"  // TODO: need to adjust namespace after test
-final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
+final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-merged_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -26,7 +25,6 @@ pipeline {
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {
@@ -51,47 +49,18 @@ pipeline {
                 }
             }
         }
-        stage("Prepare Cache") {
-            parallel {
-                stage("Ccache") {
-                    steps {
-                        script {
-                            dir("tiflash") {
-                                sh label: "config ccache", script: """
-                                ccache -o cache_dir="/tmp/.ccache"
-                                ccache -o max_size=2G
-                                ccache -o hash_dir=false
-                                ccache -o compression=true
-                                ccache -o compression_level=6
-                                ccache -o read_only=false
-                                ccache -z
-                                """
-                            }
-                        }
-                    }
-
-                }
-                stage("Cargo-Cache") {
-                    steps {
-                        sh label: "link cargo cache", script: """
-                            mkdir -p ~/.cargo/registry
-                            mkdir -p ~/.cargo/git
-                            mkdir -p /home/jenkins/agent/rust/registry/cache
-                            mkdir -p /home/jenkins/agent/rust/registry/index
-                            mkdir -p /home/jenkins/agent/rust/git/db
-                            mkdir -p /home/jenkins/agent/rust/git/checkouts
-
-                            rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-                            rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
-                            rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
-                            rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
-
-                            rm -rf ~/.rustup/tmp
-                            rm -rf ~/.rustup/toolchains
-                            mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
-                            mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
-                            ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
-                            ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
+        stage("Prepare Ccache") {
+            steps {
+                script {
+                    dir("tiflash") {
+                        sh label: "config ccache", script: """
+                        ccache -o cache_dir="/tmp/.ccache"
+                        ccache -o max_size=2G
+                        ccache -o hash_dir=false
+                        ccache -o compression=true
+                        ccache -o compression_level=6
+                        ccache -o read_only=false
+                        ccache -z
                         """
                     }
                 }
@@ -100,13 +69,8 @@ pipeline {
         stage("Configure Project") {
             steps {
                 script {
-                    def toolchain = "llvm"
                     def generator = 'Ninja'
                     def next_gen_flag = "-DENABLE_NEXT_GEN=ON"
-                    def coverage_flag = ""
-                    def diagnostic_flag = ""
-                    def compatible_flag = ""
-                    def openssl_root_dir = ""
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -114,7 +78,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} ${next_gen_flag} \\
+                        cmake '${WORKSPACE}/tiflash' ${next_gen_flag} \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -135,7 +99,7 @@ pipeline {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh """
-                    cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
+                    cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
                     """
                     sh """
                     cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'

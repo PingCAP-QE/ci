@@ -16,21 +16,16 @@ spec:
           cpu: "12"
           ephemeral-storage: 20Gi
       volumeMounts:
-        - mountPath: "/home/jenkins/agent/rust"
-          name: "volume-0"
-          readOnly: false
         - mountPath: "/tmp"
-          name: "volume-6"
+          name: "tmp"
           readOnly: false
         - mountPath: "/tmp-memfs"
-          name: "volume-7"
+          name: "tmp-memfs"
           readOnly: false
   volumes:
-    - name: "volume-0"
+    - name: "tmp"
       emptyDir: {}
-    - name: "volume-6"
-      emptyDir: {}
-    - name: "volume-7"
+    - name: "tmp-memfs"
       emptyDir:
         medium: Memory
   affinity:
