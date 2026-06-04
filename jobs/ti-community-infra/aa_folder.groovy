@@ -10,14 +10,12 @@ folder('ti-community-infra') {
                             scm {
                                 git {
                                     remote('https://github.com/PingCAP-QE/ci')
-                                    extensions {
-                                        cloneOption {
-                                            depth(1)
-                                            shallow(true)
-                                            noTags(true)
-                                            reference('/var/lib/scm-git/ci')
-                                            timeout(5)
-                                        }
+                                    cloneOption {
+                                        depth(1)
+                                        shallow(true)
+                                        noTags(true)
+                                        reference('/var/lib/scm-git/ci')
+                                        timeout(5)
                                     }
                                 }
                             }
