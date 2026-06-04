@@ -14,18 +14,6 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
-      lifecycle:
-        postStart:
-          exec:
-            command:
-              - /bin/sh
-              - -c
-              - |
-                mkdir -p /home/jenkins
-                cat > /home/jenkins/.my.cnf <<'EOF'
-                [client]
-                ssl-mode=DISABLED
-                EOF
     - name: mysql1
       image: 'hub.pingcap.net/jenkins/mysql:5.7'
       tty: true
