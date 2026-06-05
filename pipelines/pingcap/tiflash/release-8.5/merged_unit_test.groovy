@@ -117,23 +117,6 @@ pipeline {
             }
         }
 
-        stage("Post Build") {
-            steps {
-                dir("${WORKSPACE}/build") {
-                    sh """
-                    tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
-                    """
-                    archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
-                }
-                dir("${WORKSPACE}/tiflash") {
-                    sh """
-                    tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
-                    """
-                    archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
-                }
-            }
-        }
-
         stage("Unit Test Prepare") {
             steps {
                 sh label: "link unit test dir", script: """
