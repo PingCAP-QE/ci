@@ -3,12 +3,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
-final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final BRANCH_ALIAS = 'latest'
-final COLUMNAR_JOB_NAME = 'pull_integration_next_gen_columnar'
-final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${COLUMNAR_JOB_NAME}/pod-build.yaml"
-final POD_TEMPLATE_FILE_TEST = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${COLUMNAR_JOB_NAME}/pod-test.yaml"
+final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod-build.yaml'
+final POD_TEMPLATE_FILE_TEST = 'pipelines/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
@@ -28,7 +25,6 @@ pipeline {
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout & Build') {
@@ -55,38 +51,18 @@ pipeline {
                         }
                     }
                 }
-                stage('Prepare Cache') {
+                stage('Prepare Ccache') {
                     steps {
                         dir(REFS.repo) {
-                            sh label: "prepare local build cache", script: '''
+                            sh label: "configure ccache", script: '''
                                 set -eux
-                                git config --global --add safe.directory "*"
 
-                                mkdir -p /home/jenkins/agent/ccache
-                                ccache -o cache_dir="/home/jenkins/agent/ccache"
-                                ccache -o max_size=20G
+                                ccache -o cache_dir="/tmp/.ccache"
+                                ccache -o max_size=2G
                                 ccache -o hash_dir=false
                                 ccache -o compression=true
                                 ccache -o compression_level=6
                                 ccache -z
-
-                                mkdir -p ~/.cargo/registry ~/.cargo/git ~/.rustup
-                                mkdir -p /home/jenkins/agent/rust/registry/cache
-                                mkdir -p /home/jenkins/agent/rust/registry/index
-                                mkdir -p /home/jenkins/agent/rust/git/db
-                                mkdir -p /home/jenkins/agent/rust/git/checkouts
-                                mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
-                                mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
-
-                                rm -rf ~/.cargo/registry/cache ~/.cargo/registry/index
-                                rm -rf ~/.cargo/git/db ~/.cargo/git/checkouts
-                                rm -rf ~/.rustup/tmp ~/.rustup/toolchains
-                                ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-                                ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
-                                ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
-                                ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
-                                ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
-                                ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                             '''
                         }
                     }

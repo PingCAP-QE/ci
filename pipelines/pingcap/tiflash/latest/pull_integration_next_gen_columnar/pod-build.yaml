@@ -24,24 +24,9 @@ spec:
       volumeMounts:
         - mountPath: "/tmp"
           name: "tmp"
-        - mountPath: "/tmp-memfs"
-          name: "tmp-memfs"
-    - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
-      args: ["sleep", "infinity"]
-      resources:
-        requests:
-          cpu: 100m
-          memory: 256Mi
-        limits:
-          cpu: "1"
-          memory: 4Gi
   volumes:
     - name: "tmp"
       emptyDir: {}
-    - name: "tmp-memfs"
-      emptyDir:
-        medium: Memory
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

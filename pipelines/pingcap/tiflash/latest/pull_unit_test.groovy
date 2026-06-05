@@ -131,34 +131,6 @@ pipeline {
             }
         }
 
-        stage("Post Build") {
-            when {
-                expression { !build_cache_ready }
-            }
-            steps {
-                dir("${WORKSPACE}/build") {
-                    sh label: "archive build data", script: """
-                    tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
-                    """
-                    archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
-                    sh """
-                    du -sh build-data.tar.xz
-                    rm -rf build-data.tar.xz
-                    """
-                }
-                dir("${WORKSPACE}/tiflash") {
-                    sh label: "archive source patch", script: """
-                    tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
-                    """
-                    archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
-                    sh """
-                    du -sh source-patch.tar.xz
-                    rm -rf source-patch.tar.xz
-                    """
-                }
-            }
-        }
-
         stage("Unit Test Prepare") {
             steps {
                 script {
