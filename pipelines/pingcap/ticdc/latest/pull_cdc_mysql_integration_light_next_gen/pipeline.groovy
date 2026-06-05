@@ -8,6 +8,7 @@ final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
+final WORKSPACE_STASH_NAME = 'ticdc-workspace'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
@@ -83,12 +84,11 @@ pipeline {
                             }
                         }
                     }
-                    // Cache for downstream test stages
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                        sh label: "prepare", script: """
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        ls -alh ./bin
+                    """
+                    // Stash the prepared workspace for downstream test stages.
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }
@@ -118,17 +118,16 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh """
-                                        ln -sf /usr/bin/jq ./bin/jq
-                                        make check_third_party_binary
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tiflash --version
-                                    """
-                                }
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh """
+                                    ln -sf /usr/bin/jq ./bin/jq
+                                    make check_third_party_binary
+                                    ls -alh ./bin
+                                    ./bin/tidb-server -V
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tiflash --version
+                                """
                                 sh label: "${TEST_GROUP}", script: """
                                     ./tests/integration_tests/run_light_it_in_ci.sh mysql ${TEST_GROUP}
                                 """

@@ -9,6 +9,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
+final WORKSPACE_STASH_NAME = 'ticdc-workspace'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
@@ -78,12 +79,11 @@ pipeline {
                             }
                         }
                     }
-                    // Cache for downstream test stages.
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                        sh label: "prepare", script: """
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        ls -alh ./bin
+                    """
+                    // Stash the prepared workspace for downstream test stages.
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }
@@ -113,17 +113,16 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh """
-                                        ln -sf /usr/bin/jq ./bin/jq
-                                        make check_third_party_binary
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tiflash --version
-                                    """
-                                }
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh """
+                                    ln -sf /usr/bin/jq ./bin/jq
+                                    make check_third_party_binary
+                                    ls -alh ./bin
+                                    ./bin/tidb-server -V
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tiflash --version
+                                """
                                 container("kafka") {
                                     timeout(time: 6, unit: 'MINUTES') {
                                         sh label: "Waiting for kafka ready", script: """
