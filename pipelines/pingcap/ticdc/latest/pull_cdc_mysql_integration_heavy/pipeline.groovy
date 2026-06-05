@@ -19,6 +19,7 @@ final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
 final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 final OCI_TAG_SCHEMA_REGISTRY = 'latest'
+final WORKSPACE_STASH_NAME = 'ticdc-workspace'
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -76,12 +77,11 @@ pipeline {
                             }
                         }
                     }
-                    // Cache for downstream test stages.
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                        sh label: "prepare", script: """
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        ls -alh ./bin
+                    """
+                    // Stash the prepared workspace once for downstream test stages.
+                    stash name: WORKSPACE_STASH_NAME, includes: '**', useDefaultExcludes: false
                 }
             }
         }
@@ -111,18 +111,17 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh """
-                                        ln -sf /usr/bin/jq ./bin/jq
-                                        make check_third_party_binary
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tiflash --version
+                                unstash WORKSPACE_STASH_NAME
+                                sh """
+                                    ln -sf /usr/bin/jq ./bin/jq
+                                    make check_third_party_binary
+                                    ls -alh ./bin
+                                    ./bin/tidb-server -V
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tiflash --version
 
-                                    """
-                                }
+                                """
                                 sh label: "${TEST_GROUP}", script: """
                                     ./tests/integration_tests/run_heavy_it_in_ci.sh mysql ${TEST_GROUP}
                                 """
