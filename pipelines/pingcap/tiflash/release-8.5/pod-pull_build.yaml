@@ -22,26 +22,8 @@ spec:
           cpu: "12"
           ephemeral-storage: 150Gi
       volumeMounts:
-        - mountPath: "/home/jenkins/agent/rust"
-          name: "volume-0"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent/ccache"
-          name: "volume-1"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent/dependency"
-          name: "volume-2"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-          name: "volume-4"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent/proxy-cache"
-          name: "volume-5"
-          readOnly: false
         - mountPath: "/tmp"
-          name: "volume-6"
-          readOnly: false
-        - mountPath: "/tmp-memfs"
-          name: "volume-7"
+          name: "tmp"
           readOnly: false
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
@@ -54,21 +36,8 @@ spec:
           cpu: "1"
           memory: "4Gi"
   volumes:
-    - name: "volume-0"
+    - name: "tmp"
       emptyDir: {}
-    - name: "volume-2"
-      emptyDir: {}
-    - name: "volume-1"
-      emptyDir: {}
-    - name: "volume-4"
-      emptyDir: {}
-    - name: "volume-5"
-      emptyDir: {}
-    - name: "volume-6"
-      emptyDir: {}
-    - name: "volume-7"
-      emptyDir:
-        medium: Memory
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

@@ -15,11 +15,11 @@ spec:
       resources:
         limits:
           memory: "32Gi"
-          cpu: "16000m"
+          cpu: "16"
           ephemeral-storage: 150Gi
         requests:
           memory: "12Gi"
-          cpu: "5000m"
+          cpu: "5"
           ephemeral-storage: 20Gi
       securityContext:
         privileged: true

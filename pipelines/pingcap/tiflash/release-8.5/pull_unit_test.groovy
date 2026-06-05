@@ -3,16 +3,12 @@
 // should triggerd for master branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tiflash"  // TODO: need to adjust namespace after test
-final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
+final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.5/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
-final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean build_cache_ready = false
-Boolean proxy_cache_ready = false
-String proxy_commit_hash = null
 
 pipeline {
     agent {
@@ -25,12 +21,8 @@ pipeline {
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-    }
     options {
         timeout(time: 90, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {
@@ -48,10 +40,6 @@ pipeline {
                         prow.checkoutRefsWithCacheLock(REFS, 5, '', true, 'https://github.com')
                         retry(2) {
                             sh "git status"
-                            dir("contrib/tiflash-proxy") {
-                                proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                println "proxy_commit_hash: ${proxy_commit_hash}"
-                            }
                             sh """
                             chown 1000:1000 -R ./
                             """
@@ -60,104 +48,21 @@ pipeline {
                 }
             }
         }
-        stage("Prepare Cache") {
+        stage("Prepare Ccache") {
             when {
                 expression { !build_cache_ready }
             }
-            parallel {
-                stage("Ccache") {
-                    steps {
-                    script {
-                        dir("tiflash") {
-                            sh label: "copy ccache if exist", script: """
-                            pwd
-                            ccache_tar_file="/home/jenkins/agent/ccache/ccache-4.10.2/pagetools-tests-amd64-linux-llvm-debug-${REFS.base_ref}-failpoints.tar"
-                            if [ -f \$ccache_tar_file ]; then
-                                echo "ccache found"
-                                cd /tmp
-                                cp -r \$ccache_tar_file ccache.tar
-                                tar -xf ccache.tar
-                                ls -lha /tmp
-                            else
-                                echo "ccache not found"
-                            fi
-                            """
-                            sh label: "config ccache", script: """
+            steps {
+                script {
+                    dir("tiflash") {
+                        sh label: "config ccache", script: """
                             ccache -o cache_dir="/tmp/.ccache"
                             ccache -o max_size=2G
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
-                            ccache -o read_only=true
+                            ccache -o read_only=false
                             ccache -z
-                            """
-                        }
-                    }
-                    }
-                }
-                stage("Proxy-Cache") {
-                    steps {
-                        script {
-                            proxy_cache_ready = sh(script: "test -f /home/jenkins/agent/proxy-cache/${proxy_commit_hash}-amd64-linux-llvm && echo 'true' || echo 'false'", returnStdout: true).trim() == 'true'
-                            println "proxy_cache_ready: ${proxy_cache_ready}"
-
-                            sh label: "copy proxy if exist", script: """
-                            proxy_suffix="amd64-linux-llvm"
-                            proxy_cache_file="/home/jenkins/agent/proxy-cache/${proxy_commit_hash}-\${proxy_suffix}"
-                            if [ -f \$proxy_cache_file ]; then
-                                echo "proxy cache found"
-                                mkdir -p ${WORKSPACE}/tiflash/libs/libtiflash-proxy
-                                cp \$proxy_cache_file ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                                chmod +x ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                                chown 1000:1000 ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so
-                            else
-                                echo "proxy cache not found"
-                            fi
-                            """
-                            sh label: "link cargo cache", script: """
-                                mkdir -p ~/.cargo/registry
-                                mkdir -p ~/.cargo/git
-                                mkdir -p /home/jenkins/agent/rust/registry/cache
-                                mkdir -p /home/jenkins/agent/rust/registry/index
-                                mkdir -p /home/jenkins/agent/rust/git/db
-                                mkdir -p /home/jenkins/agent/rust/git/checkouts
-
-                                rm -rf ~/.cargo/registry/cache && ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-                                rm -rf ~/.cargo/registry/index && ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
-                                rm -rf ~/.cargo/git/db && ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
-                                rm -rf ~/.cargo/git/checkouts && ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
-
-                                rm -rf ~/.rustup/tmp
-                                rm -rf ~/.rustup/toolchains
-                                mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
-                                mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
-                                ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
-                                ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
-                            """
-                        }
-                    }
-                }
-            }
-        }
-        stage("Build Dependency and Utils") {
-            when {
-                expression { !build_cache_ready }
-            }
-            parallel {
-                stage("Cluster Manage") {
-                    steps {
-                    // NOTE: cluster_manager is deprecated since release-6.0 (include)
-                    echo "cluster_manager is deprecated"
-                    }
-                }
-                stage("TiFlash Proxy") {
-                    steps {
-                        script {
-                        if (proxy_cache_ready) {
-                            echo "skip becuase of cache"
-                        } else {
-                            echo "proxy cache not ready"
-                        }
                         }
                     }
                 }
@@ -170,21 +75,7 @@ pipeline {
             // TODO: need to simplify this part, all config and build logic should be in script in tiflash repo
             steps {
                 script {
-                    def toolchain = "llvm"
                     def generator = 'Ninja'
-                    def coverage_flag = ""
-                    def diagnostic_flag = ""
-                    def compatible_flag = ""
-                    def openssl_root_dir = ""
-                    def prebuilt_dir_flag = ""
-                    if (proxy_cache_ready) {
-                        // only for toolchain is llvm
-                        prebuilt_dir_flag = "-DPREBUILT_LIBS_ROOT='${WORKSPACE}/tiflash/contrib/tiflash-proxy/'"
-                        sh """
-                        mkdir -p ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release
-                        cp ${WORKSPACE}/tiflash/libs/libtiflash-proxy/libtiflash_proxy.so ${WORKSPACE}/tiflash/contrib/tiflash-proxy/target/release/
-                        """
-                    }
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -192,7 +83,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
+                        cmake '${WORKSPACE}/tiflash' \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -201,7 +92,7 @@ pipeline {
                             -DENABLE_TESTS=true \\
                             -DUSE_CCACHE=true \\
                             -DDEBUG_WITHOUT_DEBUG_INFO=true \\
-                            -DUSE_INTERNAL_TIFLASH_PROXY=${!proxy_cache_ready} \\
+                            -DUSE_INTERNAL_TIFLASH_PROXY=true \\
                             -DRUN_HAVE_STD_REGEX=0 \\
                         """
                     }
@@ -242,44 +133,26 @@ pipeline {
             when {
                 expression { !build_cache_ready }
             }
-            parallel {
-                stage("Upload Build Artifacts") {
-                    steps {
-                        dir("${WORKSPACE}/install") {
-                            sh label: "archive tiflash binary", script: """
-                            tar -czf 'tiflash.tar.gz' 'tiflash'
-                            """
-                            archiveArtifacts artifacts: "tiflash.tar.gz"
-                            sh """
-                            du -sh tiflash.tar.gz
-                            rm -rf tiflash.tar.gz
-                            """
-                        }
-                    }
+            steps {
+                dir("${WORKSPACE}/build") {
+                    sh label: "archive build data", script: """
+                    tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
+                    """
+                    archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
+                    sh """
+                    du -sh build-data.tar.xz
+                    rm -rf build-data.tar.xz
+                    """
                 }
-                stage("Upload Build Data") {
-                    steps {
-                        dir("${WORKSPACE}/build") {
-                            sh label: "archive build data", script: """
-                            tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
-                            """
-                            archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
-                            sh """
-                            du -sh build-data.tar.xz
-                            rm -rf build-data.tar.xz
-                            """
-                        }
-                        dir("${WORKSPACE}/tiflash") {
-                            sh label: "archive source patch", script: """
-                            tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
-                            """
-                            archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
-                            sh """
-                            du -sh source-patch.tar.xz
-                            rm -rf source-patch.tar.xz
-                            """
-                        }
-                    }
+                dir("${WORKSPACE}/tiflash") {
+                    sh label: "archive source patch", script: """
+                    tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
+                    """
+                    archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
+                    sh """
+                    du -sh source-patch.tar.xz
+                    rm -rf source-patch.tar.xz
+                    """
                 }
             }
         }
@@ -328,12 +201,6 @@ pipeline {
                 ln -sf ${WORKSPACE}/tiflash/tests/.build/tiflash /tiflash
                 ln -sf ${WORKSPACE}/tiflash/tests /tests
                 """
-                dir("${WORKSPACE}/tiflash") {
-                    echo "temp skip here"
-                }
-                dir("${WORKSPACE}/build") {
-                    echo "temp skip here"
-                }
             }
         }
         stage("Run Tests") {

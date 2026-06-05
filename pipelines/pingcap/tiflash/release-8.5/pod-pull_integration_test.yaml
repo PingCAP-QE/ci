@@ -15,21 +15,21 @@ spec:
       resources:
         limits:
           memory: "32Gi"
-          cpu: "16000m"
+          cpu: "16"
           ephemeral-storage: 150Gi
         requests:
           memory: "10Gi"
-          cpu: "5000m"
+          cpu: "5"
           ephemeral-storage: 20Gi
       securityContext:
         privileged: true
       tty: false
       volumeMounts:
         - mountPath: "/home/jenkins"
-          name: "volume-0"
+          name: "jenkins-home"
           readOnly: false
         - mountPath: "/tmp"
-          name: "volume-3"
+          name: "tmp"
           readOnly: false
         - mountPath: "/var/lib/docker"
           name: "docker-graph"
@@ -55,18 +55,18 @@ spec:
       tty: true
       volumeMounts:
         - mountPath: "/home/jenkins"
-          name: "volume-0"
+          name: "jenkins-home"
           readOnly: false
         - mountPath: "/tmp"
-          name: "volume-3"
+          name: "tmp"
           readOnly: false
   volumes:
     - emptyDir:
         medium: ""
-      name: "volume-0"
+      name: "jenkins-home"
     - emptyDir:
         medium: ""
-      name: "volume-3"
+      name: "tmp"
     - name: "docker-graph"
       ephemeral:
         volumeClaimTemplate:
