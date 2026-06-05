@@ -63,7 +63,7 @@ pipeline {
                             ccache -o compression_level=6
                             ccache -o read_only=false
                             ccache -z
-                        }
+                        """
                     }
                 }
             }
