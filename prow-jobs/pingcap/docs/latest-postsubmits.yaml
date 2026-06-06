@@ -17,7 +17,7 @@ postsubmits:
       spec:
         containers:
           - name: build-pdf
-            image: us-docker.pkg.dev/pingcap-testing-account/hub/pingcap-qe/docs-merged-update-runtime@sha256:ce3647630176a08c939ad665956dedd3a855b083f84b93f4bd3b9a98eeb1436f
+            image: ghcr.io/pingcap-qe/ci/docs-pdf-runtime@sha256:0d5be9adbbce839dc151827a08d6e8d85ce1a98a62e02958f3a314f8420ab064
             imagePullPolicy: IfNotPresent
             command: [bash, -c]
             args:
