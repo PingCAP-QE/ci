@@ -1,0 +1,158 @@
+// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
+// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+// should triggerd for master branches
+@Library('tipipeline') _
+
+final K8S_NAMESPACE = "jenkins-tiflow"
+final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final BRANCH_ALIAS = 'latest'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
+final WORKSPACE_STASH_NAME = 'ticdc-workspace'
+final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
+final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
+final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
+final OCI_TAG_ETCD = 'v3.5.15'
+final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_SCHEMA_REGISTRY = 'latest'
+
+prow.setPRDescription(REFS)
+pipeline {
+    agent none
+    environment {
+        // internal mirror is 'hub-zot.pingcap.net/mirrors/tidbx'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
+        NEXT_GEN = 1
+        LEGACY_SAFEPOINT = 1
+    }
+    options {
+        timeout(time: 120, unit: 'MINUTES')
+        parallelsAlwaysFailFast()
+    }
+    stages {
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
+                }
+            }
+            steps {
+                dir(REFS.repo) {
+                    // Checkout
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
+                    }
+                    // Build common binaries (no job-specific binaries needed for mysql)
+                    script {
+                        cdc.prepareIntegrationTestCommonBinariesWithCacheLock(REFS, 'ng-binary')
+                    }
+                    // Download other binaries
+                    container("utils") {
+                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                            sh label: "prepare docker auth", script: '''
+                                mkdir -p ~/.docker
+                                cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                            '''
+                        }
+                        dir("bin") {
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        chmod +x \$script
+                                        \$script \
+                                            --pd=${OCI_TAG_PD} \
+                                            --pd-ctl=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tikv-worker=${OCI_TAG_TIKV} \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --tiflash=${OCI_TAG_TIFLASH} \
+                                            --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR} \
+                                            --minio=${OCI_TAG_MINIO} \
+                                            --etcdctl=${OCI_TAG_ETCD} \
+                                            --ycsb=${OCI_TAG_YCSB} \
+                                            --schema-registry=${OCI_TAG_SCHEMA_REGISTRY}
+                                    """
+                                }
+                            }
+                        }
+                    }
+                    sh label: "prepare", script: """
+                        ls -alh ./bin
+                    """
+                    // Stash the prepared workspace for downstream test stages.
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
+                }
+            }
+        }
+
+        stage('Tests') {
+            matrix {
+                axes {
+                    axis {
+                        name 'TEST_GROUP'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
+                    }
+                }
+                agent{
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                        defaultContainer 'golang'
+                    }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
+                }
+                stages {
+                    stage("Test") {
+                        steps {
+                            dir(REFS.repo) {
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh """
+                                    ln -sf /usr/bin/jq ./bin/jq
+                                    make check_third_party_binary
+                                    ls -alh ./bin
+                                    ./bin/tidb-server -V
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tiflash --version
+                                """
+                                sh label: "${TEST_GROUP}", script: """
+                                    ./tests/integration_tests/run_light_it_in_ci.sh mysql ${TEST_GROUP}
+                                """
+                            }
+                        }
+                        post {
+                            failure {
+                                sh label: "collect logs", script: """
+                                    ls /tmp/tidb_cdc_test/
+                                    log_files=\$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
+                                    if [ -n "\${log_files}" ]; then
+                                        tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \${log_files}
+                                        ls -alh log-${TEST_GROUP}.tar.gz
+                                    else
+                                        echo "No log files found under /tmp/tidb_cdc_test/, skip tar"
+                                    fi
+                                """
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
+                            }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

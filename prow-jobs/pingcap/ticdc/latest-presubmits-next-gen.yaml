@@ -24,6 +24,15 @@ presubmits:
       optional: true
 
     - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_light_next_gen_legacy_safepoint
+      # skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-mysql-integration-light-next-gen-legacy-safepoint
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-next-gen-legacy-safepoint|next-gen-mysql-legacy-safepoint|next-gen-legacy-safepoint|legacy-safepoint)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-light-next-gen-legacy-safepoint"
+      branches: *branches
+      optional: true
+
+    - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_next_gen
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
@@ -40,6 +49,15 @@ presubmits:
       context: pull-cdc-kafka-integration-light-next-gen
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-next-gen|next-gen-kafka|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light-next-gen"
+      branches: *branches
+      optional: true
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_kafka_integration_light_next_gen_legacy_safepoint
+      # skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-kafka-integration-light-next-gen-legacy-safepoint
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light-next-gen-legacy-safepoint|next-gen-kafka-legacy-safepoint|next-gen-legacy-safepoint|legacy-safepoint)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-light-next-gen-legacy-safepoint"
       branches: *branches
       optional: true
 
@@ -64,6 +82,15 @@ presubmits:
       branches: *branches
 
     - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_pulsar_integration_light_next_gen_legacy_safepoint
+      # skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-pulsar-integration-light-next-gen-legacy-safepoint
+      optional: true
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light-next-gen-legacy-safepoint|next-gen-pulsar-legacy-safepoint|next-gen-legacy-safepoint|legacy-safepoint)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-pulsar-integration-light-next-gen-legacy-safepoint"
+      branches: *branches
+
+    - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_pulsar_integration_heavy_next_gen
       # skip_if_only_changed: *skip_if_only_changed
       # run_before_merge: true
@@ -80,6 +107,15 @@ presubmits:
       context: pull-cdc-storage-integration-light-next-gen
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-next-gen|next-gen-storage|next-gen)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light-next-gen"
+      branches: *branches
+      optional: true
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_storage_integration_light_next_gen_legacy_safepoint
+      # skip_if_only_changed: *skip_if_only_changed
+      context: pull-cdc-storage-integration-light-next-gen-legacy-safepoint
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light-next-gen-legacy-safepoint|next-gen-storage-legacy-safepoint|next-gen-legacy-safepoint|legacy-safepoint)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-light-next-gen-legacy-safepoint"
       branches: *branches
       optional: true
 
