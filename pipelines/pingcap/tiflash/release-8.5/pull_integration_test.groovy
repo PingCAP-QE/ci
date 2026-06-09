@@ -9,8 +9,8 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.5/pod-pull_build.
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.5/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
-final TEST_WORKSPACE_CACHE_FOLDER = 'tiflash-release-8.5-it-build'
-Boolean build_cache_ready = false
+final WORKSPACE_STASH_NAME = 'tiflash-release-8.5-it-workspace'
+final PARALLELISM = 12
 String tiflash_commit_hash = null
 
 pipeline {
@@ -32,9 +32,6 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            when {
-                expression { !build_cache_ready }
-            }
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
@@ -57,9 +54,6 @@ pipeline {
             }
         }
         stage("Prepare Ccache") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     dir("tiflash") {
@@ -77,9 +71,6 @@ pipeline {
             }
         }
         stage("Configure Project") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     def generator = 'Ninja'
@@ -107,9 +98,6 @@ pipeline {
             }
         }
         stage("Format Check") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     def target_branch = REFS.base_ref
@@ -135,13 +123,10 @@ pipeline {
             }
         }
         stage("Build TiFlash") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh """
-                    cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
+                    cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
                     """
                     sh """
                     cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
@@ -154,9 +139,6 @@ pipeline {
             }
         }
         stage("License check") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     container('utils') {
@@ -176,9 +158,6 @@ pipeline {
             }
         }
         stage("Post Build") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     def generator = "Ninja"
@@ -190,7 +169,6 @@ pipeline {
                         cat /tmp/tiflash-diff-files.json
                         """
                         sh label: "run clang tidy", script: """
-                        NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
                         cat /tmp/tiflash-diff-files.json
                         cmake "${WORKSPACE}/tiflash" \\
                             -DENABLE_TESTS=false \\
@@ -202,29 +180,25 @@ pipeline {
                         python3 ${fix_compile_commands} ${include_flag} \\
                             --file_path=compile_commands.json \\
                             --load_diff_files_from "/tmp/tiflash-diff-files.json"
-                        python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tiflash/dbms/*"
+                        python3 ${run_clang_tidy} -p \$(realpath .) -j ${PARALLELISM} --files ".*/tiflash/dbms/*"
                         """
                     }
                 }
             }
         }
-        stage("Cache code and artifact") {
-            when {
-                expression { !build_cache_ready }
-            }
+        stage("Stash Test Workspace") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh label: "change permission", script: """
                         chown -R 1000:1000 ./
                     """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
-                       dir('tests/.build') {
-                            sh label: "archive tiflash binary", script: """
+                    dir('tests/.build') {
+                        sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
-                            """
-                        }
-                        sh label: "clean unnecessary dirs", script: """
+                        """
+                    }
+                    sh label: "clean unnecessary dirs", script: """
                         git status
                         git show --oneline -s
                         rm -rf .git
@@ -232,8 +206,8 @@ pipeline {
                         rm -rf tests/fullstack-test-next-gen-columnar
                         du -sh ./
                         ls -alh
-                        """
-                    }
+                    """
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }
@@ -264,30 +238,29 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir("${WORKSPACE}/tiflash") {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
-                                    println "restore from cache key: ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}"
-                                    sh label: "debug info", script: """
-                                    printenv
-                                    pwd && ls -alh
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh label: "debug info", script: """
+                                printenv
+                                pwd && ls -alh
+                                """
+                                dir("tests/${TEST_PATH}") {
+                                    echo "path: ${pwd()}"
+                                    sh label: "debug docker info", script: """
+                                    docker ps -a && docker version
                                     """
-                                    dir("tests/${TEST_PATH}") {
-                                        echo "path: ${pwd()}"
-                                        sh label: "debug docker info", script: """
-                                        docker ps -a && docker version
-                                        """
-                                        script {
-                                            def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
-                                            def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
-                                            def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
-                                            withEnv([
-                                                "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${pdBranch}",
-                                                "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${tikvBranch}",
-                                                "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}",
-                                                "TIDB_FAILPOINT_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}-failpoint",
-                                                "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
-                                            ]) {
-                                                withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                                                    sh label: "prepare docker images", script: '''
+                                    script {
+                                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        withEnv([
+                                            "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${pdBranch}",
+                                            "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${tikvBranch}",
+                                            "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}",
+                                            "TIDB_FAILPOINT_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}-failpoint",
+                                            "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
+                                        ]) {
+                                            withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                                                sh label: "prepare docker images", script: '''
                                                         set -eux
                                                         mkdir -p ~/.docker
                                                         cp "${DOCKER_CONFIG_JSON}" ~/.docker/config.json
@@ -333,12 +306,11 @@ pipeline {
                                                             {} +
                                                         rm -rf ~/.docker
                                                     '''
-                                                }
+                                            }
 
-                                                sh label: "run integration tests", script: """
+                                            sh label: "run integration tests", script: """
                                                 PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
                                                 """
-                                            }
                                         }
                                     }
                                 }

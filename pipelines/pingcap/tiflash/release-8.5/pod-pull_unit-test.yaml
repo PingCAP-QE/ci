@@ -13,8 +13,8 @@ spec:
       # Notice: not set the resources limit, because limit will make unit test failed
       resources:
         requests:
-          memory: "32Gi"
-          cpu: "12"
+          memory: "24Gi"
+          cpu: "6"
           ephemeral-storage: 20Gi
       volumeMounts:
         - mountPath: "/tmp"
@@ -23,17 +23,12 @@ spec:
         - mountPath: "/tmp-memfs"
           name: "tmp-memfs"
           readOnly: false
-        - mountPath: "/home/jenkins"
-          name: "jenkins-home"
-          readOnly: false
   volumes:
     - name: "tmp"
       emptyDir: {}
     - name: "tmp-memfs"
       emptyDir:
         medium: Memory
-    - name: "jenkins-home"
-      emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

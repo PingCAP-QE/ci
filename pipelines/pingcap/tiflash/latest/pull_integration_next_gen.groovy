@@ -14,9 +14,9 @@ final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
 final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
-final TEST_WORKSPACE_CACHE_FOLDER = 'tiflash-next-gen-it-build'
+final WORKSPACE_STASH_NAME = 'tiflash-next-gen-it-workspace'
+final PARALLELISM = 12
 
-Boolean build_cache_ready = false
 String tiflash_commit_hash = null
 
 pipeline {
@@ -38,9 +38,6 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            when {
-                expression { !build_cache_ready }
-            }
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
@@ -64,9 +61,6 @@ pipeline {
             }
         }
         stage("License check") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     container('utils') {
@@ -86,9 +80,6 @@ pipeline {
             }
         }
         stage("Prepare Ccache") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     dir("tiflash") {
@@ -106,9 +97,6 @@ pipeline {
             }
         }
         stage("Configure Project") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     def generator = 'Ninja'
@@ -138,9 +126,6 @@ pipeline {
             }
         }
         stage("Format Check") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     def target_branch = REFS.base_ref
@@ -166,13 +151,10 @@ pipeline {
             }
         }
         stage("Build TiFlash") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh """
-                    cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
+                    cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
                     """
                     sh """
                     cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
@@ -185,9 +167,6 @@ pipeline {
             }
         }
         stage("Post Build") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     def generator = "Ninja"
@@ -210,29 +189,25 @@ pipeline {
                         python3 ${fix_compile_commands} ${include_flag} \\
                             --file_path=compile_commands.json \\
                             --load_diff_files_from "/tmp/tiflash-diff-files.json"
-                        python3 ${run_clang_tidy} -p \$(realpath .) -j 12 --files ".*/tiflash/dbms/*"
+                        python3 ${run_clang_tidy} -p \$(realpath .) -j ${PARALLELISM} --files ".*/tiflash/dbms/*"
                         """
                     }
                 }
             }
         }
-        stage("Cache code and artifact") {
-            when {
-                expression { !build_cache_ready }
-            }
+        stage("Stash Test Workspace") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh label: "change permission", script: """
                         chown -R 1000:1000 ./
                     """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
-                       dir('tests/.build') {
-                            sh label: "archive tiflash binary", script: """
+                    dir('tests/.build') {
+                        sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
-                            """
-                        }
-                        sh label: "clean unnecessary dirs", script: """
+                        """
+                    }
+                    sh label: "clean unnecessary dirs", script: """
                         git status
                         git show --oneline -s
                         rm -rf .git
@@ -240,8 +215,8 @@ pipeline {
                         rm -rf tests/fullstack-test-next-gen-columnar
                         du -sh ./
                         ls -alh
-                        """
-                    }
+                    """
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }
@@ -272,17 +247,17 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir("${WORKSPACE}/tiflash") {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
-                                    dir("tests/${TEST_PATH}") {
-                                        withEnv([
-                                            "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_PD}",
-                                            "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${OCI_TAG_TIKV}",
-                                            "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${OCI_TAG_TIDB}",
-                                            "MINIO_IMAGE=quay.io/minio/minio:${MINIO_VERSION}",
-                                            "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
-                                        ]) {
-                                            withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                                                sh label: "prepare docker images", script: '''
+                                unstash name: WORKSPACE_STASH_NAME
+                                dir("tests/${TEST_PATH}") {
+                                    withEnv([
+                                        "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_PD}",
+                                        "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${OCI_TAG_TIKV}",
+                                        "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${OCI_TAG_TIDB}",
+                                        "MINIO_IMAGE=quay.io/minio/minio:${MINIO_VERSION}",
+                                        "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
+                                    ]) {
+                                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                                            sh label: "prepare docker images", script: '''
                                                     set -eux
                                                     mkdir -p ~/.docker
                                                     cp "${DOCKER_CONFIG_JSON}" ~/.docker/config.json
@@ -319,10 +294,9 @@ pipeline {
                                                         {} +
                                                     rm -rf ~/.docker
                                                 '''
-                                            }
-
-                                            sh label: "run the tests", script: "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh"
                                         }
+
+                                        sh label: "run the tests", script: "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh"
                                     }
                                 }
                             }

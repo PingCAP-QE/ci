@@ -17,12 +17,12 @@ spec:
       tty: false
       resources:
         requests:
-          memory: 12Gi
-          cpu: "5"
+          memory: 16Gi
+          cpu: "4"
           ephemeral-storage: 20Gi
         limits:
           memory: 32Gi
-          cpu: "16"
+          cpu: "8"
           ephemeral-storage: 150Gi
       volumeMounts:
         - mountPath: "/tmp"
@@ -41,11 +41,11 @@ spec:
           value: ""
       resources:
         requests:
-          memory: 8Gi
-          cpu: "5"
+          memory: 16Gi
+          cpu: "4"
           ephemeral-storage: 10Gi
         limits:
-          memory: 16Gi
+          memory: 32Gi
           cpu: "8"
           ephemeral-storage: 50Gi
       tty: true

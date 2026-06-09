@@ -13,7 +13,8 @@ final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
 final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
-final TEST_WORKSPACE_CACHE_FOLDER = 'tiflash-next-gen-columnar'
+final WORKSPACE_STASH_NAME = 'tiflash-next-gen-columnar-workspace'
+final PARALLELISM = 12
 
 String tiflash_commit_hash = null
 
@@ -104,7 +105,7 @@ pipeline {
                                 """
                                 withEnv(['CARGO_NET_GIT_FETCH_WITH_CLI=true']) {
                                     sh label: "build tiflash", script: """
-                                        cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
+                                        cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
                                         cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
                                         ccache -s
                                         ls -alh ${WORKSPACE}/install/tiflash
@@ -124,13 +125,12 @@ pipeline {
                                 rm -rf .git contrib ${WORKSPACE}/build
                                 du -sh . tests/.build || true
                             """
-                            cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
-                                sh label: "save test workspace", script: """
-                                    test -e tests/.build/tiflash
-                                    chmod +x tests/fullstack-test-next-gen-columnar/run.sh
-                                    test -x tests/fullstack-test-next-gen-columnar/run.sh
-                                """
-                            }
+                            sh label: "check test workspace", script: """
+                                test -e tests/.build/tiflash
+                                chmod +x tests/fullstack-test-next-gen-columnar/run.sh
+                                test -x tests/fullstack-test-next-gen-columnar/run.sh
+                            """
+                            stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                         }
                     }
                 }
@@ -162,9 +162,8 @@ pipeline {
                     stage('Test') {
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
-                                    sh label: "check restored workspace", script: "test -e tests/.build/tiflash"
-                                }
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh label: "check restored workspace", script: "test -e tests/.build/tiflash"
                                 dir("tests/${TEST_PATH}") {
                                     withEnv([
                                         "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_PD}",

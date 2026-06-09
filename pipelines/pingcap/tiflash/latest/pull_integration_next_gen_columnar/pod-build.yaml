@@ -14,12 +14,12 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 32Gi
-          cpu: "12"
+          memory: 24Gi
+          cpu: "6"
           ephemeral-storage: 20Gi
         limits:
-          memory: 64Gi
-          cpu: "12"
+          memory: 32Gi
+          cpu: "8"
           ephemeral-storage: 150Gi
       volumeMounts:
         - mountPath: "/tmp"

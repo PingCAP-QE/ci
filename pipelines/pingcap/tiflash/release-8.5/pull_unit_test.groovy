@@ -8,7 +8,6 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.5/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
-Boolean build_cache_ready = false
 
 pipeline {
     agent {
@@ -26,9 +25,6 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            when {
-                expression { !build_cache_ready }
-            }
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
@@ -49,9 +45,6 @@ pipeline {
             }
         }
         stage("Prepare Ccache") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 script {
                     dir("tiflash") {
@@ -69,9 +62,6 @@ pipeline {
             }
         }
         stage("Configure Project") {
-            when {
-                expression { !build_cache_ready }
-            }
             // TODO: need to simplify this part, all config and build logic should be in script in tiflash repo
             steps {
                 script {
@@ -100,9 +90,6 @@ pipeline {
             }
         }
         stage("Build TiFlash") {
-            when {
-                expression { !build_cache_ready }
-            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                 sh """
@@ -136,37 +123,15 @@ pipeline {
                         sh label: "change permission", script: """
                             chown -R 1000:1000 ./
                         """
-                        def binaryCacheKey = prow.getCacheKey('binary', REFS, 'ut-build-artifacts')
-                        sh label: "prepare binary cache dir", script: """
+                        sh label: "copy build artifacts", script: """
+                            git status
+                            git show --oneline -s
+                            rm -rf tests/.build
                             mkdir -p tests/.build
-                            chown -R 1000:1000 tests/.build
+                            cp -r ${WORKSPACE}/install/* tests/.build/
+                            ls -alh tests/.build/
+                            du -sh tests/.build/
                         """
-                        cache(path: "tests/.build", includes: '**/*', key: binaryCacheKey) {
-                            // Fallback for cases where build_cache_ready was not set before this stage.
-                            build_cache_ready = build_cache_ready || (sh(
-                                script: "test -x tests/.build/tiflash/gtests_dbms",
-                                returnStatus: true
-                            ) == 0)
-
-                            if (build_cache_ready) {
-                                println "build cache exist, restore from cache key: ${binaryCacheKey}"
-                                sh """
-                                ls -alh tests/.build/
-                                du -sh tests/.build/
-                                """
-                            } else {
-                                println "build cache not exist, save build artifacts to cache"
-                                sh label: "copy build artifacts", script: """
-                                git status
-                                git show --oneline -s
-                                rm -rf tests/.build
-                                mkdir -p tests/.build
-                                cp -r ${WORKSPACE}/install/* tests/.build/
-                                ls -alh tests/.build/
-                                du -sh tests/.build/
-                                """
-                            }
-                        }
                     }
                 }
                 sh label: "link tiflash and tests", script: """
