@@ -49,7 +49,6 @@ presubmits:
       context: pull-integration-next-gen-columnar
       decorate: false # need add this.
       name: pingcap/tiflash/pull_integration_next_gen_columnar
-      always_run: true
       optional: false
       rerun_command: "/test pull-integration-next-gen-columnar"
       skip_if_only_changed: *skip_if_only_changed
