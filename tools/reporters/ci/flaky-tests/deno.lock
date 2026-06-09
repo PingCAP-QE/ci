@@ -9,8 +9,11 @@
     "jsr:@std/path@^1.1.2": "1.1.2",
     "jsr:@std/yaml@*": "1.0.9",
     "jsr:@std/yaml@^1.0.9": "1.0.9",
+    "npm:@octokit/plugin-retry@*": "8.1.0_@octokit+core@7.0.6",
     "npm:@octokit/plugin-retry@8": "8.1.0_@octokit+core@7.0.6",
+    "npm:@octokit/plugin-throttling@*": "11.0.3_@octokit+core@7.0.6",
     "npm:@octokit/plugin-throttling@11": "11.0.3_@octokit+core@7.0.6",
+    "npm:@octokit/rest@*": "22.0.1_@octokit+core@7.0.6",
     "npm:@octokit/rest@22": "22.0.1_@octokit+core@7.0.6"
   },
   "jsr": {

@@ -592,7 +592,6 @@ export class GithubIssueManager {
     }
 
     const shouldComment = this.allowComment && !created &&
-      issue.state === "open" &&
       this.allowCommentForStatus(status);
 
     if (!shouldComment) return;
