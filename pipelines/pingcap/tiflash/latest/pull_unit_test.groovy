@@ -141,6 +141,7 @@ pipeline {
                         def binaryCacheKey = prow.getCacheKey('binary', REFS, 'ut-build-artifacts')
                         sh label: "prepare binary cache dir", script: """
                             mkdir -p tests/.build
+                            chown -R 1000:1000 tests/.build
                         """
                         cache(path: "tests/.build", includes: '**/*', key: binaryCacheKey) {
                             // Fallback for cases where build_cache_ready was not set before this stage.
