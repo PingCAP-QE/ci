@@ -22,9 +22,6 @@ pipeline {
             defaultContainer 'runner'
         }
     }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-    }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
@@ -34,7 +31,7 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     script {
-                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
                     }
                 }
             }

@@ -8,127 +8,130 @@ final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_dm_integration_test.yaml'
+final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_dm_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final WORKSPACE_STASH_NAME = 'tiflow-dm-workspace'
 def skipRemainingStages = false
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            retries 2
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-    }
+    agent none
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Check diff files') {
-            steps {
-                container("golang") {
-                    script {
-                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                        def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
-                        println "pr_diff_files: ${pr_diff_files}"
-                        // if any diff files start with dm/ or pkg/ or file go.mod, run the dm integration test
-                        def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
-                        if (matched) {
-                            println "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm integration test"
-                        } else {
-                            println "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
-                            currentBuild.result = 'SUCCESS'
-                            skipRemainingStages = true
-                            return 0
+        stage('Check Diff & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
+                }
+            }
+            stages {
+                stage('Check diff files') {
+                    steps {
+                        container("golang") {
+                            script {
+                                def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
+                                def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
+                                println "pr_diff_files: ${pr_diff_files}"
+                                // if any diff files start with dm/ or pkg/ or file go.mod, run the dm integration test
+                                def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
+                                if (matched) {
+                                    println "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm integration test"
+                                } else {
+                                    println "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not related to dm, so skip the dm integration test"
+                                    currentBuild.result = 'SUCCESS'
+                                    skipRemainingStages = true
+                                    return 0
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }
-        stage('Checkout') {
-            when { expression { !skipRemainingStages} }
-            options { timeout(time: 10, unit: 'MINUTES') }
-            steps {
-                dir("tiflow") {
-                    script {
-                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
+                stage('Checkout') {
+                    when { expression { !skipRemainingStages} }
+                    options { timeout(time: 10, unit: 'MINUTES') }
+                    steps {
+                        dir("tiflow") {
+                            script {
+                                prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
+                            }
+                        }
                     }
                 }
-            }
-        }
-        stage("prepare") {
-            when { expression { !skipRemainingStages} }
-            options { timeout(time: 20, unit: 'MINUTES') }
-            steps {
-                dir("third_party_download") {
-                    retry(2) {
-                        script {
-                                def branchInfo = component.extractHotfixInfo(REFS.base_ref)
-                                sh label: "download third_party", script: """
-                                    if [[ "${branchInfo.isHotfix}" == "true" ]]; then
-                                        echo "Hotfix version tag: ${branchInfo.versionTag}"
-                                        echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
+                stage("Prepare") {
+                    when { expression { !skipRemainingStages} }
+                    options { timeout(time: 20, unit: 'MINUTES') }
+                    steps {
+                        dir("third_party_download") {
+                            retry(2) {
+                                script {
+                                    def branchInfo = component.extractHotfixInfo(REFS.base_ref)
+                                    sh label: "download third_party", script: """
+                                        if [[ "${branchInfo.isHotfix}" == "true" ]]; then
+                                            echo "Hotfix version tag: ${branchInfo.versionTag}"
+                                            echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
 
-                                        cp ${WORKSPACE}/scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ${WORKSPACE}/tiflow/dm/tests/
-                                        chmod +x ${WORKSPACE}/tiflow/dm/tests/download_test_binaries_by_tag.sh
-                                        # First download binary using the release branch script
-                                        cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.5
-                                        rm -rf bin/tidb-server bin/pd-* bin/tikv-server
-                                        mv bin tmp_bin
-                                        # Then download and replace other components with exact versions
-                                        ./dm/tests/download_test_binaries_by_tag.sh ${branchInfo.versionTag} tidb pd tikv ctl
-                                        mv tmp_bin/* bin/ && rm -rf tmp_bin
-                                        cd -
+                                            cp ${WORKSPACE}/scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ${WORKSPACE}/tiflow/dm/tests/
+                                            chmod +x ${WORKSPACE}/tiflow/dm/tests/download_test_binaries_by_tag.sh
+                                            # First download binary using the release branch script
+                                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.5
+                                            rm -rf bin/tidb-server bin/pd-* bin/tikv-server
+                                            mv bin tmp_bin
+                                            # Then download and replace other components with exact versions
+                                            ./dm/tests/download_test_binaries_by_tag.sh ${branchInfo.versionTag} tidb pd tikv ctl
+                                            mv tmp_bin/* bin/ && rm -rf tmp_bin
+                                            cd -
+                                        else
+                                            echo "Release branch, downloading binaries from ${REFS.base_ref}"
+                                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.5
+                                            cd -
+                                        fi
+                                        # Verify all required binaries
+                                        mkdir -p bin && mv ../tiflow/bin/* ./bin/
+                                        ls -alh ./bin
+                                        ./bin/tidb-server -V
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                    """
+                                }
+                            }
+                        }
+                        dir("tiflow") {
+                            cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
+                                // build dm-master.test for integration test
+                                // only build binarys if not exist, use the cached binarys if exist
+                                // TODO: how to update cached binarys if needed
+                                sh label: "prepare", script: """
+                                    if [[ ! -f "bin/sync_diff_inspector" || ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
+                                        echo "Building binaries..."
+                                        make dm_integration_test_build
+                                        mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
                                     else
-                                        echo "Release branch, downloading binaries from ${REFS.base_ref}"
-                                        cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.5
-                                        cd -
+                                        echo "Binaries already exist, skipping build..."
                                     fi
-                                    # Verify all required binaries
-                                    mkdir -p bin && mv ../tiflow/bin/* ./bin/
                                     ls -alh ./bin
-                                    ./bin/tidb-server -V
-                                    ./bin/pd-server -V
-                                    ./bin/tikv-server -V
+                                    ls -alh ./bin/dm-test-tools
+                                    which ./bin/dm-master.test
+                                    which ./bin/dm-syncer.test
+                                    which ./bin/dm-worker.test
+                                    which ./bin/dmctl.test
+                                    which ./bin/dm-test-tools/check_master_online
+                                    which ./bin/dm-test-tools/check_worker_online
                                 """
                             }
+                            sh label: "prepare workspace", script: """
+                                cp -r ../third_party_download/bin/* ./bin/
+                                ls -alh ./bin
+                                ls -alh ./bin/dm-test-tools
+                            """
+                            stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
+                        }
                     }
-                }
-                dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
-                        // build dm-master.test for integration test
-                        // only build binarys if not exist, use the cached binarys if exist
-                        // TODO: how to update cached binarys if needed
-                        sh label: "prepare", script: """
-                            if [[ ! -f "bin/sync_diff_inspector" || ! -f "bin/dm-master.test" || ! -f "bin/dm-test-tools/check_master_online" || ! -f "bin/dm-test-tools/check_worker_online" ]]; then
-                                echo "Building binaries..."
-                                make dm_integration_test_build
-                                mkdir -p bin/dm-test-tools && cp -r ./dm/tests/bin/* ./bin/dm-test-tools
-                            else
-                                echo "Binaries already exist, skipping build..."
-                            fi
-                            ls -alh ./bin
-                            ls -alh ./bin/dm-test-tools
-                            which ./bin/dm-master.test
-                            which ./bin/dm-syncer.test
-                            which ./bin/dm-worker.test
-                            which ./bin/dmctl.test
-                            which ./bin/dm-test-tools/check_master_online
-                            which ./bin/dm-test-tools/check_worker_online
-                        """
-                    }
-                    sh label: "prepare workspace", script: """
-                        cp -r ../third_party_download/bin/* ./bin/
-                        ls -alh ./bin
-                        ls -alh ./bin/dm-test-tools
-                    """
-                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }

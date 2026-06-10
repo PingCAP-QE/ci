@@ -10,33 +10,12 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-ghpr_verify.
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
-            steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
-                    }
-                }
-            }
-        }
         stage('Tests') {
             matrix {
                 axes {
@@ -49,6 +28,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
@@ -65,11 +45,12 @@ pipeline {
                         }
                         steps {
                             dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh label: "${TEST_CMD}", script: """
-                                        make ${TEST_CMD}
-                                    """
+                                script {
+                                    prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                                 }
+                                sh label: "${TEST_CMD}", script: """
+                                    make ${TEST_CMD}
+                                """
                             }
                         }
                         post {

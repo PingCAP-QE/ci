@@ -94,7 +94,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
-      decorate: false # need add this.
+      decorate: false
       always_run: false
       skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
@@ -107,7 +107,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
-      decorate: false # need add this.
+      decorate: false
       always_run: false
       skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
@@ -120,7 +120,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
-      decorate: false # need add this.
+      decorate: false
       always_run: false
       skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
@@ -133,7 +133,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
-      decorate: false # need add this.
+      decorate: false
       always_run: false
       skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
@@ -146,7 +146,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
-      decorate: false # need add this.
+      decorate: false
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
@@ -159,7 +159,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
-      decorate: false # need add this.
+      decorate: false
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
@@ -172,7 +172,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
-      decorate: false # need add this.
+      decorate: false
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
       context: pull-syncdiff-integration-test
@@ -184,7 +184,7 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
-      decorate: false # need add this.
+      decorate: false
       skip_if_only_changed: *skip_if_only_changed
       context: pull-verify
       trigger: "(?m)^/test (?:.*? )?pull-verify(?: .*?)?$"

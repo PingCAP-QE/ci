@@ -21,9 +21,6 @@ pipeline {
             defaultContainer 'golang'
         }
     }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-    }
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
@@ -56,7 +53,7 @@ pipeline {
             steps {
                 dir("tiflow") {
                     script {
-                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
                     }
                 }
             }

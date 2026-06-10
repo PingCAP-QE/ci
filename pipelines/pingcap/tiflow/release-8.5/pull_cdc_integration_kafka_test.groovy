@@ -11,104 +11,106 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final WORKSPACE_STASH_NAME = 'tiflow-cdc-workspace'
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
-            retries 2
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-    }
+    agent none
     options {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
-            steps {
-                dir("tiflow") {
-                    script {
-                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
-                    }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
                 }
             }
-        }
-        stage("prepare") {
-            options { timeout(time: 20, unit: 'MINUTES') }
-            steps {
-                dir("third_party_download") {
-                    retry(2) {
-                        script {
-                            def branchInfo = component.extractHotfixInfo(REFS.base_ref)
-
-                            sh label: "download third_party", script: """
-                                mkdir -p bin
-                                cd ../tiflow
-
-                                if [[ "${branchInfo.isHotfix}" == "true" ]]; then
-                                    echo "Hotfix version tag: ${branchInfo.versionTag}"
-                                    echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
-
-                                    # First download binary using the release branch script
-                                    ./scripts/download-integration-test-binaries.sh release-8.5
-                                    # remove binarys of tidb-server, pd-server, tikv-server, tiflash
-                                    rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/tiflash_dir bin/lib*
-
-                                    # Then download and replace other components with exact versions
-                                    cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ./
-                                    chmod +x download_test_binaries_by_tag.sh
-
-                                    # Save sync_diff_inspector and some other binaries
-                                    mv bin tmp_bin
-
-                                    # Download exact versions of tidb-server, pd-server, tikv-server, tiflash
-                                    ./download_test_binaries_by_tag.sh ${branchInfo.versionTag}
-
-                                    # Restore some binaries
-                                    mv tmp_bin/* bin/ && rm -rf tmp_bin
-                                else
-                                    echo "Release branch, downloading binaries from ${REFS.base_ref}"
-                                    ./scripts/download-integration-test-binaries.sh release-8.5
-                                fi
-
-                                make check_third_party_binary
-                                cd - && mv ../tiflow/bin/* ./bin/
-
-                                # Verify all required binaries
-                                echo "Verifying downloaded binaries..."
-                                ls -alh ./bin
-                                ./bin/tidb-server -V
-                                ./bin/pd-server -V
-                                ./bin/tikv-server -V
-                                ./bin/tiflash --version
-                            """
+            stages {
+                stage('Checkout') {
+                    options { timeout(time: 10, unit: 'MINUTES') }
+                    steps {
+                        dir("tiflow") {
+                            script {
+                                prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
+                            }
                         }
                     }
                 }
-                dir("tiflow") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
-                        // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
-                        // only build binarys if not exist, use the cached binarys if exist
-                        sh label: "prepare", script: """
-                            ls -alh ./bin
-                            [ -f ./bin/cdc ] || make cdc
-                            [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
-                            [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
-                            [ -f ./bin/cdc.test ] || make integration_test_build
-                            ls -alh ./bin
-                            ./bin/cdc version
-                        """
+                stage("Prepare") {
+                    options { timeout(time: 20, unit: 'MINUTES') }
+                    steps {
+                        dir("third_party_download") {
+                            retry(2) {
+                                script {
+                                    def branchInfo = component.extractHotfixInfo(REFS.base_ref)
+
+                                    sh label: "download third_party", script: """
+                                        mkdir -p bin
+                                        cd ../tiflow
+
+                                        if [[ "${branchInfo.isHotfix}" == "true" ]]; then
+                                            echo "Hotfix version tag: ${branchInfo.versionTag}"
+                                            echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
+
+                                            # First download binary using the release branch script
+                                            ./scripts/download-integration-test-binaries.sh release-8.5
+                                            # remove binarys of tidb-server, pd-server, tikv-server, tiflash
+                                            rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/tiflash_dir bin/lib*
+
+                                            # Then download and replace other components with exact versions
+                                            cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ./
+                                            chmod +x download_test_binaries_by_tag.sh
+
+                                            # Save sync_diff_inspector and some other binaries
+                                            mv bin tmp_bin
+
+                                            # Download exact versions of tidb-server, pd-server, tikv-server, tiflash
+                                            ./download_test_binaries_by_tag.sh ${branchInfo.versionTag}
+
+                                            # Restore some binaries
+                                            mv tmp_bin/* bin/ && rm -rf tmp_bin
+                                        else
+                                            echo "Release branch, downloading binaries from ${REFS.base_ref}"
+                                            ./scripts/download-integration-test-binaries.sh release-8.5
+                                        fi
+
+                                        make check_third_party_binary
+                                        cd - && mv ../tiflow/bin/* ./bin/
+
+                                        # Verify all required binaries
+                                        echo "Verifying downloaded binaries..."
+                                        ls -alh ./bin
+                                        ./bin/tidb-server -V
+                                        ./bin/pd-server -V
+                                        ./bin/tikv-server -V
+                                        ./bin/tiflash --version
+                                    """
+                                }
+                            }
+                        }
+                        dir("tiflow") {
+                            cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
+                                // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
+                                // only build binarys if not exist, use the cached binarys if exist
+                                sh label: "prepare", script: """
+                                    ls -alh ./bin
+                                    [ -f ./bin/cdc ] || make cdc
+                                    [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
+                                    [ -f ./bin/cdc_storage_consumer ] || make storage_consumer
+                                    [ -f ./bin/cdc.test ] || make integration_test_build
+                                    ls -alh ./bin
+                                    ./bin/cdc version
+                                """
+                            }
+                            sh label: "prepare workspace", script: """
+                                cp -r ../third_party_download/bin/* ./bin/
+                                ls -alh ./bin
+                            """
+                            stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
+                        }
                     }
-                    sh label: "prepare workspace", script: """
-                        cp -r ../third_party_download/bin/* ./bin/
-                        ls -alh ./bin
-                    """
-                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }
