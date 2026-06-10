@@ -61,7 +61,7 @@ repositories:
           - "tests/**"
     approvers:
       - "lidezhu"
-      - "nongfusanquan"
+      - "nongfushanquan"
 
   - name: "tikv/tikv"
     patterns:
