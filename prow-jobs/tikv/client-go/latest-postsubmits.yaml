@@ -21,14 +21,13 @@ global_definitions:
   next_gen_tikv_image: &next_gen_tikv_image "gcr.io/pingcap-public/dbaas/tikv:dedicated-next-gen@sha256:1bc3230be7c83294798d6e56b7b5b2996d2f64f48ac8abf092bdd3b85d3dcc22"
   minio_image: &minio_image "minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e"
 
-# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
-presubmits:
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
+postsubmits:
   tikv/client-go:
     - <<: [*brancher, *kubernetes_job]
-      name: pull-client-go-integration-next-gen-tikv
+      name: client-go-integration-next-gen-tikv
       skip_if_only_changed: *skip_if_only_changed
-      trigger: "(?m)^/test (?:.*? )?(pull-client-go-integration-next-gen-tikv|all)(?: .*?)?$"
-      rerun_command: "/test pull-client-go-integration-next-gen-tikv"
+      max_concurrency: 1
       timeout: 45m
       spec:
         affinity: *affinity
@@ -77,18 +76,6 @@ presubmits:
             args:
               - |
                 set -euo pipefail
-
-                maybe_skip_labeled_pr() {
-                  if [[ -z "${PULL_NUMBER:-}" || -z "${REPO_OWNER:-}" || -z "${REPO_NAME:-}" ]]; then
-                    return
-                  fi
-
-                  local labels_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${PULL_NUMBER}/labels?per_page=100"
-                  if curl -fsSL --retry 3 --retry-delay 2 "${labels_url}" | grep -q '"name"[[:space:]]*:[[:space:]]*"skip-integration-tests"'; then
-                    echo "PR #${PULL_NUMBER} has the skip-integration-tests label; skipping next-gen integration tests."
-                    exit 0
-                  fi
-                }
 
                 dump_logs() {
                   for log_file in minio.log pd.log tikv.log; do
@@ -153,7 +140,6 @@ presubmits:
                   return 1
                 }
 
-                maybe_skip_labeled_pr
                 trap cleanup EXIT
 
                 go version | grep 'go1.25.8'
