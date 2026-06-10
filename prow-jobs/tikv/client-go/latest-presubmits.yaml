@@ -1,0 +1,136 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^feature/.*$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  affinity: &affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+  kubernetes_job: &kubernetes_job
+    agent: kubernetes
+    decorate: true
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  tikv/client-go:
+    - <<: [*brancher, *kubernetes_job]
+      name: pull-client-go-integration-next-gen-tikv
+      skip_if_only_changed: *skip_if_only_changed
+      trigger: "(?m)^/test (?:.*? )?(pull-client-go-integration-next-gen-tikv|all)(?: .*?)?$"
+      rerun_command: "/test pull-client-go-integration-next-gen-tikv"
+      timeout: 45m
+      spec:
+        affinity: *affinity
+        containers:
+          - name: test
+            image: golang:1.25.8
+            command: [bash, -ce]
+            args:
+              - |
+                set -euo pipefail
+
+                maybe_skip_labeled_pr() {
+                  if [[ -z "${PULL_NUMBER:-}" || -z "${REPO_OWNER:-}" || -z "${REPO_NAME:-}" ]]; then
+                    return
+                  fi
+
+                  local labels_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${PULL_NUMBER}/labels?per_page=100"
+                  if curl -fsSL --retry 3 --retry-delay 2 "${labels_url}" | grep -q '"name"[[:space:]]*:[[:space:]]*"skip-integration-tests"'; then
+                    echo "PR #${PULL_NUMBER} has the skip-integration-tests label; skipping next-gen integration tests."
+                    exit 0
+                  fi
+                }
+
+                dump_logs() {
+                  for log_file in minio.log pd.log tikv.log; do
+                    echo "--- ${log_file} ---"
+                    tail -n 200 "${log_file}" || echo "${log_file} not found"
+                  done
+                }
+
+                cleanup() {
+                  local status=$?
+                  if [[ ${status} -ne 0 ]]; then
+                    dump_logs
+                  fi
+                  for pid in "${TIKV_PID:-}" "${PD_PID:-}" "${MINIO_PID:-}"; do
+                    if [[ -n "${pid}" ]]; then
+                      kill "${pid}" 2>/dev/null || true
+                    fi
+                  done
+                  exit "${status}"
+                }
+
+                extract_file_from_image() {
+                  local image=$1
+                  local source_path=$2
+                  local destination=$3
+                  local tarball
+                  tarball=$(mktemp)
+
+                  crane --platform=linux/amd64 export "${image}" "${tarball}"
+
+                  for candidate in "${source_path#/}" "./${source_path#/}" "${source_path}"; do
+                    if tar -tf "${tarball}" "${candidate}" >/dev/null 2>&1; then
+                      tar -xOf "${tarball}" "${candidate}" > "${destination}"
+                      chmod +x "${destination}"
+                      rm -f "${tarball}"
+                      return
+                    fi
+                  done
+
+                  echo "${source_path} was not found in ${image}; first archive entries:" >&2
+                  tar -tf "${tarball}" | sed -n '1,120p' >&2
+                  rm -f "${tarball}"
+                  return 1
+                }
+
+                maybe_skip_labeled_pr
+                trap cleanup EXIT
+
+                go version
+                export GOBIN="${PWD}/.tools/bin"
+                export PATH="${GOBIN}:${PATH}"
+                mkdir -p "${GOBIN}"
+                go install gotest.tools/gotestsum@v1.13.0
+                go install github.com/google/go-containerregistry/cmd/crane@v0.21.6
+
+                cd integration_tests
+                mkdir -p tikv-data "${HOME}/serverless_s3/cse-test"
+
+                curl -fsSL --retry 3 --retry-delay 2 -o minio https://dl.min.io/server/minio/release/linux-amd64/minio
+                chmod +x minio
+
+                extract_file_from_image pingcap/pd:nightly /pd-server pd-server
+                extract_file_from_image gcr.io/pingcap-public/dbaas/tikv:dedicated-next-gen /tikv-server tikv-server
+
+                MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin ./minio server "${HOME}/serverless_s3" > minio.log 2>&1 &
+                MINIO_PID=$!
+                sleep 5
+
+                ./pd-server --config pd_next_gen.toml > pd.log 2>&1 &
+                PD_PID=$!
+                sleep 5
+
+                ./tikv-server -C tikv_next_gen.toml --pd-endpoints="127.0.0.1:2379" --addr="127.0.0.1:20160" --data-dir="${PWD}/tikv-data" > tikv.log 2>&1 &
+                TIKV_PID=$!
+
+                echo "Waiting for MinIO, PD, and Next-Gen TiKV to start..."
+                sleep 15
+                dump_logs
+
+                gotestsum --format short-verbose -- -parallel 1 -tags=nextgen --with-tikv --keyspace-name='keyspace1'
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "8"
+                memory: 16Gi
