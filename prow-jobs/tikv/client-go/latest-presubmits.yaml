@@ -56,9 +56,9 @@ presubmits:
               - /data
             env:
               - name: MINIO_ROOT_USER
-                value: access_key
+                value: minioadmin
               - name: MINIO_ROOT_PASSWORD
-                value: secret_key
+                value: minioadmin
             volumeMounts:
               - name: minio-data
                 mountPath: /data
