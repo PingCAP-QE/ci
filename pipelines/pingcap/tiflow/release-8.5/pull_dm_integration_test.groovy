@@ -9,6 +9,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final WORKSPACE_STASH_NAME = 'tiflow-dm-workspace'
 def skipRemainingStages = false
 
 pipeline {
@@ -16,6 +17,8 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -53,12 +56,8 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
             }
@@ -124,13 +123,12 @@ pipeline {
                             which ./bin/dm-test-tools/check_worker_online
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                            ls -alh ./bin/dm-test-tools
-                        """
-                    }
+                    sh label: "prepare workspace", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                        ls -alh ./bin/dm-test-tools
+                    """
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }
@@ -150,6 +148,8 @@ pipeline {
                         label "dm-it-${UUID.randomUUID().toString()}"
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }
@@ -174,33 +174,32 @@ pipeline {
                             }
 
                             dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
-                                    timeout(time: 10, unit: 'MINUTES') {
-                                        sh label: "wait mysql ready", script: """
-                                            pwd && ls -alh
-                                            # TODO use wait-for-mysql-ready.sh
-                                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                        """
-                                    }
-                                    sh label: "${TEST_GROUP}", script: """
-                                        if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
-                                            echo "run tls test"
-                                            echo "copy mysql certs"
-                                            sudo mkdir -p /var/lib/mysql
-                                            sudo chmod 777 /var/lib/mysql
-                                            sudo chown -R 1000:1000 /var/lib/mysql
-                                            sudo cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
-                                            sudo chown -R 1000:1000 /var/lib/mysql/*
-                                            ls -alh /var/lib/mysql/
-                                        else
-                                            echo "run ${TEST_GROUP} test"
-                                        fi
-                                        export PATH=/usr/local/go/bin:\$PATH
-                                        mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
-                                        make dm_integration_test_in_group GROUP="${TEST_GROUP}"
+                                unstash name: WORKSPACE_STASH_NAME
+                                timeout(time: 10, unit: 'MINUTES') {
+                                    sh label: "wait mysql ready", script: """
+                                        pwd && ls -alh
+                                        # TODO use wait-for-mysql-ready.sh
+                                        set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                        set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                     """
                                 }
+                                sh label: "${TEST_GROUP}", script: """
+                                    if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
+                                        echo "run tls test"
+                                        echo "copy mysql certs"
+                                        sudo mkdir -p /var/lib/mysql
+                                        sudo chmod 777 /var/lib/mysql
+                                        sudo chown -R 1000:1000 /var/lib/mysql
+                                        sudo cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
+                                        sudo chown -R 1000:1000 /var/lib/mysql/*
+                                        ls -alh /var/lib/mysql/
+                                    else
+                                        echo "run ${TEST_GROUP} test"
+                                    fi
+                                    export PATH=/usr/local/go/bin:\$PATH
+                                    mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
+                                    make dm_integration_test_in_group GROUP="${TEST_GROUP}"
+                                """
                             }
                         }
                         post {

@@ -5,22 +5,26 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.3.15-1-g5625431-go1.25"
+      command: [tini, --, bash]
       tty: true
       resources:
         requests:
-          memory: 12Gi
-          cpu: "4"
+          memory: 10Gi
+          cpu: 2500m
         limits:
           memory: 16Gi
-          cpu: "6"
+          cpu: 6000m
     - name: mysql1
-      image: 'hub.pingcap.net/jenkins/mysql:5.7'
+      image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
+        requests:
+          memory: 2Gi
+          cpu: 500m
         limits:
           memory: 4Gi
-          cpu: 2
+          cpu: 1000m
       env:
         - name: MYSQL_ROOT_PASSWORD
           value: '123456'
@@ -33,12 +37,15 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: 'hub.pingcap.net/jenkins/mysql:5.7'
+      image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
+        requests:
+          memory: 2Gi
+          cpu: 500m
         limits:
           memory: 4Gi
-          cpu: 2
+          cpu: 1000m
       env:
         - name: MYSQL_ROOT_PASSWORD
           value: '123456'

@@ -6,13 +6,17 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_cdc_integration_pulsar_test.yaml'
+final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final WORKSPACE_STASH_NAME = 'tiflow-cdc-workspace'
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -28,12 +32,8 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
             }
@@ -103,12 +103,11 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare workspace", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }
@@ -126,6 +125,8 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }
@@ -138,13 +139,12 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh pulsar ${TEST_GROUP}
-                                    """
-                                }
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh label: "${TEST_GROUP}", script: """
+                                    rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
+                                    chmod +x ./tests/integration_tests/run_group.sh
+                                    ./tests/integration_tests/run_group.sh pulsar ${TEST_GROUP}
+                                """
                             }
                         }
                         post {

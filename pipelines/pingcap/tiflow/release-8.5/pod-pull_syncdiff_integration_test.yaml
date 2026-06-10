@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: hub.pingcap.net/jenkins/rocky8_golang-1.25:latest
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.15-1-g5625431-go1.25
       tty: true
       env:
         - name: GOPATH
@@ -13,10 +13,10 @@ spec:
       resources:
         requests:
           memory: 8Gi
-          cpu: "4"
+          cpu: 2000m
         limits:
           memory: 8Gi
-          cpu: "4"
+          cpu: 4000m
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
@@ -25,10 +25,10 @@ spec:
           memory: 256Mi
           cpu: 100m
         limits:
-          cpu: "1"
+          cpu: 1000m
           memory: 4Gi
     - name: mysql
-      image: "hub.pingcap.net/jenkins/mysql:8.0.43"
+      image: "docker.io/library/mysql:8.0.43"
       tty: true
       args:
         - "--server-id=1"
@@ -39,9 +39,12 @@ spec:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "1"
       resources:
+        requests:
+          memory: 2Gi
+          cpu: 500m
         limits:
           memory: 2Gi
-          cpu: "1"
+          cpu: 1000m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
