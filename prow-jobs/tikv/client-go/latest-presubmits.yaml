@@ -29,7 +29,10 @@ presubmits:
       timeout: 45m
       spec:
         affinity: *affinity
+        serviceAccountName: tidbx-puller
         volumes:
+          - name: tikv-data
+            emptyDir: {}
           - name: minio-data
             ephemeral:
               volumeClaimTemplate:
@@ -40,38 +43,82 @@ presubmits:
                       storage: 10Gi
                   storageClassName: hyperdisk-rwo
         containers:
+          - name: sidecar-minio
+            image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+            command:
+              - minio
+              - server
+              - /data
+            env:
+              - name: MINIO_ROOT_USER
+                value: access_key
+              - name: MINIO_ROOT_PASSWORD
+                value: secret_key
+            volumeMounts:
+              - name: minio-data
+                mountPath: /data
+            resources:
+              limits:
+                cpu: "1"
+                memory: 2Gi
+          - name: sidecar-pd
+            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:master-nextgen
+            env:
+              - name: CONFIG_PATH
+                value: /home/prow/go/src/github.com/tikv/client-go/integration_tests/pd_next_gen.toml
+            command: [bash, -c]
+            args:
+              - |
+                exec pd-server --config "${CONFIG_PATH}"
+            resources:
+              limits:
+                cpu: "1"
+                memory: 2Gi
+          - name: sidecar-tikv
+            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:cloud-engine-nextgen
+            env:
+              - name: PD_ENDPOINT
+                value: 127.0.0.1:2379
+              - name: LISTEN_ADDRESSES
+                value: 127.0.0.1:20160
+              - name: CONFIG_PATH
+                value: /home/prow/go/src/github.com/tikv/client-go/integration_tests/tikv_next_gen.toml
+            command: [bash, -c]
+            args:
+              - |
+                set -euo pipefail
+                # Wait for PD before starting TiKV
+                for i in $(seq 1 30); do
+                  if curl -fsS --max-time 2 "http://${PD_ENDPOINT}/pd/api/v1/health" >/dev/null 2>&1; then
+                    echo "PD is ready, starting TiKV"
+                    break
+                  fi
+                  echo "Waiting for PD... (attempt $i)"
+                  sleep 2
+                done
+
+                exec /tikv-server \
+                  -C "${CONFIG_PATH}" \
+                  --pd-endpoints="${PD_ENDPOINT}" \
+                  --addr="${LISTEN_ADDRESSES}" \
+                  --data-dir=/tikv-data
+            volumeMounts:
+              - name: tikv-data
+                mountPath: /tikv-data
+            resources:
+              limits:
+                cpu: "2"
+                memory: 4Gi
           - name: test
             image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-27-g440b0c8-go1.25
             command: [bash, -ce]
             env:
               - name: GOTOOLCHAIN
                 value: local
-              - name: OCI_ARTIFACT_HOST
-                value: us-docker.pkg.dev/pingcap-testing-account/tidbx
             args:
               - |
                 #!/usr/bin/env bash
                 set -euo pipefail
-
-                dump_logs() {
-                  for log_file in minio.log pd.log tikv.log; do
-                    echo "--- ${log_file} ---"
-                    tail -n 200 "${log_file}" || echo "${log_file} not found"
-                  done
-                }
-
-                cleanup() {
-                  local status=$?
-                  if [[ ${status} -ne 0 ]]; then
-                    dump_logs
-                  fi
-                  for pid in "${TIKV_PID:-}" "${PD_PID:-}" "${MINIO_PID:-}"; do
-                    if [[ -n "${pid}" ]]; then
-                      kill "${pid}" 2>/dev/null || true
-                    fi
-                  done
-                  exit "${status}"
-                }
 
                 wait_for_http() {
                   local url=$1
@@ -87,50 +134,15 @@ presubmits:
                   return 1
                 }
 
-                trap cleanup EXIT
-
-                # download peer components
-                if [[ "${BASE_REF:-}" =~ ^release-nextgen-[0-9]+$ ]]; then
-                  OCI_TAG_PD="${BASE_REF}"
-                  OCI_TAG_TIKV="${BASE_REF}"
-                else
-                  OCI_TAG_PD="master-nextgen"
-                  OCI_TAG_TIKV="cloud-engine-nextgen"
-                fi
-                OCI_TAG_MINIO="RELEASE.2025-07-23T15-54-02Z"
-                mkdir -p binaries
-                pushd binaries
-                  oci_script=/tmp/download_pingcap_oci_artifact.sh
-                  curl -fsSL https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh -o "${oci_script}"
-                  chmod +x "${oci_script}"
-                  "${oci_script}" --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV} --minio=${OCI_TAG_MINIO}
-                popd
-
-                cd integration_tests
-                mkdir -p tikv-data /minio-data/cse-test
-
-                binaries/minio server /minio-data > minio.log 2>&1 &
-                MINIO_PID=$!
                 wait_for_http http://127.0.0.1:9000/minio/health/ready MinIO
-
-                binaries/pd-server --config pd_next_gen.toml > pd.log 2>&1 &
-                PD_PID=$!
                 wait_for_http http://127.0.0.1:2379/pd/api/v1/health PD
-
-                binaries/tikv-server -C tikv_next_gen.toml --pd-endpoints="127.0.0.1:2379" --addr="127.0.0.1:20160" --data-dir="${PWD}/tikv-data" > tikv.log 2>&1 &
-                TIKV_PID=$!
-
-                echo "Waiting for Next-Gen TiKV to start..."
-                sleep 15
-                dump_logs
+                wait_for_http http://127.0.0.1:20160/status TiKV
 
                 # 👉 Run the integration tests
+                cd integration_tests
                 go version
                 go run gotest.tools/gotestsum@v1.13.0 --format short-verbose -- -parallel 1 -tags=nextgen --with-tikv --keyspace-name='keyspace1'
-            volumeMounts:
-              - name: minio-data
-                mountPath: /minio-data
             resources:
               limits:
-                cpu: "6"
-                memory: 12Gi
+                cpu: "2"
+                memory: 4Gi
