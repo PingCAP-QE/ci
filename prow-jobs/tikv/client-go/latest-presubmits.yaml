@@ -19,7 +19,7 @@ global_definitions:
 presubmits:
   tikv/client-go:
     - <<: [*brancher]
-      name: pull-integration-nextgen
+      name: pull-integration-test-nextgen
       agent: kubernetes
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
@@ -47,7 +47,7 @@ presubmits:
                     requests:
                       storage: 20Gi
                   storageClassName: hyperdisk-rwo
-        containers:
+        initContainers:
           - name: sidecar-minio
             image: minio/minio:RELEASE.2025-07-23T15-54-02Z
             command:
@@ -71,10 +71,9 @@ presubmits:
             env:
               - name: CONFIG_PATH
                 value: /home/prow/go/src/github.com/tikv/client-go/integration_tests/pd_next_gen.toml
-            command: [bash, -c]
             args:
-              - |
-                exec pd-server --config "${CONFIG_PATH}"
+              - --config
+              - "${CONFIG_PATH}"
             resources:
               limits:
                 cpu: "1"
@@ -114,6 +113,7 @@ presubmits:
               limits:
                 cpu: "2"
                 memory: 4Gi
+        containers:
           - name: test
             image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-27-g440b0c8-go1.25
             command: [bash, -ce]
