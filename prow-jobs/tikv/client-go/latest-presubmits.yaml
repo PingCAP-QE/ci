@@ -50,6 +50,7 @@ presubmits:
         initContainers:
           - name: sidecar-minio
             image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+            restartPolicy: Always
             command:
               - minio
               - server
@@ -68,6 +69,7 @@ presubmits:
                 memory: 2Gi
           - name: sidecar-pd
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:master-nextgen
+            restartPolicy: Always
             env:
               - name: CONFIG_PATH
                 value: /home/prow/go/src/github.com/tikv/client-go/integration_tests/pd_next_gen.toml
@@ -80,6 +82,7 @@ presubmits:
                 memory: 2Gi
           - name: sidecar-tikv
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:cloud-engine-nextgen
+            restartPolicy: Always
             env:
               - name: PD_ENDPOINT
                 value: 127.0.0.1:2379
