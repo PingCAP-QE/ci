@@ -19,13 +19,11 @@ global_definitions:
 presubmits:
   tikv/client-go:
     - <<: [*brancher]
-      name: pull-client-go-integration-next-gen-tikv
+      name: pull-integration-nextgen
       agent: kubernetes
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
       optional: true
-      trigger: "(?m)^/test (?:.*? )?(pull-client-go-integration-next-gen-tikv|all)(?: .*?)?$"
-      rerun_command: "/test pull-client-go-integration-next-gen-tikv"
       timeout: 45m
       spec:
         affinity: *affinity
