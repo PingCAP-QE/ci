@@ -60,7 +60,8 @@ repositories:
         excludes:
           - "tests/**"
     approvers:
-      - "flowbehappy"
+      - "lidezhu"
+      - "nongfushanquan"
 
   - name: "tikv/tikv"
     patterns:
