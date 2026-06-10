@@ -1,0 +1,182 @@
+global_definitions:
+  brancher: &brancher
+    branches:
+      - ^master$
+      - ^feature/.*$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  affinity: &affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+  kubernetes_job: &kubernetes_job
+    agent: kubernetes
+    decorate: true
+  ci_base_image: &ci_base_image "ghcr.io/pingcap-qe/ci/base:v2026.3.29-14-g90ae7ef-go1.25@sha256:c2e8915571fb5c262cd7f4dfd2bbca7eb10c9bcc093840fb4f1f07cd30187455"
+  pd_image: &pd_image "pingcap/pd:nightly@sha256:b4e80b35eaf949e14732ce61751fb23fd076651771f6f5f6c930ada2b232f8b2"
+  next_gen_tikv_image: &next_gen_tikv_image "gcr.io/pingcap-public/dbaas/tikv:dedicated-next-gen@sha256:1bc3230be7c83294798d6e56b7b5b2996d2f64f48ac8abf092bdd3b85d3dcc22"
+  minio_image: &minio_image "minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
+postsubmits:
+  tikv/client-go:
+    - <<: [*brancher, *kubernetes_job]
+      name: client-go-integration-next-gen-tikv
+      skip_if_only_changed: *skip_if_only_changed
+      max_concurrency: 1
+      timeout: 45m
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: binaries
+            emptyDir: {}
+          - name: minio-data
+            emptyDir: {}
+        containers:
+          - name: copy-pd
+            image: *pd_image
+            command: [/bin/sh, -ce]
+            args:
+              - |
+                cp /pd-server /binaries/pd-server
+                chmod +x /binaries/pd-server
+            volumeMounts:
+              - name: binaries
+                mountPath: /binaries
+          - name: copy-next-gen-tikv
+            image: *next_gen_tikv_image
+            command: [/bin/sh, -ce]
+            args:
+              - |
+                cp /tikv-server /binaries/tikv-server
+                chmod +x /binaries/tikv-server
+            volumeMounts:
+              - name: binaries
+                mountPath: /binaries
+          - name: copy-minio
+            image: *minio_image
+            command: [/bin/sh, -ce]
+            args:
+              - |
+                cp /usr/bin/minio /binaries/minio
+                chmod +x /binaries/minio
+            volumeMounts:
+              - name: binaries
+                mountPath: /binaries
+          - name: test
+            image: *ci_base_image
+            command: [bash, -ce]
+            env:
+              - name: GOTOOLCHAIN
+                value: local
+            args:
+              - |
+                set -euo pipefail
+
+                dump_logs() {
+                  for log_file in minio.log pd.log tikv.log; do
+                    echo "--- ${log_file} ---"
+                    tail -n 200 "${log_file}" || echo "${log_file} not found"
+                  done
+                }
+
+                cleanup() {
+                  local status=$?
+                  if [[ ${status} -ne 0 ]]; then
+                    dump_logs
+                  fi
+                  for pid in "${TIKV_PID:-}" "${PD_PID:-}" "${MINIO_PID:-}"; do
+                    if [[ -n "${pid}" ]]; then
+                      kill "${pid}" 2>/dev/null || true
+                    fi
+                  done
+                  exit "${status}"
+                }
+
+                install_gotestsum() {
+                  local version="1.13.0"
+                  local checksum="11ccddeaf708ef228889f9fe2f68291a75b27013ddfc3b18156e094f5f40e8ee"
+                  local archive="gotestsum_${version}_linux_amd64.tar.gz"
+                  local url="https://github.com/gotestyourself/gotestsum/releases/download/v${version}/${archive}"
+
+                  mkdir -p /tmp/tools
+                  curl -fsSL --retry 3 --retry-delay 2 -o "/tmp/${archive}" "${url}"
+                  echo "${checksum}  /tmp/${archive}" | sha256sum -c -
+                  tar -xzf "/tmp/${archive}" -C /tmp/tools gotestsum
+                  chmod +x /tmp/tools/gotestsum
+                  export PATH="/tmp/tools:${PATH}"
+                  gotestsum --version
+                }
+
+                wait_for_file() {
+                  local file=$1
+                  local name=$2
+                  for i in $(seq 1 60); do
+                    if [[ -x "${file}" ]]; then
+                      echo "${name} is available"
+                      return
+                    fi
+                    sleep 1
+                  done
+                  echo "${name} did not become available" >&2
+                  return 1
+                }
+
+                wait_for_http() {
+                  local url=$1
+                  local name=$2
+                  for i in $(seq 1 30); do
+                    if curl -fsS --max-time 2 "${url}" >/dev/null; then
+                      echo "${name} is ready"
+                      return
+                    fi
+                    sleep 1
+                  done
+                  echo "${name} did not become ready" >&2
+                  return 1
+                }
+
+                trap cleanup EXIT
+
+                go version | grep 'go1.25.8'
+                install_gotestsum
+                wait_for_file /binaries/pd-server pd-server
+                wait_for_file /binaries/tikv-server tikv-server
+                wait_for_file /binaries/minio minio
+
+                cd integration_tests
+                mkdir -p tikv-data /minio-data/cse-test
+
+                /binaries/minio server /minio-data > minio.log 2>&1 &
+                MINIO_PID=$!
+                wait_for_http http://127.0.0.1:9000/minio/health/ready MinIO
+
+                /binaries/pd-server --config pd_next_gen.toml > pd.log 2>&1 &
+                PD_PID=$!
+                wait_for_http http://127.0.0.1:2379/pd/api/v1/health PD
+
+                /binaries/tikv-server -C tikv_next_gen.toml --pd-endpoints="127.0.0.1:2379" --addr="127.0.0.1:20160" --data-dir="${PWD}/tikv-data" > tikv.log 2>&1 &
+                TIKV_PID=$!
+
+                echo "Waiting for Next-Gen TiKV to start..."
+                sleep 15
+                dump_logs
+
+                gotestsum --format short-verbose -- -parallel 1 -tags=nextgen --with-tikv --keyspace-name='keyspace1'
+            volumeMounts:
+              - name: binaries
+                mountPath: /binaries
+                readOnly: true
+              - name: minio-data
+                mountPath: /minio-data
+            resources:
+              requests:
+                cpu: "4"
+                memory: 8Gi
+              limits:
+                cpu: "8"
+                memory: 16Gi
