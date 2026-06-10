@@ -3,12 +3,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
-final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final BRANCH_ALIAS = 'latest'
-final COLUMNAR_JOB_NAME = 'pull_integration_next_gen_columnar'
-final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${COLUMNAR_JOB_NAME}/pod-build.yaml"
-final POD_TEMPLATE_FILE_TEST = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${COLUMNAR_JOB_NAME}/pod-test.yaml"
+final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod-build.yaml'
+final POD_TEMPLATE_FILE_TEST = 'pipelines/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
@@ -16,7 +13,8 @@ final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 final MINIO_VERSION = 'RELEASE.2025-07-23T15-54-02Z'
 final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
-final TEST_WORKSPACE_CACHE_FOLDER = 'tiflash-next-gen-columnar'
+final WORKSPACE_STASH_NAME = 'tiflash-next-gen-columnar-workspace'
+final PARALLELISM = 12
 
 String tiflash_commit_hash = null
 
@@ -28,7 +26,6 @@ pipeline {
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout & Build') {
@@ -55,38 +52,18 @@ pipeline {
                         }
                     }
                 }
-                stage('Prepare Cache') {
+                stage('Prepare Ccache') {
                     steps {
                         dir(REFS.repo) {
-                            sh label: "prepare local build cache", script: '''
+                            sh label: "configure ccache", script: '''
                                 set -eux
-                                git config --global --add safe.directory "*"
 
-                                mkdir -p /home/jenkins/agent/ccache
-                                ccache -o cache_dir="/home/jenkins/agent/ccache"
-                                ccache -o max_size=20G
+                                ccache -o cache_dir="/tmp/.ccache"
+                                ccache -o max_size=2G
                                 ccache -o hash_dir=false
                                 ccache -o compression=true
                                 ccache -o compression_level=6
                                 ccache -z
-
-                                mkdir -p ~/.cargo/registry ~/.cargo/git ~/.rustup
-                                mkdir -p /home/jenkins/agent/rust/registry/cache
-                                mkdir -p /home/jenkins/agent/rust/registry/index
-                                mkdir -p /home/jenkins/agent/rust/git/db
-                                mkdir -p /home/jenkins/agent/rust/git/checkouts
-                                mkdir -p /home/jenkins/agent/rust/rustup-env/tmp
-                                mkdir -p /home/jenkins/agent/rust/rustup-env/toolchains
-
-                                rm -rf ~/.cargo/registry/cache ~/.cargo/registry/index
-                                rm -rf ~/.cargo/git/db ~/.cargo/git/checkouts
-                                rm -rf ~/.rustup/tmp ~/.rustup/toolchains
-                                ln -s /home/jenkins/agent/rust/registry/cache ~/.cargo/registry/cache
-                                ln -s /home/jenkins/agent/rust/registry/index ~/.cargo/registry/index
-                                ln -s /home/jenkins/agent/rust/git/db ~/.cargo/git/db
-                                ln -s /home/jenkins/agent/rust/git/checkouts ~/.cargo/git/checkouts
-                                ln -s /home/jenkins/agent/rust/rustup-env/tmp ~/.rustup/tmp
-                                ln -s /home/jenkins/agent/rust/rustup-env/toolchains ~/.rustup/toolchains
                             '''
                         }
                     }
@@ -128,7 +105,7 @@ pipeline {
                                 """
                                 withEnv(['CARGO_NET_GIT_FETCH_WITH_CLI=true']) {
                                     sh label: "build tiflash", script: """
-                                        cmake --build '${WORKSPACE}/build' --target tiflash --parallel 12
+                                        cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
                                         cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
                                         ccache -s
                                         ls -alh ${WORKSPACE}/install/tiflash
@@ -148,13 +125,12 @@ pipeline {
                                 rm -rf .git contrib ${WORKSPACE}/build
                                 du -sh . tests/.build || true
                             """
-                            cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
-                                sh label: "save test workspace", script: """
-                                    test -e tests/.build/tiflash
-                                    chmod +x tests/fullstack-test-next-gen-columnar/run.sh
-                                    test -x tests/fullstack-test-next-gen-columnar/run.sh
-                                """
-                            }
+                            sh label: "check test workspace", script: """
+                                test -e tests/.build/tiflash
+                                chmod +x tests/fullstack-test-next-gen-columnar/run.sh
+                                test -x tests/fullstack-test-next-gen-columnar/run.sh
+                            """
+                            stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                         }
                     }
                 }
@@ -186,9 +162,8 @@ pipeline {
                     stage('Test') {
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/${TEST_WORKSPACE_CACHE_FOLDER}") {
-                                    sh label: "check restored workspace", script: "test -e tests/.build/tiflash"
-                                }
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh label: "check restored workspace", script: "test -e tests/.build/tiflash"
                                 dir("tests/${TEST_PATH}") {
                                     withEnv([
                                         "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${OCI_TAG_PD}",
