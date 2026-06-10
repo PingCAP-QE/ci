@@ -19,7 +19,7 @@ global_definitions:
 presubmits:
   tikv/client-go:
     - <<: [*brancher]
-      name: pull-integration-test-nextgen
+      name: pull-integration-nextgen
       agent: kubernetes
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
@@ -29,8 +29,6 @@ presubmits:
         affinity: *affinity
         serviceAccountName: tidbx-puller
         volumes:
-          - name: lifecycle
-            emptyDir: {}
           - name: tikv-data
             ephemeral:
               volumeClaimTemplate:
@@ -52,16 +50,10 @@ presubmits:
         containers:
           - name: sidecar-minio
             image: minio/minio:RELEASE.2025-07-23T15-54-02Z
-            command: [bash, -c]
-            args:
-              - |
-                set -euo pipefail
-                minio server /data &
-                MINIO_PID=$!
-                # Wait for test container to finish, then exit
-                while [ ! -f /lifecycle/done ]; do sleep 2; done
-                kill $MINIO_PID 2>/dev/null || true
-                exit 0
+            command:
+              - minio
+              - server
+              - /data
             env:
               - name: MINIO_ROOT_USER
                 value: access_key
@@ -70,27 +62,19 @@ presubmits:
             volumeMounts:
               - name: minio-data
                 mountPath: /data
-              - name: lifecycle
-                mountPath: /lifecycle
             resources:
               limits:
                 cpu: "1"
                 memory: 2Gi
           - name: sidecar-pd
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:master-nextgen
+            env:
+              - name: CONFIG_PATH
+                value: /home/prow/go/src/github.com/tikv/client-go/integration_tests/pd_next_gen.toml
             command: [bash, -c]
             args:
               - |
-                set -euo pipefail
-                export CONFIG_PATH="/home/prow/go/src/github.com/tikv/client-go/integration_tests/pd_next_gen.toml"
-                /pd-server --config "${CONFIG_PATH}" &
-                PD_PID=$!
-                while [ ! -f /lifecycle/done ]; do sleep 2; done
-                kill $PD_PID 2>/dev/null || true
-                exit 0
-            volumeMounts:
-              - name: lifecycle
-                mountPath: /lifecycle
+                exec pd-server --config "${CONFIG_PATH}"
             resources:
               limits:
                 cpu: "1"
@@ -118,20 +102,14 @@ presubmits:
                   sleep 2
                 done
 
-                /tikv-server \
+                exec /tikv-server \
                   -C "${CONFIG_PATH}" \
                   --pd-endpoints="${PD_ENDPOINT}" \
                   --addr="${LISTEN_ADDRESSES}" \
-                  --data-dir=/tikv-data &
-                TIKV_PID=$!
-                while [ ! -f /lifecycle/done ]; do sleep 2; done
-                kill $TIKV_PID 2>/dev/null || true
-                exit 0
+                  --data-dir=/tikv-data
             volumeMounts:
               - name: tikv-data
                 mountPath: /tikv-data
-              - name: lifecycle
-                mountPath: /lifecycle
             resources:
               limits:
                 cpu: "2"
@@ -161,27 +139,14 @@ presubmits:
                   return 1
                 }
 
-                exit_code=0
-                wait_for_http http://127.0.0.1:9000/minio/health/ready MinIO || exit_code=$?
-                wait_for_http http://127.0.0.1:2379/pd/api/v1/health PD || exit_code=$?
-                wait_for_http http://127.0.0.1:20160/status TiKV || exit_code=$?
-
-                if [ "$exit_code" -ne 0 ]; then
-                  touch /lifecycle/done
-                  exit "$exit_code"
-                fi
+                wait_for_http http://127.0.0.1:9000/minio/health/ready MinIO
+                wait_for_http http://127.0.0.1:2379/pd/api/v1/health PD
+                wait_for_http http://127.0.0.1:20160/status TiKV
 
                 # 👉 Run the integration tests
                 cd integration_tests
                 go version
-                go run gotest.tools/gotestsum@v1.13.0 --format short-verbose -- -parallel 1 -tags=nextgen --with-tikv --keyspace-name='keyspace1' || exit_code=$?
-
-                # Signal sidecars to shut down
-                touch /lifecycle/done
-                exit "$exit_code"
-            volumeMounts:
-              - name: lifecycle
-                mountPath: /lifecycle
+                go run gotest.tools/gotestsum@v1.13.0 --format short-verbose -- -parallel 1 -tags=nextgen --with-tikv --keyspace-name='keyspace1'
             resources:
               limits:
                 cpu: "2"
