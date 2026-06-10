@@ -32,7 +32,14 @@ presubmits:
         serviceAccountName: tidbx-puller
         volumes:
           - name: tikv-data
-            emptyDir: {}
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 20Gi
+                  storageClassName: hyperdisk-rwo
           - name: minio-data
             ephemeral:
               volumeClaimTemplate:
@@ -40,7 +47,7 @@ presubmits:
                   accessModes: ["ReadWriteOnce"]
                   resources:
                     requests:
-                      storage: 10Gi
+                      storage: 20Gi
                   storageClassName: hyperdisk-rwo
         containers:
           - name: sidecar-minio
