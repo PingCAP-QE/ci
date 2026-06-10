@@ -8,6 +8,16 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_cdc_integration_storage_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
+final OCI_TAG_PD = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIDB = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
+final OCI_TAG_TIFLASH = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2025-07-23T15-54-02Z'
+final OCI_TAG_ETCD = 'v3.5.15'
+final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_SCHEMA_REGISTRY = 'latest'
 final WORKSPACE_STASH_NAME = 'tiflow-cdc-workspace'
 
 pipeline {
@@ -43,50 +53,24 @@ pipeline {
                     steps {
                         dir("third_party_download") {
                             retry(2) {
-                                script {
-                                    def branchInfo = component.extractHotfixInfo(REFS.base_ref)
-
-                                    sh label: "download third_party", script: """
-                                        mkdir -p bin
-                                        cd ../tiflow
-
-                                        if [[ "${branchInfo.isHotfix}" == "true" ]]; then
-                                            echo "Hotfix version tag: ${branchInfo.versionTag}"
-                                            echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
-
-                                            # First download binary using the release branch script
-                                            ./scripts/download-integration-test-binaries.sh release-8.5
-                                            # remove binarys of tidb-server, pd-server, tikv-server, tiflash
-                                            rm -rf bin/tidb-server bin/pd-* bin/tikv-server bin/tiflash bin/tiflash_dir bin/lib*
-
-                                            # Then download and replace other components with exact versions
-                                            cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ./
-                                            chmod +x download_test_binaries_by_tag.sh
-
-                                            # Save sync_diff_inspector and some other binaries
-                                            mv bin tmp_bin
-
-                                            # Download exact versions of tidb-server, pd-server, tikv-server, tiflash
-                                            ./download_test_binaries_by_tag.sh ${branchInfo.versionTag}
-
-                                            # Restore some binaries
-                                            mv tmp_bin/* bin/ && rm -rf tmp_bin
-                                        else
-                                            echo "Release branch, downloading binaries from ${REFS.base_ref}"
-                                            ./scripts/download-integration-test-binaries.sh release-8.5
-                                        fi
-
-                                        make check_third_party_binary
-                                        cd - && mv ../tiflow/bin/* ./bin/
-
-                                        # Verify all required binaries
-                                        echo "Verifying downloaded binaries..."
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tiflash --version
-                                    """
+                                sh label: "prepare third_party dir", script: "mkdir -p bin"
+                                container("utils") {
+                                    dir("bin") {
+                                        sh label: "download third_party from OCI", script: """
+                                            script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                            \$script \
+                                                --tidb=${OCI_TAG_TIDB} \
+                                                --pd=${OCI_TAG_PD} \
+                                                --pd-ctl=${OCI_TAG_PD} \
+                                                --tikv=${OCI_TAG_TIKV} \
+                                                --tiflash=${OCI_TAG_TIFLASH} \
+                                                --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR} \
+                                                --minio=${OCI_TAG_MINIO} \
+                                                --etcdctl=${OCI_TAG_ETCD} \
+                                                --ycsb=${OCI_TAG_YCSB} \
+                                                --schema-registry=${OCI_TAG_SCHEMA_REGISTRY}
+                                        """
+                                    }
                                 }
                             }
                         }
@@ -106,7 +90,13 @@ pipeline {
                             }
                             sh label: "prepare workspace", script: """
                                 cp -r ../third_party_download/bin/* ./bin/
+                                ln -sf /usr/bin/jq ./bin/jq
+                                make check_third_party_binary
                                 ls -alh ./bin
+                                ./bin/tidb-server -V
+                                ./bin/pd-server -V
+                                ./bin/tikv-server -V
+                                ./bin/tiflash --version
                             """
                             stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                         }

@@ -15,6 +15,16 @@ spec:
         limits:
           memory: 16Gi
           cpu: 6000m
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      tty: true
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+        limits:
+          memory: 4Gi
+          cpu: 1000m
     - name: mysql1
       image: "docker.io/library/mysql:5.7"
       tty: true

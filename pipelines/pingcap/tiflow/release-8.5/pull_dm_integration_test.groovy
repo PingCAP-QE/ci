@@ -10,6 +10,12 @@ final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_dm_integration_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_dm_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
+final OCI_TAG_TIDB = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
+final OCI_TAG_TIKV = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 final WORKSPACE_STASH_NAME = 'tiflow-dm-workspace'
 def skipRemainingStages = false
 
@@ -69,36 +75,34 @@ pipeline {
                     steps {
                         dir("third_party_download") {
                             retry(2) {
-                                script {
-                                    def branchInfo = component.extractHotfixInfo(REFS.base_ref)
-                                    sh label: "download third_party", script: """
-                                        if [[ "${branchInfo.isHotfix}" == "true" ]]; then
-                                            echo "Hotfix version tag: ${branchInfo.versionTag}"
-                                            echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
-
-                                            cp ${WORKSPACE}/scripts/pingcap/tiflow/download_test_binaries_by_tag.sh ${WORKSPACE}/tiflow/dm/tests/
-                                            chmod +x ${WORKSPACE}/tiflow/dm/tests/download_test_binaries_by_tag.sh
-                                            # First download binary using the release branch script
-                                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.5
-                                            rm -rf bin/tidb-server bin/pd-* bin/tikv-server
-                                            mv bin tmp_bin
-                                            # Then download and replace other components with exact versions
-                                            ./dm/tests/download_test_binaries_by_tag.sh ${branchInfo.versionTag} tidb pd tikv ctl
-                                            mv tmp_bin/* bin/ && rm -rf tmp_bin
-                                            cd -
-                                        else
-                                            echo "Release branch, downloading binaries from ${REFS.base_ref}"
-                                            cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh release-8.5
-                                            cd -
-                                        fi
-                                        # Verify all required binaries
-                                        mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                    """
+                                sh label: "prepare third_party dir", script: "mkdir -p bin"
+                                container("utils") {
+                                    dir("bin") {
+                                        sh label: "download third_party from OCI", script: """
+                                            script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                            \$script \
+                                                --tidb=${OCI_TAG_TIDB} \
+                                                --tikv=${OCI_TAG_TIKV} \
+                                                --pd=${OCI_TAG_PD} \
+                                                --pd-ctl=${OCI_TAG_PD} \
+                                                --minio=${OCI_TAG_MINIO} \
+                                                --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR}
+                                        """
+                                    }
                                 }
+                                sh label: "download gh-ost", script: """
+                                    cd bin
+                                    wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                        -O gh-ost.tar.gz \
+                                        https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz
+                                    tar -xzf gh-ost.tar.gz
+                                    rm -f gh-ost.tar.gz
+                                    [ -f ./gh-ost ] && chmod +x ./gh-ost
+                                    ls -alh ./
+                                    ./tidb-server -V
+                                    ./pd-server -V
+                                    ./tikv-server -V
+                                """
                             }
                         }
                         dir("tiflow") {
