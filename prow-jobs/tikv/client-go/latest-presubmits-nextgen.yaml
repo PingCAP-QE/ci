@@ -36,7 +36,7 @@ presubmits:
                   accessModes: ["ReadWriteOnce"]
                   resources:
                     requests:
-                      storage: 20Gi
+                      storage: 100Gi
                   storageClassName: hyperdisk-rwo
           - name: minio-data
             ephemeral:
@@ -75,11 +75,14 @@ presubmits:
                 value: /home/prow/go/src/github.com/tikv/client-go/integration_tests/pd_next_gen.toml
             args:
               - --config
-              - "${CONFIG_PATH}"
+              - "$(CONFIG_PATH)"
             resources:
               limits:
                 cpu: "1"
                 memory: 2Gi
+            volumeMounts:
+              - mountPath: /home/prow/go
+                name: code # from the default prow job source volume
           - name: sidecar-tikv
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:cloud-engine-nextgen
             restartPolicy: Always
@@ -110,8 +113,10 @@ presubmits:
                   --addr="${LISTEN_ADDRESSES}" \
                   --data-dir=/tikv-data
             volumeMounts:
-              - name: tikv-data
-                mountPath: /tikv-data
+              - mountPath: /tikv-data
+                name: tikv-data
+              - mountPath: /home/prow/go
+                name: code # from the default prow job source volume
             resources:
               limits:
                 cpu: "2"
