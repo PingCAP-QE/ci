@@ -26,7 +26,7 @@ spec:
           memory: 4Gi
           cpu: 1000m
     - name: mysql1
-      image: "docker.io/library/mysql:5.7"
+      image: "us-docker.pkg.dev/pingcap-testing-account/dockerhub-remote/mysql:5.7"
       tty: true
       resources:
         requests:
@@ -47,7 +47,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: "docker.io/library/mysql:5.7"
+      image: "us-docker.pkg.dev/pingcap-testing-account/dockerhub-remote/mysql:5.7"
       tty: true
       resources:
         requests:
