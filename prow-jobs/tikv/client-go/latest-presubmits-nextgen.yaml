@@ -1,9 +1,4 @@
 global_definitions:
-  brancher: &brancher
-    branches:
-      - ^master$
-      - ^release-nextgen-[0-9]+$
-      - ^feature/.*$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   affinity: &affinity
     nodeAffinity:
@@ -18,17 +13,19 @@ global_definitions:
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   tikv/client-go:
-    - <<: [*brancher]
-      name: pull-integration-test-nextgen
+    - name: pull-integration-test-nextgen
       agent: kubernetes
+      branches:
+        - ^master$
+        - ^feature/.*$
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
       optional: true
-      timeout: 45m
+      timeout: 30m
       spec:
         affinity: *affinity
         serviceAccountName: tidbx-puller
-        volumes:
+        volumes: &volumes
           - name: tikv-data
             ephemeral:
               volumeClaimTemplate:
@@ -48,7 +45,8 @@ presubmits:
                       storage: 20Gi
                   storageClassName: hyperdisk-rwo
         initContainers:
-          - name: sidecar-minio
+          - &sidecar-minio
+            name: sidecar-minio
             image: minio/minio:RELEASE.2025-07-23T15-54-02Z
             restartPolicy: Always
             command:
@@ -67,7 +65,8 @@ presubmits:
               limits:
                 cpu: "1"
                 memory: 2Gi
-          - name: sidecar-pd
+          - &sidecar-pd
+            name: sidecar-pd
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:master-nextgen
             restartPolicy: Always
             env:
@@ -83,7 +82,8 @@ presubmits:
             volumeMounts:
               - mountPath: /home/prow/go
                 name: code # from the default prow job source volume
-          - name: sidecar-tikv
+          - &sidecar-tikv
+            name: sidecar-tikv
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:cloud-engine-nextgen
             restartPolicy: Always
             env:
@@ -121,7 +121,7 @@ presubmits:
               limits:
                 cpu: "2"
                 memory: 4Gi
-        containers:
+        containers: &containers
           - name: test
             image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-27-g440b0c8-go1.25
             command: [bash, -ce]
@@ -159,3 +159,23 @@ presubmits:
               limits:
                 cpu: "2"
                 memory: 4Gi
+
+    - name: pull-integration-test-release-nextgen
+      agent: kubernetes
+      branches:
+        - ^release-nextgen-202603$
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      optional: true
+      timeout: 30m
+      spec:
+        affinity: *affinity
+        serviceAccountName: tidbx-puller
+        volumes: *volumes
+        initContainers:
+          - *sidecar-minio
+          - <<: [*sidecar-pd]
+            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:release-nextgen-202603
+          - <<: [*sidecar-tikv]
+            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:release-nextgen-202603
+        containers: *containers
