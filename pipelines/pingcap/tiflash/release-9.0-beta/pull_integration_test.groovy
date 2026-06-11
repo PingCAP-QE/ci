@@ -21,7 +21,7 @@ pipeline {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
-            retries 5
+            retries 2
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
@@ -365,7 +365,7 @@ pipeline {
                         namespace K8S_NAMESPACE
                         yamlFile POD_INTEGRATIONTEST_TEMPLATE_FILE
                         defaultContainer 'docker'
-                        retries 5
+                        retries 2
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
                 }
