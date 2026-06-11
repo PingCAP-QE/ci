@@ -154,7 +154,7 @@ presubmits:
                 # 👉 Run the integration tests
                 cd integration_tests
                 go version
-                go run gotest.tools/gotestsum@v1.13.0 --format short-verbose -- -parallel 1 -tags=nextgen --with-tikv --keyspace-name='keyspace1'
+                go run gotest.tools/gotestsum@v1.13.0 --format short-verbose -- -tags=nextgen --with-tikv --keyspace-name='keyspace1' 2>&1 | tee /logs/test.log
             resources:
               limits:
                 cpu: "2"
