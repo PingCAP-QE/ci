@@ -1,29 +1,32 @@
 apiVersion: v1
 kind: Pod
 spec:
+  securityContext:
+    fsGroup: 1000
   containers:
     - name: runner
-      image: "hub.pingcap.net/jenkins/tikv-cached-master:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins/tikv:v2026.3.22-4-gd9d1135"
+      imagePullPolicy: Always
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: "6"
+          memory: 16Gi
+          cpu: "4"
         limits:
-          memory: 32Gi
-          cpu: "16"
+          memory: 24Gi
+          cpu: "8"
       securityContext:
         privileged: true
     - name: golang
-      image: hub.pingcap.net/jenkins/centos7_golang-1.21:latest
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: '4'
+          memory: 12Gi
+          cpu: "4"
         limits:
-          memory: 32Gi
-          cpu: "16"
+          memory: 16Gi
+          cpu: "6"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
@@ -43,7 +46,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
