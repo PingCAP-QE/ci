@@ -84,7 +84,7 @@ function prepare_tiflash_layout() {
         exit 1
     fi
 
-    chmod +x "${normalized_binary}"
+    chmod -R +x "${normalized_dir}"
     rm -rf "${extracted_dir}"
     ln -sfn "${normalized_binary}" "${extracted_dir}"
     echo "✅ prepared TiFlash binary symlink layout: ${extracted_dir} -> ${normalized_binary}"

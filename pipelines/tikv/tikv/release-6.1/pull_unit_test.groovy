@@ -17,6 +17,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            retries 2
             defaultContainer 'runner'
         }
     }
@@ -151,7 +152,7 @@ pipeline {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
                         defaultContainer 'runner'
-                        retries 5
+                        retries 2
                     }
                 }
                 when {

@@ -6,3 +6,4 @@
 #
 # Example:
 # secret_echo	^pipelines/pingcap/example/legacy-debug\.groovy$
+secret_env_plain_value	^prow-jobs/tikv/client-go/latest-presubmits-nextgen\.yaml$

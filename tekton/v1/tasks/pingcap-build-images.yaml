@@ -87,7 +87,7 @@ spec:
           printf '"{}"' > "$pushed_result_path"
         fi
     - name: build-and-publish
-      image: ghcr.io/osscontainertools/kaniko:v1.27.6-debug
+      image: gcr.io/kaniko-project/executor:v1.24.0-debug
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in
