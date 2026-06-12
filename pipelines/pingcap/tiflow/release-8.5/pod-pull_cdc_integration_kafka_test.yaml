@@ -9,27 +9,26 @@ spec:
       name: zookeeper
       resources:
         requests:
-          cpu: 2000m
-          memory: 4Gi
+          cpu: 500m
+          memory: 2Gi
         limits:
-          cpu: 2000m
+          cpu: 1000m
           memory: 4Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - args:
-        - cat
-      image: hub.pingcap.net/jenkins/golang-tini:1.23
+    - command: [tini, --, bash]
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.15-1-g5625431-go1.25
       imagePullPolicy: Always
       name: golang
       resources:
         requests:
-          cpu: "12"
-          memory: 32Gi
+          cpu: 4000m
+          memory: 16Gi
         limits:
-          cpu: "12"
-          memory: 32Gi
+          cpu: 8000m
+          memory: 24Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -68,11 +67,11 @@ spec:
       name: kafka
       resources:
         requests:
-          cpu: 4000m
+          cpu: 1500m
           memory: 6Gi
         limits:
-          cpu: 4000m
-          memory: 6Gi
+          cpu: 3000m
+          memory: 8Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -99,7 +98,7 @@ spec:
       resources:
         requests:
           cpu: 200m
-          memory: 4Gi
+          memory: 2Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -121,7 +120,7 @@ spec:
       resources:
         requests:
           cpu: 200m
-          memory: 4Gi
+          memory: 1Gi
     - name: connect
       image: quay.io/debezium/connect:2.4
       env:
@@ -140,7 +139,7 @@ spec:
       resources:
         requests:
           cpu: 200m
-          memory: 4Gi
+          memory: 1Gi
   volumes:
     - emptyDir: {}
       name: volume-0
