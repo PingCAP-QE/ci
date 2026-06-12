@@ -25,7 +25,6 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        // internal mirror is 'hub-zot.pingcap.net/mirrors/tidbx'
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
         NEXT_GEN = 1
         LEGACY_SAFEPOINT = 1
