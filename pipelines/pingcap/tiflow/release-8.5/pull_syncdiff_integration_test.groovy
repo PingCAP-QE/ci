@@ -6,23 +6,22 @@ final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_syncdiff_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_DUMPLING = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
+final OCI_TAG_TIDB = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
+final OCI_TAG_TIKV = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_DUMPLING = OCI_TAG_TIDB
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'runner'
         }
-    }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -32,12 +31,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
                     }
                 }
             }
@@ -59,12 +54,14 @@ pipeline {
                             sh label: "ensure importer tools", script: """
                                 if [ ! -x importer ]; then
                                     wget --no-verbose -t 3 \
-                                        -O tidb-enterprise-tools.tar.gz \
-                                        https://fileserver.pingcap.net/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
-                                    tar -xzf tidb-enterprise-tools.tar.gz
-                                    mv tidb-enterprise-tools/bin/loader ./
-                                    mv tidb-enterprise-tools/bin/importer ./
-                                    rm -rf tidb-enterprise-tools tidb-enterprise-tools.tar.gz
+                                        -O tidb-enterprise-tools-nightly-linux-amd64.tar.gz \
+                                        https://download.pingcap.com/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
+                                    tar -xzf tidb-enterprise-tools-nightly-linux-amd64.tar.gz \
+                                        tidb-enterprise-tools-nightly-linux-amd64/bin/loader \
+                                        tidb-enterprise-tools-nightly-linux-amd64/bin/importer
+                                    mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader ./
+                                    mv tidb-enterprise-tools-nightly-linux-amd64/bin/importer ./
+                                    rm -rf tidb-enterprise-tools-nightly-linux-amd64 tidb-enterprise-tools-nightly-linux-amd64.tar.gz
                                 fi
                             """
                         }
