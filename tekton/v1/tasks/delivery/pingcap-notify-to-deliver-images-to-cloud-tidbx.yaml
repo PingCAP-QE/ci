@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: pingcap-notify-to-deliver-images-to-cloud-tidbx
   labels:
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.2.0"
   annotations:
     tekton.dev/pipelines.minVersion: "1.0.0"
     tekton.dev/categories: delivery
@@ -18,10 +18,10 @@ spec:
   workspaces:
     - name: notify-config
       description: |
-        Configuration for GitHub authentication and issue URLs.
+        Configuration for GitHub authentication and repo.
         Include files:
         - GitHub token: <stage>_github_token
-        - GitHub issue URL: <stage>_github_issue_url
+        - GitHub repo:  <stage>_github_repo (e.g. "pingcap/tidb")
       readOnly: true
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
@@ -29,22 +29,77 @@ spec:
     - name: notify-to-sync-images
       script: |
         #!/usr/bin/env bash
-        set -e
+        set -eo pipefail
+
+        COMMENT_LIMIT=2000
+        LABEL_PREFIX="delivery-queue-tidbx"
 
         cat > /workspace/images.yaml <<'EOF'
         $(params.src)
         EOF
 
         for stage in dev prod; do
-          github_issue_url="$(cat $(workspaces.notify-config.path)/${stage}_github_issue_url)"
+          github_repo="$(cat "$(workspaces.notify-config.path)/${stage}_github_repo")"
           gh auth login --with-token < $(workspaces.notify-config.path)/${stage}_github_token
 
-          echo "🚀 Notifiy to sync images to $stage ..."
+          label="${LABEL_PREFIX}/${stage}"
+
+          # Ensure the label exists in the repo (idempotent, safe to call repeatedly)
+          gh label create "$label" --repo "$github_repo" 2>/dev/null || true
+
+          echo "🚀 Looking for active queue issue for $stage ..."
+
+          # Find the current open queue issue with our label (pick the newest)
+          queue_issue=$(gh issue list \
+            --repo "$github_repo" \
+            --label "$label" \
+            --state open \
+            --json number,comments,createdAt \
+            --jq 'sort_by(.createdAt) | last // empty' 2>/dev/null || echo "")
+
+          if [ -n "$queue_issue" ]; then
+            issue_number=$(echo "$queue_issue" | jq -r '.number')
+            comment_count=$(echo "$queue_issue" | jq -r '.comments // 0')
+            echo "Found queue issue #$issue_number ($comment_count comments)"
+
+            if [ "$comment_count" -ge "$COMMENT_LIMIT" ]; then
+              echo "Reached $COMMENT_LIMIT comments, rotating to a new issue..."
+              gh issue close "$issue_number" --repo "$github_repo" --comment "Rotated: comment count ($comment_count) reached limit."
+              gh issue edit "$issue_number" --repo "$github_repo" --remove-label "$label"
+              queue_issue=""
+            fi
+          fi
+
+          if [ -z "$queue_issue" ]; then
+            echo "Creating new queue issue for $stage ..."
+            issue_url=$(gh issue create \
+              --repo "$github_repo" \
+              --title "Image delivery queue (tidbx) - $stage - $(date +%Y-%m-%d)" \
+              --label "$label" \
+              --body "This issue tracks image delivery requests (fid) for **$stage** environment.
+        Each delivery request is posted as a comment below.
+
+        When comments reach $COMMENT_LIMIT, this issue is auto-closed and a new one is created.")
+
+            echo "Created: $issue_url"
+            issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+
+            # Clean up any stale duplicates with the same label (race condition guard)
+            stale=$(gh issue list --repo "$github_repo" --label "$label" --state open --json number --jq '[.[].number] | .[]' 2>/dev/null || echo "")
+            for num in $stale; do
+              if [ "$num" != "$issue_number" ]; then
+                echo "Cleaning up stale duplicate issue #$num"
+                gh issue close "$num" --repo "$github_repo" --comment "Superseded by #$issue_number"
+                gh issue edit "$num" --repo "$github_repo" --remove-label "$label" 2>/dev/null || true
+              fi
+            done
+          fi
+
+          echo "🚀 Posting /fid command to issue #$issue_number ($stage) ..."
           {
             echo "/fid env=$stage"
-            yq .images[] /workspace/images.yaml
-          } | gh issue comment "$github_issue_url" --body-file - | tee /workspace/notify-results.${stage}.txt
+            yq '.images[]' /workspace/images.yaml
+          } | gh issue comment "$issue_number" --repo "$github_repo" --body-file - | tee "/workspace/notify-results.${stage}.txt"
 
-          rm -f /workspace/notify.txt
-          echo "✅ Notified to sync images to $stage"
+          echo "✅ Delivery request posted for $stage: #$issue_number"
         done

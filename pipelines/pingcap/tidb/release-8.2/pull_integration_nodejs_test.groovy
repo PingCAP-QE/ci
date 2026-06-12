@@ -14,6 +14,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            retries 2
         }
     }
     environment {
@@ -90,6 +91,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                         defaultContainer 'nodejs'
                     }
                 }

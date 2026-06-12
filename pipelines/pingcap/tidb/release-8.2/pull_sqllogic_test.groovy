@@ -13,6 +13,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            retries 2
             defaultContainer 'golang'
         }
     }
@@ -83,6 +84,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                         defaultContainer 'golang'
                     }
                 }
@@ -144,6 +146,7 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                         defaultContainer 'golang'
                     }
                 }
