@@ -58,9 +58,9 @@ postsubmits:
                     ;;
                 esac
 
-                rclone copyto output.pdf "${dst}/tidb-${version}-en-manual.pdf"
+                rclone copyto --progress output.pdf "${dst}/tidb-${version}-en-manual.pdf"
                 if [ -f output_cloud.pdf ]; then
-                  rclone copyto output_cloud.pdf "${dst}/tidbcloud-en-manual.pdf"
+                  rclone copyto --progress output_cloud.pdf "${dst}/tidbcloud-en-manual.pdf"
                 fi
             env:
               - name: TENCENTCLOUD_RCLONE_CONN
@@ -75,11 +75,11 @@ postsubmits:
                     key: tencent-bn
             resources:
               requests:
-                memory: 12Gi
-                cpu: "4"
+                memory: 1Gi
+                cpu: "1"
               limits:
-                memory: 12Gi
-                cpu: "4"
+                memory: 2Gi
+                cpu: "1"
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
