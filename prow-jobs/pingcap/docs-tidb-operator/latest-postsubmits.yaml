@@ -53,8 +53,8 @@ postsubmits:
                     ;;
                 esac
 
-                rclone copyto output_en.pdf "${dst}/tidb-in-kubernetes-${version}-en-manual.pdf"
-                rclone copyto output_zh.pdf "${dst}/tidb-in-kubernetes-${version}-zh-manual.pdf"
+                rclone copyto -P output_en.pdf "${dst}/tidb-in-kubernetes-${version}-en-manual.pdf"
+                rclone copyto -P output_zh.pdf "${dst}/tidb-in-kubernetes-${version}-zh-manual.pdf"
             env:
               - name: TENCENTCLOUD_RCLONE_CONN
                 valueFrom:
@@ -68,11 +68,11 @@ postsubmits:
                     key: tencent-bn
             resources:
               requests:
-                memory: 12Gi
-                cpu: "4"
+                memory: 1Gi
+                cpu: "1"
               limits:
-                memory: 12Gi
-                cpu: "4"
+                memory: 2Gi
+                cpu: "1"
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
