@@ -6,7 +6,7 @@ spec:
   params:
     - { name: builder-resources-cpu, value: $(extensions.resource-config.cpu) }
     - { name: builder-resources-memory, value: $(extensions.resource-config.memory) }
-    - { name: publisher-url, value: "https://do2.pingcap.net/publisher" }
+    - { name: publisher-url, value: "http://publisher.publisher.svc" }
     - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/tidbx }
     - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
     - { name: timeout, value: $(extensions.resource-config.timeout) }
