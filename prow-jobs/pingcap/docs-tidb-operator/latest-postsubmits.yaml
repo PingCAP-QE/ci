@@ -1,13 +1,12 @@
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
 postsubmits:
   pingcap/docs-tidb-operator:
-    - name: pingcap/docs-tidb-operator/merged_update
+    - name: update-pdfs
       agent: kubernetes
       cluster: default
       decorate: true
       decoration_config:
         timeout: 60m
-      context: docs-tidb-operator/merged-ci
       max_concurrency: 5
       branches:
         - ^main$
