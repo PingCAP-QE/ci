@@ -7,16 +7,29 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-7.1/pod-pull_br_integration_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 final TARGET_BRANCH = "release-7.1"
+final OCI_TAG_PD = TARGET_BRANCH.replaceAll('/', '-')
+final OCI_TAG_TIKV = TARGET_BRANCH.replaceAll('/', '-')
+final OCI_TAG_TIFLASH = TARGET_BRANCH.replaceAll('/', '-')
+final OCI_TAG_YCSB = 'v1.0.3'
+final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
+final OCI_TAG_KES = 'v0.14.0'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
+    }
+    environment {
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -26,13 +39,9 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${TARGET_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', TARGET_BRANCH, "", trunkBranch=TARGET_BRANCH, timeout=5, credentialsId="")
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
@@ -40,20 +49,45 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            chmod +x ../tidb/br/tests/*.sh
-                            chmod +x ${WORKSPACE}/scripts/pingcap/tidb/br_integration_test_download_dependency.sh
-                            ${WORKSPACE}/scripts/pingcap/tidb/br_integration_test_download_dependency.sh release-7.1
-                            mkdir -p bin && mv third_bin/* bin/
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                        """
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: "download third_party", script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --pd=${OCI_TAG_PD} \
+                                        --pd-ctl=${OCI_TAG_PD} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --tikv-ctl=${OCI_TAG_TIKV} \
+                                        --tiflash=${OCI_TAG_TIFLASH} \
+                                        --ycsb=${OCI_TAG_YCSB} \
+                                        --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                        --kes=${OCI_TAG_KES} \
+                                        --minio=${OCI_TAG_MINIO} \
+                                        --brv408
+                                """
+                            }
+                        }
+                        sh label: "verify third_party", script: '''
+                            if [[ -d tiflash && ! -L tiflash ]]; then
+                                rm -rf tiflash_dir
+                                mv tiflash tiflash_dir
+                            fi
+                            if [[ -f tiflash_dir/tiflash ]]; then
+                                ln -sfn "$(pwd)/tiflash_dir/tiflash" tiflash
+                            fi
+
+                            ls -alh .
+                            ./pd-server -V
+                            ./tikv-server -V
+                            ./tiflash --version
+                        '''
                     }
                 }
-                dir('tidb') {
+                dir(REFS.repo) {
+                    sh label: "check all tests added to group", script: """#!/usr/bin/env bash
+                        chmod +x br/tests/*.sh
+                        ./br/tests/run_group_br_tests.sh others
+                    """
                     // build br.test for integration test
                     // only build binarys if not exist, use the cached binarys if exist
                     sh label: "prepare", script: """
@@ -83,8 +117,9 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
                 }
                 when {
@@ -94,15 +129,12 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """
                                         #!/usr/bin/env bash
-                                        cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group_v2.sh br/tests/run_group.sh
                                         chmod +x br/tests/*.sh
-                                        ln -s ${WORKSPACE}/tidb/bin ${WORKSPACE}/tidb/br/bin
-                                        cd br/
-                                        ./tests/run_group.sh ${TEST_GROUP}
+                                        ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
                                     """
                                 }
                             }

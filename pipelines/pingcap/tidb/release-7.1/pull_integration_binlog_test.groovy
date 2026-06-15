@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for release-7.1 branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -15,8 +15,9 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -30,13 +31,9 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-binlog") {
@@ -70,7 +67,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'tidb-server', script: 'make server'
                 }
                 dir('tidb-binlog') {
@@ -92,14 +89,12 @@ pipeline {
                     """
                 }
                 dir('tidb-tools') {
-                    container(name: 'golang121') {
-                        sh label: 'prepare', script: """
-                            make build
-                            ls -alh bin/
-                            rm -f bin/{ddl_checker,importer}
-                            ls -alh bin/
-                        """
-                    }
+                    sh label: 'prepare', script: """
+                        make build
+                        ls -alh bin/
+                        rm -f bin/{ddl_checker,importer}
+                        ls -alh bin/
+                    """
                 }
             }
         }
@@ -108,7 +103,7 @@ pipeline {
                 dir('tidb-binlog') {
                     sh label: 'run test', script: """
                         cp ../tidb-tools/bin/* bin/
-                        cp ../tidb/bin/tidb-server bin/
+                        cp ../${REFS.repo}/bin/tidb-server bin/
                         ls -alh bin/
                         KAFKA_ADDRS=127.0.0.1:9092  make integration_test
                     """

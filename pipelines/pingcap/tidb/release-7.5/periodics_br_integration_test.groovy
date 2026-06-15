@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-7.5/pod-pull_br_integration_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
 final TARGET_BRANCH = "release-7.5"
 final OCI_TAG_PD = TARGET_BRANCH.replaceAll('/', '-')
 final OCI_TAG_TIKV = TARGET_BRANCH.replaceAll('/', '-')
@@ -16,12 +17,14 @@ final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
 final OCI_TAG_KES = 'v0.14.0'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -36,13 +39,9 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${TARGET_BRANCH}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', TARGET_BRANCH, "", trunkBranch=TARGET_BRANCH, timeout=5, credentialsId="")
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
@@ -120,8 +119,9 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
                 }
                 when {
@@ -131,7 +131,7 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") {
                                     sh label: "TEST_GROUP ${TEST_GROUP}", script: """
                                         #!/usr/bin/env bash

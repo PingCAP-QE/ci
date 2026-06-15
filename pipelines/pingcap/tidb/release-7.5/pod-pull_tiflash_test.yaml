@@ -5,49 +5,28 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
-      tty: true
-      resources:
-        requests:
-          memory: 8Gi
-          cpu: "4"
-        limits:
-          memory: 8Gi
-          cpu: "4"
-    - name: dockerd
-      image: "docker:20.10.17-dind"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
       env:
-        - name: DOCKER_TLS_CERTDIR
-          value: ""
-        - name: DOCKER_HOST
-          value: tcp://localhost:2375
-        - name: DOCKER_REGISTRY_MIRROR
-          value: https://registry-mirror.pingcap.net
-      securityContext:
-        privileged: true
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          memory: 12Gi
+          cpu: "6"
         limits:
-          memory: 8Gi
-          cpu: "4"
-    - name: docker
-      image: "hub.pingcap.net/jenkins/alpine-docker:tics-test"
+          memory: 12Gi
+          cpu: "6"
+    - name: utils
+      image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
-      command:
-        - "cat"
-      env:
-        - name: DOCKER_HOST
-          value: tcp://localhost:2375
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          memory: 256Mi
+          cpu: 100m
         limits:
-          memory: 8Gi
-          cpu: "4"
+          cpu: "1"
+          memory: 4Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
