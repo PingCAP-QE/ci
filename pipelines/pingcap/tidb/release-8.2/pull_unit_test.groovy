@@ -13,8 +13,9 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -25,13 +26,28 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
+                }
+            }
+        }
+        stage('Hotfix bazel deps URL (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+
+                    # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
                 }
             }
         }
@@ -40,7 +56,6 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     sh """
-                        sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                         git diff .
                         git status
                     """
