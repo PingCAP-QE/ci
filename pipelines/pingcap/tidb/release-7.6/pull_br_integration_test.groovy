@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for latest release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
@@ -23,7 +23,7 @@ pipeline {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -31,26 +31,23 @@ pipeline {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                     retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
+
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'br-integration-test')) {
                         // build br.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
                         sh label: "prepare", script: """
-                            [ -f ./bin/tidb-server ] || make
+                            [ -f ./bin/tidb-server ] || (make failpoint-enable && make && make failpoint-disable)
                             [ -f ./bin/br.test ] || make build_for_br_integration_test
                             ls -alh ./bin
                             ./bin/tidb-server -V
@@ -83,6 +80,7 @@ pipeline {
                             ./tiflash --version
                         """
                     }
+
                     // cache workspace for matrix pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
@@ -104,8 +102,9 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
                 }
                 when {
@@ -114,7 +113,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
+                        environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -129,13 +128,27 @@ pipeline {
                         post{
                             failure {
                                 sh label: "collect logs", script: """
+                                    if [ ! -d /tmp/backup_restore_test ]; then
+                                        echo "/tmp/backup_restore_test does not exist, skip archiving logs for ${TEST_GROUP}"
+                                        exit 0
+                                    fi
                                     ls /tmp/backup_restore_test
                                     tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")
-                                    ls -alh  log-${TEST_GROUP}.tar.gz
+                                    ls -alh log-${TEST_GROUP}.tar.gz
                                 """
-                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true, allowEmptyArchive: true
                             }
-                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
+                            success {
+
+                                dir(REFS.repo) {
+                                    sh label: "upload coverage", script: """
+                                        ls -alh /tmp/group_cover
+                                        gocovmerge /tmp/group_cover/cov.* > coverage.txt
+                                        codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number} || true
+                                    """
+                                }
+                                script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) }
+                            }
                         }
                     }
                 }

@@ -15,8 +15,9 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -31,13 +32,9 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-tools") {
@@ -54,7 +51,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'build', script: """
                         make server
                         make build_dumpling
@@ -77,22 +74,16 @@ pipeline {
                         mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/
                         rm -r tidb-enterprise-tools-nightly-linux-amd64
                     """
-                    container(name: 'golang121') {
-                        sh label: "build", script:"""
-                            make build
-                        """
-                    }
                     sh label: "check", script: """
                         cp ../tidb/bin/tidb-server bin/
                         cp ../tidb/bin/dumpling bin/
-
+                        make build
                         which bin/tikv-server
                         which bin/pd-server
                         which bin/tidb-server
                         which bin/dumpling
                         which bin/importer
                         ls -alh ./bin/
-                        chmod +x bin/*
                         ./bin/dumpling --version
                         ./bin/tikv-server -V
                         ./bin/pd-server -V
@@ -104,14 +95,12 @@ pipeline {
         stage('TiDB Tools Tests') {
             steps {
                 dir('tidb-tools') {
-                    container(name: 'golang121') {
-                        sh label: 'integration test', script: """
-                            for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
-                            export MYSQL_HOST="127.0.0.1"
-                            export MYSQL_PORT=3306
-                            make integration_test
-                        """
-                    }
+                    sh label: 'integration test', script: """
+                        for i in {1..10} mysqladmin ping -h0.0.0.0 -P 3306 -uroot --silent; do if [ \$? -eq 0 ]; then break; else if [ \$i -eq 10 ]; then exit 2; fi; sleep 1; fi; done
+                        export MYSQL_HOST="127.0.0.1"
+                        export MYSQL_PORT=3306
+                        make integration_test
+                    """
                 }
             }
             post{

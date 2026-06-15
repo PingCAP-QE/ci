@@ -8,94 +8,100 @@ final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-7.0/pod-ghpr_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {
-            parallel {
-                stage('tidb') {
-                    steps {
-                        dir('tidb') {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    script {
-                                        prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                stage("enterprise-plugin") {
-                    steps {
-                        dir("enterprise-plugin") {
-                            cache(path: "./", includes: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
-                                retry(2) {
-                                    script {
-                                        component.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
-                                    }
-                                }
-                            }
-                        }
+            steps {
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
             }
         }
-        stage("Build tidb-server and plugin"){
-            parallel {
-                stage("Build tidb-server") {
-                    stages {
-                        stage("Build"){
-                            steps {
-                                dir("tidb") {
-                                    sh "make bazel_build"
-                                }
-                            }
-                            post {
-                                // TODO: statics and report logic should not put in pipelines.
-                                // Instead should only send a cloud event to a external service.
-                                always {
-                                    dir("tidb") {
-                                        archiveArtifacts(
-                                            artifacts: 'importer.log,tidb-server-check.log',
-                                            allowEmptyArchive: true,
-                                        )
-                                    }
-                                }
+        stage("Hotfix deps URL (temporary CI workaround)") {
+            steps {
+                dir(REFS.repo) {
+                    sh '''
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+                    if [ -f Makefile ]; then
+                      sed -i 's/^check: check-bazel-prepare /check: /' Makefile
+                    fi
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    '''
+                }
+            }
+        }
+        stage("Build tidb-server community edition"){
+            steps {
+                dir(REFS.repo) {
+                    sh "make bazel_build"
+                }
+            }
+            post {
+                always {
+                    dir(REFS.repo) {
+                        archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
+                    }
+                }
+            }
+        }
+        stage("Build tidb-server enterprise edition") {
+            steps {
+                dir(REFS.repo) {
+                    sh "make enterprise-prepare enterprise-server-build && ./bin/tidb-server -V"
+                }
+            }
+        }
+        stage("Test plugin") {
+            when { not { expression { REFS.base_ref ==~ /^feature[\/_].*/ || REFS.base_ref ==~ /^release-fts-[0-9]+$/ } } } // skip for feature and release-fts branches.
+            steps {
+                dir('enterprise-plugin') {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                             }
                         }
                     }
                 }
-                stage("Build plugins") {
-                    steps {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
-                        }
-                        dir('enterprise-plugin/whitelist') {
-                            sh label: 'build plugin whitelist', script: '''
-                                GO111MODULE=on go mod tidy
-                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                '''
-                        }
-                        dir('enterprise-plugin/audit') {
-                            sh label: 'build plugin: audit', script: '''
-                                GO111MODULE=on go mod tidy
-                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                '''
-                        }
-                    }
-                }
+                sh label: 'Test plugins', script: """
+                    mkdir -p plugin-so
+
+                    # compile go plugin: audit
+                    pushd enterprise-plugin/audit && go mod tidy && popd
+                    pushd ${REFS.repo} && go run ./cmd/pluginpkg -pkg-dir ../enterprise-plugin/audit -out-dir ../plugin-so && popd
+
+                    # compile go plugin: whitelist
+                    pushd enterprise-plugin/whitelist && go mod tidy && popd
+                    pushd ${REFS.repo} && go run ./cmd/pluginpkg -pkg-dir ../enterprise-plugin/whitelist -out-dir ../plugin-so && popd
+
+                    # test them.
+                    make server -C ${REFS.repo}
+                    ./${REFS.repo}/bin/tidb-server -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 | tee ./loading-plugin.log &
+
+                    sleep 30
+                    ps aux | grep tidb-server
+                    killall -9 -r tidb-server
+                """
             }
         }
     }
