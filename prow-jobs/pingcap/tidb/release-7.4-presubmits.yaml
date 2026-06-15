@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tidb/release-7.4/ghpr_build
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
@@ -15,7 +15,7 @@ presubmits:
     - name: pingcap/tidb/release-7.4/ghpr_check
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
@@ -26,7 +26,7 @@ presubmits:
     - name: pingcap/tidb/release-7.4/ghpr_check2
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -37,7 +37,7 @@ presubmits:
     - name: pingcap/tidb/release-7.4/ghpr_mysql_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
@@ -48,7 +48,7 @@ presubmits:
     - name: pingcap/tidb/release-7.4/ghpr_unit_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
@@ -59,7 +59,7 @@ presubmits:
     - name: pingcap/tidb/release-7.4/pull_br_integration_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       context: pull-br-integration-test
       always_run: false
