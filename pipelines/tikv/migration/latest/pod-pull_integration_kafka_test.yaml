@@ -51,16 +51,16 @@ spec:
           name: volume-0
     - args:
         - cat
-      image: ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25
       imagePullPolicy: Always
       name: golang
       resources:
         requests:
-          cpu: "3"
-          memory: 12Gi
-        limits:
           cpu: "4"
-          memory: 12Gi
+          memory: 16Gi
+        limits:
+          cpu: "6"
+          memory: 16Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
