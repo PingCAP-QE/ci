@@ -84,18 +84,19 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 25, unit: 'MINUTES') }
                         steps {
-                            dir(REFS.repo) {
-                                cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
+                            timeout(time: 25, unit: 'MINUTES') {
+                                dir(REFS.repo) {
+                                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                                        sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server'
+                                    }
                                 }
-                            }
-                            dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh 'ls mysql_test'
-                                    dir('mysql_test') {
-                                        sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -part=${PART}'
+                                dir('tidb-test') {
+                                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                                        sh 'ls mysql_test'
+                                        dir('mysql_test') {
+                                            sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -part=${PART}'
+                                        }
                                     }
                                 }
                             }
