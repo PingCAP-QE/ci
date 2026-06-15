@@ -1,101 +1,194 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master release branches
+// should triggerd for master branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.4/pod-pull_tiflash_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_CREDENTIALS_ID = ''
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
+    environment {
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+    }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
-                dir("tiflash") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tiflash/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiflash/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('https://github.com/pingcap/tiflash.git', 'tiflash', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
-                            }
-                        }
-                    }
+            }
+        }
+        stage('Hotfix bazel deps URL (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
                 }
             }
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
-                    container("golang") {
-                        sh label: 'tidb-server', script: 'make'
+                dir(REFS.repo) {
+                    sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
+                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'vector-search-test')) {
+                        container("utils") {
+                            dir("bin") {
+                                retry(3) {
+                                    sh label: 'download tidb components', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --pd=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH}
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+                dir('test-assets') {
+                    cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/euclidean-hdf5") {
+                        sh label: 'download test assets', script: """
+                        wget -q https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
+                        wget -q https://ann-benchmarks.com/mnist-784-euclidean.hdf5
+                        """
+                    }
+                }
+                dir('v8.5.1') {
+                    cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/tiup-v8.5.1") {
+                        sh label: 'download v8.5.1 if not cached', script: """
+                            # Only download if components directory doesn't exist (cache miss)
+                            if [ ! -d "components" ]; then
+                                echo "Cache miss, downloading from tiup..."
+                                curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
+                                export PATH="\$HOME/.tiup/bin:\$PATH"
+                                tiup install tidb v8.5.1
+                                tiup install pd v8.5.1
+                                tiup install tikv v8.5.1
+                                tiup install tiflash v8.5.1
+                                cp -r ~/.tiup/components ./
+                            else
+                                echo "Cache hit, using cached components"
+                            fi
+                        """
                     }
                 }
             }
         }
         stage('Tests') {
-            options { timeout(time: 30, unit: 'MINUTES') }
-            steps {
-                container("docker") {
-                    sh label: 'test docker', script: """
-                    docker version
-                    docker info
-                    """
-                    dir('tidb') {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                    }
-                    dir("build-docker-image") {
-                        sh label: 'generate dockerfile', script: """
-                        curl -o tidb.Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.Dockerfile
-                        cat tidb.Dockerfile
-                        cp ../tidb/bin/tidb-server tidb-server
-                        ./tidb-server -V
-                        """
-                        sh label: 'build tmp tidb image', script: """
-                        docker build -t hub.pingcap.net/qa/tidb:${REFS.base_ref} -f tidb.Dockerfile .
-                        """
-                    }
-                    dir("tiflash/tests/docker") {
-                        sh label: 'test', script: """
-                        TIDB_CI_ONLY=1 TAG=${REFS.base_ref} PD_BRANCH=${REFS.base_ref} TIKV_BRANCH=${REFS.base_ref} TIDB_BRANCH=${REFS.base_ref} bash -xe run.sh
-                        """
+            matrix {
+                axes {
+                    axis {
+                        name 'TEST_SCRIPT'
+                        values 'run_mysql_tester.sh', 'run_python_tester.sh', 'run_upgrade_test.sh'
                     }
                 }
-            }
-            post{
-                failure {
-                    container("docker") {
-                        script {
-                            println "Test failed, archive the log"
-                            dir("tiflash/tests/docker") {
-                                sh label: 'display and collect log', script: """
-                                find log -name '*.log' | xargs tail -n 50
-                                ls -alh log/
-                                tar -cvzf log.tar.gz \$(find log/ -type f -name "*.log")
-                                ls -alh  log.tar.gz
-                                """
-                                archiveArtifacts artifacts: "log.tar.gz", allowEmptyArchive: true
+                agent{
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        defaultContainer 'golang'
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_script: env.TEST_SCRIPT]) }
+                }
+                stages {
+                    stage('Restore cache') {
+                        steps {
+                            dir(REFS.repo) {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
+                                    sh 'ls -lh'
+                                }
                             }
+                            dir(REFS.repo) {
+                                cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'vector-search-test')) {
+                                    sh label: 'print version', script: """
+                                        bin/tidb-server -V
+                                        bin/tikv-server -V
+                                        bin/pd-server -V
+                                        bin/tiflash --version
+                                    """
+                                }
+                            }
+                            dir('test-assets') {
+                                cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/euclidean-hdf5") {
+                                sh label: 'print assets', script: """
+                                        ls -alh
+                                    """
+                                }
+                            }
+                            dir('v8.5.1') {
+                                cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/tiup-v8.5.1") {
+                                    sh label: 'print v8.5.1', script: """
+                                        ls -alh
+                                        curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
+                                        export PATH="\$HOME/.tiup/bin:\$PATH"
+                                        cp -r components ~/.tiup/
+                                        tiup pd:v8.5.1 --version
+                                        tiup tikv:v8.5.1 --version
+                                        tiup tiflash:v8.5.1 --version
+                                    """
+                                }
+                            }
+                        }
+                    }
+                    stage("Test") {
+                        steps {
+                            dir(REFS.repo) {
+                                sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash
+                                    export PATH="\$HOME/.tiup/bin:\$PATH"
+                                    export PATH="\$HOME/.local/bin:\$PATH"
+                                    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.7.3/uv-installer.sh | sh
+
+                                    export ASSETS_DIR=\$(pwd)/../test-assets
+                                    cd tests/clusterintegrationtest/
+
+                                    uv venv --python python3.9
+                                    source .venv/bin/activate
+                                    uv pip install -r requirements.txt
+                                    ./${TEST_SCRIPT}
+                                """
+                            }
+                        }
+                        post{
+                            failure {
+                                script {
+                                    println "Test failed, archive the log"
+                                    archiveArtifacts artifacts: 'tidb/tests/clusterintegrationtest/logs', fingerprint: true
+                                }
+                            }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_script: env.TEST_SCRIPT]) } }
                         }
                     }
                 }

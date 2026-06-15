@@ -10,12 +10,14 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -27,15 +29,10 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tikv-copr-test") {
@@ -55,10 +52,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
-                    container("golang") {
-                        sh 'rm -rf bin && mkdir -p bin'
-                    }
+                dir(REFS.repo) {
                     container("utils") {
                         dir("bin") {
                             retry(2) {
@@ -68,20 +62,12 @@ pipeline {
                             }
                         }
                     }
-                    container("golang") {
-                        sh label: 'check version', script: """
-                            ls -alh bin/
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
-                        """
-                    }
                 }
             }
         }
         stage('Tests') {
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'check version', script: """
                     ls -alh bin/
                     ./bin/tikv-server -V
