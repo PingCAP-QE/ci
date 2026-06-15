@@ -67,7 +67,7 @@ pipeline {
                 }
             }
             post {
-                 success {
+                success {
                     dir(REFS.repo) {
                         script {
                             prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
