@@ -3,61 +3,68 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.2/pod-ghpr_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final GIT_CREDENTIALS_ID = ''
 
 prow.setPRDescription(REFS)
-
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
     }
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
-                sh 'echo -e "\ntry-import /data/bazel" >> tidb/.bazelrc'
+            }
+        }
+        stage('Hotfix bazel deps URL (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
+                }
             }
         }
         stage('Test') {
             environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh './build/jenkins_unit_test.sh'
                 }
             }
             post {
-                 success {
-                    dir("tidb") {
-                        sh label: "upload coverage to codecov", script: """
-                        mv coverage.dat test_coverage/coverage.dat
-                        wget -q -O codecov https://uploader.codecov.io/v0.5.0/linux/codecov
-                        chmod +x codecov
-                        ./codecov --flags unit --dir test_coverage/ --token ${TIDB_CODECOV_TOKEN} --pr ${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --branch origin/pr/${REFS.pulls[0].number}
-                        """
+                success {
+                    dir(REFS.repo) {
+                        script {
+                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
+                        }
                     }
                 }
                 always {
-                    dir('tidb') {
-                        // archive test report to Jenkins.
+                    dir(REFS.repo) {
                         junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                     }
                 }

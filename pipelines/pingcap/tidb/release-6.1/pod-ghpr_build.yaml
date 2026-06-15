@@ -5,31 +5,69 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
       securityContext:
         privileged: true
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
+        requests:
+          cpu: "2"
+          memory: 16Gi
+          ephemeral-storage: 20Gi
         limits:
           memory: 64Gi
           cpu: "16"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
+          ephemeral-storage: 150Gi
       volumeMounts:
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
+        - mountPath: /home/jenkins/.tidb
+          name: bazel-out-merged
+        - name: bazel-rc
+          mountPath: /data/
+          readOnly: true
+        - name: containerinfo
+          mountPath: /etc/containerinfo
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - /bin/sh
+              - /data/bazel-prepare-in-container.sh
   volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
+    - name: bazel-out-merged
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 150Gi
+            storageClassName: hyperdisk-rwo
+    - name: bazel-rc
+      configMap:
+        name: bazel
+    - name: containerinfo
+      downwardAPI:
+        items:
+          - path: cpu_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.cpu
+          - path: cpu_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.cpu
+          - path: mem_limit
+            resourceFieldRef:
+              containerName: golang
+              resource: limits.memory
+          - path: mem_request
+            resourceFieldRef:
+              containerName: golang
+              resource: requests.memory
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
