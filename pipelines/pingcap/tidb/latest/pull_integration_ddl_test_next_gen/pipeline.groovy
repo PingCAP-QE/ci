@@ -17,14 +17,15 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/tidbx'  // cache mirror for us-docker.pkg.dev/pingcap-testing-account/tidbx
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -60,6 +61,12 @@ pipeline {
                 dir('tidb-test') {
                     dir('bin') {
                         container('utils') {
+                            withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
+                                sh label: 'prepare docker auth', script: '''
+                                    mkdir -p ~/.docker
+                                    cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
+                                '''
+                            }
                             sh label: 'download binary', script: """
                                 script="${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
@@ -96,8 +103,9 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }

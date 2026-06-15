@@ -73,6 +73,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_br_integration_test_next_gen
+      labels:
+        master: "1"
       # never run before
       # run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       optional: true
@@ -82,6 +84,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_ddl_test_next_gen
+      labels:
+        master: "1"
       # never run before
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
