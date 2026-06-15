@@ -112,6 +112,7 @@ pipeline {
                             'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d n',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_sessiontest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_statisticstest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh startertest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest1',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest2',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest3',
@@ -146,6 +147,9 @@ pipeline {
                         expression {
                             // Skip bazel_pushdowntest when base_ref is release-nextgen-20251011
                             return !(REFS.base_ref == 'release-nextgen-20251011' && env.SCRIPT_AND_ARGS.contains(' bazel_pushdowntest'))
+                        }
+                        expression {
+                            return REFS.base_ref == 'master' || !env.SCRIPT_AND_ARGS.contains(' startertest')
                         }
                         expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) }
                     }
