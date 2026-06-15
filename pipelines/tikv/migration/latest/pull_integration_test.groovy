@@ -8,9 +8,10 @@ final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final COMPONENT_ARTIFACT_BASE_REF = REFS.base_ref == 'main' ? 'master' : REFS.base_ref
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', COMPONENT_ARTIFACT_BASE_REF, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', COMPONENT_ARTIFACT_BASE_REF, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', COMPONENT_ARTIFACT_BASE_REF, REFS.pulls[0].title, 'master')
 final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 
@@ -18,8 +19,9 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -33,7 +35,6 @@ pipeline {
     options {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
-        skipDefaultCheckout()
     }
     stages {
         stage('Checkout') {
@@ -98,8 +99,9 @@ pipeline {
                 agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }
