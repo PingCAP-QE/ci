@@ -15,8 +15,8 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -87,7 +87,6 @@ pipeline {
                         which bin/dumpling
                         which bin/importer
                         ls -alh ./bin/
-                        chmod +x bin/*
                         ./bin/dumpling --version
                         ./bin/tikv-server -V
                         ./bin/pd-server -V

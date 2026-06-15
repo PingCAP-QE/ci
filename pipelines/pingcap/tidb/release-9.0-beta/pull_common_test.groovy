@@ -8,12 +8,13 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-9.0-beta/pod-pull_common_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -78,14 +79,10 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        retries 2
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'java'
                     }
-                }
-                when {
-                    beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_dir: env.TEST_DIR, test_cmd: env.TEST_CMD]) }
                 }
                 stages {
                     stage("Test") {
@@ -106,7 +103,6 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
-                            success { script { matrixCache.markDone(REFS, 'Test', [test_dir: env.TEST_DIR, test_cmd: env.TEST_CMD]) } }
                         }
                     }
                 }

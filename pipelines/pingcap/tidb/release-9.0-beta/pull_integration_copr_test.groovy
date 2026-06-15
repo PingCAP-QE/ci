@@ -10,12 +10,13 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -56,9 +57,6 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    container("golang") {
-                        sh 'rm -rf bin && mkdir -p bin'
-                    }
                     container("utils") {
                         dir("bin") {
                             retry(2) {
@@ -67,13 +65,6 @@ pipeline {
                                 """
                             }
                         }
-                    }
-                    container("golang") {
-                        sh label: 'check version', script: """
-                            ls -alh bin/
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
-                        """
                     }
                 }
             }

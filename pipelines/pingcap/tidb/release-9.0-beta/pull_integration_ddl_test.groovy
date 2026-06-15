@@ -15,8 +15,8 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -25,7 +25,7 @@ pipeline {
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {
@@ -95,14 +95,10 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        retries 2
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
-                }
-                when {
-                    beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [ddl_test: env.DDL_TEST]) }
                 }
                 stages {
                     stage("Test") {
@@ -131,14 +127,6 @@ pipeline {
                                     }
                                 }
                             }
-                        }
-                        post{
-                            failure {
-                                script {
-                                    println "Test failed, archive the log"
-                                }
-                            }
-                            success { script { matrixCache.markDone(REFS, 'Test', [ddl_test: env.DDL_TEST]) } }
                         }
                     }
                 }

@@ -10,12 +10,13 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -65,12 +66,6 @@ pipeline {
                             }
                         }
                     }
-                    container("golang") {
-                        sh label: 'check version', script: """
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
-                        """
-                    }
                 }
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
@@ -103,14 +98,10 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        retries 2
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
-                }
-                when {
-                    beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_dir: env.TEST_DIR, test_store: env.TEST_STORE]) }
                 }
                 stages {
                     stage("Test") {
@@ -149,7 +140,6 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
-                            success { script { matrixCache.markDone(REFS, 'Test', [test_dir: env.TEST_DIR, test_store: env.TEST_STORE]) } }
                         }
                     }
                 }

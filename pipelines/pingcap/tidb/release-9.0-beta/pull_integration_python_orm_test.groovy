@@ -9,12 +9,13 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -56,27 +57,27 @@ pipeline {
                     }
                 }
                 container("utils") {
-                    dir('tidb/bin') {
-                        script {
-                            retry(2) {
-                                sh label: "download tidb components", script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                """
-                            }
+                    dir("tidb/bin") {
+                        retry(2) {
+                            sh label: 'download tidb components', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                            """
                         }
                     }
                 }
-                dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: "prepare", script: """
-                            touch ws-${BUILD_TAG}
-                            mkdir -p bin
-                            cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                            ls -alh bin/
-                            ./bin/tidb-server -V
-                            ./bin/tikv-server -V
-                            ./bin/pd-server -V
-                        """
+                container("golang") {
+                    dir('tidb-test') {
+                        cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
+                            sh label: "prepare", script: """
+                                touch ws-${BUILD_TAG}
+                                mkdir -p bin
+                                cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                                ls -alh bin/
+                                ./bin/tidb-server -V
+                                ./bin/tikv-server -V
+                                ./bin/pd-server -V
+                            """
+                        }
                     }
                 }
             }
@@ -96,14 +97,10 @@ pipeline {
                 agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        retries 2
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'python'
                     }
-                }
-                when {
-                    beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_params: env.TEST_PARAMS, test_store: env.TEST_STORE]) }
                 }
                 stages {
                     stage("Test") {
@@ -137,7 +134,6 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
-                            success { script { matrixCache.markDone(REFS, 'Test', [test_params: env.TEST_PARAMS, test_store: env.TEST_STORE]) } }
                         }
                     }
                 }

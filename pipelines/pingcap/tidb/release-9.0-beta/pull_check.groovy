@@ -14,8 +14,8 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -26,7 +26,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         script {
                             retry(2) {
@@ -37,24 +37,43 @@ pipeline {
                 }
             }
         }
+        stage('Hotfix bazel deps URL (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+
+                    # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
+                }
+            }
+        }
         stage("Checks") {
             environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh script: 'make gogenerate check integrationtest'
                 }
             }
             post {
                 success {
-                    dir("tidb") {
+                    dir(REFS.repo) {
                         script {
                             prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                         }
                     }
                 }
                 unsuccessful {
-                    dir("tidb") {
+                    dir(REFS.repo) {
                         sh label: "archive log", script: """
                         logs_dir='test_logs'
                         mkdir -p \${logs_dir}

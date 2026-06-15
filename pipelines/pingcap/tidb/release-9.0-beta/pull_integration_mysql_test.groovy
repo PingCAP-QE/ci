@@ -10,12 +10,13 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -58,12 +59,10 @@ pipeline {
                     }
                     container("utils") {
                         dir("bin") {
-                            script {
-                                retry(2) {
-                                    sh label: "download tidb components", script: """
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                    """
-                                }
+                            retry(2) {
+                                sh label: 'download tidb components', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                """
                             }
                         }
                     }
@@ -98,14 +97,10 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        retries 2
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
-                }
-                when {
-                    beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_part: env.TEST_PART, test_store: env.TEST_STORE]) }
                 }
                 stages {
                     stage("Test") {
@@ -127,7 +122,7 @@ pipeline {
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export TIKV_PATH="127.0.0.1:2379"
                                                 export TIDB_TEST_STORE_NAME="tikv"
-                                                cd mysql_test/ && ./test.sh -blacklist=1 -part=${TEST_PART}
+                                                cd mysql_test/ && ./test.sh 1 ${TEST_PART}
                                             else
                                                 export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                                 export TIDB_TEST_STORE_NAME="unistore"
@@ -138,7 +133,6 @@ pipeline {
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, 'Test', [test_part: env.TEST_PART, test_store: env.TEST_STORE]) } } }
                     }
                 }
             }

@@ -5,10 +5,13 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go12320241009"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
       securityContext:
         privileged: true
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 8Gi
@@ -17,17 +20,8 @@ spec:
           memory: 32Gi
           cpu: "8"
       volumeMounts:
-        - mountPath: /home/jenkins/.tidb/tmp
+        - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
-        - name: bazel-out-lower
-          subPath: tidb/go1.19.2
-          mountPath: /bazel-out-lower
-        - name: bazel-out-overlay
-          mountPath: /bazel-out-overlay
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -40,22 +34,11 @@ spec:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
   volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
-    - name: bazel-out-lower
-      persistentVolumeClaim:
-        claimName: bazel-out-data
-    - name: bazel-out-overlay
-      emptyDir: {}
     - name: bazel-out-merged
       emptyDir: {}
     - name: bazel-rc
-      secret:
-        secretName: bazel
+      configMap:
+        name: bazel
     - name: containerinfo
       downwardAPI:
         items:

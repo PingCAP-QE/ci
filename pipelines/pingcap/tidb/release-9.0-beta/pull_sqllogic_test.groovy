@@ -8,12 +8,13 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-9.0-beta/pod-pull_sqllogic_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -83,14 +84,10 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        retries 2
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
-                }
-                when {
-                    beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) }
                 }
                 stages {
                     stage("Test") {
@@ -123,7 +120,6 @@ pipeline {
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }
@@ -145,14 +141,10 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
-                        retries 2
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
-                }
-                when {
-                    beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) }
                 }
                 stages {
                     stage("Test") {
@@ -185,7 +177,6 @@ pipeline {
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }

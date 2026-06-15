@@ -8,14 +8,15 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-9.0-beta/pod-pull_e2e_
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-final GIT_CREDENTIALS_ID = ''
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -43,15 +44,16 @@ pipeline {
             steps {
                 dir('tidb') {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    retry(3) {
-                        sh label: 'download binary', script: """
-                            cd bin
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                            ls -alh .
-                            chmod +x ./*
-                            ./tikv-server -V
-                            ./pd-server -V
-                        """
+                    container('utils') {
+                        dir('bin') {
+                            script {
+                                retry(3) {
+                                    sh label: 'download binary', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
+                            }
+                        }
                     }
                 }
             }
