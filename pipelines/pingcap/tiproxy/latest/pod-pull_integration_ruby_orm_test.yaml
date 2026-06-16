@@ -17,7 +17,7 @@ spec:
           memory: 24Gi
           cpu: "6"
     - name: ruby
-      image: "docker.io/library/ruby:2.7"
+      image: "us-docker.pkg.dev/pingcap-testing-account/dockerhub-remote/ruby:2.7"
       tty: true
       env:
         - name: GEM_HOME
