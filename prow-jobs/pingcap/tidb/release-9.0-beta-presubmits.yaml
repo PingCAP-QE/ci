@@ -3,9 +3,6 @@ global_definitions:
     branches:
       - ^release-9\.0-beta\.\d+$
       - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
-  skip_if_only_changed: &skip_if_only_changed
-    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
-
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -14,9 +11,9 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_build
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
       trigger: "(?m)^/test (?:.*? )?build(?: .*?)?$"
       rerun_command: "/test build"
@@ -25,9 +22,9 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_check
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev
       trigger: "(?m)^/test (?:.*? )?check-dev(?: .*?)?$"
       rerun_command: "/test check-dev"
@@ -36,9 +33,9 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_check2
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
@@ -47,9 +44,9 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_mysql_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1" # run on GCP
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
       rerun_command: "/test mysql-test"
@@ -58,9 +55,9 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_unit_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
       trigger: "(?m)^/test (?:.*? )?unit-test(?: .*?)?$"
       rerun_command: "/test unit-test"
@@ -69,7 +66,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_unit_test_ddlv1
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
@@ -80,7 +77,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_br_integration_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       context: pull-br-integration-test
       run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
@@ -91,12 +88,13 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_lightning_integration_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       context: pull-lightning-integration-test
       always_run: false
       optional: true
       skip_report: false
+      #run_if_changed: "(lightning|pkg/(domain|statistics|ddl|infoschema)|br/pkg/(checksum|httputil|membuf|pdutil|restore/split|storage))/.*"
       trigger: "(?m)^/test (?:.*? )?pull-lightning-integration-test(?: .*?)?$"
       rerun_command: "/test pull-lightning-integration-test"
 
@@ -104,7 +102,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_ddl_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -117,10 +115,11 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_mysql_client_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
+      #skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-mysql-client-test
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test(?: .*?)?$"
@@ -130,7 +129,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_mysql_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -142,12 +141,11 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_copr_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
       context: pull-integration-copr-test
-      skip_report: false
       trigger: "(?m)^/test (?:.*? )?pull-integration-copr-test(?: .*?)?$"
       rerun_command: "/test pull-integration-copr-test"
 
@@ -155,7 +153,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_jdbc_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -168,7 +166,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_e2e_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -181,7 +179,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_common_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -194,7 +192,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_common_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -207,7 +205,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_sqllogic_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -220,7 +218,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_nodejs_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -233,7 +231,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_python_orm_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -246,7 +244,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_e2e_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -259,7 +257,7 @@ presubmits:
       name: pingcap/tidb/release-9.0-beta/pull_integration_tidb_tools_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
