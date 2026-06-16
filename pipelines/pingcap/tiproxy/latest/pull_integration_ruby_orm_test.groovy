@@ -12,8 +12,9 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -89,9 +90,10 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        defaultContainer 'ruby'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                        defaultContainer 'ruby'
                     }
                 }
                 when {
@@ -104,6 +106,25 @@ pipeline {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     container("ruby") {
+                                        sh label: "prepare ruby test deps", script: """
+                                            #!/usr/bin/env bash
+                                            set -euxo pipefail
+                                            if ! command -v mysql >/dev/null 2>&1 || ! dpkg-query -W default-libmysqlclient-dev >/dev/null 2>&1 || ! dpkg-query -W libsqlite3-dev >/dev/null 2>&1; then
+                                                apt-get update
+                                                DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
+                                                    default-mysql-client \\
+                                                    build-essential \\
+                                                    default-libmysqlclient-dev \\
+                                                    libsqlite3-dev \\
+                                                    pkg-config
+                                                rm -rf /var/lib/apt/lists/*
+                                            fi
+                                            if ! gem list -i bundler -v 2.3.17 >/dev/null 2>&1; then
+                                                gem install bundler -v 2.3.17
+                                            fi
+                                            command -v mysql
+                                            bundle -v
+                                        """
                                         sh label: "test_cmds=${TEST_CMDS} ", script: """
                                             #!/usr/bin/env bash
                                             ${TEST_CMDS}

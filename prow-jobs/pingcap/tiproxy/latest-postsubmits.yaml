@@ -4,7 +4,7 @@ postsubmits:
     - name: pingcap/tiproxy/merged_mysql_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1" # run on GCP
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-mysql-test # need change this.
@@ -15,7 +15,7 @@ postsubmits:
     - name: pingcap/tiproxy/merged_integration_python_orm_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1" # run on GCP
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-python-orm-test # need change this.
@@ -26,7 +26,7 @@ postsubmits:
     - name: pingcap/tiproxy/merged_sqllogic_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1" # run on GCP
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-sqllogic-test # need change this.
@@ -37,7 +37,7 @@ postsubmits:
     - name: pingcap/tiproxy/merged_integration_jdbc_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1" # run on GCP
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: merged-integration-jdbc-test # need change this.
