@@ -5,8 +5,14 @@ spec:
     runAsUser: 0
   containers:
     - name: nodejs
-      image: "hub.pingcap.net/ee/ci/base:v20230810-go1.23.0"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25"
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
+      volumeMounts:
+        - mountPath: /tmp/tidb
+          name: tidb-tmp
       resources:
         requests:
           memory: 12Gi
@@ -15,7 +21,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
@@ -33,3 +39,6 @@ spec:
                 operator: In
                 values:
                   - amd64
+  volumes:
+    - name: tidb-tmp
+      emptyDir: {}

@@ -5,17 +5,35 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 12Gi
-          cpu: "2"
+          cpu: "3"
         limits:
-          memory: 16Gi
-          cpu: "4"
+          memory: 24Gi
+          cpu: "6"
+      volumeMounts:
+        - mountPath: "/tmp/tidb"
+          name: "tidb-temp-dir-volume"
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - |
+                mkdir -p /home/jenkins
+                cat > /home/jenkins/.my.cnf <<'EOF'
+                [client]
+                ssl-mode=DISABLED
+                EOF
     - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
@@ -23,7 +41,18 @@ spec:
           cpu: 100m
         limits:
           cpu: "1"
-          memory: 4Gi
+          memory: 1Gi
+  volumes:
+    - name: tidb-temp-dir-volume
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 200Gi
+            storageClassName: hyperdisk-rwo
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -33,7 +62,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
