@@ -12,7 +12,6 @@ import static org.junit.Assert.*
  */
 @RunWith(Enclosed.class)
 class TestComponent {
-
     private static def loadScript() {
         new GroovyShell().parse(
             new File("libraries/tipipeline/vars/component.groovy"))
@@ -22,7 +21,6 @@ class TestComponent {
     // parseCIParamsFromPRTitle
     // ============================================================
     static class ParseCIParams {
-
         private def parseCIParams
 
         @Before
@@ -89,10 +87,88 @@ class TestComponent {
     }
 
     // ============================================================
+    // validatePreBuiltComponentParams
+    // ============================================================
+    static class ValidatePreBuiltComponentParams {
+        private def validate
+
+        @Before
+        void setUp() {
+            def script = loadScript()
+            validate = { String title, String targetBranch ->
+                script.invokeMethod('validatePreBuiltComponentParams', [title, targetBranch])
+            }
+        }
+
+        @Test
+        void shouldPassForSupportedComponentsOnNonCoreBranches() {
+            def cases = [
+                [title: 'feat: x | pd=@v8.5.0',           branch: 'feature/my-feature',   desc: 'pd on feature branch'],
+                [title: 'feat: x | tidb=@v1.0.0',         branch: 'hotfix/fix-123',       desc: 'tidb on hotfix branch'],
+                [title: 'feat: x | tikv=@abc123 pd=@v2',  branch: 'dev-branch',           desc: 'multiple on dev branch'],
+                [title: 'feat: x | ticdc=@latest',        branch: 'feature-x',            desc: 'ticdc on feature'],
+            ]
+
+            cases.each { c ->
+                def errors = validate(c.title, c.branch)
+                assertTrue("${c.desc}: ${c.title} on ${c.branch} → should pass", errors.isEmpty())
+            }
+        }
+
+        @Test
+        void shouldRejectUnsupportedComponents() {
+            def cases = [
+                [title: 'feat: x | tso=@v1.0',           component: 'tso'],
+                [title: 'feat: x | cdc=@v1.0',           component: 'cdc'],
+                [title: 'feat: x | pd=@v1 tikv=@v2 br=@v3', component: 'br'],
+            ]
+
+            cases.each { c ->
+                def errors = validate(c.title, 'feature/test')
+                assertFalse("should reject ${c.component}", errors.isEmpty())
+                assertTrue("error should mention ${c.component}",
+                    errors.any { it.contains(c.component) })
+            }
+        }
+
+        @Test
+        void shouldRejectPreBuiltOnCoreBranches() {
+            def cases = [
+                [branch: 'master',                  desc: 'master'],
+                [branch: 'main',                    desc: 'main'],
+                [branch: 'release-8.5',             desc: 'release-X.Y'],
+                [branch: 'release-9.0-beta.1',      desc: 'release-X.Y-beta.N'],
+                [branch: 'release-8.5-beta.2',      desc: 'release-X.Y-beta.N (higher)'],
+                [branch: 'release-nextgen-20250601', desc: 'release-nextgen-YYYYMMDD'],
+            ]
+
+            cases.each { c ->
+                def errors = validate('feat: x | pd=@v1.0', c.branch)
+                assertFalse("${c.desc} should reject pre-built", errors.isEmpty())
+                assertTrue("error should mention branch restriction",
+                    errors.any { it.contains('not allowed on branch') })
+            }
+        }
+
+        @Test
+        void shouldPassWhenNoPreBuiltParams() {
+            def cases = [
+                [title: 'feat: x | tidb=pr/123',         branch: 'master'],
+                [title: 'feat: x | pd=release-8.5',      branch: 'release-8.5'],
+                [title: 'feat: no params at all',         branch: 'master'],
+            ]
+
+            cases.each { c ->
+                def errors = validate(c.title, c.branch)
+                assertTrue("${c.title} on ${c.branch} → should pass", errors.isEmpty())
+            }
+        }
+    }
+
+    // ============================================================
     // computeBranchFromPR
     // ============================================================
     static class ComputeBranchFromPR {
-
         private def script
 
         @Before
