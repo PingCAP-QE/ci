@@ -23,9 +23,7 @@ spec:
     - name: push-image-tag-records
       env:
         - name: PUBLISHER_BASE_URL
-          value: https://do2.pingcap.net/publisher
-          # FIXME: migration need to ensure the tcms service is available in GCP.
-          # value: "http://publisher.publisher.svc" # in cluster
+          value: "http://publisher.publisher.svc" # in cluster
       args: ["$(params.images)"]
       script: |
         #!/usr/bin/env bash
