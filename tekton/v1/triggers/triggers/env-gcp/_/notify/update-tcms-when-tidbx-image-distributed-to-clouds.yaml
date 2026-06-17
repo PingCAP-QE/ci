@@ -1,0 +1,40 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: update-tcms-when-tidbx-image-distributed-to-clouds
+  labels:
+    type: github-issue-comment
+spec:
+  interceptors:
+    - name: filter on github repo and comment content
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.comment.body.matches('<!--\\s*META={.+?\\s*-->')
+            &&
+            size(body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images) > 0
+        - name: overlays
+          value:
+            - key: images
+              expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images.marshalJSON()
+
+  bindings:
+    - ref: github-issue-comment
+    - { name: images, value: $(extensions.images) }
+
+  template:
+    spec:
+      params:
+        - name: images
+      resourceTemplates:
+        - apiVersion: tekton.dev/v1
+          kind: TaskRun
+          metadata:
+            generateName: pingcap-notify-to-add-image-records-to-tcms-
+          spec:
+            taskRef:
+              name: pingcap-notify-to-update-tcms-tidbx
+            params:
+              - name: images
+                value: $(tt.params.images)
