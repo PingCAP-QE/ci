@@ -30,7 +30,7 @@ spec:
         - name: FILE_SERVER_URL
           value: "http://fileserver.pingcap.net"
         - name: DL_SERVER_URL
-          value: "https://internal2-do.pingcap.net/dl"
+          value: "https://prow.tidb.net/dl"
       script: |
         #!/usr/bin/env bash
         set -e
