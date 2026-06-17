@@ -35,7 +35,7 @@ postsubmits:
                 python3 scripts/merge_by_toc.py zh/
                 scripts/generate_pdf.sh
 
-                dst="${TENCENTCLOUD_RCLONE_CONN:?missing TENCENTCLOUD_RCLONE_CONN}:${TENCENTCLOUD_BUCKET_ID:?missing TENCENTCLOUD_BUCKET_ID}/pdf"
+                gcs_dst="gs://prow-tidb-logs/artifacts/pdf"
                 case "${branch}" in
                   main)
                     version="dev"
@@ -52,19 +52,8 @@ postsubmits:
                     ;;
                 esac
 
-                rclone copyto -P output_en.pdf "${dst}/tidb-in-kubernetes-${version}-en-manual.pdf"
-                rclone copyto -P output_zh.pdf "${dst}/tidb-in-kubernetes-${version}-zh-manual.pdf"
-            env:
-              - name: TENCENTCLOUD_RCLONE_CONN
-                valueFrom:
-                  secretKeyRef:
-                    name: docs-cn
-                    key: tencent-ak
-              - name: TENCENTCLOUD_BUCKET_ID
-                valueFrom:
-                  secretKeyRef:
-                    name: docs-cn
-                    key: tencent-bn
+                gsutil cp output_en.pdf "${gcs_dst}/tidb-in-kubernetes-${version}-en-manual.pdf"
+                gsutil cp output_zh.pdf "${gcs_dst}/tidb-in-kubernetes-${version}-zh-manual.pdf"
             resources:
               requests:
                 memory: 1Gi
