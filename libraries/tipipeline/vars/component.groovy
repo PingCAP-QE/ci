@@ -38,24 +38,17 @@ def parseCIParamsFromPRTitle(String prTitle) {
     return params
 }
 
-// Supported components for pre-built binary download
-// Only these components are allowed to use the @<tag> format
-final List<String> PREBUILT_SUPPORTED_COMPONENTS = [
-    'tidb', 'tikv', 'pd', 'tiflash', 'ticdc'
-]
-
-// Standard core branch patterns where pre-built mode is REJECTED.
-// These are the mainline/stable/release branches where the standard CI build
-// pipeline must be used to ensure quality — pre-built would bypass it.
-// Pre-built mode is only intended for feature/hotfix/development branches.
-final String PREBUILT_DENIED_BRANCH_REG = /^(main|master|release-\d+\.\d+(-beta\.\d+)?|release-nextgen-\d{6,8})$/
-
 // Validate pre-built component params in PR title and target branch.
 // prTargetBranch is checked to REJECT pre-built mode on standard core branches
 // (main/master/release-X.Y/release-nextgen-YYYYMM/release-nextgen-YYYYMMDD).
 // This prevents workaround usage that could bypass standard CI and cause quality issues.
 // Returns a list of error messages; empty list means no errors.
 def validatePreBuiltComponentParams(String prTitle, String prTargetBranch) {
+    // Supported components for pre-built binary download
+    final List<String> supportedComponents = ['tidb', 'tikv', 'pd', 'tiflash', 'ticdc', 'tiflow']
+    // Standard core branch patterns where pre-built mode is REJECTED
+    final String deniedBranchReg = /^(main|master|release-\d+\.\d+(-beta\.\d+)?|release-nextgen-\d{6,8})$/
+
     def errors = []
     def params = parseCIParamsFromPRTitle(prTitle)
     def hasPreBuilt = false
@@ -63,15 +56,15 @@ def validatePreBuiltComponentParams(String prTitle, String prTargetBranch) {
     params.each { component, value ->
         if (value.startsWith('@')) {
             hasPreBuilt = true
-            if (!PREBUILT_SUPPORTED_COMPONENTS.contains(component)) {
+            if (!supportedComponents.contains(component)) {
                 errors.add("Error: component '${component}' does not support pre-built binary download. " +
-                    "Supported components are: ${PREBUILT_SUPPORTED_COMPONENTS.join(', ')}. " +
+                    "Supported components are: ${supportedComponents.join(', ')}. " +
                     "Please remove '${component}=${value}' from the PR title or use a supported component.")
             }
         }
     }
 
-    if (hasPreBuilt && (prTargetBranch =~ PREBUILT_DENIED_BRANCH_REG)) {
+    if (hasPreBuilt && (prTargetBranch =~ deniedBranchReg)) {
         errors.add("Error: pre-built binary download is not allowed on branch '${prTargetBranch}'. " +
             "This feature is restricted to non-standard branches (feature/hotfix/dev branches) to avoid " +
             "bypassing the standard CI build pipeline on core branches and risking quality issues. " +
