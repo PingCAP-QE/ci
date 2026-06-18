@@ -178,7 +178,8 @@ presubmits:
       context: pull-syncdiff-integration-test
       trigger: "(?m)^/test (?:.*? )?(pull-syncdiff-integration-test|all)(?: .*?)?$"
       rerun_command: "/test pull-syncdiff-integration-test"
-      branches: *branches
+      branches:
+        - ^release-8\.5(\.\d+)?$
 
     - name: pingcap/tiflow/release-8.5/ghpr_verify
       agent: jenkins
