@@ -44,8 +44,11 @@ spec:
       when:
         - input: "$(params.stage)"
           operator: in
-          values: ["prod"]
-      args: ["$(params.stage)", "$(params.images)", "/workspace/ops-tickets.txt"]
+          values: ["prod", "dev"]
+      args:
+        - "$(params.stage)"
+        - "$(params.images)"
+        - /workspace/ops-tickets.txt
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -206,7 +209,11 @@ spec:
         main "$@"
 
     - name: notify-in-lark-channel
-      args: ["$(params.stage)", "$(params.images)", "$(params.target_images)", "/workspace/ops-tickets.txt"]
+      args:
+        - "$(params.stage)"
+        - "$(params.images)"
+        - "$(params.target_images)"
+        - /workspace/ops-tickets.txt
       script: |
         #!/usr/bin/env bash
         set -euo pipefail

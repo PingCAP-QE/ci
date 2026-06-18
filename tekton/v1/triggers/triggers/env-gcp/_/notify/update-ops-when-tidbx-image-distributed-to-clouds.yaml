@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: notified-successful-image-delivery-cloud-tidbx
+  name: update-ops-when-tidbx-image-distributed-to-clouds
   labels:
     type: github-issue-comment
 spec:
@@ -10,10 +10,16 @@ spec:
       ref: { name: cel }
       params:
         - name: filter
+          # Filter conditions (all must pass):
+          # 1. Comment body contains a META JSON block (<!-- META={...} -->)
+          # 2. The META block has a non-empty "images" array
+          # 3. Every image tag matches one of: vX.Y.Z, vX.Y.Z-nextgen, vX.Y.Z-nextgen.YYYYMM.N
           value: >-
             body.comment.body.matches('<!--\\s*META={.+?\\s*-->')
             &&
             size(body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images) > 0
+            &&
+            body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images.all(img, img.matches('.*:v[0-9]+[.][0-9]+[.][0-9]+(-nextgen([.][0-9]{6}[.][0-9]+)?)?'))
         - name: overlays
           value:
             - key: images
@@ -56,13 +62,3 @@ spec:
               - name: ops-config
                 secret:
                   secretName: image-delivery-ops-config-tidbx
-        - apiVersion: tekton.dev/v1
-          kind: TaskRun
-          metadata:
-            generateName: pingcap-notify-to-add-image-records-to-tcms-
-          spec:
-            taskRef:
-              name: pingcap-notify-to-update-tcms-tidbx
-            params:
-              - name: images
-                value: $(tt.params.images)
