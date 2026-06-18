@@ -48,6 +48,17 @@ pipeline {
                     # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
                     sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
 
+                    # Temporarily disable remote cache usage to avoid stale AC/CAS entries.
+                    if [ -f .bazelrc ]; then
+                      sed -i '/^try-import \\/data\\/bazel$/d' .bazelrc
+                      grep -q '^build --noremote_accept_cached$' .bazelrc || echo 'build --noremote_accept_cached' >> .bazelrc
+                      grep -q '^build --noremote_upload_local_results$' .bazelrc || echo 'build --noremote_upload_local_results' >> .bazelrc
+                      grep -q '^test --noremote_accept_cached$' .bazelrc || echo 'test --noremote_accept_cached' >> .bazelrc
+                      grep -q '^test --noremote_upload_local_results$' .bazelrc || echo 'test --noremote_upload_local_results' >> .bazelrc
+                      grep -q '^run --noremote_accept_cached$' .bazelrc || echo 'run --noremote_accept_cached' >> .bazelrc
+                      grep -q '^run --noremote_upload_local_results$' .bazelrc || echo 'run --noremote_upload_local_results' >> .bazelrc
+                    fi
+
                     # Replay-only skip for flaky target in GCP replay (goleak on IMDS path).
                     # Guard this hotfix so newer branches that removed the package keep working.
                     if [ -f pkg/sessionctx/variable/tests/BUILD ] || [ -f pkg/sessionctx/variable/tests/BUILD.bazel ]; then
