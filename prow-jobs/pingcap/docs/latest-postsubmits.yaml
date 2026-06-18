@@ -41,7 +41,9 @@ postsubmits:
                   scripts/generate_cloud_pdf.sh
                 fi
 
-                gcs_dst="gs://prow-tidb-logs/artifacts/pdf"
+                export RCLONE_CONFIG_GCS_TYPE=google cloud storage
+                export RCLONE_CONFIG_GCS_BUCKET=prow-tidb-logs
+                gcs_dst="gcs:artifacts/pdf"
                 case "${branch}" in
                   master)
                     version="dev"
@@ -58,9 +60,9 @@ postsubmits:
                     ;;
                 esac
 
-                gsutil cp output.pdf "${gcs_dst}/tidb-${version}-en-manual.pdf"
+                rclone copyto --progress output.pdf "${gcs_dst}/tidb-${version}-en-manual.pdf"
                 if [ -f output_cloud.pdf ]; then
-                  gsutil cp output_cloud.pdf "${gcs_dst}/tidbcloud-en-manual.pdf"
+                  rclone copyto --progress output_cloud.pdf "${gcs_dst}/tidbcloud-en-manual.pdf"
                 fi
             resources:
               requests:
