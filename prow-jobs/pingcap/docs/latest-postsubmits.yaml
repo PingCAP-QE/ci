@@ -41,7 +41,8 @@ postsubmits:
                   scripts/generate_cloud_pdf.sh
                 fi
 
-                dst="${TENCENTCLOUD_RCLONE_CONN:?missing TENCENTCLOUD_RCLONE_CONN}:${TENCENTCLOUD_BUCKET_ID:?missing TENCENTCLOUD_BUCKET_ID}/pdf"
+                export RCLONE_CONFIG_GCS_TYPE="google cloud storage"
+                gcs_dst="gcs:prow-tidb-logs/artifacts/pdf"
                 case "${branch}" in
                   master)
                     version="dev"
@@ -58,21 +59,10 @@ postsubmits:
                     ;;
                 esac
 
-                rclone copyto --progress output.pdf "${dst}/tidb-${version}-en-manual.pdf"
+                rclone copyto --progress output.pdf "${gcs_dst}/tidb-${version}-en-manual.pdf"
                 if [ -f output_cloud.pdf ]; then
-                  rclone copyto --progress output_cloud.pdf "${dst}/tidbcloud-en-manual.pdf"
+                  rclone copyto --progress output_cloud.pdf "${gcs_dst}/tidbcloud-en-manual.pdf"
                 fi
-            env:
-              - name: TENCENTCLOUD_RCLONE_CONN
-                valueFrom:
-                  secretKeyRef:
-                    name: docs-cn
-                    key: tencent-ak
-              - name: TENCENTCLOUD_BUCKET_ID
-                valueFrom:
-                  secretKeyRef:
-                    name: docs-cn
-                    key: tencent-bn
             resources:
               requests:
                 memory: 1Gi

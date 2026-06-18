@@ -36,7 +36,8 @@ postsubmits:
                 python3 scripts/merge_by_toc.py
                 scripts/generate_pdf.sh
 
-                dst="${TENCENTCLOUD_RCLONE_CONN:?missing TENCENTCLOUD_RCLONE_CONN}:${TENCENTCLOUD_BUCKET_ID:?missing TENCENTCLOUD_BUCKET_ID}/pdf"
+                export RCLONE_CONFIG_GCS_TYPE="google cloud storage"
+                gcs_dst="gcs:prow-tidb-logs/artifacts/pdf"
                 case "${branch}" in
                   master)
                     version="dev"
@@ -53,18 +54,7 @@ postsubmits:
                     ;;
                 esac
 
-                rclone copyto --progress output.pdf "${dst}/tidb-${version}-zh-manual.pdf"
-            env:
-              - name: TENCENTCLOUD_RCLONE_CONN
-                valueFrom:
-                  secretKeyRef:
-                    name: docs-cn
-                    key: tencent-ak
-              - name: TENCENTCLOUD_BUCKET_ID
-                valueFrom:
-                  secretKeyRef:
-                    name: docs-cn
-                    key: tencent-bn
+                rclone copyto --progress output.pdf "${gcs_dst}/tidb-${version}-zh-manual.pdf"
             resources:
               requests:
                 memory: 1Gi
