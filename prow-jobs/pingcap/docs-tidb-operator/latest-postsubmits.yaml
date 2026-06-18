@@ -35,7 +35,7 @@ postsubmits:
                 python3 scripts/merge_by_toc.py zh/
                 scripts/generate_pdf.sh
 
-                export RCLONE_CONFIG_GCS_TYPE=google cloud storage
+                export RCLONE_CONFIG_GCS_TYPE="google cloud storage"
                 export RCLONE_CONFIG_GCS_BUCKET=prow-tidb-logs
                 gcs_dst="gcs:artifacts/pdf"
                 case "${branch}" in
