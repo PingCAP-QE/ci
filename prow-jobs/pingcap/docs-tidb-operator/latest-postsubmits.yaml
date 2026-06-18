@@ -36,8 +36,7 @@ postsubmits:
                 scripts/generate_pdf.sh
 
                 export RCLONE_CONFIG_GCS_TYPE="google cloud storage"
-                export RCLONE_CONFIG_GCS_BUCKET=prow-tidb-logs
-                gcs_dst="gcs:artifacts/pdf"
+                gcs_dst="gcs:prow-tidb-logs/artifacts/pdf"
                 case "${branch}" in
                   main)
                     version="dev"
