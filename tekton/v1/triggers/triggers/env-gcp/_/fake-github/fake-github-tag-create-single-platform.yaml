@@ -43,97 +43,97 @@ spec:
             - key: resource-config
               expression: >-
                 {
-                  'tici': {
+                  'pingcap-inc/tici': {
                     'timeout': '2h',
                     'sourceWsSize': '50Gi',
                     'cpu': '8',
                     'memory': '32Gi'
                   },
-                  'ng-monitoring': {
+                  'pingcap/ng-monitoring': {
                     'timeout': '30m',
-                    'sourceWsSize': '8Gi',
+                    'sourceWsSize': '20Gi',
                     'cpu': '2',
                     'memory': '4Gi'
                   },
-                  'ticdc': {
+                  'pingcap/ticdc': {
                     'timeout': '20m',
                     'sourceWsSize': '50Gi',
                     'cpu': '4',
                     'memory': '16Gi'
                   },
-                  'tidb': {
+                  'pingcap/tidb': {
                     'timeout': '40m',
                     'sourceWsSize': '50Gi',
-                    'cpu': '8',
-                    'memory': '32Gi'
+                    'cpu': '6',
+                    'memory': '24Gi'
                   },
-                  'tidb-binlog': {
+                  'pingcap/tidb-binlog': {
                     'timeout': '2h',
                     'sourceWsSize': '100Gi',
                     'cpu': '8',
                     'memory': '32Gi'
                   },
-                  'tidb-dashboard': {
+                  'pingcap/tidb-dashboard': {
                     'timeout': '40m',
-                    'sourceWsSize': '8Gi',
+                    'sourceWsSize': '20Gi',
                     'cpu': '2',
                     'memory': '4Gi'
                   },
-                  'tidb-operator': {
+                  'pingcap/tidb-operator': {
                     'timeout': '30m',
                     'sourceWsSize': '10Gi',
                     'cpu': '2',
                     'memory': '8Gi'
                   },
-                  'tidb-tools': {
+                  'pingcap/tidb-tools': {
                     'timeout': '1h',
                     'sourceWsSize': '10Gi',
                     'cpu': '4',
                     'memory': '16Gi'
                   },
-                  'tiflash': {
+                  'pingcap/tiflash': {
                     'timeout': '5h',
                     'sourceWsSize': '100Gi',
-                    'cpu': '16',
-                    'memory': '64Gi'
+                    'cpu': '12',
+                    'memory': '48Gi'
                   },
-                  'tiflow': {
+                  'pingcap/tiflow': {
                     'timeout': '40m',
                     'sourceWsSize': '50Gi',
-                    'cpu': '8',
-                    'memory': '32Gi'
+                    'cpu': '6',
+                    'memory': '24Gi'
                   },
-                  'tiproxy': {
+                  'pingcap/tiproxy': {
                     'timeout': '30m',
-                    'sourceWsSize': '10Gi',
-                    'cpu': '4',
-                    'memory': '16Gi'
+                    'sourceWsSize': '20Gi',
+                    'cpu': '3',
+                    'memory': '12Gi'
                   },
-                  'cloud-storage-engine': {
+                  'tidbcloud/cloud-storage-engine': {
                     'timeout': '2h30m',
                     'sourceWsSize': '100Gi',
-                    'cpu': '16',
-                    'memory': '64Gi'
+                    'cpu': '12',
+                    'memory': '48Gi'
                   },
-                  'tiflash-cse': {
+                  'tidbcloud/tiflash-cse': {
                     'timeout': '2h',
                     'sourceWsSize': '100Gi',
-                    'cpu': '16',
-                    'memory': '64Gi'
+                    'cpu': '12',
+                    'memory': '48Gi'
                   },
-                  'pd': {
+                  'tikv/pd': {
                     'timeout': '40m',
                     'sourceWsSize': '50Gi',
-                    'cpu': '8',
-                    'memory': '32Gi'
+                    'cpu': '6',
+                    'memory': '24Gi'
                   },
-                  'tikv': {
+                  'tikv/tikv': {
                     'timeout': '2h30m',
                     'sourceWsSize': '100Gi',
-                    'cpu': '16',
-                    'memory': '64Gi'
+                    'cpu': '12',
+                    'memory': '56Gi'
                   }
-                }[body.repository.name]
+                }[body.repository.full_name]
             - key: custom-params
               expression: >-
                 {
