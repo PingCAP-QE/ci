@@ -194,7 +194,7 @@ presubmits:
     - name: pingcap/tidb/release-7.1/pull_integration_tidb_tools_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -207,7 +207,7 @@ presubmits:
     - name: pingcap/tidb/release-7.1/pull_integration_binlog_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       optional: true
