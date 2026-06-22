@@ -34,6 +34,7 @@ spec:
     - { name: images, value: $(extensions.images) }
     - { name: target_images, value: $(extensions.target_images) }
     - { name: stage, value: $(extensions.stage) }
+    - { name: publisher-url, value: "http://publisher.publisher.svc" }
   template:
     spec:
       params:
@@ -55,6 +56,8 @@ spec:
                 value: $(tt.params.target_images)
               - name: stage
                 value: $(tt.params.stage)
+              - name: publisher-url
+                value: $(tt.params.publisher-url)
             workspaces:
               - name: notify-config
                 secret:
