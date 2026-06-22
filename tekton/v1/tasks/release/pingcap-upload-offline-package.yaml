@@ -55,7 +55,6 @@ spec:
 
         repo="$(params.oci-repo)"
         dl_svr_url="https://prow.tidb.net/dl"
-        FILE_SERVER_URL="http://fileserver.pingcap.net"
 
         tag="$(params.version)-$(params.edition)_$(params.os)_$(params.arch)"
         echo "🚀 uploading for ${tag} ..."
@@ -76,10 +75,8 @@ spec:
           if [ "$(params.dry-run)" == "true" ]; then
             echo "🧪🩺 DRY run mode enabled."
             aws s3 cp $f s3://${bucket_name}/fake-release/$target_f --acl public-read
-            curl --fail -F fake-release/$f=@${target_f} ${FILE_SERVER_URL}/upload | grep -E 'success'
           else
             aws s3 cp $f s3://${bucket_name}/$target_f --acl public-read
-            curl --fail -F release/$target_f=@${f} ${FILE_SERVER_URL}/upload | grep -E 'success'
           fi
           echo "✅ Uploaded $f ."
         done

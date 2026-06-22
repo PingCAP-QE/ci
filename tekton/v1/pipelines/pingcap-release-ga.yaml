@@ -206,12 +206,12 @@ spec:
         - { name: edition, value: dm }
         - { name: os, value: linux }
         - { name: arch, value: arm64 }
-    - name: upload-plugin-tarballs
-      runAfter:
-        - ga-tag-oci-artifacts
-      taskRef:
-        name: pingcap-upload-enterprise-plugins
-      workspaces:
-        - { name: s3-secrets, workspace: s3-secrets }
-      params:
-        - { name: version, value: "$(params.version)" }
+    # - name: upload-plugin-tarballs
+    #   runAfter:
+    #     - ga-tag-oci-artifacts
+    #   taskRef:
+    #     name: pingcap-upload-enterprise-plugins
+    #   workspaces:
+    #     - { name: s3-secrets, workspace: s3-secrets }
+    #   params:
+    #     - { name: version, value: "$(params.version)" }
