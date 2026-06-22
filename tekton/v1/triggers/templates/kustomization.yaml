@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - _/build-component-all-platforms.yaml
   - _/build-component-darwin.yaml
-  - _/build-component-linux-all-platforms.yaml
   - _/build-component-linux.yaml
   - _/build-component-single-platform.yaml
   - _/ci-helper-for-pr.yaml
