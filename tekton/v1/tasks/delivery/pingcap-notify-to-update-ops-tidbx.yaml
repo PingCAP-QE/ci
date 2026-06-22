@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
-  name: pingcap-notify-to-update-ops-tidbx-debug
+  name: pingcap-notify-to-update-ops-tidbx
   labels:
     app.kubernetes.io/version: "0.1.0"
   annotations:
