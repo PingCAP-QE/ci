@@ -27,7 +27,7 @@ spec:
     - name: publisher-url
       type: string
       description: publisher url
-      default: "https://do2.pingcap.net/publisher"
+      default: "http://publisher.publisher.svc"
   workspaces:
     - name: notify-config
       description: |
@@ -80,7 +80,7 @@ spec:
 
         function main() {
           stage="$1"
-          images="$(echo "$2" | jq -r '.[]')"
+          images="$(echo "$2" | jq -r '.[] // empty' 2>/dev/null || echo "")"
           publisher_url="$3"
           save_file="$4"
           for image in $images; do
@@ -108,7 +108,12 @@ spec:
           local body_file=$(mktemp)
 
           # Create JSON payload
-          jq -n --arg text "$message" '{ msg_type: "text", content: { text: $text } }' > "$body_file"
+          echo "message: $message"
+          if ! jq -n --arg text "$message" '{ msg_type: "text", content: { text: $text } }' > "$body_file" 2>/dev/null; then
+            >&2 echo "Error: failed to create JSON payload for Lark notification"
+            rm -f "$body_file"
+            return 1
+          fi
 
           # Send notification
           curl --fail -X POST -H "Content-Type: application/json" -d "@$body_file" "$lark_webhook_url"
@@ -123,8 +128,8 @@ spec:
           local target_images="$3"
 
           local title="The Images are delivered to cloud registries of ${stage} env."
-          local source_image_lines="$(echo "$source_images" | jq -r '.[]')"
-          local target_image_lines="$(echo "$target_images" | jq -r '.[]')"
+          local source_image_lines="$(echo "$source_images" | jq -r '.[] // empty' 2>/dev/null || echo "$source_images")"
+          local target_image_lines="$(echo "$target_images" | jq -r '.[] // empty' 2>/dev/null || echo "$target_images")"
           printf "%s\nSources:\n%s\nTargets:\n%s" "$title" "$source_image_lines" "$target_image_lines"
         }
 
