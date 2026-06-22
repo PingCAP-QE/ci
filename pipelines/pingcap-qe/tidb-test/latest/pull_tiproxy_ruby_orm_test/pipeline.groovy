@@ -8,17 +8,10 @@ final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            retries 2
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
@@ -26,7 +19,16 @@ pipeline {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Checkout') {
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
+                }
+            }
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tiproxy") {
@@ -47,10 +49,6 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
-        stage('Prepare') {
-            steps {
                 dir('tiproxy') {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
@@ -76,6 +74,7 @@ pipeline {
                         }
                     }
                 }
+                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('ORM Tests') {
@@ -103,32 +102,31 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    container("ruby") {
-                                        sh label: "prepare ruby test deps", script: """
-                                            #!/usr/bin/env bash
-                                            set -euxo pipefail
-                                            if ! command -v mysql >/dev/null 2>&1 || ! dpkg-query -W default-libmysqlclient-dev >/dev/null 2>&1 || ! dpkg-query -W libsqlite3-dev >/dev/null 2>&1; then
-                                                apt-get update
-                                                DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
-                                                    default-mysql-client \\
-                                                    build-essential \\
-                                                    default-libmysqlclient-dev \\
-                                                    libsqlite3-dev \\
-                                                    pkg-config
-                                                rm -rf /var/lib/apt/lists/*
-                                            fi
-                                            if ! gem list -i bundler -v 2.3.17 >/dev/null 2>&1; then
-                                                gem install bundler -v 2.3.17
-                                            fi
-                                            command -v mysql
-                                            bundle -v
-                                        """
-                                        sh label: "test_cmds=${TEST_CMDS} ", script: """
-                                            #!/usr/bin/env bash
-                                            ${TEST_CMDS}
-                                        """
-                                    }
+                                unstash name: WORKSPACE_STASH_NAME
+                                container("ruby") {
+                                    sh label: "prepare ruby test deps", script: """
+                                        #!/usr/bin/env bash
+                                        set -euxo pipefail
+                                        if ! command -v mysql >/dev/null 2>&1 || ! dpkg-query -W default-libmysqlclient-dev >/dev/null 2>&1 || ! dpkg-query -W libsqlite3-dev >/dev/null 2>&1; then
+                                            apt-get update
+                                            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
+                                                default-mysql-client \\
+                                                build-essential \\
+                                                default-libmysqlclient-dev \\
+                                                libsqlite3-dev \\
+                                                pkg-config
+                                            rm -rf /var/lib/apt/lists/*
+                                        fi
+                                        if ! gem list -i bundler -v 2.3.17 >/dev/null 2>&1; then
+                                            gem install bundler -v 2.3.17
+                                        fi
+                                        command -v mysql
+                                        bundle -v
+                                    """
+                                    sh label: "test_cmds=${TEST_CMDS} ", script: """
+                                        #!/usr/bin/env bash
+                                        ${TEST_CMDS}
+                                    """
                                 }
                             }
                         }

@@ -10,17 +10,10 @@ final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            retries 2
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
@@ -28,7 +21,16 @@ pipeline {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Checkout') {
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
+                }
+            }
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
@@ -49,10 +51,6 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
-        stage('Prepare') {
-            steps {
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'make'
@@ -78,6 +76,7 @@ pipeline {
                         sh "touch ws-${BUILD_TAG}"
                     }
                 }
+                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('MySQL Tests') {
@@ -104,23 +103,9 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                                    sh label: "print version", script: """
-                                        pwd && ls -alh
-                                        ls bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/pd-server && ./bin/pd-server -V
-                                        ls bin/tikv-server && ./bin/tikv-server -V
-                                    """
-                                }
-                            }
-                            dir('tidb-test/mysql_test') {
-                                sh """
-                                    mkdir -p bin
-                                    mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                    ls -alh bin/
-                                """
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
+                            dir('tidb-test') {
+                                unstash name: WORKSPACE_STASH_NAME
+                                dir('mysql_test') {
                                     sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh

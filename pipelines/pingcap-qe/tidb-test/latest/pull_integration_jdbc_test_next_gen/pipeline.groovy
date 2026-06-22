@@ -11,19 +11,12 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
+final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            retries 2
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         NEXT_GEN = '1'
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
@@ -32,7 +25,16 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
-        stage('Checkout') {
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
+                }
+            }
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
@@ -53,10 +55,6 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
-        stage('Prepare') {
-            steps {
                 dir('tidb') {
                     sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                 }
@@ -78,11 +76,8 @@ pipeline {
                             sh "cp ${WORKSPACE}/tidb/bin/* ./"
                         }
                     }
-                    // Cache for next test stages.
-                    cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: 'touch ws-${BUILD_TAG}'
-                    }
                 }
+                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('Tests') {
@@ -149,12 +144,8 @@ pipeline {
                     stage('Test') {
                         steps {
                             dir(REFS.repo) {
-                                // restore the cache saved by previous stage.
-                                cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    // if cache missed, it will fail(should not miss).
-                                    sh 'chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
-                                }
-                                // run the test.
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh 'chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
                                 sh label: "store=${STORE} test_params=${TEST_PARAMS} ", script: """#!/usr/bin/env bash
                                     params_array=(\${TEST_PARAMS})
                                     TEST_DIR=\${params_array[0]}
