@@ -106,7 +106,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: alpine:3.23
+            image: alpine:3.24
             command: [sh, -ce]
             args:
               - |
@@ -181,7 +181,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: alpine:3.23
+            image: alpine:3.24
             command: [sh, -ce]
             args:
               - |
