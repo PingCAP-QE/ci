@@ -6,7 +6,5 @@ spec:
   params:
     - name: registry
       value: us-docker.pkg.dev/pingcap-testing-account/internal
-    - name: publisher-auth-secret-name
-      value: publisher-auth
     - name: publisher-url
       value: "http://publisher.publisher.svc" # in cluster
