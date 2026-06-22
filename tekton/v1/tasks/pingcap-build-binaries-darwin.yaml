@@ -34,6 +34,7 @@ spec:
         supports: 'release' or 'failpoint'.
     - name: git-ref
     - name: git-sha
+    - name: git-url
     - name: builder-image
       default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
     - name: release-dir
@@ -152,6 +153,9 @@ spec:
           operator: in
           values: ["true"]
       workingDir: $(workspaces.source.path)/$(params.component)
+      env:
+        - name: GIT_URL
+          value: $(params.git-url)
       script: |
         script="/workspace/build-package-artifacts.sh"
 

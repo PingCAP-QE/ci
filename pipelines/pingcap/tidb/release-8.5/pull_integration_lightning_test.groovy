@@ -31,18 +31,15 @@ pipeline {
                 kubernetes {
                     namespace K8S_NAMESPACE
                     yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
                     workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     defaultContainer 'golang'
                 }
             }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
                     cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS, 'tidb-server')) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
@@ -94,8 +91,13 @@ pipeline {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
@@ -131,9 +133,11 @@ pipeline {
                                         gocovmerge /tmp/group_cover/cov.* > coverage.txt
                                     """
                                     script {
+
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.txt')
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                             }
                         }
                     }

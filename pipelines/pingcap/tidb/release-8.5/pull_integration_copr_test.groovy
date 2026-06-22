@@ -16,6 +16,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
@@ -30,13 +31,9 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tikv-copr-test") {
@@ -56,7 +53,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     container("utils") {
                         dir("bin") {
                             retry(2) {
@@ -72,7 +69,7 @@ pipeline {
         stage('Tests') {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'check version', script: """
                     ls -alh bin/
                     ./bin/tikv-server -V

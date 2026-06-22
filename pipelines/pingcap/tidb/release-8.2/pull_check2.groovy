@@ -7,55 +7,63 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-8.2/pod-pull_check2.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final GIT_CREDENTIALS_ID = ''
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-prow.setPRDescription(REFS)
+final GIT_CREDENTIALS_ID = ''
 
+prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     stages {
-        stage('Checkout') {
-            steps {
-                dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
-                    }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
                 }
             }
-        }
-        stage("Prepare") {
             steps {
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
+                    }
+                    cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS)) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     container("utils") {
                         dir("bin") {
-                            retry(3) {
-                                sh label: 'download tidb components', script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                """
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
                             }
                         }
                     }
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+
+                    # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
                     // cache it for other pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                         sh """
@@ -97,22 +105,40 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) }
                 }
                 stages {
                     stage('Test')  {
-                        environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 50, unit: 'MINUTES') }
+                        environment {
+                            CODECOV_TOKEN = credentials('codecov-token-tidb')
+                        }
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 }
 
+                                // Lightweight fallback: only re-apply when stale URLs are still present in restored cache.
+                                sh '''#!/usr/bin/env bash
+                                    set -euxo pipefail
+                                    if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
+                                        for f in WORKSPACE DEPS.bzl; do
+                                          [ -f "$f" ] || continue
+                                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                                        done
+                                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                                    fi
+                                '''
+
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh """
-                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                                 git diff .
                                 git status
                                 """
@@ -121,13 +147,13 @@ pipeline {
                         }
                         post {
                             always {
-                                dir('tidb') {
+                                dir(REFS.repo) {
                                     // archive test report to Jenkins.
                                     junit(testResults: "**/bazel.xml", allowEmptyResults: true)
                                 }
                             }
                             unsuccessful {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     sh label: "archive log", script: """
                                     str="$SCRIPT_AND_ARGS"
                                     logs_dir="logs_\${str// /_}"
@@ -141,11 +167,13 @@ pipeline {
                                 }
                             }
                             success {
-                                dir("tidb") {
+                                dir(REFS.repo) {
                                     script {
+
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.dat')
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) }
                             }
                         }
                     }

@@ -2,11 +2,18 @@ global_definitions:
   branches: &branches
     - ^release-2[.][0-9]+$
     - ^main$
-  skip_if_only_changed: &skip_if_only_changed
-    "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|OWNERS|OWNERS_ALIASES)$"
+  affinity: &affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
   decoration_config: &decoration_config
     timeout: 3h
-
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
@@ -36,12 +43,12 @@ presubmits:
                     key: token
                     name: github-token
             command:
-            - gh
-            - pr
-            - ready
-            - $(PULL_NUMBER)
-            - --repo
-            - pingcap/tidb-operator
+              - gh
+              - pr
+              - ready
+              - $(PULL_NUMBER)
+              - --repo
+              - pingcap/tidb-operator
 
     - name: pull-e2e
       decorate: true # need add this.
@@ -49,8 +56,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
-        nodeSelector:
-          node.kubernetes.io/instance-type: e2-highmem-8
+        affinity: *affinity
         volumes:
           - name: docker-sock-dir
             emptyDir: {}
@@ -62,7 +68,7 @@ presubmits:
                     type: ephemeral
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "standard-rwo"
+                  storageClassName: "hyperdisk-rwo"
                   resources:
                     requests:
                       storage: 500Gi
@@ -71,16 +77,16 @@ presubmits:
             image: docker:28.1-dind
             restartPolicy: Always
             command:
-            - /bin/sh
-            - -c
-            - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
             env:
-            - name: DOCKER_TLS_CERTDIR
-              value: ""
-            - name: POD_UID
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.uid
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
             securityContext:
               privileged: true
             volumeMounts:

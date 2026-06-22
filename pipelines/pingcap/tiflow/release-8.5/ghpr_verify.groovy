@@ -10,33 +10,12 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-ghpr_verify.
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
-            steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
-                    }
-                }
-            }
-        }
         stage('Tests') {
             matrix {
                 axes {
@@ -49,9 +28,14 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_cmd: env.TEST_CMD]) }
                 }
                 stages {
                     stage("Test") {
@@ -61,17 +45,19 @@ pipeline {
                         }
                         steps {
                             dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh label: "${TEST_CMD}", script: """
-                                        make ${TEST_CMD}
-                                    """
+                                script {
+                                    prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                                 }
+                                sh label: "${TEST_CMD}", script: """
+                                    make ${TEST_CMD}
+                                """
                             }
                         }
                         post {
                             success {
                                 dir('tiflow') {
                                     script {
+
                                         def testConfigs = [
                                             dm_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
                                             engine_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/engine_test/cov.unit_test.out"]
@@ -82,6 +68,7 @@ pipeline {
                                         }
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_cmd: env.TEST_CMD]) }
                             }
                             always {
                                 junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)

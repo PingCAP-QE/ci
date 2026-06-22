@@ -19,7 +19,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -30,18 +30,16 @@ pipeline {
             agent {
                 kubernetes {
                     namespace K8S_NAMESPACE
-                    yamlFile POD_TEMPLATE_FILE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     defaultContainer 'golang'
                 }
             }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                     cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS, 'tidb-server')) {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
@@ -65,12 +63,12 @@ pipeline {
                                 }
                             }
                         }
-                        sh """
+                        sh '''#!/usr/bin/env bash
                             ls -alh .
                             ./pd-server -V
                             ./tikv-server -V
                             ./tiflash --version
-                        """
+                        '''
                     }
                     // cache workspace for matrix pods
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
@@ -91,35 +89,43 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     sh "ls rev-${REFS.pulls[0].sha}"
                                 }
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                    chmod +x br/tests/*.sh
-                                    ./br/tests/run_group_lightning_tests.sh others
-                                    ./br/tests/run_group_lightning_tests.sh ${TEST_GROUP}
+                                    chmod +x lightning/tests/*.sh
+                                    if [ "${TEST_GROUP}" = "G00" ]; then
+                                        ./lightning/tests/run_group_lightning_tests.sh others
+                                    fi
+                                    ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
                                 """
                             }
                         }
                         post{
-                            failure {
+                            unsuccessful {
                                 sh label: "collect logs", script: """
-                                    ls /tmp/backup_restore_test
-                                    tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")
+                                    ls /tmp/lightning_test
+                                    tar --warning=no-file-changed  -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/lightning_test/ -type f -name "*.log")
                                     ls -alh  log-${TEST_GROUP}.tar.gz
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
                             success {
+
                                 dir(REFS.repo) {
                                     sh label: "upload coverage", script: """
                                         ls -alh /tmp/group_cover
@@ -127,6 +133,7 @@ pipeline {
                                         codecov --rootDir . --flags integration --file coverage.txt --branch origin/pr/${REFS.pulls[0].number} --sha ${REFS.pulls[0].sha} --pr ${REFS.pulls[0].number} || true
                                     """
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                             }
                         }
                     }

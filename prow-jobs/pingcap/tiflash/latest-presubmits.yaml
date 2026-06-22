@@ -35,17 +35,39 @@ global_definitions:
       }
     fi
 
-    build_jobs="8"
-    test_workers="8"
+    build_jobs="20"
+    test_workers="16"
     if [[ "${sanitizer}" == "TSan" ]]; then
-      build_jobs="6"
-      test_workers="6"
+      test_workers="10"
     fi
 
     repo_root="$(pwd)"
 
-    rm -rf "${repo_root}/.ccache" "${repo_root}/build-${sanitizer}"
-    mkdir -p "${repo_root}/build-${sanitizer}"
+    export RUSTUP_HOME="${repo_root}/.rustup-${sanitizer}"
+    export CARGO_HOME="${repo_root}/.cargo-${sanitizer}"
+    unset RUSTUP_TOOLCHAIN
+
+    rm -rf "${repo_root}/.ccache" "${repo_root}/build-${sanitizer}" "${RUSTUP_HOME}" "${CARGO_HOME}"
+    mkdir -p "${repo_root}/build-${sanitizer}" "${RUSTUP_HOME}" "${CARGO_HOME}"
+
+    echo "RUSTUP_HOME=${RUSTUP_HOME}"
+    echo "CARGO_HOME=${CARGO_HOME}"
+    echo "rustup active toolchain before install:"
+    rustup show active-toolchain || true
+    for attempt in 1 2 3; do
+      if rustup toolchain install; then
+        break
+      fi
+      if [[ "${attempt}" == "3" ]]; then
+        echo "failed to install rust toolchain after ${attempt} attempts" >&2
+        exit 1
+      fi
+      rm -rf "${RUSTUP_HOME}/tmp" "${RUSTUP_HOME}/downloads"
+      sleep "$((attempt * 10))"
+    done
+    rustup show
+    rustup which cargo
+    cargo --version
 
     ccache -o cache_dir="$(realpath "${repo_root}/.ccache")" || true
     ccache -o max_size=2G || true
@@ -103,11 +125,11 @@ global_definitions:
       - *sanitizer_script
     resources:
       requests:
-        cpu: "12"
-        memory: 48Gi
+        cpu: "24"
+        memory: 64Gi
       limits:
-        cpu: "12"
-        memory: 48Gi
+        cpu: "24"
+        memory: 64Gi
   pull_sanitizer_decoration_config: &pull_sanitizer_decoration_config
     timeout: 3h
     ssh_key_secrets:
@@ -136,7 +158,7 @@ presubmits:
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       context: pull-unit-test
       decorate: false # need add this.
       name: pingcap/tiflash/pull_unit_test
@@ -149,7 +171,7 @@ presubmits:
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       context: pull-integration-test
       decorate: false # need add this.
       name: pingcap/tiflash/pull_integration_test

@@ -13,6 +13,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
@@ -27,17 +28,15 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
-                            }
+                    retry(2) {
+                        script {
+                            component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
                         }
                     }
                 }
@@ -45,7 +44,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                         container("golang") {
                             sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
@@ -80,14 +79,19 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) }
+                }
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                                 }
@@ -107,12 +111,7 @@ pipeline {
                                             fi
                                             cd /git
                                             rm -rf sqllogictest sqllogictest_v20241212.tar.gz
-                                            # Prefer GAR mirror on GCP; keep hub-zot as fallback for compatibility.
-                                            for source in \
-                                                "${OCI_ARTIFACT_HOST}/pingcap/case-data/sqllogic:v20241212" \
-                                                "hub-zot.pingcap.net/mirrors/hub/pingcap/case-data/sqllogic:v20241212"; do
-                                                timeout 60 oras pull "${source}" && break || true
-                                            done
+                                            timeout 60 oras pull "${OCI_ARTIFACT_HOST}/pingcap/case-data/sqllogic:v20241212" || true
                                             if [ -f sqllogictest_v20241212.tar.gz ]; then
                                                 tar xzf sqllogictest_v20241212.tar.gz
                                                 rm -f sqllogictest_v20241212.tar.gz
@@ -145,6 +144,7 @@ pipeline {
                                 }
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }
@@ -167,14 +167,19 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) }
+                }
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'merged-sqllogic-test')) {
                                     sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                                 }
@@ -194,12 +199,7 @@ pipeline {
                                             fi
                                             cd /git
                                             rm -rf sqllogictest sqllogictest_v20241212.tar.gz
-                                            # Prefer GAR mirror on GCP; keep hub-zot as fallback for compatibility.
-                                            for source in \
-                                                "${OCI_ARTIFACT_HOST}/pingcap/case-data/sqllogic:v20241212" \
-                                                "hub-zot.pingcap.net/mirrors/hub/pingcap/case-data/sqllogic:v20241212"; do
-                                                timeout 60 oras pull "${source}" && break || true
-                                            done
+                                            timeout 60 oras pull "${OCI_ARTIFACT_HOST}/pingcap/case-data/sqllogic:v20241212" || true
                                             if [ -f sqllogictest_v20241212.tar.gz ]; then
                                                 tar xzf sqllogictest_v20241212.tar.gz
                                                 rm -f sqllogictest_v20241212.tar.gz
@@ -232,6 +232,7 @@ pipeline {
                                 }
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }

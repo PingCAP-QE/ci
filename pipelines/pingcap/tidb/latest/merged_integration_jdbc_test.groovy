@@ -13,6 +13,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
@@ -27,17 +28,15 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("tidb") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
-                            }
+                    retry(2) {
+                        script {
+                            component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, "", GIT_CREDENTIALS_ID)
                         }
                     }
                 }
@@ -45,7 +44,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
@@ -89,9 +88,14 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'java'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_params: env.TEST_PARAMS, test_store: env.TEST_STORE]) }
                 }
                 stages {
                     stage("Test") {
@@ -104,29 +108,29 @@ pipeline {
                                     ./bin/tikv-server -V
                                     ./bin/tidb-server -V
                                     """
-                                    container("java") {
-                                        sh label: "test_params=${TEST_PARAMS} ", script: """
-                                            #!/usr/bin/env bash
-                                            params_array=(\${TEST_PARAMS})
-                                            TEST_DIR=\${params_array[0]}
-                                            TEST_SCRIPT=\${params_array[1]}
-                                            echo "TEST_DIR=\${TEST_DIR}"
-                                            echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                }
+                                container("java") {
+                                    sh label: "test_params=${TEST_PARAMS} ", script: """
+                                        #!/usr/bin/env bash
+                                        params_array=(\${TEST_PARAMS})
+                                        TEST_DIR=\${params_array[0]}
+                                        TEST_SCRIPT=\${params_array[1]}
+                                        echo "TEST_DIR=\${TEST_DIR}"
+                                        echo "TEST_SCRIPT=\${TEST_SCRIPT}"
 
-                                            if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIKV_PATH="127.0.0.1:2379"
-                                                export TIDB_TEST_STORE_NAME="tikv"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            else
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIDB_TEST_STORE_NAME="unistore"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            fi
-                                        """
-                                    }
+                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIKV_PATH="127.0.0.1:2379"
+                                            export TIDB_TEST_STORE_NAME="tikv"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                        else
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIDB_TEST_STORE_NAME="unistore"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                        fi
+                                    """
                                 }
                             }
                         }
@@ -136,6 +140,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_params: env.TEST_PARAMS, test_store: env.TEST_STORE]) } }
                         }
                     }
                 }

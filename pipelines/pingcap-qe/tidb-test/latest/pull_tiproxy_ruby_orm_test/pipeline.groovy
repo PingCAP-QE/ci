@@ -13,9 +13,14 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
+    }
+    environment {
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 45, unit: 'MINUTES')
@@ -85,8 +90,14 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'ruby'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_cmds: env.TEST_CMDS]) }
                 }
                 stages {
                     stage("Test") {
@@ -94,6 +105,25 @@ pipeline {
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
                                     container("ruby") {
+                                        sh label: "prepare ruby test deps", script: """
+                                            #!/usr/bin/env bash
+                                            set -euxo pipefail
+                                            if ! command -v mysql >/dev/null 2>&1 || ! dpkg-query -W default-libmysqlclient-dev >/dev/null 2>&1 || ! dpkg-query -W libsqlite3-dev >/dev/null 2>&1; then
+                                                apt-get update
+                                                DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
+                                                    default-mysql-client \\
+                                                    build-essential \\
+                                                    default-libmysqlclient-dev \\
+                                                    libsqlite3-dev \\
+                                                    pkg-config
+                                                rm -rf /var/lib/apt/lists/*
+                                            fi
+                                            if ! gem list -i bundler -v 2.3.17 >/dev/null 2>&1; then
+                                                gem install bundler -v 2.3.17
+                                            fi
+                                            command -v mysql
+                                            bundle -v
+                                        """
                                         sh label: "test_cmds=${TEST_CMDS} ", script: """
                                             #!/usr/bin/env bash
                                             ${TEST_CMDS}
@@ -108,6 +138,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_cmds: env.TEST_CMDS]) } }
                         }
                     }
                 }

@@ -9,7 +9,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_integration_
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PR_TITLE = (REFS.pulls?.size() ?: 0) > 0 ? REFS.pulls[0].title : ''
 final CACHE_MARKER = 'workspace-prepared'
-final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, PR_TITLE, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, PR_TITLE, 'master')
 final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, PR_TITLE, 'master')
 final OCI_TAG_YCSB = 'v1.0.3'
@@ -23,6 +23,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
@@ -114,9 +115,14 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
@@ -149,6 +155,7 @@ pipeline {
                             success {
                                 dir(REFS.repo) {
                                     script {
+
                                         if (env.TEST_GROUP == 'G07' || env.TEST_GROUP == 'G08') {
                                             echo "Temporary hotfix: skip coverage upload for skipped ${env.TEST_GROUP}"
                                         } else {
@@ -160,6 +167,7 @@ pipeline {
                                         }
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                             }
                         }
                     }

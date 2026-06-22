@@ -13,7 +13,9 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -24,13 +26,28 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
+                }
+            }
+        }
+        stage('Hotfix bazel deps URL (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+
+                    # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
                 }
             }
         }
@@ -39,7 +56,6 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     sh """
-                        sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
                         git diff .
                         git status
                     """
@@ -47,11 +63,11 @@ pipeline {
                         set -o pipefail
 
                         ./build/jenkins_unit_test.sh 2>&1 | tee bazel-test.log
-                    '''
+                        '''
                 }
             }
             post {
-                success {
+                 success {
                     dir(REFS.repo) {
                         script {
                             prow.uploadCoverageToCodecov(REFS, 'unit', './coverage.dat')
@@ -85,7 +101,7 @@ pipeline {
                 dir(REFS.repo) {
                     sh(
                         label: 'test enterprise extensions',
-                        script: 'go test --tags intest -coverprofile=coverage-extension.dat -covermode=atomic ./extension/enterprise/...'
+                        script: 'go test --tags intest -coverprofile=coverage-extension.dat -covermode=atomic ./pkg/extension/enterprise/...'
                     )
                 }
             }
@@ -97,6 +113,27 @@ pipeline {
                         }
                     }
                 }
+            }
+        }
+    }
+    post {
+        success {
+            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                sh label: 'Fail when long time cost test cases are found', script: '''#! /usr/bin/env bash
+
+                    threshold=144 # unit is second, we should update it monthly.
+
+                    breakCaseListfile="break_longtime_case.txt"
+                    jq -r  ".[] | select(.long_time != null) | .long_time | to_entries[] | select(.value > $threshold) | .key" bazel-go-test-problem-cases.json > $breakCaseListfile
+
+                    if (($(cat $breakCaseListfile | wc -l) > 0)); then
+                        echo "$(tput setaf 1)The execution time of these test cases exceeds the threshold($threshold):$(tput sgr0)"
+                        cat $breakCaseListfile
+                        echo "📌 ref: https://github.com/pingcap/tidb/issues/46820"
+
+                        exit 1
+                    fi
+                '''
             }
         }
     }

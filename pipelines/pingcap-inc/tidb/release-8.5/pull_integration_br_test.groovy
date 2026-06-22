@@ -33,6 +33,7 @@ pipeline {
                 kubernetes {
                     namespace K8S_NAMESPACE
                     yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
                     workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     defaultContainer 'golang'
                 }
@@ -105,8 +106,13 @@ pipeline {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
@@ -143,9 +149,11 @@ pipeline {
                                         gocovmerge /tmp/group_cover/cov.* > coverage.txt
                                     """
                                     script {
+
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.txt')
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                             }
                         }
                     }

@@ -19,6 +19,7 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
@@ -111,6 +112,7 @@ pipeline {
                             'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d n',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_sessiontest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_statisticstest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh startertest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest1',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest2',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest3',
@@ -135,13 +137,21 @@ pipeline {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
                     }
                 }
                 when {
-                    expression {
-                        // Skip bazel_pushdowntest when base_ref is release-nextgen-20251011
-                        return !(REFS.base_ref == 'release-nextgen-20251011' && "${SCRIPT_AND_ARGS}".contains(' bazel_pushdowntest'))
+                    beforeAgent true
+                    allOf {
+                        expression {
+                            // Skip bazel_pushdowntest when base_ref is release-nextgen-20251011
+                            return !(REFS.base_ref == 'release-nextgen-20251011' && env.SCRIPT_AND_ARGS.contains(' bazel_pushdowntest'))
+                        }
+                        expression {
+                            return REFS.base_ref == 'master' || !env.SCRIPT_AND_ARGS.contains(' startertest')
+                        }
+                        expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) }
                     }
                 }
                 stages {
@@ -177,6 +187,14 @@ pipeline {
                                     if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
                                         sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
                                         prow.sendTestCaseRunReport("${REFS.org}/${REFS.repo}", "${REFS.base_ref}")
+                                        sh """
+                                            logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
+                                            mkdir -p \$logs_dir
+                                            mv tidb/bazel-test.log \$logs_dir 2>/dev/null || true
+                                            mv bazel-*.log \$logs_dir 2>/dev/null || true
+                                            mv bazel-*.json \$logs_dir 2>/dev/null || true
+                                        """
+                                        archiveArtifacts(artifacts: '*/bazel-*.log,*/bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                                     }
                                 }
                             }
@@ -192,19 +210,8 @@ pipeline {
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
                                 }
-                                script {
-                                    if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
-                                        sh """
-                                            logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
-                                            mkdir -p \$logs_dir
-                                            mv tidb/bazel-test.log \$logs_dir 2>/dev/null || true
-                                            mv bazel-*.log \$logs_dir 2>/dev/null || true
-                                            mv bazel-*.json \$logs_dir 2>/dev/null || true
-                                        """
-                                        archiveArtifacts(artifacts: '*/bazel-*.log,*/bazel-*.json', fingerprint: false, allowEmptyArchive: true)
-                                    }
-                                }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) } }
                         }
                     }
                 }

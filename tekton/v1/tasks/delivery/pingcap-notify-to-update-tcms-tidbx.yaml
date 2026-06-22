@@ -23,7 +23,7 @@ spec:
     - name: push-image-tag-records
       env:
         - name: PUBLISHER_BASE_URL
-          value: https://do2.pingcap.net/publisher
+          value: "http://publisher.publisher.svc" # in cluster
       args: ["$(params.images)"]
       script: |
         #!/usr/bin/env bash

@@ -9,9 +9,6 @@ pipelineJob('pingcap/ticdc/release-9.0-beta/pull_cdc_mysql_integration_light') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/ticdc")
-    }
 
     definition {
         cpsScm {

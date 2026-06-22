@@ -10,9 +10,6 @@ pipelineJob('pingcap/docs/merged_update_docs') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/docs")
-    }
 
     definition {
         cpsScm {

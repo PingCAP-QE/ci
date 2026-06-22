@@ -39,6 +39,7 @@ spec:
         supports: 'release' or 'failpoint'.
     - name: git-ref
     - name: git-sha
+    - name: git-url
     - name: release-dir
       default: build
     - name: build
@@ -97,6 +98,8 @@ spec:
           value: /kaniko/executor
         - name: CREDS_DIR
           value: /tekton/creds-secrets
+        - name: GIT_URL
+          value: $(params.git-url)
       computeResources:
         requests:
           cpu: "4"

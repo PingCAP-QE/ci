@@ -14,8 +14,9 @@ resources:
   - _/github-pr-labeled-with-lgtm.yaml
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
   - _/github-tag-build-community-linux-fts.yaml
-  - _/notify/notified-successful-image-delivery-cloud-tidbx.yaml
   - _/notify/notified-successful-image-delivery-tidbx.yaml
+  - _/notify/update-ops-when-tidbx-image-distributed-to-clouds.yaml
+  - _/notify/update-tcms-when-tidbx-image-distributed-to-clouds.yaml
   - pingcap-inc/ticdc/git-create-tag.yaml
   - pingcap-inc/ticdc/git-push.yaml
   - pingcap-inc/tici/git-create-tag.yaml

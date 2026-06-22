@@ -8,7 +8,7 @@ BAZEL_FLAKY_SUMMARY_FILE="bazel-flaky-summaries.log"
 # parse bazel go test case index log
 # param $1 file path
 function parse_bazel_go_test_index_log() {
-    indexReg="((===|---) (RUN|PASS|FAIL))|-- Test timed out at|(====================( Test output for //|=+)|WARNING: DATA RACE|testing.go:[0-9]+: race detected during execution of test)"
+    indexReg="((===|---) (RUN|PASS|FAIL))|-- Test timed out at|==================== Test output for //|WARNING: DATA RACE|testing.go:[0-9]+: race detected during execution of test|panic:"
     local logPath="$1"
     grep --color -nE "$indexReg" "$logPath" >"$DEFAULT_GO_TEST_INDEX_FILE"
 }
@@ -17,14 +17,25 @@ function parse_bazel_target_output_log() {
     local logPath="$1"
 
     rm -rf "$BAZEL_TARGET_OUTPUT_FILE_PREFIX-*.log"
-    local indexes=($(grep -nE "====================( Test output for //|=+)" ${logPath} | grep -oE "^[0-9]+"))
+    local indexes=($(grep -nE "==================== Test output for //" "${logPath}" | grep -oE "^[0-9]+"))
+    # append total line count as virtual end marker for the last section
+    if [[ -s "$logPath" ]]; then
+        indexes+=($(wc -l < "$logPath"))
+    else
+        echo "Warning: '$logPath' is empty or inaccessible, skipping." >&2
+        return
+    fi
     local p=0
-    while [ $((2 * p)) -lt "${#indexes[@]}" ]; do
-        saveFlag="$BAZEL_TARGET_OUTPUT_FILE_PREFIX-L${indexes[$((2 * p))]}-${indexes[$((2 * p + 1))]}"
-        sed -n "${indexes[$((2 * p))]},${indexes[$((2 * p + 1))]}p" "${logPath}" >"$saveFlag.log"
+    while [ $((p + 1)) -lt "${#indexes[@]}" ]; do
+        local start=${indexes[$p]}
+        local end=${indexes[$((p + 1))]}
+        saveFlag="$BAZEL_TARGET_OUTPUT_FILE_PREFIX-L${start}-${end}"
+        sed -n "${start},${end}p" "${logPath}" >"$saveFlag.log"
         local append=""
 
-        if grep -E "^-- Test timed out at" "$saveFlag.log" >/dev/null; then
+        if grep -E "^panic:" "$saveFlag.log" >/dev/null; then
+            append="$append.panic"
+        elif grep -E "^-- Test timed out at" "$saveFlag.log" >/dev/null; then
             append="$append.timeout"
         elif grep -E "^--- FAIL" "$saveFlag.log" >/dev/null; then
             append="$append.fail"
@@ -32,7 +43,7 @@ function parse_bazel_target_output_log() {
                 append="$append.race"
             fi
 
-        elif grep -E "(---|===) (PASS|FAIL|RUN)" "$saveFlag.log" | grep -oE "\bTest\w+\b" | sort | uniq -c | grep "^\s*1\b" >/dev/null; then
+        elif grep -E "(---|===) (PASS|FAIL|RUN|SKIP)" "$saveFlag.log" | grep -oE "\bTest\w+\b" | sort | uniq -c | grep "^\s*1\b" >/dev/null; then
             append="$append.fatal"
         fi
 
@@ -78,7 +89,7 @@ function parse_bazel_go_test_new_flaky_cases() {
             targetShardOutputLineNum=$(grep -E "^[0-9]+:=+ Test output for $target \(${targetShardFlag//_/ }\):" "$DEFAULT_GO_TEST_INDEX_FILE" | grep -Eo "^[0-9]+")
             for n in $targetShardOutputLineNum; do
                 local newFlakyCases=($(
-                    sed -nE "/^${n}:/,/^[0-9]+:={80}/p" "$DEFAULT_GO_TEST_INDEX_FILE" |
+                    sed -nE "/^${n}:/,/^[0-9]+:=+ Test output for \//p" "$DEFAULT_GO_TEST_INDEX_FILE" |
                         grep -E "=== RUN|--- PASS" |
                         grep -Eo "\bTest\w+" | sort | uniq -c |
                         grep "^\s*1\b" |
@@ -100,8 +111,11 @@ function parse_bazel_go_test_new_flaky_cases() {
                             echo "new flaky case: ${c}"
                         fi
 
-                        jq ".\"$target\".new_flaky |= (. + [{\"name\":\"${c}\",\"reason\":\"${failReason}\"}] | unique)" \
-                            "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
+                        jq --arg target "$target" \
+                           --arg name "$c" \
+                           --arg reason "$failReason" \
+                           '.[$target].new_flaky |= (. + [{"name": $name, "reason": $reason}] | unique)' \
+                           "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
                     done
                 fi
             done
@@ -126,17 +140,80 @@ function parse_bazel_go_test_long_cases() {
         # add test cases with time cost value -1(means timed out).
         grep -E "=== RUN|--- PASS:" "$f" | grep -Eo "\bTest\w+" | sort | uniq |
             while read c; do
-                jq "$(printf '.["%s"].long_time.%s |= -1' "$target" $c)" \
-                    "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
+                jq --arg target "$target" \
+                   --arg c "$c" \
+                   '.[$target].long_time[$c] |= -1' \
+                   "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
             done
 
         # update the timecost of passed test cases.
         grep -E "\-\-\- PASS:" "$f" | grep -Eo '\bTest\w+(\s+\([0-9.]+s\))' | sed -E 's/[\(\)]//g;s/s$//g' |
-            while read rec; do
-                echo "$rec"
-                jq "$(printf '.["%s"].long_time.%s |= if (. and . >= 0) then . else %s end' "$target" $rec)" \
-                    "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
+            while read name time; do
+                echo "$name $time"
+                jq --arg target "$target" \
+                   --arg name "$name" \
+                   --argjson time "$time" \
+                   '.[$target].long_time[$name] |= if (. and . >= 0) then . else $time end' \
+                   "$resultFile" >"$resultFile".new && mv "$resultFile".new "$resultFile"
             done
+    done
+}
+
+function parse_bazel_go_test_panic_cases() {
+    local resultFile="$1"
+
+    if ! command -v jq &>/dev/null; then
+        echo "Error: jq not found, skipping panic case analysis." >&2
+        return
+    fi
+    if [[ ! -f "$resultFile" ]]; then
+        echo "Error: Result file '$resultFile' not found." >&2
+        return
+    fi
+
+    declare -A crash_data_json
+    declare -A crash_data_panic
+    declare -A crash_counts
+
+    for f in $BAZEL_TARGET_OUTPUT_FILE_PREFIX-*.panic.log; do
+        [[ -e "$f" ]] || continue
+
+        local target=$(head -n1 "$f" | grep -Eo "//[-_:/a-zA-Z0-9]+\b")
+        [[ -n "$target" ]] || continue
+
+        local shard=$(head -n1 "$f" | grep -Eo "shard [0-9]+ of [0-9]+" | tr ' ' '_')
+        shard=${shard:-"unknown"}
+
+        local key="${target}|${shard}"
+        crash_counts[$key]=$((crash_counts[$key] + 1))
+
+        if [[ -z "${crash_data_json[$key]:-}" ]]; then
+            local cases_json="[]"
+            local ordered_cases=($(grep -oE "=== RUN   [^ ]+" "$f" | sed 's/^=== RUN   //' | tr '\n' ' '))
+            if [ "${#ordered_cases[@]}" -gt 0 ]; then
+                cases_json=$(printf '%s\n' "${ordered_cases[@]}" | jq -R . | jq -s -c .)
+            fi
+            local max_panic_len=${MAX_PANIC_LENGTH:-200}
+            local panic_msg=$(grep -m1 "^panic:" "$f" | head -c "$max_panic_len")
+            crash_data_json[$key]="$cases_json"
+            crash_data_panic[$key]="$panic_msg"
+        fi
+    done
+
+    for key in "${!crash_counts[@]}"; do
+        local target="${key%%|*}"
+        local shard="${key##*|}"
+        local attempt=${crash_counts[$key]}
+        local cases_json="${crash_data_json[$key]}"
+        local panic_msg="${crash_data_panic[$key]}"
+
+        jq --arg target "$target" \
+           --arg shard "$shard" \
+           --argjson attempt "$attempt" \
+           --argjson cases "$cases_json" \
+           --arg panic "$panic_msg" \
+          '.[$target] |= (. // {}) | .[$target].crash += [{"shard": $shard, "flaky_attempts": $attempt, "cases": $cases, "panic": $panic}]' \
+          "$resultFile" > "$resultFile".new && mv "$resultFile".new "$resultFile"
     done
 }
 
@@ -158,6 +235,7 @@ function main() {
     echo "{}" >"$DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE"
     parse_bazel_go_test_new_flaky_cases "$logPath" "$DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE"
     parse_bazel_go_test_long_cases "$logPath" "$DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE"
+    parse_bazel_go_test_panic_cases "$DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE"
 
     echo "Output files:"
     ls $DEFAILT_GO_TEST_PROBLEM_CASES_JSONFILE \

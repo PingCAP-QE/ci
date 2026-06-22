@@ -39,6 +39,7 @@ spec:
         supports: 'release' or 'failpoint'.
     - name: git-ref
     - name: git-sha
+    - name: git-url
     - name: builder-image
       default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
     - name: release-dir
@@ -96,6 +97,8 @@ spec:
       env:
         - name: CARGO_NET_GIT_FETCH_WITH_CLI
           value: "true"
+        - name: GIT_SSH_COMMAND
+          value: "ssh -o StrictHostKeyChecking=no"
         # - name: RUSTUP_DIST_SERVER
         #   value: https://rsproxy.cn
         # - name: RUSTUP_UPDATE_ROOT
@@ -118,6 +121,9 @@ spec:
           operator: in
           values: ["true"]
       workingDir: $(workspaces.source.path)/$(params.component)
+      env:
+        - name: GIT_URL
+          value: $(params.git-url)
       script: |
         script="/workspace/build-package-artifacts.sh"
 

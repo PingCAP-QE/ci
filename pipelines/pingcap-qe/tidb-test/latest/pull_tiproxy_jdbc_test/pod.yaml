@@ -5,27 +5,27 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25
       securityContext:
         privileged: true
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          memory: 12Gi
+          cpu: "3"
         limits:
           memory: 24Gi
-          cpu: "8"
+          cpu: "6"
     - name: java
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:cached"
+      image: us-docker.pkg.dev/pingcap-testing-account/internal/test/jenkins/centos7_golang-1.16_openjdk-17.0.2_gradle-7.4.2_maven-3.8.6:cached
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          memory: 12Gi
+          cpu: "3"
         limits:
-          memory: 8Gi
-          cpu: "4"
+          memory: 24Gi
+          cpu: "6"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true

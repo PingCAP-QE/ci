@@ -13,6 +13,11 @@ It contains both trigger configurations and detailed pipeline implementations.
   - CI Job Components
   - Design Principles
 
+- [matrixCache](./matrixCache.md)
+  - Background and design
+  - Implementation and usage
+  - Effect examples
+
 - [Designs](./designs/README.md)
   - Folder Structure
   - File Structure and Naming Conventions
@@ -20,6 +25,7 @@ It contains both trigger configurations and detailed pipeline implementations.
 - [Guides](./guides/README.md)
   - Finding Pipelines for a Specific Repository
   - How to Modify and Test a Pipeline
+  - [Testing Library Code](./guides/testing-library-code.md) — Run unit tests for shared library functions locally
   - Common Use Cases `WIP`
   - Troubleshooting `WIP`
   - [FAQ](./guides/FAQ.md)

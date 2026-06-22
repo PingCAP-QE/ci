@@ -19,7 +19,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
         ENABLE_FIPS = 1
     }
     options {
@@ -32,6 +32,7 @@ pipeline {
                 kubernetes {
                     namespace K8S_NAMESPACE
                     yamlFile POD_TEMPLATE_FILE
+                    retries 2
                     defaultContainer 'golang'
                 }
             }
@@ -104,7 +105,12 @@ pipeline {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
@@ -133,6 +139,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

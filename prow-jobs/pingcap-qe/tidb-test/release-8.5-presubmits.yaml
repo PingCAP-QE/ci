@@ -6,7 +6,7 @@ global_definitions:
     agent: jenkins
     decorate: false # need add this.
     labels:
-      master: "0"
+      master: "1"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:

@@ -14,5 +14,5 @@
     }
   ],
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
-  "ignorePaths": ["tools/deprecated/**", "**/requirements.txt"]
+  "ignorePaths": ["tools/deprecated/**", "**/requirements.txt", "tekton/v0/**"]
 }

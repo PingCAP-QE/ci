@@ -106,7 +106,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: alpine:3.23
+            image: alpine:3.24
             command: [sh, -ce]
             args:
               - |
@@ -116,6 +116,37 @@ presubmits:
               limits:
                 memory: 256Mi
                 cpu: 200m
+
+    - name: pull-test-jenkins-libraries
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^libraries/.*\\.groovy$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: groovy:4.0.32-jdk17
+            command: [sh, -ce]
+            args:
+              - |
+                # system global trusted libraries
+                for test_file in libraries/tisys/tests/Test*.groovy; do
+                  echo "Running ${test_file}"
+                  groovy "${test_file}"
+                done
+
+                # untrusted libraries
+                for test_file in libraries/tipipeline/tests/Test*.groovy; do
+                  echo "Running ${test_file}"
+                  groovy "${test_file}"
+                done
+
+            resources:
+              limits:
+                memory: 512Mi
+                cpu: 500m
 
     - name: pull-verify-jenkins-pipelines
       labels: *labels
@@ -150,7 +181,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: alpine:3.23
+            image: alpine:3.24
             command: [sh, -ce]
             args:
               - |
@@ -195,7 +226,7 @@ presubmits:
             name: checkconfig
             resources: {}
           - name: verify-gitops
-            image: ghcr.io/fluxcd/flux-cli:v2.2.3
+            image: ghcr.io/fluxcd/flux-cli:v2.8.7
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
             command: [flux, -n, apps]

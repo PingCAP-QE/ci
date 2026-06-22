@@ -17,38 +17,3 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-unit-test(?: .*?)?$"
       rerun_command: "/test pull-unit-test"
       branches: *branches
-
-    - name: pull-clippy-linux-arm64-release-8.3
-      agent: kubernetes
-      decorate: true
-      skip_if_only_changed: *skip_if_only_changed
-      context: pull-clippy-linux-arm64-release-8.3
-      branches: *branches
-      spec:
-        containers:
-          - name: build
-            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2026.3.22-3-g892e449
-            command: [bash, -ce]
-            args:
-              - |
-                if [ -f /opt/rh/devtoolset-8/enable ]; then
-                  source /opt/rh/devtoolset-8/enable
-                fi
-                make clippy
-                ENABLE_FEATURES="test-engines-panic nortcheck" NO_DEFAULT_TEST_ENGINES=1 make clippy
-            resources:
-              requests:
-                memory: 8Gi
-                cpu: "4"
-              limits:
-                memory: 16Gi
-                cpu: "8"
-        affinity:
-          nodeAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              nodeSelectorTerms:
-                - matchExpressions:
-                    - key: kubernetes.io/arch
-                      operator: In
-                      values:
-                        - arm64

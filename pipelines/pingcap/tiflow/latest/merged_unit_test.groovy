@@ -27,10 +27,15 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_cmd: env.TEST_CMD]) }
                 }
                 stages {
                     stage("Test") {
@@ -53,6 +58,7 @@ pipeline {
                             success {
                                 dir('tiflow') {
                                     script {
+
                                         def testConfigs = [
                                             dm_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
                                             unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/tidb_cdc_test/cov.unit.out"],
@@ -64,6 +70,7 @@ pipeline {
                                         }
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_cmd: env.TEST_CMD]) }
                             }
                             always {
                                 dir('tiflow') {

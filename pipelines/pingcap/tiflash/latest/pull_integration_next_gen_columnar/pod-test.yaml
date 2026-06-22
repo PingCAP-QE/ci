@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - name: dockerd
+      image: "docker:24.0.9-dind"
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+        - name: DOCKER_DRIVER
+          value: overlay2
+      securityContext:
+        privileged: true
+      tty: false
+      resources:
+        requests:
+          memory: 16Gi
+          cpu: "4"
+          ephemeral-storage: 20Gi
+        limits:
+          memory: 32Gi
+          cpu: "8"
+          ephemeral-storage: 150Gi
+      volumeMounts:
+        - mountPath: "/tmp"
+          name: "tmp"
+        - mountPath: "/var/lib/docker"
+          name: "docker-graph"
+    - name: docker
+      image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-11-g402978f-go1.25
+      imagePullPolicy: Always
+      command:
+        - "cat"
+      env:
+        - name: DOCKER_HOST
+          value: "tcp://localhost:2375"
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+      resources:
+        requests:
+          memory: 16Gi
+          cpu: "4"
+          ephemeral-storage: 10Gi
+        limits:
+          memory: 32Gi
+          cpu: "8"
+          ephemeral-storage: 50Gi
+      tty: true
+      volumeMounts:
+        - mountPath: "/tmp"
+          name: "tmp"
+  volumes:
+    - name: "tmp"
+      emptyDir: {}
+    - name: "docker-graph"
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 200Gi
+            storageClassName: hyperdisk-rwo
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64

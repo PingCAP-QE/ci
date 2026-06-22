@@ -16,7 +16,7 @@ presubmits:
       spec:
         containers:
           - name: check
-            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-10-gc29110c-go1.25
             command: [bash, -ce]
             args:
               - |
@@ -37,7 +37,7 @@ presubmits:
       spec:
         containers:
           - name: build
-            image: ghcr.io/pingcap-qe/ci/base:v2026.3.8-1-g9d412f4-go1.25
+            image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-10-gc29110c-go1.25
             command: [bash, -ce]
             args:
               - |
@@ -52,7 +52,7 @@ presubmits:
       spec:
         containers:
           - name: cdc-unit-test
-            image: ghcr.io/pingcap-qe/ci/base:v2026.3.15-1-g5625431-go1.25
+            image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-10-gc29110c-go1.25
             command: [bash, -ce]
             args:
               - |

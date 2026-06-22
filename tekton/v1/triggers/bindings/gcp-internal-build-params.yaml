@@ -9,4 +9,4 @@ spec:
     - name: publisher-auth-secret-name
       value: publisher-auth
     - name: publisher-url
-      value: "https://do2.pingcap.net/publisher"
+      value: "http://publisher.publisher.svc" # in cluster

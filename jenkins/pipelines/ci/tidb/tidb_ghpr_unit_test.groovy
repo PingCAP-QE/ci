@@ -85,7 +85,7 @@ def upload_test_result(reportDir) {
     }
     try {
         id=UUID.randomUUID().toString()
-        def filepath = "tipipeline/test/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
+        def filepath = "tipipeline/tests/report/${JOB_NAME}/${BUILD_NUMBER}/${id}/report.xml"
         sh """
         curl -F ${filepath}=@${reportDir} ${FILE_SERVER_URL}/upload
         """

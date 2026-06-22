@@ -42,7 +42,7 @@ presubmits:
     - name: tikv/pd/release-8.5/pull_integration_copr_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1" # run on GCP
       decorate: false # need add this.
       always_run: false
       context: pull-integration-copr-test

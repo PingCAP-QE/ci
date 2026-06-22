@@ -9,10 +9,6 @@ pipelineJob('tikv/pd/release-6.5-fips/ghpr_build') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/tikv/pd")
-    }
 
     definition {
         cpsScm {

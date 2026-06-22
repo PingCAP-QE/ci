@@ -44,8 +44,11 @@ spec:
       when:
         - input: "$(params.stage)"
           operator: in
-          values: ["prod"]
-      args: ["$(params.stage)", "$(params.images)", "/workspace/ops-tickets.txt"]
+          values: ["prod", "dev"]
+      args:
+        - "$(params.stage)"
+        - "$(params.images)"
+        - /workspace/ops-tickets.txt
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -162,10 +165,15 @@ spec:
 
           # Fast return unless image_tag is one of:
           # - legacy nextgen format: v1.2.3-nextgen.250101.1
-          # - calendar-semver nextgen image tag: v26.3.0-nextgen
+          # - calendar-semver nextgen image tag: v26.3.0(for tiproxy), v26.3.0-nextgen
           if ! [[ "$image_tag" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+-nextgen\.[0-9]{6}\.[0-9]+|v[1-9][0-9]+\.[0-9]+\.[0-9]+-nextgen)$ ]]; then
-            echo "🤷 Image tag '$image_tag' is not a supported nextgen release tag, skip Ops update."
-            return 0
+            echo "image_repo: $image_repo, image_tag: $image_tag"
+            if [[ "$image_tag" =~ ^v[1-9][0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "$image_repo" =~ ^.+/tidbx/tiproxy$ ]] ; then
+                echo "It's tiproxy nextgen GA image."
+            else
+                echo "🤷 Image tag '$image_tag' is not a supported nextgen release tag, skip Ops update."
+                return 0
+            fi
           fi
 
           # get the component name from image repo: the base name of the image repo
@@ -201,7 +209,11 @@ spec:
         main "$@"
 
     - name: notify-in-lark-channel
-      args: ["$(params.stage)", "$(params.images)", "$(params.target_images)", "/workspace/ops-tickets.txt"]
+      args:
+        - "$(params.stage)"
+        - "$(params.images)"
+        - "$(params.target_images)"
+        - /workspace/ops-tickets.txt
       script: |
         #!/usr/bin/env bash
         set -euo pipefail

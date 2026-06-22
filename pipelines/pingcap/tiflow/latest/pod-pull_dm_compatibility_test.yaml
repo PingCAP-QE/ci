@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: init-mysql-config
-      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25"
       command:
         - sh
         - -c
@@ -17,7 +17,7 @@ spec:
           name: "mysql-config-volume"
   containers:
     - name: golang
-      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25"
       command: [tini, --, bash]
       tty: true
       resources:

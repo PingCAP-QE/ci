@@ -10,16 +10,19 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, RE
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final GIT_CREDENTIALS_ID = ''
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'hub-zot.pingcap.net/mirrors/hub'
+        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -27,61 +30,58 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
         }
-        stage('Prepare') {
+        stage("Prepare") {
             steps {
-                dir('tidb') {
-                    sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                    retry(3) {
-                        sh label: 'download binary', script: """
-                            cd bin
-                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                            ls -alh .
-                            chmod +x ./*
-                            ./tikv-server -V
-                            ./pd-server -V
-                        """
+                dir(REFS.repo) {
+                    cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS)) {
+                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
+                    container("utils") {
+                        dir("bin") {
+                            script {
+                                retry(2) {
+                                    sh label: "download tidb components", script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
+                            }
+                        }
+                    }
+                    sh label: 'check version', script: '''
+                        ls -alh bin/
+                        ./bin/tidb-server -V
+                        ./bin/tikv-server -V
+                        ./bin/pd-server -V
+                    '''
                 }
             }
         }
         stage('Tests') {
-            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    sh label: 'check version', script: """
-                    ls -alh bin/
-                    ./bin/tidb-server -V
-                    ./bin/tikv-server -V
-                    ./bin/pd-server -V
-                    """
-                    sh label: 'test graceshutdown', script: """
-                    cd tests/graceshutdown && make
-                    ./run-tests.sh
-                    """
-                    sh label: 'test globalkilltest', script: """
-                    cd tests/globalkilltest && make
-                    cp ${WORKSPACE}/tidb/bin/tikv-server ${WORKSPACE}/tidb/bin/pd-server ./bin/
-                    PD=./bin/pd-server  TIKV=./bin/tikv-server ./run-tests.sh
-                    """
+                dir(REFS.repo) {
+                    dir('tests/graceshutdown') {
+                        sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'
+                    }
+                    dir('tests/globalkilltest') {
+                        sh label: 'test globalkilltest', script: """
+                            cp -r ${WORKSPACE}/tidb/bin bin
+                            make && ./run-tests.sh
+                        """
+                    }
                 }
             }
             post{
                 failure {
                     script {
-                        println "Test failed, archive the log"
-                        archiveArtifacts artifacts: '/tmp/tidb_globalkilltest/*.log', fingerprint: true
-                        archiveArtifacts artifacts: '/tmp/tidb_gracefulshutdown/*.log', fingerprint: true
+                        archiveArtifacts(artifacts: '/tmp/tidb_globalkilltest/*.log', fingerprint: false)
+                        archiveArtifacts(artifacts: '/tmp/tidb_gracefulshutdown/*.log', fingerprint: false)
                     }
                 }
             }

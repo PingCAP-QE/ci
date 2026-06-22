@@ -19,7 +19,7 @@ spec:
         - mountPath: /tmp
           name: volume-0
     - command: [tini, --, bash]
-      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.1.18-8-gbb5ada9-go1.25
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25
       imagePullPolicy: Always
       name: golang
       resources:

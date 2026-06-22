@@ -10,10 +10,6 @@ pipelineJob('pingcap-qe/tidb-test/release-7.1/ghpr_integration_jdbc_test') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap-qe/tidb-test")
-    }
 
     definition {
         cpsScm {

@@ -1,0 +1,64 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: update-ops-when-tidbx-image-distributed-to-clouds
+  labels:
+    type: github-issue-comment
+spec:
+  interceptors:
+    - name: filter on github repo and comment content
+      ref: { name: cel }
+      params:
+        - name: filter
+          # Filter conditions (all must pass):
+          # 1. Comment body contains a META JSON block (<!-- META={...} -->)
+          # 2. The META block has a non-empty "images" array
+          # 3. Every image tag matches one of: vX.Y.Z, vX.Y.Z-nextgen, vX.Y.Z-nextgen.YYYYMM.N
+          value: >-
+            body.comment.body.matches('<!--\\s*META={.+?\\s*-->')
+            &&
+            size(body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images) > 0
+            &&
+            body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images.all(img, img.matches('.*:v[0-9]+[.][0-9]+[.][0-9]+(-nextgen([.][0-9]{6}[.][0-9]+)?)?'))
+        - name: overlays
+          value:
+            - key: images
+              expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images.marshalJSON()
+            - key: target_images
+              expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().target_images.marshalJSON()
+            - key: stage
+              expression: body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().stage
+
+  bindings:
+    - ref: github-issue-comment
+    - { name: images, value: $(extensions.images) }
+    - { name: target_images, value: $(extensions.target_images) }
+    - { name: stage, value: $(extensions.stage) }
+  template:
+    spec:
+      params:
+        - name: images
+        - name: target_images
+        - name: stage
+      resourceTemplates:
+        - apiVersion: tekton.dev/v1
+          kind: TaskRun
+          metadata:
+            generateName: pingcap-notify-to-deliver-images-to-cloud-tidbx-
+          spec:
+            taskRef:
+              name: pingcap-notify-to-update-ops-tidbx
+            params:
+              - name: images
+                value: $(tt.params.images)
+              - name: target_images
+                value: $(tt.params.target_images)
+              - name: stage
+                value: $(tt.params.stage)
+            workspaces:
+              - name: notify-config
+                secret:
+                  secretName: image-delivery-notify-config-tidbx
+              - name: ops-config
+                secret:
+                  secretName: image-delivery-ops-config-tidbx

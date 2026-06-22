@@ -6,6 +6,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
+final WORKSPACE_STASH_NAME = 'ticdc-workspace'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final UPSTREAAM_BRANCH = 'release-7.5'
 final OCI_TAG_PD = UPSTREAAM_BRANCH
@@ -35,6 +36,7 @@ pipeline {
                 kubernetes {
                     namespace K8S_NAMESPACE
                     yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
+                    retries 2
                     workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                     defaultContainer 'golang'
                 }
@@ -73,12 +75,11 @@ pipeline {
                             }
                         }
                     }
-                    // Cache for downstream test stages.
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                        sh label: "prepare", script: """
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        ls -alh ./bin
+                    """
+                    // Stash the prepared workspace for downstream test stages.
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
             }
         }
@@ -95,26 +96,29 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh """
-                                        ln -sf /usr/bin/jq ./bin/jq
-                                        make check_third_party_binary
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tiflash --version
-
-                                    """
-                                }
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh """
+                                    ln -sf /usr/bin/jq ./bin/jq
+                                    make check_third_party_binary
+                                    ls -alh ./bin
+                                    ./bin/tidb-server -V
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tiflash --version
+                                """
                                 sh label: "${TEST_GROUP}", script: """
                                     ./tests/integration_tests/run_light_it_in_ci.sh mysql ${TEST_GROUP}
                                 """
@@ -134,6 +138,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

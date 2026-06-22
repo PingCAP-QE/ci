@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/pull_integration_jdbc_test_next_gen
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false
       optional: true
       branches:
@@ -18,7 +18,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/pull_mysql_test_next_gen
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false
       optional: true
       run_if_changed: "mysql_test/.*"

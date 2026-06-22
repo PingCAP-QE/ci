@@ -19,7 +19,7 @@ repositories:
       - "terry1purcell"
       - "cfzjywxk"
       - "niubell"
-      - "flowbehappy"
+      - "nongfushanquan"
       - "BornChanger"
       - "xuhuaiyu"
       - "YuJuncen"
@@ -45,7 +45,7 @@ repositories:
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
     approvers:
       - "Benjamin2037"
-      - "flowbehappy"
+      - "nongfushanquan"
 
   - name: "pingcap/ticdc"
     patterns:
@@ -60,7 +60,8 @@ repositories:
         excludes:
           - "tests/**"
     approvers:
-      - "flowbehappy"
+      - "lidezhu"
+      - "nongfushanquan"
 
   - name: "tikv/tikv"
     patterns:

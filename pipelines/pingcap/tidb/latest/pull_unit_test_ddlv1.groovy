@@ -13,8 +13,9 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -62,10 +63,24 @@ pipeline {
                         git diff .
                         git status
                     '''
-                    sh """#! /usr/bin/env bash
+                    sh '''#! /usr/bin/env bash
                         set -o pipefail
-                        make bazel_coverage_test_ddlargsv1
-                    """
+
+                        ./build/jenkins_unit_test_ddlargsv1.sh 2>&1 | tee bazel-test.log
+                    '''
+                }
+            }
+            post {
+                always {
+                    dir(REFS.repo) {
+                        junit(testResults: "**/bazel.xml", allowEmptyResults: true)
+                        archiveArtifacts(artifacts: 'bazel-test.log', fingerprint: false, allowEmptyArchive: true)
+                    }
+                    sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
+                    script {
+                        prow.sendTestCaseRunReport("${REFS.org}/${REFS.repo}", "${REFS.base_ref}")
+                    }
+                    archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
                 }
             }
         }

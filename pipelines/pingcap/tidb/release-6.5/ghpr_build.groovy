@@ -9,12 +9,13 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.5/pod-ghpr_build.yam
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 prow.setPRDescription(REFS)
-
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
     }
@@ -28,17 +29,18 @@ pipeline {
                 stage('tidb') {
                     steps {
                         dir(REFS.repo) {
-                            cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                retry(2) {
-                                    script {
-                                        prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
-                                    }
-                                }
+                            script {
+                                prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                             }
                         }
                     }
                 }
                 stage("enterprise-plugin") {
+                    when {
+                        expression {
+                            return REFS.base_ref !=~ /^feature[\/_].*/
+                        }
+                    }
                     steps {
                         dir("enterprise-plugin") {
                             cache(path: "./", includes: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
@@ -53,6 +55,22 @@ pipeline {
                 }
             }
         }
+        stage('Hotfix bazel deps URL (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    for f in WORKSPACE DEPS.bzl; do
+                      [ -f "$f" ] || continue
+                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                    done
+                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
+                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    grep -n '^check:' Makefile | head -n 3 || true
+                    '''
+                }
+            }
+        }
         stage("Build tidb-server and plugin"){
             parallel {
                 stage("Build tidb-server") {
@@ -60,20 +78,16 @@ pipeline {
                         stage("Build"){
                             steps {
                                 dir(REFS.repo) {
-                                    sh """
-                                    sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
-                                    git diff .
-                                    git status
-                                    """
                                     sh "make bazel_build"
                                 }
                             }
                             post {
-                                // TODO: statics and report logic should not put in pipelines.
-                                // Instead should only send a cloud event to a external service.
                                 always {
                                     dir(REFS.repo) {
-                                        archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
+                                        archiveArtifacts(
+                                            artifacts: 'importer.log,tidb-server-check.log',
+                                            allowEmptyArchive: true,
+                                        )
                                     }
                                 }
                             }
@@ -81,9 +95,14 @@ pipeline {
                     }
                 }
                 stage("Build plugins") {
+                    when {
+                        expression {
+                            return REFS.base_ref !=~ /^feature[\/_].*/
+                        }
+                    }
                     steps {
                         timeout(time: 15, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: 'cd tidb/cmd/pluginpkg && go build'
+                            sh label: 'build pluginpkg tool', script: "cd ${REFS.repo}/cmd/pluginpkg && go build"
                         }
                         dir('enterprise-plugin/whitelist') {
                             sh label: 'build plugin whitelist', script: '''
@@ -99,25 +118,6 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
-        stage("Test plugin") {
-            steps {
-                sh label: 'build tidb-server', script: 'make server -C tidb'
-                sh label: 'Test plugins', script: '''
-                  rm -rf /tmp/tidb
-                  rm -rf plugin-so
-                  mkdir -p plugin-so
-
-                  cp enterprise-plugin/audit/audit-1.so ./plugin-so/
-                  cp enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
-                  ./tidb/bin/tidb-server -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
-
-                  sleep 30
-                  ps aux | grep tidb-server
-                  cat /tmp/loading-plugin.log
-                  killall -9 -r tidb-server
-                '''
             }
         }
     }

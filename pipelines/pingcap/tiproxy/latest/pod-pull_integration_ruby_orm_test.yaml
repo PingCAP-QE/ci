@@ -5,27 +5,36 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.23:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       securityContext:
         privileged: true
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          memory: 12Gi
+          cpu: "3"
         limits:
           memory: 24Gi
-          cpu: "8"
+          cpu: "6"
     - name: ruby
-      image: "hub.pingcap.net/jenkins/ruby27:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/dockerhub-remote/ruby:2.7"
       tty: true
+      env:
+        - name: GEM_HOME
+          value: /tmp/rubygems
+        - name: BUNDLE_PATH
+          value: /tmp/rubygems
+        - name: BUNDLE_SILENCE_ROOT_WARNING
+          value: "1"
+        - name: PATH
+          value: /tmp/rubygems/bin:/usr/local/bundle/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          memory: 12Gi
+          cpu: "3"
         limits:
-          memory: 8Gi
-          cpu: "4"
+          memory: 24Gi
+          cpu: "6"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true

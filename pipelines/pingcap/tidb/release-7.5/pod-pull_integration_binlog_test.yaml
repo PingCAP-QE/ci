@@ -5,8 +5,11 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
+      env:
+        - name: GOPROXY
+          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 12Gi
@@ -17,7 +20,7 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - image: hub.pingcap.net/jenkins/zookeeper
+    - image: docker.io/wurstmeister/zookeeper
       imagePullPolicy: IfNotPresent
       name: zookeeper
       resources:
@@ -46,7 +49,7 @@ spec:
           value: "zk"
         - name: KAFKA_ZOOKEEPER_CONNECT
           value: "127.0.0.1:2181"
-      image: hub.pingcap.net/jenkins/kafka
+      image: docker.io/wurstmeister/kafka:2.12-2.4.1
       imagePullPolicy: IfNotPresent
       name: kafka
       resources:
@@ -61,7 +64,7 @@ spec:
         - mountPath: /tmp
           name: volume-0
     - name: utils
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
