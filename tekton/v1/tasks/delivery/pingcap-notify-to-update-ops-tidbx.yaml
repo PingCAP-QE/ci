@@ -70,8 +70,9 @@ spec:
           jq -n --arg stage "$stage" --arg image "$image" '{ stage: $stage, image: $image }' > "$body_file"
 
           # Call API
-          curl --fail -X POST -H "Content-Type: application/json" -d "@$body_file" "$publisher_url" | \
-            jq -r '.tickets[] | "\(.component)@\(.component_version): \(.url)"' "$response_file" | tee -a "$save_file"
+          local api_url="$publisher_url/tidbcloud/devops/cloudconfig/versions/component"
+          curl --fail -X POST -H "Content-Type: application/json" -d "@$body_file" "$api_url" | \
+            jq -r '.tickets[] | "\(.component)@\(.component_version): \(.url)"' | tee -a "$save_file"
 
           # Clean up
           rm -f "$body_file"
