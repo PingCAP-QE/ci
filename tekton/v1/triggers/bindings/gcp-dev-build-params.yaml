@@ -4,6 +4,7 @@ metadata:
   name: gcp-dev-build-params # only use in GCP clusters for dev-builds
 spec:
   params:
+    # Reserved for future mac/darwin builds. GCP fake-github triggers currently only support linux builds.
     - { name: boskos-server-url, value: http://boskos.test-pods.svc.cluster.local }
     - { name: builder-resources-cpu, value: $(extensions.resource-config.cpu) }
     - { name: builder-resources-memory, value: $(extensions.resource-config.memory) }
