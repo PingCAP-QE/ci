@@ -41,6 +41,7 @@ postsubmits:
                   scripts/generate_cloud_pdf.sh
                 fi
 
+                export RCLONE_CONFIG_GCS_SERVICE_ACCOUNT_FILE="/secrets/gcs/service-account.json"
                 export RCLONE_CONFIG_GCS_TYPE="google cloud storage"
                 gcs_dst="gcs:prow-tidb-logs/artifacts/pdf"
                 case "${branch}" in
@@ -63,6 +64,10 @@ postsubmits:
                 if [ -f output_cloud.pdf ]; then
                   rclone copyto --progress output_cloud.pdf "${gcs_dst}/tidbcloud-en-manual.pdf"
                 fi
+            volumeMounts:
+              - name: gcs-credentials
+                mountPath: /secrets/gcs
+                readOnly: true
             resources:
               requests:
                 memory: 2Gi

@@ -35,6 +35,7 @@ postsubmits:
                 python3 scripts/merge_by_toc.py zh/
                 scripts/generate_pdf.sh
 
+                export RCLONE_CONFIG_GCS_SERVICE_ACCOUNT_FILE="/secrets/gcs/service-account.json"
                 export RCLONE_CONFIG_GCS_TYPE="google cloud storage"
                 gcs_dst="gcs:prow-tidb-logs/artifacts/pdf"
                 case "${branch}" in
@@ -55,6 +56,10 @@ postsubmits:
 
                 rclone copyto -P output_en.pdf "${gcs_dst}/tidb-in-kubernetes-${version}-en-manual.pdf"
                 rclone copyto -P output_zh.pdf "${gcs_dst}/tidb-in-kubernetes-${version}-zh-manual.pdf"
+            volumeMounts:
+              - name: gcs-credentials
+                mountPath: /secrets/gcs
+                readOnly: true
             resources:
               requests:
                 memory: 2Gi
