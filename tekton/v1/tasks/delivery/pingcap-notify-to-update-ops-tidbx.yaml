@@ -24,6 +24,10 @@ spec:
     - name: stage
       type: string
       description: stage name
+    - name: publisher-url
+      type: string
+      description: publisher url
+      default: "http://publisher.publisher.svc"
   workspaces:
     - name: notify-config
       description: |
@@ -48,159 +52,39 @@ spec:
       args:
         - "$(params.stage)"
         - "$(params.images)"
-        - /workspace/ops-tickets.txt
+        - "$(params.publisher-url)"
+        - "/workspace/ops-tickets.txt"
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
 
-        function get_ops_instance_url() {
-            local stage="$1"
-            local instance_id="$2"
-
-            if [ "$stage" = "prod" ]; then
-                echo "https://ops.tidbcloud.com/operations/$instance_id"
-            else
-                echo "https://ops-${stage}.tidbcloud.com/operations/$instance_id"
-            fi
-        }
-
-        function get_git_tag_metadata() {
-            local stage="$1"
-            local image_repo="$2"
-            local image_tag="$3"
-            local stage_config_file=$(workspaces.ops-config.path)/${stage}.json
-
-            # 1. get the github full repo from image repo.
-            # Look up in the stage config's .components map for an entry whose base_image matches $image_repo
-            local github_repo
-            github_repo=$(jq -r --arg img "$image_repo" '
-              .components
-              | to_entries
-              | map(select(.value.base_image == $img) | .value.github_repo)
-              | .[0] // empty
-            ' "$stage_config_file")
-
-            if [ -z "$github_repo" ]; then
-              echo "❌ Could not find github_repo for base_image: $image_repo in $stage_config_file" >&2
-              return 1
-            fi
-
-            # 2. call tibuild-v2 api to get the git tag metadata.
-            local api_base_url="$(jq -r '.tibuild_v2.api_base_url' $stage_config_file)"
-            local api_url="$api_base_url/hotfix/tidbx/tag"
-            local api_user="$(jq -r '.tibuild_v2.user' $stage_config_file)"
-            local api_password="$(jq -r '.tibuild_v2.password' $stage_config_file)"
-            curl -f \
-              --request GET \
-              --location \
-              --user "$api_user:$api_password" \
-              --get \
-              --data-urlencode "repo=$github_repo" \
-              --data-urlencode "tag=$image_tag" \
-              --url "$api_url"
-        }
-
-        function make_ops_api_call() {
-            local stage="$1"
-            local component="$2"
-            local component_version="$3"
-            local cluster_type="$4"
-            local image_repo="$5"
-            local image_tag="$6"
-            local api_base_url="$7"
-            local api_key="$8"
-            local save_file="$9"
-
-            local api_url="$api_base_url/$component"
-
-            # get the tag metadata from github
-            local tag_metadata
-            if ! tag_metadata=$(get_git_tag_metadata "$stage" "$image_repo" "$image_tag"); then
-              echo "⚠️ Warning: Failed to get git tag metadata, proceeding without it." >&2
-              tag_metadata='{}'
-            fi
-            local release_id=$(echo "$tag_metadata" | jq -r '.meta.ops_req.release_id // ""')
-            local change_id=$(echo "$tag_metadata" | jq -r '.meta.ops_req.change_id // ""')
-            local author=$(echo "$tag_metadata" | jq -r '.author // ""')
-
-            # prepare payload file
-            local payload_file="/tmp/$component-$component_version.json"
-            jq -n \
-              --arg cluster_type "$cluster_type" \
-              --arg version "$component_version" \
-              --arg base_image "$image_repo" \
-              --arg tag "$image_tag" \
-              --arg author "$author" \
-              --arg release_id "$release_id" \
-              --arg change_id "$change_id" \
-              '{"cluster_type": $cluster_type, "version": $version, "base_image": $base_image, "tag": $tag, "policy": "immediate", "author": $author, "release_id": $release_id, "change_id": $change_id}' > $payload_file
-
-            echo "🚀 Request to update the image for component $component@$component_version in stage $stage with: $image_repo:$image_tag"
-            cat $payload_file
-            local response_file="/tmp/${component}-${component_version}-response.json"
-            curl -f \
-              --request POST \
-              --location "$api_url" \
-              --header "x-api-key: $api_key" \
-              --header "Content-Type: application/json" \
-              --data "@$payload_file" \
-              --output "$response_file"
-            ops_instance_id=$(jq -r .instance_id $response_file)
-            ops_ticket_url="$(get_ops_instance_url $stage $ops_instance_id)"
-            echo "✅ Requested image updating successfully for component $component@$component_version in stage $stage with: $image_repo:$image_tag, the Ops ticket URL is: $ops_ticket_url"
-            echo "$component@$component_version in $stage stage: $ops_ticket_url" >> "$save_file"
-        }
-
         function update_ops_config_for_image() {
           local stage="$1"
           local image="$2"
-          local stage_config_file="$3"
+          local publisher_url="$3"
           local save_file="$4"
-          local api_base_url="$(jq -r '.api_base_url' $stage_config_file)"
-          local api_key="$(jq -r '.api_key' $stage_config_file)"
 
-          # split image name and tag
-          local image_repo=${image%:*}
-          local image_tag=${image##*:}
+          local body_file=$(mktemp)
 
-          # Fast return unless image_tag is one of:
-          # - legacy nextgen format: v1.2.3-nextgen.250101.1
-          # - calendar-semver nextgen image tag: v26.3.0(for tiproxy), v26.3.0-nextgen
-          if ! [[ "$image_tag" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+-nextgen\.[0-9]{6}\.[0-9]+|v[1-9][0-9]+\.[0-9]+\.[0-9]+-nextgen)$ ]]; then
-            echo "image_repo: $image_repo, image_tag: $image_tag"
-            if [[ "$image_tag" =~ ^v[1-9][0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "$image_repo" =~ ^.+/tidbx/tiproxy$ ]] ; then
-                echo "It's tiproxy nextgen GA image."
-            else
-                echo "🤷 Image tag '$image_tag' is not a supported nextgen release tag, skip Ops update."
-                return 0
-            fi
-          fi
+          # Create JSON payload
+          jq -n --arg stage "$stage" --arg image "$image" '{ stage: $stage, image: $image }' > "$body_file"
 
-          # get the component name from image repo: the base name of the image repo
-          local components=$(jq -r --arg img "$image_repo" '.components | to_entries | map(select(.value.base_image==$img) | .key) | join(",")' $stage_config_file)
-          if [ -z "$components" ]; then
-            echo "🤷 No component matched to bump on the Ops platform, skip."
-            return 0
-          fi
+          # Call API
+          local api_url="$publisher_url/tidbcloud/devops/cloudconfig/versions/component"
+          curl --fail -X POST -H "Content-Type: application/json" -d "@$body_file" "$api_url" | \
+            jq -r '.tickets[] | "\(.component)@\(.component_version): \(.url)"' | tee -a "$save_file"
 
-          # get the component version from image tag(should return the vX.Y.Z part)
-          local component_version=$(echo $image_tag | cut -d'-' -f1)
-
-          # loop the components
-          IFS=',' read -ra components_array <<< "$components"
-          for component in "${components_array[@]}"; do
-            cluster_type="$(jq -r ".components.${component}.cluster_type" $stage_config_file)"
-            make_ops_api_call "$stage" "$component" "$component_version" "$cluster_type" "$image_repo" "$image_tag" "$api_base_url" "$api_key" "$save_file"
-          done
+          # Clean up
+          rm -f "$body_file"
         }
 
         function main() {
           stage="$1"
-          stage_config_file=$(workspaces.ops-config.path)/${stage}.json
-          images="$(echo "$2" | jq -r '.[]')"
-          save_file="$3"
+          images="$(echo "$2" | jq -r '.[] // empty' 2>/dev/null || echo "")"
+          publisher_url="$3"
+          save_file="$4"
           for image in $images; do
-            update_ops_config_for_image "$stage" "$image" "$stage_config_file" "$save_file"
+            update_ops_config_for_image "$stage" "$image" "$publisher_url" "$save_file"
           done
 
           echo "🎉 Done!"
@@ -224,7 +108,12 @@ spec:
           local body_file=$(mktemp)
 
           # Create JSON payload
-          jq -n --arg text "$message" '{ msg_type: "text", content: { text: $text } }' > "$body_file"
+          echo "message: $message"
+          if ! jq -n --arg text "$message" '{ msg_type: "text", content: { text: $text } }' > "$body_file" 2>/dev/null; then
+            >&2 echo "Error: failed to create JSON payload for Lark notification"
+            rm -f "$body_file"
+            return 1
+          fi
 
           # Send notification
           curl --fail -X POST -H "Content-Type: application/json" -d "@$body_file" "$lark_webhook_url"
@@ -239,8 +128,8 @@ spec:
           local target_images="$3"
 
           local title="The Images are delivered to cloud registries of ${stage} env."
-          local source_image_lines="$(echo "$source_images" | jq -r '.[]')"
-          local target_image_lines="$(echo "$target_images" | jq -r '.[]')"
+          local source_image_lines="$(echo "$source_images" | jq -r '.[] // empty' 2>/dev/null || echo "$source_images")"
+          local target_image_lines="$(echo "$target_images" | jq -r '.[] // empty' 2>/dev/null || echo "$target_images")"
           printf "%s\nSources:\n%s\nTargets:\n%s" "$title" "$source_image_lines" "$target_image_lines"
         }
 
