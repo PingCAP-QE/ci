@@ -35,7 +35,6 @@ spec:
       default: ""
     - name: boskos-server-url
       default: "http://boskos"
-
     - name: publisher-url
       default: "https://publisher.pingcap.net"
     - name: git-instead-of
@@ -111,7 +110,6 @@ spec:
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
-
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:

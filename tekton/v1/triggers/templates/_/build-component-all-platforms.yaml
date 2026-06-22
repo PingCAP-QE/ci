@@ -267,7 +267,6 @@ spec:
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
-
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:

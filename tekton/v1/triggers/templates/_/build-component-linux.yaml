@@ -126,7 +126,6 @@ spec:
           # - name: cypress-cache
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
