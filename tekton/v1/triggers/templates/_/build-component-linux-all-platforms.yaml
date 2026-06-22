@@ -18,7 +18,7 @@ spec:
       description: build target profile
       default: release
     - name: registry
-      default: hub.pingcap.net
+      default: ttl.sh
     - name: timeout
       description: pipeline run timeout
       default: 2h
