@@ -152,7 +152,7 @@ spec:
                 'us-docker.pkg.dev/pingcap-testing-account/dev'
   bindings:
     - ref: github-branch-push
-    - ref: ksy-dev-build-params
+    - ref: gcp-dev-build-params
 
   template:
     ref: build-component-all-platforms

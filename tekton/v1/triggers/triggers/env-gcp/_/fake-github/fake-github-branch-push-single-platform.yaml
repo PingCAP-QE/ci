@@ -155,7 +155,7 @@ spec:
 
   bindings:
     - ref: github-branch-push
-    - ref: ksy-dev-build-params
+    - ref: gcp-dev-build-params
     - { name: os, value: $(extensions.custom-params.os) }
     - { name: arch, value: $(extensions.custom-params.arch) }
 

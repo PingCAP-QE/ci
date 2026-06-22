@@ -153,7 +153,7 @@ spec:
 
   bindings:
     - ref: github-tag-create
-    - ref: ksy-dev-build-params
+    - ref: gcp-dev-build-params
 
   template:
     ref: build-component-all-platforms
