@@ -37,7 +37,6 @@ spec:
     - name: force-builder-image
       description: force use the builder image to prepare container to build binaries.
       default: ""
-
     - name: publisher-url
       default: "https://publisher.pingcap.net"
     - name: git-instead-of
