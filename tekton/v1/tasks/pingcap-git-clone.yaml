@@ -292,7 +292,7 @@ spec:
         printf "" > "$(results.external-commit.path)"
         printf "" > "$(results.external-url.path)"
     - name: resolve-external
-      image: alpine/git:v2.52.0
+      image: alpine/git:v2.54.0
       when:
         - input: "$(params.fetch-external)"
           operator: in
