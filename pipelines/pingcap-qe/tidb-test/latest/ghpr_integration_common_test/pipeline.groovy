@@ -10,17 +10,10 @@ final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            retries 2
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
@@ -29,8 +22,17 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
+                }
+            }
+            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
@@ -42,18 +44,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
-            }
-        }
-        stage('Prepare') {
-            steps {
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'make'
@@ -74,6 +68,7 @@ pipeline {
                             """
                     }
                 }
+                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('Tests') {
@@ -104,48 +99,28 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                                    sh label: "print version", script: """
-                                        pwd && ls -alh
-                                        ls bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/pd-server && ./bin/pd-server -V
-                                        ls bin/tikv-server && ./bin/tikv-server -V
-                                    """
-                                }
-                            }
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh label: "print git version", script: """
-                                        pwd && ls -alh
-                                        git status && git rev-parse HEAD
-                                    """
-                                    sh label: "copy binaries", script: """
-                                        mkdir -p bin
-                                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                        ls -alh bin/
-                                    """
-                                    sh label: "test_params=${TEST_PARAMS} ", script: """
-                                        #!/usr/bin/env bash
-                                        params_array=(\${TEST_PARAMS})
-                                        TEST_DIR=\${params_array[0]}
-                                        TEST_SCRIPT=\${params_array[1]}
-                                        echo "TEST_DIR=\${TEST_DIR}"
-                                        echo "TEST_SCRIPT=\${TEST_SCRIPT}"
-                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                            export TIKV_PATH="127.0.0.1:2379"
-                                            export TIDB_TEST_STORE_NAME="tikv"
-                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                        else
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                            export TIDB_TEST_STORE_NAME="unistore"
-                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                        fi
-                                    """
-                                }
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh label: "test_params=${TEST_PARAMS} ", script: """
+                                    #!/usr/bin/env bash
+                                    params_array=(\${TEST_PARAMS})
+                                    TEST_DIR=\${params_array[0]}
+                                    TEST_SCRIPT=\${params_array[1]}
+                                    echo "TEST_DIR=\${TEST_DIR}"
+                                    echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                    if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                        export TIKV_PATH="127.0.0.1:2379"
+                                        export TIDB_TEST_STORE_NAME="tikv"
+                                        cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                    else
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                        export TIDB_TEST_STORE_NAME="unistore"
+                                        cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                    fi
+                                """
                             }
                         }
                         post{

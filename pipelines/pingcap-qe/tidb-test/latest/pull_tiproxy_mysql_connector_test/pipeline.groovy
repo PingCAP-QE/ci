@@ -8,17 +8,10 @@ final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
-            retries 2
-            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
@@ -26,8 +19,17 @@ pipeline {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
+                }
+            }
+            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiproxy") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
@@ -39,43 +41,46 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
-            }
-        }
-        stage('Prepare') {
-            steps {
                 dir('tiproxy') {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                        sh "touch ws-${BUILD_TAG}"
-                        container("utils") {
-                            dir('bin') {
-                                sh label: 'download thirdparty binary', script: """
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tidb=master
-                                """
-                            }
+                    sh "touch ws-${BUILD_TAG}"
+                    container("utils") {
+                        dir('bin') {
+                            sh label: 'download thirdparty binary', script: """
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tidb=master
+                            """
                         }
-                        sh label: 'prepare tiproxy binary', script: """
-                        cp ../tiproxy/bin/* ./bin/
-                        ls -alh bin/
-                        ./bin/tidb-server -V
-                        ./bin/tiproxy --version
-                        """
+                    }
+                    sh label: 'prepare tiproxy binary', script: """
+                    cp ../tiproxy/bin/* ./bin/
+                    ls -alh bin/
+                    ./bin/tidb-server -V
+                    ./bin/tiproxy --version
+                    """
                 }
+                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('MySQL Connector Tests') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
+                    defaultContainer 'golang'
+                }
+            }
             steps {
                 container('mysql-client-test') {
                     dir('tidb-test') {
+                        unstash name: WORKSPACE_STASH_NAME
                         sh label: "run test", script: """
                             #!/usr/bin/env bash
                             make mysql_client_test WITH_TIPROXY=1
