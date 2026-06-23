@@ -13,7 +13,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:2.2.2
+            image: denoland/deno:2.2.15
             command:
               - deno
               - run
