@@ -1,0 +1,216 @@
+name: Publish CI base images
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "dockerfiles/ci/**/Dockerfile"
+      - "dockerfiles/ci/**/*.Dockerfile"
+      - "dockerfiles/ci/skaffold.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  detect-changes:
+    name: Detect file changes
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push'
+    outputs:
+      base-jenkins: ${{ steps.filter.outputs.base-jenkins }}
+      jenkins-special: ${{ steps.filter.outputs.jenkins-special }}
+      tici: ${{ steps.filter.outputs.tici }}
+      skaffold: ${{ steps.filter.outputs.skaffold }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+        id: filter
+        with:
+          filters: |
+            base-jenkins:
+              - 'dockerfiles/ci/base/**/Dockerfile'
+              - 'dockerfiles/ci/base/**/*.Dockerfile'
+              - 'dockerfiles/ci/jenkins/Dockerfile'
+            jenkins-special:
+              - 'dockerfiles/ci/jenkins/tikv/**'
+              - 'dockerfiles/ci/jenkins/tiflash/**'
+            tici:
+              - 'dockerfiles/ci/tici/**'
+            skaffold:
+              - 'dockerfiles/ci/skaffold.yaml'
+  skaffold-go:
+    name: publish images with skaffold
+    runs-on: ubuntu-24.04
+    needs: [detect-changes]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       needs.detect-changes.outputs.base-jenkins == 'true' ||
+       needs.detect-changes.outputs.skaffold == 'true')
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        module: [ci]
+        go-profile: [go-1.25]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-depth: "0"
+          fetch-tags: "true"
+
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup skaffold
+        uses: heypigeonhq/setup-skaffold@3b1a0687de1b580d3879bf6b9d423255c9954587
+        with:
+          version: 2.16.0
+
+      - name: Cache layers
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        with:
+          path: "~/.skaffold/cache"
+          key: skaffold/ci/${{ matrix.module }}/${{ matrix.go-profile }}-${{ github.sha }}
+          restore-keys: |
+            skaffold/ci/${{ matrix.module }}/${{ matrix.go-profile }}-
+            skaffold/ci/${{ matrix.module }}/
+            skaffold/ci/
+
+      - name: Publish images
+        working-directory: dockerfiles/ci
+        run: |
+          skaffold build \
+            --build-concurrency 1 \
+            --cache-artifacts \
+            --default-repo ghcr.io/pingcap-qe/ci \
+            --module ${{ matrix.module }} \
+            --profile ${{ matrix.go-profile }}
+
+  skaffold-jenkins-nogo:
+    name: publish images with skaffold
+    runs-on: ubuntu-24.04
+    needs: [detect-changes]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       needs.detect-changes.outputs.jenkins-special == 'true' ||
+       needs.detect-changes.outputs.skaffold == 'true')
+
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        module: [ci-jenkins-tiflash, ci-jenkins-tikv]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-depth: "0"
+          fetch-tags: "true"
+
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup skaffold
+        uses: heypigeonhq/setup-skaffold@3b1a0687de1b580d3879bf6b9d423255c9954587
+        with:
+          version: 2.16.0
+
+      - name: Publish images
+        working-directory: dockerfiles/ci
+        run: |
+          skaffold build \
+            --build-concurrency 1 \
+            --cache-artifacts \
+            --default-repo ghcr.io/pingcap-qe/ci/jenkins \
+            --module ${{ matrix.module }}
+
+  skaffold-common:
+    name: publish images with skaffold
+    runs-on: ubuntu-24.04
+    needs: [detect-changes]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       needs.detect-changes.outputs.tici == 'true' ||
+       needs.detect-changes.outputs.skaffold == 'true')
+
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        module: [ci-tici]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-depth: "0"
+          fetch-tags: "true"
+
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup skaffold
+        uses: heypigeonhq/setup-skaffold@3b1a0687de1b580d3879bf6b9d423255c9954587
+        with:
+          version: 2.15.0
+
+      - name: Publish images
+        working-directory: dockerfiles/ci
+        run: |
+          skaffold build \
+            --build-concurrency 1 \
+            --cache-artifacts \
+            --default-repo ghcr.io/pingcap-qe/ci \
+            --module ${{ matrix.module }}

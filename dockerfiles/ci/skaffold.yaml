@@ -1,0 +1,95 @@
+# Ref: https://skaffold.dev/docs/builders/builder-types/docker
+---
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: ci
+build:
+  artifacts:
+    - image: base
+      platforms: [linux/amd64, linux/arm64]
+      docker:
+        dockerfile: base/Dockerfile
+    - image: jenkins
+      platforms: [linux/amd64, linux/arm64]
+      docker:
+        dockerfile: jenkins/Dockerfile
+      requires:
+        - image: base
+          alias: BASE_IMG
+  tagPolicy:
+    customTemplate:
+      template: "{{ .GIT }}"
+  local:
+    useDockerCLI: true
+    useBuildkit: true
+    concurrency: 0
+    tryImportMissing: true
+profiles:
+  - name: go-1.25
+    patches:
+      - op: replace
+        path: /build/tagPolicy/customTemplate/template
+        value: "{{ .GIT }}-go1.25"
+      - op: add
+        path: /build/artifacts/0/docker/buildArgs
+        value:
+          # renovate: datasource=docker depName=golang
+          GOLANG_VERSION: 1.25.10
+---
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: ci-jenkins-tikv
+build:
+  artifacts:
+    - image: tikv
+      platforms: [linux/amd64, linux/arm64]
+      docker:
+        dockerfile: jenkins/tikv/Dockerfile
+  tagPolicy:
+    customTemplate:
+      template: "{{ .GIT }}"
+  local:
+    useDockerCLI: true
+    useBuildkit: true
+    concurrency: 0
+    tryImportMissing: true
+---
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: ci-tici
+build:
+  artifacts:
+    - image: tici
+      platforms: [linux/amd64, linux/arm64]
+      docker:
+        dockerfile: tici/Dockerfile
+  tagPolicy:
+    customTemplate:
+      template: "{{ .GIT }}"
+  local:
+    useDockerCLI: true
+    useBuildkit: true
+    concurrency: 0
+    tryImportMissing: true
+---
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: ci-jenkins-tiflash
+build:
+  artifacts:
+    - image: tiflash
+      platforms: [linux/amd64, linux/arm64]
+      docker:
+        dockerfile: jenkins/tiflash/Dockerfile
+  tagPolicy:
+    customTemplate:
+      template: "{{ .GIT }}"
+  local:
+    useDockerCLI: true
+    useBuildkit: true
+    concurrency: 0
+    tryImportMissing: true

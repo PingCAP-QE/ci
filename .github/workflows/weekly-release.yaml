@@ -1,0 +1,96 @@
+name: Weekly GitHub Release
+
+on:
+  schedule:
+    # Run weekly on Sunday at 00:00 UTC
+    - cron: "0 0 * * 0"
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Ensure only one instance of this workflow runs at a time
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-tags: true
+          # Fetch all history for proper comparison
+          fetch-depth: 0
+
+      - name: Check for changes since last release
+        id: check-changes
+        run: |
+          # Get the latest release tag
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq .[].tagName)
+
+          if [ -z "$LATEST_RELEASE" ]; then
+            echo "No previous releases found. Creating initial release."
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "Latest release: $LATEST_RELEASE"
+
+            # Check if there are any changes since the latest release
+            CHANGES=$(git log $LATEST_RELEASE..HEAD --oneline)
+
+            if [ -n "$CHANGES" ]; then
+              echo "Changes detected since last release"
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "No changes since last release"
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get current date
+        if: steps.check-changes.outputs.has_changes == 'true'
+        id: date
+        run: echo "date=$(date +'%Y.%-m.%-d')" >> $GITHUB_OUTPUT
+
+      - name: Create new tag and release
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: |
+          set -euo pipefail
+
+          TAG_NAME="v${{ steps.date.outputs.date }}"
+
+          # Delete remote tag if it exists to handle re-runs
+          gh api \
+            --method DELETE \
+            "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG_NAME}" \
+            >/dev/null 2>&1 || true
+
+          # Create a new annotated tag
+          TAG_SHA=$(gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/git/tags" \
+            -f tag="$TAG_NAME" \
+            -f message="Weekly release $TAG_NAME" \
+            -f object="$GITHUB_SHA" \
+            -f type=commit \
+            --jq .sha)
+
+          # Push the tag ref
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/$TAG_NAME" \
+            -f sha="$TAG_SHA"
+
+          # Create GitHub release
+          gh release create "$TAG_NAME" \
+            --title "Weekly Release $TAG_NAME" \
+            --notes "Weekly automatic release created on $(date +'%Y-%m-%d')"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
