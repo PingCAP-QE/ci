@@ -29,7 +29,7 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 5, unit: 'MINUTES') }
+            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tiproxy") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
