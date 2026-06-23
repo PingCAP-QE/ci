@@ -164,7 +164,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: golang:1.26.4
+          image: golang:1.21.13
           command: [bash, -ce]
           env:
             - name: TARGET
@@ -195,7 +195,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: golang:1.26.4
+          image: golang:1.21.13
           command: [bash, -ce]
           env:
             - name: TARGET
@@ -226,7 +226,7 @@ periodics:
     spec:
       containers:
         - name: check
-          image: golang:1.26.4
+          image: golang:1.21.13
           command: [bash, -ce]
           env:
             - name: TARGET
