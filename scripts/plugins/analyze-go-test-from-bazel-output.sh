@@ -90,11 +90,22 @@ function parse_bazel_go_test_new_flaky_cases() {
             for n in $targetShardOutputLineNum; do
                 local newFlakyCases=($(
                     sed -nE "/^${n}:/,/^[0-9]+:=+ Test output for \//p" "$DEFAULT_GO_TEST_INDEX_FILE" |
-                        grep -E "=== RUN|--- PASS" |
+                        grep -E "=== RUN|--- (PASS|FAIL|SKIP)" |
                         grep -Eo "\bTest\w+" | sort | uniq -c |
                         grep "^\s*1\b" |
                         grep -Eo "\bTest\w+"
                 ))
+
+                # Verify each candidate actually has a --- FAIL line in the index
+                local verifiedCases=()
+                for c in "${newFlakyCases[@]}"; do
+                    if grep -qE "--- FAIL:\s*${c}\b" "$DEFAULT_GO_TEST_INDEX_FILE"; then
+                        verifiedCases+=("$c")
+                    else
+                        echo "Skipping '${c}': no --- FAIL evidence in index"
+                    fi
+                done
+                newFlakyCases=("${verifiedCases[@]}")
 
                 ##### add into result json file.
                 if [ "${#newFlakyCases[@]}" -gt 0 ]; then
