@@ -162,7 +162,7 @@ pre-commit run --all-files
 ## CI System URLs
 
 - **Prow Dashboard**: https://prow.tidb.net
-- **Jenkins Backend**: https://do.pingcap.net/jenkins
+- **Jenkins Backend**: https://prow.tidb.net/jenkins
 - **Prow Commands**: https://prow.tidb.net/command-help
 - **Merge Queue**: https://prow.tidb.net/tide
 
