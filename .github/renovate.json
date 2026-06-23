@@ -1,6 +1,30 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
+  "separateMinorPatch": true,
+  "packageRules": [
+    {
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Only allow patch-level Go toolchain updates",
+      "matchDatasources": ["docker"],
+      "matchDepNames": ["golang", "go"],
+      "matchUpdateTypes": ["major", "minor"],
+      "enabled": false
+    },
+    {
+      "matchDepNames": ["golang", "go"],
+      "separateMinorPatch": true,
+      "groupName": null
+    },
+    {
+      "matchUpdateTypes": ["major", "minor"],
+      "labels": ["help wanted"]
+    }
+  ],
   "customManagers": [
     {
       "description": "Update container images referenced in pipelines/ and prow-jobs/ YAML files",
@@ -11,6 +35,18 @@
       "matchStrings": [
         "(?m)^\\s*image:\\s*(?:&[A-Za-z0-9_-]+\\s+)?[\"']?(?<depName>[^\"'\\s@:]+(?::\\d+)?(?:/[^\"'\\s@:]+)*):(?<currentValue>[^\"'\\s]+)[\"']?(?:\\s+#.*)?$"
       ]
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/.*\\.(yml|yaml)$$/",
+        "/.*\\.Dockerfile$$/",
+        "/.*/Dockerfile$$/"
+      ],
+      "matchStrings": [
+        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s.*(version|VERSION|ver|VER)(: |=)(?<currentValue>.*)\\s"
+      ],
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}docker{{/if}}"
     }
   ],
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
