@@ -135,7 +135,7 @@ RUN ARCH=$([ "$(arch)" = "x86_64" ] && echo amd64 || echo arm64); \
     chmod +x /usr/local/bin/tini
 
 # Add docker cli
-COPY --from=docker.io/docker:28.5.2-cli /usr/local/bin/docker /usr/local/bin/docker
-COPY --from=docker.io/docker:28.5.2-cli /usr/local/libexec/docker/cli-plugins /usr/local/libexec/docker/cli-plugins
+COPY --from=docker.io/docker:29.6.0-cli /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker.io/docker:29.6.0-cli /usr/local/libexec/docker/cli-plugins /usr/local/libexec/docker/cli-plugins
 RUN ln -sf /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose && \
     ln -sf /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/bin/docker-buildx
