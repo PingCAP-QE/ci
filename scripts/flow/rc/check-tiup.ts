@@ -198,7 +198,7 @@ async function main(
     version,
     branch,
     github_token,
-    oci_registry = "hub.pingcap.net",
+    oci_registry = "us-docker.pkg.dev/pingcap-testing-account/hub",
     save_to = "results.yaml",
   }: CliParams,
 ) {
