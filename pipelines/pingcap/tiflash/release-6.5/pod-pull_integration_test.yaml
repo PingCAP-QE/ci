@@ -49,7 +49,7 @@ spec:
           value: "/certs/client"
         - name: "DOCKER_TLS_VERIFY"
           value: "1"
-      image: "docker.io/library/docker:20.10.24"
+      image: "ghcr.io/pingcap-qe/ci/base:v2026.4.12-11-g402978f-go1.25"
       imagePullPolicy: "Always"
       name: "docker"
       resources:
