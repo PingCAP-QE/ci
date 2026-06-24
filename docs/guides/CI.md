@@ -54,7 +54,7 @@ flowchart TD
 
 3. **Test your changes**:
    - After your PR is merged, the seed job (automatically triggered by Prow) will deploy it to the staging CI server
-   - Test the pipeline in the staging environment at https://do.pingcap.net/jenkins-beta/
+   - Test the pipeline in the staging environment at https://prow.tidb.net/jenkins-staging/
    - Navigate to the corresponding job in the staging environment
    - Trigger a test run manually to verify your changes work as expected
 
@@ -72,7 +72,7 @@ When your PR modifies files under `pipelines/**/*.groovy`, run both static valid
 Run Jenkins pipeline model validation for all Groovy pipelines:
 
 ```bash
-JENKINS_URL=https://do.pingcap.net/jenkins .ci/verify-jenkins-pipelines.sh
+JENKINS_URL=https://prow.tidb.net/jenkins .ci/verify-jenkins-pipelines.sh
 ```
 
 This checks syntax/model validity through Jenkins API and is the fastest baseline check.
@@ -86,7 +86,7 @@ JENKINS_USER="<jenkins-user>" \
 JENKINS_TOKEN="<jenkins-token>" \
 .ci/replay-jenkins-build.sh \
   --script-file pipelines/pingcap/tidb/release-8.5/pull_integration_e2e_test.groovy \
-  --jenkins-url https://do.pingcap.net/jenkins \
+  --jenkins-url https://prow.tidb.net/jenkins \
   --selector lastSuccessfulBuild \
   --verbose
 ```
@@ -104,7 +104,7 @@ JENKINS_USER="<jenkins-user>" \
 JENKINS_TOKEN="<jenkins-token>" \
 .ci/replay-jenkins-build.sh \
   --auto-changed \
-  --jenkins-url https://do.pingcap.net/jenkins \
+  --jenkins-url https://prow.tidb.net/jenkins \
   --selector lastSuccessfulBuild \
   --max-replays 20 \
   --verbose
@@ -146,4 +146,4 @@ This repository has two related presubmit jobs for pipeline changes:
   - Optional replay validation using `--auto-changed`.
   - Trigger manually in PR comments:
     - `/test pull-replay-jenkins-pipelines`
-  - Replays against `https://do.pingcap.net/jenkins-beta`.
+  - Replays against `https://prow.tidb.net/jenkins`.

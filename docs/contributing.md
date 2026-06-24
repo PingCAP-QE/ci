@@ -16,9 +16,9 @@
 If your changes include `pipelines/**/*.groovy`, run these checks locally first:
 
 1. Static validation:
-   - `JENKINS_URL=https://do.pingcap.net/jenkins .ci/verify-jenkins-pipelines.sh`
+   - `JENKINS_URL=https://prow.tidb.net/jenkins .ci/verify-jenkins-pipelines.sh`
 2. Real replay validation:
-   - `JENKINS_USER=<user> JENKINS_TOKEN=<token> .ci/replay-jenkins-build.sh --auto-changed --jenkins-url https://do.pingcap.net/jenkins --verbose`
+   - `JENKINS_USER=<user> JENKINS_TOKEN=<token> .ci/replay-jenkins-build.sh --auto-changed --jenkins-url https://prow.tidb.net/jenkins --verbose`
 
 For full command examples, behavior details (including `404` historical-build skip), and PR trigger workflow, see:
 - `docs/guides/CI.md` -> `Pre-PR Verification for Jenkins Pipeline Changes`
