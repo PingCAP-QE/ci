@@ -43,7 +43,7 @@ pipeline {
                         dir(REFS.repo) {
                             script {
                                 sh 'git config --global --add safe.directory "*"'
-                                prow.checkoutRefs(REFS, GIT_CREDENTIALS_ID, 5, true)
+                                prow.checkoutRefs(REFS, GIT_CREDENTIALS_ID, 30, true)
                             }
                         }
                     }
