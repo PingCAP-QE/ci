@@ -16,8 +16,6 @@ final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-ro
 final WORKSPACE_STASH_NAME = 'tiflash-next-gen-columnar-workspace'
 final PARALLELISM = 12
 
-String tiflash_commit_hash = null
-
 prow.setPRDescription(REFS)
 pipeline {
     agent none
@@ -44,10 +42,8 @@ pipeline {
                     steps {
                         dir(REFS.repo) {
                             script {
-                                sh label: "trust Jenkins workspace for git", script: 'git config --global --add safe.directory "*"'
+                                sh 'git config --global --add safe.directory "*"'
                                 prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
-                                tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                                println "tiflash_commit_hash: ${tiflash_commit_hash}"
                             }
                         }
                     }
@@ -198,7 +194,7 @@ pipeline {
                                         sh label: "run columnar integration test", script: """#!/usr/bin/env bash
                                             set -o pipefail
                                             chmod +x ./run.sh
-                                            TAG=${tiflash_commit_hash} \\
+                                            TAG=${REFS.pulls[0].sha} \\
                                             BRANCH=${REFS.base_ref} \\
                                             ENABLE_NEXT_GEN=true \\
                                             ENABLE_NEXT_GEN_COLUMNAR=true \\

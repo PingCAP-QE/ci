@@ -25,24 +25,13 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
-                dir("tiflash") {
+                dir(REFS.repo) {
+                    sh 'git config --global --add safe.directory "*" && git version'
                     script {
-                        sh """
-                        git config --global --add safe.directory "*"
-                        git version
-                        """
-                        prow.checkoutRefsWithCacheLock(REFS, 10, GIT_CREDENTIALS_ID, true, 'https://github.com')
-                        retry(2) {
-                            sh """
-                            git status
-                            """
-                            sh """
-                            chown 1000:1000 -R ./
-                            """
-                        }
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
                     }
+                    sh 'chown 1000:1000 -R ./'
                 }
             }
         }
