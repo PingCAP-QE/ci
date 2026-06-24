@@ -64,7 +64,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: golang:1.23
+            image: golang:1.25.11
             env:
               - name: TARGET_FULL_REPO
                 value: pingcap-inc/enterprise-plugin
@@ -129,7 +129,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:2.2.2
+            image: denoland/deno:2.8.3
             command:
               - deno
               - run

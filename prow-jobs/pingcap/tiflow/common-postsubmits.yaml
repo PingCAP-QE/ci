@@ -17,7 +17,7 @@ postsubmits:
       spec:
         containers:
           - name: build
-            image: golang:1.25.8
+            image: golang:1.25.11
             command: [bash, -ceo, pipefail]
             args:
               - |
@@ -105,7 +105,7 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:2.2.2
+            image: denoland/deno:2.8.3
             command:
               - deno
               - run

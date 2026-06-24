@@ -33,7 +33,7 @@ presubmits:
         - ^main$
       spec:
         containers:
-          - image: golang:1.18
+          - image: golang:1.26.4
             command:
               - scripts/verify-labels.sh
     - name: pull-configs-validate-orgs
@@ -44,7 +44,7 @@ presubmits:
       max_concurrency: 1
       spec:
         containers:
-          - image: golang:1.18
+          - image: golang:1.26.4
             command:
               - scripts/peribolos.sh
             args:
