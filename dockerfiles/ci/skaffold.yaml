@@ -35,7 +35,7 @@ profiles:
         path: /build/artifacts/0/docker/buildArgs
         value:
           # renovate: datasource=docker depName=golang
-          GOLANG_VERSION: 1.25.10
+          GOLANG_VERSION: 1.25.11
 ---
 apiVersion: skaffold/v4beta6
 kind: Config
