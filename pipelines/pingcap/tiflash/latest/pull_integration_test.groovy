@@ -11,7 +11,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
 final WORKSPACE_STASH_NAME = 'tiflash-it-workspace'
 final PARALLELISM = 12
-String tiflash_commit_hash = null
 
 pipeline {
     agent {
@@ -32,24 +31,13 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
-                dir("tiflash") {
+                dir(REFS.repo) {
+                    sh 'git config --global --add safe.directory "*"'
                     script {
-                        sh """
-                        git config --global --add safe.directory "*"
-                        git version
-                        """
                         prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
-                        retry(2) {
-                            sh "git status"
-                            tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                            println "tiflash_commit_hash: ${tiflash_commit_hash}"
-                            sh """
-                            chown 1000:1000 -R ./
-                            """
-                        }
                     }
+                    sh 'chown 1000:1000 -R ./'
                 }
             }
         }
@@ -313,7 +301,7 @@ pipeline {
                                             }
 
                                             sh label: "run integration tests", script: """
-                                                PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
+                                                PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${REFS.pulls[0].sha} BRANCH=${REFS.base_ref} ./run.sh
                                                 """
                                         }
                                     }

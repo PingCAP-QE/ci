@@ -83,8 +83,8 @@ Follow the **Conventional Commits** specification for commit messages:
 
 - Spec: https://www.conventionalcommits.org/en/v1.0.0/
 - Format: `<type>(<scope>): <subject>`
-  - `type`: e.g. `feat`, `fix`, `docs`, `chore`, `ci`, `refactor`, `test`
-  - `scope`: optional but recommended for this repo (e.g. `prow`, `pipelines`, `jobs`, `tekton`, `tools`, `libraries`)
+  - `type`: e.g. `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, but do not use `ci` type except for `.github` and `.ci` changes because this repo is for designed to manage CI/CD jobs.
+  - `scope`: optional but recommended for this repo (e.g. `prow-jobs`, `pipelines`, `jobs`, `tekton`, `tools`, `libraries`)
   - `subject`: imperative, present tense (e.g. "add", "fix", "update")
 
 Examples:

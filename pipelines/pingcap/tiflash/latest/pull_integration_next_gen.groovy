@@ -17,8 +17,6 @@ final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-ro
 final WORKSPACE_STASH_NAME = 'tiflash-next-gen-it-workspace'
 final PARALLELISM = 12
 
-String tiflash_commit_hash = null
-
 pipeline {
     agent {
         kubernetes {
@@ -38,25 +36,13 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
-                dir("tiflash") {
+                dir(REFS.repo) {
+                    sh 'git config --global --add safe.directory "*" && git version'
                     script {
-                        sh """
-                        git config --global --add safe.directory "*"
-                        git version
-                        """
                         prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
-                        retry(2) {
-                            sh "git status"
-                            tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
-                            println "tiflash_commit_hash: ${tiflash_commit_hash}"
-
-                            sh """
-                            chown 1000:1000 -R ./
-                            """
-                        }
                     }
+                    sh 'chown 1000:1000 -R ./'
                 }
             }
         }
@@ -296,7 +282,7 @@ pipeline {
                                                 '''
                                         }
 
-                                        sh label: "run the tests", script: "TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh"
+                                        sh label: "run the tests", script: "TAG=${REFS.pulls[0].sha} BRANCH=${REFS.base_ref} ENABLE_NEXT_GEN=true ./run.sh"
                                     }
                                 }
                             }

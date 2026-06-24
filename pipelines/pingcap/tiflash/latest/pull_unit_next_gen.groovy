@@ -25,7 +25,6 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
                     script {
