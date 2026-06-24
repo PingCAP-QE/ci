@@ -301,7 +301,7 @@ pipeline {
                                             }
 
                                             sh label: "run integration tests", script: """
-                                                PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${REFS.pulls.[0].sha} BRANCH=${REFS.base_ref} ./run.sh
+                                                PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${REFS.pulls[0].sha} BRANCH=${REFS.base_ref} ./run.sh
                                                 """
                                         }
                                     }
