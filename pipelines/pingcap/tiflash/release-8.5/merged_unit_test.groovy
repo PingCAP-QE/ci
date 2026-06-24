@@ -32,7 +32,7 @@ pipeline {
                         git config --global --add safe.directory "*"
                         git version
                         """
-                        prow.checkoutRefsWithCacheLock(REFS, 5, '', true, 'https://github.com')
+                        prow.checkoutRefs(REFS, '', 5, true, 'https://github.com')
                         retry(2) {
                             sh """
                             git status

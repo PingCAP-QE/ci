@@ -32,7 +32,7 @@ pipeline {
                 dir(REFS.repo) {
                     sh 'git config --global --add safe.directory "*" && git version'
                     script {
-                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
+                        prow.checkoutRefs(REFS, GIT_CREDENTIALS_ID, 5, true, 'https://github.com')
                     }
                     sh 'chown 1000:1000 -R ./'
                 }
