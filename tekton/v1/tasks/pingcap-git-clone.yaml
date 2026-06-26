@@ -119,6 +119,13 @@ spec:
       description: The main repository git ref used to resolve the external repository revision.
       type: string
       default: ""
+    - name: plugin-git-ref
+      description: >-
+        Explicit enterprise-plugin ref (branch, tag, SHA). When non-empty,
+        the resolve-external step skips the resolution algorithm and uses this
+        value directly. Stripped of branch/ or tag/ prefix by CEL overlay.
+      type: string
+      default: ""
     - name: external-git-url
       description: URL of the external repository.
       type: string
@@ -312,6 +319,15 @@ spec:
       script: |
         #!/bin/sh
         set -eu
+
+        plugin_ref="$(params.plugin-git-ref)"
+        if [ -n "$plugin_ref" ]; then
+          printf "%s" "${plugin_ref}" > /workspace/pingcap-external-revision
+          printf "%s" "$(params.external-git-url)" > /workspace/pingcap-external-url
+          echo "external git url: $(cat /workspace/pingcap-external-url)"
+          echo "external git revision: $(cat /workspace/pingcap-external-revision)"
+          exit 0
+        fi
 
         origin_ref="$(params.external-git-ref)"
         if [ -z "$origin_ref" ]; then
