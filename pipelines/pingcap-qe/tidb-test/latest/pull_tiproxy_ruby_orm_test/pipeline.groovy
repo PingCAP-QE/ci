@@ -97,8 +97,8 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
+                            unstash name: WORKSPACE_STASH_NAME
                             dir('tidb-test') {
-                                unstash name: WORKSPACE_STASH_NAME
                                 container("ruby") {
                                     sh label: "prepare ruby test deps", script: """
                                         #!/usr/bin/env bash

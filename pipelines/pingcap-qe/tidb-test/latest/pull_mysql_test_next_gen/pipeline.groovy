@@ -104,8 +104,8 @@ pipeline {
                 stages {
                     stage('Test') {
                         steps {
+                            unstash name: WORKSPACE_STASH_NAME
                             dir(REFS.repo) {
-                                unstash name: WORKSPACE_STASH_NAME
                                 sh 'ls mysql_test && chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
                                 sh label: "store=${STORE} part=${PART}", script: """#!/usr/bin/env bash
                                     if [ "$STORE" == "tikv" ]; then
