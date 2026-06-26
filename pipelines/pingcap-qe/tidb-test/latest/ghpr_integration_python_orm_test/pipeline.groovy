@@ -98,8 +98,8 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
+                            unstash name: WORKSPACE_STASH_NAME
                             dir('tidb-test') {
-                                unstash name: WORKSPACE_STASH_NAME
                                 sh label: "test_params=${TEST_PARAMS} ", script: """
                                     #!/bin/bash
                                     set -- \${TEST_PARAMS}

@@ -79,15 +79,13 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb-test') {
-                                unstash name: WORKSPACE_STASH_NAME
-                                dir('mysql_test') {
-                                    sh label: "part ${PART}", script: """
-                                    export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
-                                    export TIDB_TEST_STORE_NAME="unistore"
-                                    ./test.sh 1 ${PART}
-                                    """
-                                }
+                            unstash name: WORKSPACE_STASH_NAME
+                            dir('tidb-test/mysql_test') {
+                                sh label: "part ${PART}", script: """
+                                export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
+                                export TIDB_TEST_STORE_NAME="unistore"
+                                ./test.sh 1 ${PART}
+                                """
                             }
                         }
                         post{
