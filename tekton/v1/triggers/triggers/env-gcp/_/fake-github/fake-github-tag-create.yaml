@@ -137,7 +137,7 @@ spec:
                 {
                   'builder-image': header.canonical('ce-paramBuilderImage'),
                   'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
-                  'plugin-git-ref': header.canonical('ce-paramPluginGitRef').replace('^(branch|tag)/', ''),
+                  'plugin-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
                 }
             - key: component
               expression: >-

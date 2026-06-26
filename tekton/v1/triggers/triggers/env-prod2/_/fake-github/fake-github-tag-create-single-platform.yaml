@@ -141,7 +141,7 @@ spec:
                   'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
                   'os': header.canonical('ce-paramPlatform').split('/')[0],
                   'arch': header.canonical('ce-paramPlatform').split('/')[1],
-                  'plugin-git-ref': header.canonical('ce-paramPluginGitRef').replace('^(branch|tag)/', ''),
+                  'plugin-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
                 }
             - key: component
               expression: >-
