@@ -71,7 +71,7 @@ pipeline {
                     stash includes: 'bin/**', name: TIDB_BIN_STASH_NAME
                 }
                 dir('tidb-test') {
-                    stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }
         }

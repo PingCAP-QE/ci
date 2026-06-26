@@ -50,10 +50,7 @@ pipeline {
                     stash includes: 'bin/**', name: TIDB_BIN_STASH_NAME
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
-                    stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }
         }

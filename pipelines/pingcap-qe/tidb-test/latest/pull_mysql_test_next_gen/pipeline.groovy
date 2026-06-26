@@ -12,7 +12,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
-final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
 
 prow.setPRDescription(REFS)
@@ -73,7 +72,7 @@ pipeline {
                             sh "cp ${WORKSPACE}/tidb/bin/* ./"
                         }
                     }
-                    stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }
         }

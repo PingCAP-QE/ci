@@ -69,7 +69,7 @@ pipeline {
                             """
                         }
                     }
-                    stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }
         }

@@ -11,7 +11,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
-final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
 pipeline {
     agent none
@@ -69,10 +68,7 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
-                    stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }
         }
