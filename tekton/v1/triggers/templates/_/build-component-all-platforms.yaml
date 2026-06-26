@@ -44,7 +44,7 @@ spec:
         You can specify multiple `insteadOf` configurations separated by commas.
         For example: insteadof1 => new1, insteadof2 => new2
       default: ""
-    - name: pluginGitRef
+    - name: external-git-ref
       description: Explicit enterprise-plugin ref. When non-empty, skips resolution.
       default: ""
   resourcetemplates:
@@ -88,8 +88,8 @@ spec:
             value: $(tt.params.publisher-url)
           - name: git-instead-of
             value: $(tt.params.git-instead-of)
-          - name: pluginGitRef
-            value: $(tt.params.pluginGitRef)
+          - name: external-git-ref
+            value: $(tt.params.external-git-ref)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -170,8 +170,8 @@ spec:
             value: $(tt.params.publisher-url)
           - name: git-instead-of
             value: $(tt.params.git-instead-of)
-          - name: pluginGitRef
-            value: $(tt.params.pluginGitRef)
+          - name: external-git-ref
+            value: $(tt.params.external-git-ref)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -254,8 +254,8 @@ spec:
             value: $(tt.params.publisher-url)
           - name: git-instead-of
             value: $(tt.params.git-instead-of)
-          - name: pluginGitRef
-            value: $(tt.params.pluginGitRef)
+          - name: external-git-ref
+            value: $(tt.params.external-git-ref)
         timeouts:
           pipeline: $(tt.params.timeout)
         taskRunSpecs:
@@ -318,8 +318,8 @@ spec:
             value: $(tt.params.publisher-url)
           - name: git-instead-of
             value: $(tt.params.git-instead-of)
-          - name: pluginGitRef
-            value: $(tt.params.pluginGitRef)
+          - name: external-git-ref
+            value: $(tt.params.external-git-ref)
         timeouts:
           pipeline: $(tt.params.timeout)
         taskRunSpecs:

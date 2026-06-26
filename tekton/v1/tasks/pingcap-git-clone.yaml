@@ -111,15 +111,16 @@ spec:
         For example: `insteadof1 => new1,insteadof2 => new2
       type: string
       default: ""
+    - name: git-ref
+      description: >-
+        The main repository git ref, used to resolve the external repository revision.
+      type: string
+      default: ""
     - name: fetch-external
       description: Clone the external repository resolved from the main repository and ref.
       type: string
       default: "false"
     - name: external-git-ref
-      description: The main repository git ref used to resolve the external repository revision.
-      type: string
-      default: ""
-    - name: plugin-git-ref
       description: >-
         Explicit enterprise-plugin ref (branch, tag, SHA). When non-empty,
         the resolve-external step skips the resolution algorithm and uses this
@@ -320,7 +321,7 @@ spec:
         #!/bin/sh
         set -eu
 
-        plugin_ref="$(params.plugin-git-ref)"
+        plugin_ref="$(params.external-git-ref)"
         if [ -n "$plugin_ref" ]; then
           printf "%s" "${plugin_ref}" > /workspace/pingcap-external-revision
           printf "%s" "$(params.external-git-url)" > /workspace/pingcap-external-url
@@ -329,7 +330,7 @@ spec:
           exit 0
         fi
 
-        origin_ref="$(params.external-git-ref)"
+        origin_ref="$(params.git-ref)"
         if [ -z "$origin_ref" ]; then
           origin_ref="$(params.revision)"
         fi
