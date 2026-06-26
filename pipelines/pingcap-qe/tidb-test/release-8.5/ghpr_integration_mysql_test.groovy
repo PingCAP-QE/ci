@@ -27,55 +27,30 @@ pipeline {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+        stage('Checkout & Prepare') {
+            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
-                            }
+                        script {
+                            component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
                         }
                     }
+                    sh label: 'compile tidb-server', script: 'make'
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
-                }
-            }
-        }
-        stage('Prepare') {
-            steps {
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                        sh label: 'tidb-server', script: 'make'
-                        container("utils") {
-                            dir("bin") {
-                                retry(3) {
-                                    sh label: 'download tidb components', script: """
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                    """
-                                }
-                            }
-                        }
-                        sh label: "check binary", script: """
-                                pwd && ls -alh
-                                ls bin/tidb-server && ./bin/tidb-server -V
-                                ls bin/pd-server && ./bin/pd-server -V
-                                ls bin/tikv-server && ./bin/tikv-server -V
+                    container("utils") {
+                        dir('mysql_test/bin') {
+                            sh label: 'download tidb components', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
                             """
+                            sh "cp -v ${WORKSPACE}/tidb/bin/* ./"
+                        }
                     }
-                }
-                dir('tidb-test') {
-                    cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
+                    stash includes: '**/*', name: 'tidb-test-workspace'
                 }
             }
         }
@@ -103,23 +78,16 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                                    sh label: "print version", script: """
+                            dir('tidb-test') {
+                                unstash name: 'tidb-test-workspace'
+                                dir('mysql_test') {
+                                    sh label: "check binary", script: """
                                         pwd && ls -alh
+                                        chmod +x bin/*
                                         ls bin/tidb-server && ./bin/tidb-server -V
                                         ls bin/pd-server && ./bin/pd-server -V
                                         ls bin/tikv-server && ./bin/tikv-server -V
                                     """
-                                }
-                            }
-                            dir('tidb-test/mysql_test') {
-                                sh """
-                                    mkdir -p bin
-                                    mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                    ls -alh bin/
-                                """
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                                     sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh
