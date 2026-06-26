@@ -11,6 +11,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
+final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
 pipeline {
     agent none
@@ -66,8 +67,11 @@ pipeline {
                             ls bin/tikv-server && ./bin/tikv-server -V
                         """
                     }
+                    stash includes: 'bin/**', name: TIDB_BIN_STASH_NAME
                 }
-                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
+                dir('tidb-test') {
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
+                }
             }
         }
         stage('Node.js Tests') {
@@ -98,8 +102,11 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            unstash name: WORKSPACE_STASH_NAME
+                            dir('tidb') {
+                                unstash name: TIDB_BIN_STASH_NAME
+                            }
                             dir('tidb-test') {
+                                unstash name: WORKSPACE_STASH_NAME
                                 sh """
                                     mkdir -p bin
                                     cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*

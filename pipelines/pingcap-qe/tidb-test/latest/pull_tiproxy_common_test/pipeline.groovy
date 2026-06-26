@@ -69,8 +69,8 @@ pipeline {
                             """
                         }
                     }
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
-                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('MySQL Tests') {
@@ -100,8 +100,8 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            unstash name: WORKSPACE_STASH_NAME
                             dir('tidb-test') {
+                                unstash name: WORKSPACE_STASH_NAME
                                 sh label: "test_cmds=${TEST_CMDS} ", script: """
                                     #!/usr/bin/env bash
                                     ${TEST_CMDS}

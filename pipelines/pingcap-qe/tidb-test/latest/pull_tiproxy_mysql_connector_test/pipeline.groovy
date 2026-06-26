@@ -63,8 +63,8 @@ pipeline {
                     ./bin/tidb-server -V
                     ./bin/tiproxy --version
                     """
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
-                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('MySQL Connector Tests') {
@@ -79,8 +79,8 @@ pipeline {
             }
             steps {
                 container('mysql-client-test') {
-                    unstash name: WORKSPACE_STASH_NAME
                     dir('tidb-test') {
+                        unstash name: WORKSPACE_STASH_NAME
                         sh label: "run test", script: """
                             #!/usr/bin/env bash
                             make mysql_client_test WITH_TIPROXY=1

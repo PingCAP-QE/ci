@@ -68,11 +68,8 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
-                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('MySQL Tests') {
@@ -99,18 +96,20 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            unstash name: WORKSPACE_STASH_NAME
-                            dir('tidb-test/mysql_test') {
-                                sh label: "PART ${PART}", script: """
-                                    #!/usr/bin/env bash
-                                    ls -alh
-                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                    bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                    export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
-                                    export TIKV_PATH="127.0.0.1:2379"
-                                    export TIDB_TEST_STORE_NAME="tikv"
-                                    ./test.sh 1 ${PART}
-                                """
+                            dir('tidb-test') {
+                                unstash name: WORKSPACE_STASH_NAME
+                                dir('mysql_test') {
+                                    sh label: "PART ${PART}", script: """
+                                        #!/usr/bin/env bash
+                                        ls -alh
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
+                                        export TIKV_PATH="127.0.0.1:2379"
+                                        export TIDB_TEST_STORE_NAME="tikv"
+                                        ./test.sh 1 ${PART}
+                                    """
+                                }
                             }
                         }
                         post{

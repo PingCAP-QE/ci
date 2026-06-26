@@ -72,8 +72,8 @@ pipeline {
                             sh "cp ${WORKSPACE}/tidb/bin/* ./"
                         }
                     }
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
-                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('Tests') {
@@ -139,8 +139,8 @@ pipeline {
                 stages {
                     stage('Test') {
                         steps {
-                            unstash name: WORKSPACE_STASH_NAME
                             dir(REFS.repo) {
+                                unstash name: WORKSPACE_STASH_NAME
                                 sh 'chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
                                 sh label: "store=${STORE} test_params=${TEST_PARAMS} ", script: """#!/usr/bin/env bash
                                     params_array=(\${TEST_PARAMS})
