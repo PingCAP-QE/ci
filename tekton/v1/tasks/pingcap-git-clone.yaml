@@ -120,7 +120,7 @@ spec:
       description: Clone the external repository resolved from the main repository and ref.
       type: string
       default: "false"
-    - name: plugin-git-ref
+    - name: external-git-ref
       description: >-
         Explicit enterprise-plugin ref (branch, tag, SHA). When non-empty,
         the resolve-external step skips the resolution algorithm and uses this
@@ -321,7 +321,7 @@ spec:
         #!/bin/sh
         set -eu
 
-        plugin_ref="$(params.plugin-git-ref)"
+        plugin_ref="$(params.external-git-ref)"
         if [ -n "$plugin_ref" ]; then
           printf "%s" "${plugin_ref}" > /workspace/pingcap-external-revision
           printf "%s" "$(params.external-git-url)" > /workspace/pingcap-external-url

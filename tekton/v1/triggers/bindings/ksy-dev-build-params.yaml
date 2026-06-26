@@ -15,7 +15,7 @@ spec:
     - { name: registry, value: $(extensions.registry) }
     - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
     - { name: timeout, value: $(extensions.resource-config.timeout) }
-    - { name: pluginGitRef, value: $(extensions.custom-params.plugin-git-ref) }
+    - { name: external-git-ref, value: $(extensions.custom-params.external-git-ref) }
     - name: git-instead-of
       value: >-
         https://github.com/ => http://git-cdn.cache.svc:8000/,
