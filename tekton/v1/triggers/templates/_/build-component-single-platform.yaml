@@ -48,6 +48,9 @@ spec:
         You can specify multiple `insteadOf` configurations separated by commas.
         For example: insteadof1 => new1, insteadof2 => new2
       default: ""
+    - name: pluginGitRef
+      description: Explicit enterprise-plugin ref. When non-empty, skips resolution.
+      default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -91,6 +94,8 @@ spec:
             value: $(tt.params.publisher-url)
           - name: git-instead-of
             value: $(tt.params.git-instead-of)
+          - name: pluginGitRef
+            value: $(tt.params.pluginGitRef)
         taskRunTemplate:
           podTemplate:
             nodeSelector:

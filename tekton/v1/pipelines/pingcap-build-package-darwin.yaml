@@ -61,6 +61,12 @@ spec:
     - name: publisher-url
       description: The URL of the running publisher server
       default: https://publisher.pingcap.net
+    - name: pluginGitRef
+      description: >-
+        Explicit enterprise-plugin ref. When non-empty, the git-clone task
+        skips resolution and checks out this ref directly.
+      type: string
+      default: ""
   results:
     - name: pushed-binaries
       description: pushed binaries.
@@ -95,6 +101,8 @@ spec:
           value: "true"
         - name: external-git-ref
           value: $(params.git-ref)
+        - name: plugin-git-ref
+          value: $(params.pluginGitRef)
       workspaces:
         - name: output
           workspace: source

@@ -15,3 +15,4 @@ spec:
     - { name: registry, value: $(extensions.registry) }
     - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
     - { name: timeout, value: $(extensions.resource-config.timeout) }
+    - { name: pluginGitRef, value: $(extensions.custom-params.plugin-git-ref) }
