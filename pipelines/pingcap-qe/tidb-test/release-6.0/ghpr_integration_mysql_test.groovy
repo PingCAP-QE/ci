@@ -89,7 +89,7 @@ pipeline {
                                     sh label: "CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh
-                                        echo '[storage]\\nreserve-space = "0MB"'> tikv_config.toml
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
                                         bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                         export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
                                         export CACHE_ENABLED=${CACHE_ENABLED}
