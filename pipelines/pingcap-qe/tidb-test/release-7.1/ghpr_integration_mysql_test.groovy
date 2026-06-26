@@ -91,15 +91,12 @@ pipeline {
                         steps {
                             dir('tidb-test') {
                                 unstash name: 'tidb-test-workspace'
-                                sh label: "start tikv", script: """
-                                    #!/usr/bin/env bash
-                                    echo '[storage]\\nreserve-space = "0MB"'> tikv_config.toml
-                                    bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                """
                                 dir('mysql_test') {
                                     sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh
+                                        echo '[storage]\\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                         export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                         export TIKV_PATH="127.0.0.1:2379"
                                         export TIDB_TEST_STORE_NAME="tikv"

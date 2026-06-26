@@ -54,6 +54,12 @@ pipeline {
                                 """
                             }
                         }
+                        sh label: "check binary", script: """
+                                pwd && ls -alh
+                                ls bin/tidb-server && ./bin/tidb-server -V
+                                ls bin/pd-server && ./bin/pd-server -V
+                                ls bin/tikv-server && ./bin/tikv-server -V
+                            """
                     }
                 }
                 dir('tidb-test') {
@@ -87,15 +93,12 @@ pipeline {
                         steps {
                             dir('tidb-test') {
                                 unstash name: 'tidb-test-workspace'
-                                sh label: "start tikv", script: """
-                                    #!/usr/bin/env bash
-                                    echo '[storage]\\nreserve-space = "0MB"'> tikv_config.toml
-                                    bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                """
                                 dir('mysql_test') {
                                     sh label: "CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh
+                                        echo '[storage]\\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                         export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                         export CACHE_ENABLED=${CACHE_ENABLED}
                                         export TIKV_PATH="127.0.0.1:2379"
