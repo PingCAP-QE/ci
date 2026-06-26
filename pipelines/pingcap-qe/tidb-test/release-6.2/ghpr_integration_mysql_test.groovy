@@ -31,40 +31,24 @@ pipeline {
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
-                            }
+                        script {
+                            component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
                         }
                     }
+                    sh label: 'compile tidb-server', script: 'ls bin/tidb-server || make'
                 }
                 dir("tidb-test") {
                     script {
                         prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
                     }
-                }
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
-                        container("utils") {
-                            dir("bin") {
-                                retry(3) {
-                                    sh label: 'download tidb components', script: """
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                    """
-                                }
-                            }
-                        }
-                        sh label: "check binary", script: """
-                                pwd && ls -alh
-                                ls bin/tidb-server && ./bin/tidb-server -V
-                                ls bin/pd-server && ./bin/pd-server -V
-                                ls bin/tikv-server && ./bin/tikv-server -V
+                    container("utils") {
+                        dir('mysql_test/bin') {
+                            sh label: 'download tidb components', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
                             """
+                            sh "cp -v ${WORKSPACE}/tidb/bin/* ./"
+                        }
                     }
-                }
-                dir('tidb-test') {
-                    sh "cp ${WORKSPACE}/tidb/bin/* ./bin/ 2>/dev/null || (mkdir -p bin && cp ${WORKSPACE}/tidb/bin/* ./bin/)"
                     stash includes: '**/*', name: 'tidb-test-workspace'
                 }
             }
@@ -99,12 +83,19 @@ pipeline {
                             dir('tidb-test') {
                                 unstash name: 'tidb-test-workspace'
                                 dir('mysql_test') {
+                                    sh label: "check binary", script: """
+                                        pwd && ls -alh
+                                        chmod +x bin/*
+                                        ls bin/tidb-server && ./bin/tidb-server -V
+                                        ls bin/pd-server && ./bin/pd-server -V
+                                        ls bin/tikv-server && ./bin/tikv-server -V
+                                    """
                                     sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh
                                         echo '[storage]\\nreserve-space = "0MB"'> tikv_config.toml
                                         bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
                                         export CACHE_ENABLED=${CACHE_ENABLED}
                                         export TIKV_PATH="127.0.0.1:2379"
                                         export TIDB_TEST_STORE_NAME="tikv"
