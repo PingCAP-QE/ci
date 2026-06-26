@@ -26,8 +26,8 @@ pipeline {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+        stage('Checkout & Prepare') {
+            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}}", restoreKeys: ['git/pingcap/tidb/rev-']) {
@@ -39,18 +39,10 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
                     }
                 }
-            }
-        }
-        stage('Prepare') {
-            steps {
                 dir('tidb') {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
@@ -65,9 +57,8 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", includes: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
+                    sh "cp ${WORKSPACE}/tidb/bin/* ./bin/ 2>/dev/null || (mkdir -p bin && cp ${WORKSPACE}/tidb/bin/* ./bin/)"
+                    stash includes: '**/*', name: 'tidb-test-workspace'
                 }
             }
         }
@@ -98,29 +89,18 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                                    sh label: "print version", script: """
-                                        pwd && ls -alh
-                                        ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/pd-server && chmod +x bin/pd-server && ./bin/pd-server -V
-                                        ls bin/tikv-server && chmod +x bin/tikv-server && ./bin/tikv-server -V
-                                    """
-                                }
-                            }
-                            dir('tidb-test/mysql_test') {
-                                sh """
-                                    mkdir -p bin
-                                    mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                    ls -alh bin/
+                            dir('tidb-test') {
+                                unstash name: 'tidb-test-workspace'
+                                sh label: "start tikv", script: """
+                                    #!/usr/bin/env bash
+                                    echo '[storage]\\nreserve-space = "0MB"'> tikv_config.toml
+                                    bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
                                 """
-                                cache(path: "./", includes: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
+                                dir('mysql_test') {
                                     sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh
-                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/mysql_test/bin/tidb-server"
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
                                         export CACHE_ENABLED=${CACHE_ENABLED}
                                         export TIKV_PATH="127.0.0.1:2379"
                                         export TIDB_TEST_STORE_NAME="tikv"
