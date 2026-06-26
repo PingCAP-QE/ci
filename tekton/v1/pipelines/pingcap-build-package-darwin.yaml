@@ -97,10 +97,10 @@ spec:
           value: $(params.component)
         - name: gitInsteadOf
           value: $(params.git-instead-of)
+        - name: git-ref
+          value: $(params.git-ref)
         - name: fetch-external
           value: "true"
-        - name: external-git-ref
-          value: $(params.git-ref)
         - name: plugin-git-ref
           value: $(params.pluginGitRef)
       workspaces:

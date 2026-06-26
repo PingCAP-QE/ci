@@ -111,14 +111,15 @@ spec:
         For example: `insteadof1 => new1,insteadof2 => new2
       type: string
       default: ""
+    - name: git-ref
+      description: >-
+        The main repository git ref, used to resolve the external repository revision.
+      type: string
+      default: ""
     - name: fetch-external
       description: Clone the external repository resolved from the main repository and ref.
       type: string
       default: "false"
-    - name: external-git-ref
-      description: The main repository git ref used to resolve the external repository revision.
-      type: string
-      default: ""
     - name: plugin-git-ref
       description: >-
         Explicit enterprise-plugin ref (branch, tag, SHA). When non-empty,
@@ -329,7 +330,7 @@ spec:
           exit 0
         fi
 
-        origin_ref="$(params.external-git-ref)"
+        origin_ref="$(params.git-ref)"
         if [ -z "$origin_ref" ]; then
           origin_ref="$(params.revision)"
         fi
