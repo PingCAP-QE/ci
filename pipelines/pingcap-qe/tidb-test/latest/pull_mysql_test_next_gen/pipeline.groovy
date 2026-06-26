@@ -12,6 +12,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-nextgen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "cloud-engine-nextgen")
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
+final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
 
 prow.setPRDescription(REFS)
@@ -72,8 +73,8 @@ pipeline {
                             sh "cp ${WORKSPACE}/tidb/bin/* ./"
                         }
                     }
+                    stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME
                 }
-                stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('Tests') {
@@ -104,8 +105,8 @@ pipeline {
                 stages {
                     stage('Test') {
                         steps {
-                            unstash name: WORKSPACE_STASH_NAME
                             dir(REFS.repo) {
+                                unstash name: WORKSPACE_STASH_NAME
                                 sh 'ls mysql_test && chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
                                 sh label: "store=${STORE} part=${PART}", script: """#!/usr/bin/env bash
                                     if [ "$STORE" == "tikv" ]; then

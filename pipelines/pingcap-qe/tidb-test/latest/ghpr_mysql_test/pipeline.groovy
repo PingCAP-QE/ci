@@ -9,6 +9,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
+final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
 pipeline {
     agent none
@@ -46,13 +47,14 @@ pipeline {
                     cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
                         sh label: 'tidb-server', script: 'make'
                     }
+                    stash includes: 'bin/**', name: TIDB_BIN_STASH_NAME
                 }
                 dir('tidb-test') {
                     cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                         sh "touch ws-${BUILD_TAG}"
                     }
+                    stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME
                 }
-                stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('MySQL Tests') {
@@ -79,13 +81,18 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            unstash name: WORKSPACE_STASH_NAME
-                            dir('tidb-test/mysql_test') {
-                                sh label: "part ${PART}", script: """
-                                export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
-                                export TIDB_TEST_STORE_NAME="unistore"
-                                ./test.sh 1 ${PART}
-                                """
+                            dir('tidb') {
+                                unstash name: TIDB_BIN_STASH_NAME
+                            }
+                            dir('tidb-test') {
+                                unstash name: WORKSPACE_STASH_NAME
+                                dir('mysql_test') {
+                                    sh label: "part ${PART}", script: """
+                                    export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
+                                    export TIDB_TEST_STORE_NAME="unistore"
+                                    ./test.sh 1 ${PART}
+                                    """
+                                }
                             }
                         }
                         post{

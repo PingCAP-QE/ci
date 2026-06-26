@@ -69,8 +69,8 @@ pipeline {
                             """
                         }
                     }
+                    stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME
                 }
-                stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('MySQL Tests') {
@@ -97,8 +97,8 @@ pipeline {
                 stages {
                     stage("Test") {
                         steps {
-                            unstash name: WORKSPACE_STASH_NAME
                             dir('tidb-test') {
+                                unstash name: WORKSPACE_STASH_NAME
                                 sh label: "PART ${PART}", script: """
                                     #!/usr/bin/env bash
                                     make deploy-mysqltest ARGS="-b -x y -s tikv -p ${PART}"
