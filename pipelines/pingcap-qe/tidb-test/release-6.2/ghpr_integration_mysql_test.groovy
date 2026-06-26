@@ -48,10 +48,11 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make'
                         container("utils") {
                             dir("bin") {
-                                sh label: 'download binary', script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                    ls -alh .
-                                """
+                                retry(3) {
+                                    sh label: 'download tidb components', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                    """
+                                }
                             }
                         }
                         sh label: "check binary", script: """
