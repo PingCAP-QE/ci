@@ -52,7 +52,7 @@ pipeline {
                         sh "touch ws-${BUILD_TAG}"
                     }
                 }
-                stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
+                stash includes: '**/*', excludes: '**/.git', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
             }
         }
         stage('MySQL Tests') {
