@@ -56,7 +56,7 @@ presubmits:
             emptyDir: {}
         initContainers:
           - name: dind-daemon
-            image: docker:28.1-dind
+            image: docker:28.5-dind
             restartPolicy: Always
             command:
               - /bin/sh
@@ -170,7 +170,7 @@ presubmits:
             emptyDir: {}
         initContainers:
           - name: dind-daemon
-            image: docker:28.1-dind
+            image: docker:28.5-dind
             restartPolicy: Always
             command:
               - /bin/sh
@@ -284,7 +284,7 @@ presubmits:
             emptyDir: {}
         initContainers:
           - name: dind-daemon
-            image: docker:28.1-dind
+            image: docker:28.5-dind
             restartPolicy: Always
             command:
               - /bin/sh
@@ -399,7 +399,7 @@ presubmits:
             emptyDir: {}
         initContainers:
           - name: dind-daemon
-            image: docker:28.1-dind
+            image: docker:28.5-dind
             restartPolicy: Always
             command:
               - /bin/sh
@@ -513,7 +513,7 @@ presubmits:
             emptyDir: {}
         initContainers:
           - name: dind-daemon
-            image: docker:28.1-dind
+            image: docker:28.5-dind
             restartPolicy: Always
             command:
               - /bin/sh
@@ -628,7 +628,7 @@ presubmits:
             emptyDir: {}
         initContainers:
           - name: dind-daemon
-            image: docker:28.1-dind
+            image: docker:28.5-dind
             restartPolicy: Always
             command:
               - /bin/sh
@@ -742,7 +742,7 @@ presubmits:
             emptyDir: {}
         initContainers:
           - name: dind-daemon
-            image: docker:28.1-dind
+            image: docker:28.5-dind
             restartPolicy: Always
             command:
               - /bin/sh
@@ -857,7 +857,7 @@ presubmits:
             emptyDir: {}
         initContainers:
           - name: dind-daemon
-            image: docker:28.1-dind
+            image: docker:28.5-dind
             restartPolicy: Always
             command:
               - /bin/sh
