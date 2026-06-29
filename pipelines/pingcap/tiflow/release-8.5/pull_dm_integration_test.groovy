@@ -64,7 +64,7 @@ pipeline {
                     steps {
                         dir("tiflow") {
                             script {
-                                prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
+                                prow.checkoutRefsWithCacheLock(REFS)
                             }
                         }
                     }

@@ -32,7 +32,7 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     script {
-                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true, 'https://github.com')
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }
