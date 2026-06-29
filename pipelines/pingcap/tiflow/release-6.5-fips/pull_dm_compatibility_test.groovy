@@ -54,7 +54,7 @@ pipeline {
             when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
@@ -65,7 +65,7 @@ pipeline {
             when { expression { !skipRemainingStages} }
             options { timeout(time: 25, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
@@ -104,7 +104,7 @@ pipeline {
             when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('tiflow') {
+                dir(REFS.repo) {
                         timeout(time: 10, unit: 'MINUTES') {
                             sh label: "wait mysql ready", script: """
                                 pwd && ls -alh

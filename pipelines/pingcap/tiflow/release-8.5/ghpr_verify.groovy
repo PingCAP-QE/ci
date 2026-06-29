@@ -44,7 +44,7 @@ pipeline {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 script {
                                     prow.checkoutRefsWithCacheLock(REFS)
                                 }
@@ -55,7 +55,7 @@ pipeline {
                         }
                         post {
                             success {
-                                dir('tiflow') {
+                                dir(REFS.repo) {
                                     script {
 
                                         def testConfigs = [

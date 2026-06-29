@@ -56,7 +56,7 @@ pipeline {
         stage('Checkout') {
             when { expression { !skipRemainingStages} }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
@@ -66,7 +66,7 @@ pipeline {
         stage("prepare") {
             when { expression { !skipRemainingStages} }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                     script {
                         retry(2) {
                             sh label: "build previous", script: """
@@ -128,7 +128,7 @@ pipeline {
         stage("Test") {
             when { expression { !skipRemainingStages} }
             steps {
-                dir('tiflow') {
+                dir(REFS.repo) {
                         sh label: "wait mysql ready", script: """
                             pwd && ls -alh
                             set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done

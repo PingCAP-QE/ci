@@ -44,7 +44,7 @@ pipeline {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
-                            dir("tiflow") {
+                            dir(REFS.repo) {
                                 script {
                                     prow.checkoutRefsWithCacheLock(REFS)
                                 }
@@ -53,7 +53,7 @@ pipeline {
                         }
                         post {
                             success {
-                                dir('tiflow') {
+                                dir(REFS.repo) {
                                     script {
 
                                         def testConfigs = [
@@ -70,7 +70,7 @@ pipeline {
                             }
                             always {
                                 junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)
-                                dir('tiflow') {
+                                dir(REFS.repo) {
                                     container(name: 'codecov') {
                                         script{
                                             def testConfigs = [

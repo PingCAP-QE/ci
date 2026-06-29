@@ -41,7 +41,7 @@ pipeline {
                 stage('Checkout') {
                     options { timeout(time: 10, unit: 'MINUTES') }
                     steps {
-                        dir("tiflow") {
+                        dir(REFS.repo) {
                             script {
                                 prow.checkoutRefsWithCacheLock(REFS)
                             }
@@ -74,7 +74,7 @@ pipeline {
                                 }
                             }
                         }
-                        dir("tiflow") {
+                        dir(REFS.repo) {
                             cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-pulsar-test')) {
                                 // build cdc, pulsar_consumer, cdc.test for integration test
                                 // only build binarys if not exist, use the cached binarys if exist
@@ -131,7 +131,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 unstash name: WORKSPACE_STASH_NAME
                                 sh label: "${TEST_GROUP}", script: """
                                     rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test

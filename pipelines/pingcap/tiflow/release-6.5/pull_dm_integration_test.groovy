@@ -53,7 +53,7 @@ pipeline {
             when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
@@ -100,7 +100,7 @@ pipeline {
                             }
                     }
                 }
-                dir("tiflow") {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -173,7 +173,7 @@ pipeline {
                                 """
                             }
 
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
                                     timeout(time: 10, unit: 'MINUTES') {
                                         sh label: "wait mysql ready", script: """

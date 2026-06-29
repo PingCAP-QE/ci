@@ -29,7 +29,7 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
@@ -63,7 +63,7 @@ pipeline {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh label: "${TEST_CMD}", script: """
                                         make ${TEST_CMD}

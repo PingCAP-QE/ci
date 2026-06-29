@@ -28,7 +28,7 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS)
                     }
@@ -88,7 +88,7 @@ pipeline {
                         }
                     }
                 }
-                dir("tiflow") {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -140,7 +140,7 @@ pipeline {
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
                         }
                         steps {
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     sh label: "${TEST_GROUP}", script: """
                                         rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
