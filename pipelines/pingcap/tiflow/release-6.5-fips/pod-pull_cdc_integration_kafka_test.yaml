@@ -18,7 +18,7 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - image: hub.pingcap.net/jenkins/rocky9_golang-1.19:fips
+    - image: ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21
       imagePullPolicy: Always
       args:
         - cat
