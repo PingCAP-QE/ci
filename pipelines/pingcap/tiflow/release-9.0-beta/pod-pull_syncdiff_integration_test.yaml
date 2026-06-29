@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: hub.pingcap.net/jenkins/centos7_golang-1.23:latest
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25
       tty: true
       env:
         - name: GOPATH
@@ -25,7 +25,7 @@ spec:
           cpu: "1"
           memory: 4Gi
     - name: mysql
-      image: hub.pingcap.net/jenkins/mysql:5.7
+      image: docker.io/library/mysql:5.7
       tty: true
       args: ["--server-id=1", "--log-bin", "--binlog-format=ROW"]
       env:

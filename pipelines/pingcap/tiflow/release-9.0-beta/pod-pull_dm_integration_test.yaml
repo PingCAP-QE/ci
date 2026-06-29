@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: init-mysql-config
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25"
       command:
         - sh
         - -c
@@ -17,7 +17,7 @@ spec:
           name: "mysql-config-volume"
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:tini"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25"
       tty: true
       args:
         - cat
@@ -30,7 +30,7 @@ spec:
           name: "mysql-config-volume"
           subPath: ".my.cnf"
     - name: mysql1
-      image: "hub.pingcap.net/jenkins/mysql:5.7"
+      image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
         limits:
@@ -48,7 +48,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: "registry-mirror.pingcap.net/library/mysql:8.0.21"
+      image: "docker.io/library/mysql:8.0.21"
       tty: true
       resources:
         limits:

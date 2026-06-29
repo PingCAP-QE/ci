@@ -15,7 +15,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: mysql1
-      image: "hub.pingcap.net/jenkins/mysql:5.7"
+      image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
         limits:
@@ -33,7 +33,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: "registry-mirror.pingcap.net/library/mysql:8.0.21"
+      image: "docker.io/library/mysql:8.0.21"
       tty: true
       resources:
         limits:
