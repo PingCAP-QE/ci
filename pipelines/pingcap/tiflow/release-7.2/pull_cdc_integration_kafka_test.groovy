@@ -4,7 +4,6 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.2/pod-pull_cdc_integration_kafka_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -28,13 +27,9 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }
@@ -57,7 +52,7 @@ pipeline {
                         """
                     }
                 }
-                dir("tiflow") {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-test')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -110,7 +105,7 @@ pipeline {
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
                         }
                         steps {
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
                                     container("kafka") {
                                         timeout(time: 6, unit: 'MINUTES') {

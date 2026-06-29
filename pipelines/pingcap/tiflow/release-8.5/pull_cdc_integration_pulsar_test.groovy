@@ -4,7 +4,6 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_cdc_integration_pulsar_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -41,9 +40,9 @@ pipeline {
                 stage('Checkout') {
                     options { timeout(time: 10, unit: 'MINUTES') }
                     steps {
-                        dir("tiflow") {
+                        dir(REFS.repo) {
                             script {
-                                prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
+                                prow.checkoutRefsWithCacheLock(REFS)
                             }
                         }
                     }
@@ -74,7 +73,7 @@ pipeline {
                                 }
                             }
                         }
-                        dir("tiflow") {
+                        dir(REFS.repo) {
                             cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-integration-pulsar-test')) {
                                 // build cdc, pulsar_consumer, cdc.test for integration test
                                 // only build binarys if not exist, use the cached binarys if exist
@@ -131,7 +130,7 @@ pipeline {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 unstash name: WORKSPACE_STASH_NAME
                                 sh label: "${TEST_GROUP}", script: """
                                     rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test

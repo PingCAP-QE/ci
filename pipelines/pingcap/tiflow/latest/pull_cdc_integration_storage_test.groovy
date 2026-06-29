@@ -4,7 +4,6 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_storage_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/latest/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -42,7 +41,7 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     script {
-                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                     script {
                         cdc.prepareIntegrationTestCommonBinariesWithCacheLock(REFS, 'binary')

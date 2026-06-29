@@ -4,7 +4,6 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
@@ -33,13 +32,9 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }
@@ -79,7 +74,7 @@ pipeline {
                         }
                     }
                 }
-                dir("tiflow") {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -151,7 +146,7 @@ pipeline {
                                 """
                             }
 
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
                                     sh label: "wait mysql ready", script: """
                                         pwd && ls -alh

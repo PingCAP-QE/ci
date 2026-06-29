@@ -5,7 +5,6 @@
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.1/pod-pull_dm_compatibility_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -53,13 +52,9 @@ pipeline {
             when { expression { !skipRemainingStages} }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }
@@ -68,7 +63,7 @@ pipeline {
             when { expression { !skipRemainingStages} }
             options { timeout(time: 35, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
@@ -125,7 +120,7 @@ pipeline {
             when { expression { !skipRemainingStages} }
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('tiflow') {
+                dir(REFS.repo) {
                         timeout(time: 10, unit: 'MINUTES') {
                             sh label: "wait mysql ready", script: """
                                 pwd && ls -alh

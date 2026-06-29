@@ -5,7 +5,6 @@
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-merged_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -43,20 +42,16 @@ pipeline {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
-                            dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                                    retry(2) {
-                                        script {
-                                            prow.checkoutRefs(REFS)
-                                        }
-                                    }
+                            dir(REFS.repo) {
+                                script {
+                                    prow.checkoutRefsWithCacheLock(REFS)
                                 }
                                 sh label: "${TEST_CMD}", script: "make ${TEST_CMD}"
                             }
                         }
                         post {
                             success {
-                                dir('tiflow') {
+                                dir(REFS.repo) {
                                     script {
 
                                         def testConfigs = [
@@ -73,7 +68,7 @@ pipeline {
                                 script { matrixCache.markDone(REFS, 'Test', [test_cmd: env.TEST_CMD]) }
                             }
                             always {
-                                dir('tiflow') {
+                                dir(REFS.repo) {
                                     container(name: 'codecov') {
                                         sh label: "upload junit report to codecov", script: """
                                         JUNIT_REPORT=\$(ls *-junit-report.xml)

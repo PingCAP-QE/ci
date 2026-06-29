@@ -30,12 +30,8 @@ pipeline {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }

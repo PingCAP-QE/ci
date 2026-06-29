@@ -5,7 +5,6 @@
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-ghpr_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
@@ -44,9 +43,9 @@ pipeline {
                             CODECOV_TOKEN = credentials('codecov-token-tiflow')
                         }
                         steps {
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 script {
-                                    prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
+                                    prow.checkoutRefsWithCacheLock(REFS)
                                 }
                                 sh label: "${TEST_CMD}", script: """
                                     make ${TEST_CMD}
@@ -55,7 +54,7 @@ pipeline {
                         }
                         post {
                             success {
-                                dir('tiflow') {
+                                dir(REFS.repo) {
                                     script {
 
                                         def testConfigs = [

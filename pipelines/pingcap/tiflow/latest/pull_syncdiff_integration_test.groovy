@@ -32,14 +32,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    retry(3) {
-                        cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                            script {
-                                retry(2) {
-                                    prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
-                                }
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }

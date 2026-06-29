@@ -5,7 +5,6 @@
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_dm_integration_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-8.5/pod-pull_dm_integration_build.yaml'
@@ -62,9 +61,9 @@ pipeline {
                     when { expression { !skipRemainingStages} }
                     options { timeout(time: 10, unit: 'MINUTES') }
                     steps {
-                        dir("tiflow") {
+                        dir(REFS.repo) {
                             script {
-                                prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
+                                prow.checkoutRefsWithCacheLock(REFS)
                             }
                         }
                     }
@@ -105,7 +104,7 @@ pipeline {
                                 """
                             }
                         }
-                        dir("tiflow") {
+                        dir(REFS.repo) {
                             cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
                                 // build dm-master.test for integration test
                                 // only build binarys if not exist, use the cached binarys if exist
@@ -180,7 +179,7 @@ pipeline {
                                 """
                             }
 
-                            dir('tiflow') {
+                            dir(REFS.repo) {
                                 unstash name: WORKSPACE_STASH_NAME
                                 timeout(time: 10, unit: 'MINUTES') {
                                     sh label: "wait mysql ready", script: """
