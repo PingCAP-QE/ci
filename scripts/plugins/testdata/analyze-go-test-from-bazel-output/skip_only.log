@@ -1,0 +1,6 @@
+==================== Test output for //pkg:skip_case (shard 1 of 1):
+=== RUN   TestSplitRangeForTable
+--- SKIP: TestSplitRangeForTable (0.00s)
+==================== ========================================================= ====================
+FLAKY: /home/jenkins/.cache/bazel/out/execroot/__main__/bazel-out/k8-fastbuild/bin//pkg:skip_case
+  /home/jenkins/.cache/bazel/out/execroot/__main__/bazel-out/k8-fastbuild/bin//pkg:skip_case/shard_1_of_1/test_attempts/attempt_1.log

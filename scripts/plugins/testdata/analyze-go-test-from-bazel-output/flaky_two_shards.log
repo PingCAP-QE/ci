@@ -1,0 +1,11 @@
+==================== Test output for //pkg:flaky_case (shard 1 of 2):
+=== RUN   TestFlaky
+--- FAIL: TestFlaky (0.01s)
+==================== ========================================================= ====================
+==================== Test output for //pkg:flaky_case (shard 2 of 2):
+=== RUN   TestFlaky
+--- PASS: TestFlaky (0.00s)
+==================== ========================================================= ====================
+FLAKY: /home/jenkins/.cache/bazel/out/execroot/__main__/bazel-out/k8-fastbuild/bin//pkg:flaky_case
+  /home/jenkins/.cache/bazel/out/execroot/__main__/bazel-out/k8-fastbuild/bin//pkg:flaky_case/shard_1_of_2/test_attempts/attempt_1.log
+  /home/jenkins/.cache/bazel/out/execroot/__main__/bazel-out/k8-fastbuild/bin//pkg:flaky_case/shard_2_of_2/test_attempts/attempt_1.log
