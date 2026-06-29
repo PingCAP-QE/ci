@@ -17,6 +17,15 @@ RUN --mount=type=cache,target=/var/cache/dnf \
     pip install s3cmd==2.3.0 requests==2.26.0 certifi==2021.10.8 && \
     pip3 install requests==2.27.1
 
+# install Python 3.11 via Miniconda (needed for tomllib)
+RUN ARCH=$([ "$(arch)" = "x86_64" ] && echo x86_64 || echo aarch64); \
+    wget "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${ARCH}.sh" -O /tmp/miniconda.sh && \
+    bash /tmp/miniconda.sh -b -p /opt/miniconda && \
+    rm /tmp/miniconda.sh && \
+    /opt/miniconda/bin/conda install -y python=3.11 && \
+    ln -s /opt/miniconda/bin/python3.11 /usr/local/bin/python3.11
+ENV PATH=/opt/miniconda/bin:$PATH
+
 # Install MySQL 5.7
 # linux amd64 only
 RUN if [ "$(arch)" = "x86_64" ]; then \
