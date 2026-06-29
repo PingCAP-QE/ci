@@ -11,7 +11,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # install OS packages.
 RUN --mount=type=cache,target=/var/cache/dnf \
     dnf upgrade-minimal -y && \
-    dnf install -y make git gcc wget unzip psmisc lsof jq python27 python3 nc ncurses-compat-libs && \
+    dnf install -y make git gcc wget unzip psmisc lsof jq python27 python3.12 python3.12-pip nc ncurses-compat-libs && \
     ln -s /usr/bin/python2 /usr/bin/python && \
     ln -s /usr/bin/pip2 /usr/bin/pip && \
     pip install s3cmd==2.3.0 requests==2.26.0 certifi==2021.10.8 && \
