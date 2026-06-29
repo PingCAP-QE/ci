@@ -12,6 +12,12 @@ metadata:
     tekton.dev/displayName: "PingCAP product image delivery"
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
+  workspaces:
+    - name: delivery-config
+      optional: true
+      description: >
+        ConfigMap volume containing delivery.yaml and gen-delivery-image-commands.ts.
+        When provided, files are read from this workspace instead of downloading from GitHub.
   params:
     - name: src
     - name: src-type
@@ -44,19 +50,33 @@ spec:
         #!/bin/sh
         set -e
 
-        wget -O delivery.yaml $(params.delivery-config-url)
+        config_dir="$(workspaces.delivery-config.path)"
+        if [ -n "$config_dir" ] && [ -f "$config_dir/delivery.yaml" ]; then
+          echo "Using delivery.yaml from ConfigMap workspace"
+          cp "$config_dir/delivery.yaml" delivery.yaml
+        else
+          echo "ConfigMap not available, falling back to download"
+          wget -O delivery.yaml $(params.delivery-config-url)
+        fi
+        if [ -n "$config_dir" ] && [ -f "$config_dir/gen-delivery-image-commands.ts" ]; then
+          echo "Using gen-delivery-image-commands.ts from ConfigMap workspace"
+          generator_script="$config_dir/gen-delivery-image-commands.ts"
+        else
+          echo "ConfigMap not available, falling back to download"
+          generator_script="$(params.generator-script-url)"
+        fi
         script="/workspace/delivery.sh"
         targetsInfo="/workspace/delivery-targets.yaml"
         img_src="$(params.src)"
         if [ "$(params.src-type)" = "image-url" ]; then
-          deno run --allow-read --allow-write "$(params.generator-script-url)" \
+          deno run --allow-read --allow-write "$generator_script" \
             --image_url="$img_src" \
             --yaml_file=delivery.yaml \
             --outfile=$script \
             --images_outfile=$targetsInfo
         elif [ "$(params.src-type)" = "images-info" ]; then
           echo "$img_src" > /workspace/src.txt
-          deno run --allow-read --allow-write "$(params.generator-script-url)" \
+          deno run --allow-read --allow-write "$generator_script" \
             --images_file="/workspace/src.txt" \
             --yaml_file=delivery.yaml \
             --outfile=$script \

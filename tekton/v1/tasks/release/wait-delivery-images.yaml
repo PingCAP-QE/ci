@@ -7,6 +7,12 @@ spec:
   description: |
     Wait for images delivery to complete.
     This task should be run with service account with `pull-images` permission on the OCI registry.
+  workspaces:
+    - name: delivery-config
+      optional: true
+      description: >
+        ConfigMap volume containing delivery.yaml and get-delivery-target-images.ts.
+        When provided, files are read from this workspace instead of downloading from GitHub.
   params:
     - name: version
       type: string
@@ -21,10 +27,18 @@ spec:
     - name: compute
       image: docker.io/denoland/deno:alpine-2.1.4
       script: |
+        config_dir="$(workspaces.delivery-config.path)"
+        if [ -n "$config_dir" ] && [ -f "$config_dir/delivery.yaml" ]; then
+          echo "Using delivery.yaml from ConfigMap workspace"
+          config_path="$config_dir/delivery.yaml"
+        else
+          echo "ConfigMap not available, falling back to URL"
+          config_path="$(params.delivery-config)"
+        fi
         deno run --allow-all https://github.com/PingCAP-QE/artifacts/raw/main/packages/scripts/get-delivery-target-images.ts \
           --version="$(params.version)" \
           --registry="$(params.oci-registry)" \
-          --config="$(params.delivery-config)" \
+          --config="$config_path" \
           --save_to=/workspace/target-images.yaml
     - name: wait
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
