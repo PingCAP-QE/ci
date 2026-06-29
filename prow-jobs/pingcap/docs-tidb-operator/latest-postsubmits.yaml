@@ -3,7 +3,7 @@ postsubmits:
   pingcap/docs-tidb-operator:
     - name: update-pdfs
       agent: kubernetes
-      cluster: default
+      cluster: kce-pingcap-cicd
       decorate: true
       decoration_config:
         timeout: 60m
@@ -35,9 +35,7 @@ postsubmits:
                 python3 scripts/merge_by_toc.py zh/
                 scripts/generate_pdf.sh
 
-                export RCLONE_CONFIG_GCS_SERVICE_ACCOUNT_FILE="/secrets/gcs/service-account.json"
-                export RCLONE_CONFIG_GCS_TYPE="google cloud storage"
-                gcs_dst="gcs:prow-tidb-logs/artifacts/pdf"
+                dst="${TENCENTCLOUD_RCLONE_CONN:?missing TENCENTCLOUD_RCLONE_CONN}:${TENCENTCLOUD_BUCKET_ID:?missing TENCENTCLOUD_BUCKET_ID}/pdf"
                 case "${branch}" in
                   main)
                     version="dev"
@@ -54,12 +52,19 @@ postsubmits:
                     ;;
                 esac
 
-                rclone copyto -P output_en.pdf "${gcs_dst}/tidb-in-kubernetes-${version}-en-manual.pdf"
-                rclone copyto -P output_zh.pdf "${gcs_dst}/tidb-in-kubernetes-${version}-zh-manual.pdf"
-            volumeMounts:
-              - name: gcs-credentials
-                mountPath: /secrets/gcs
-                readOnly: true
+                rclone copyto -P output_en.pdf "${dst}/tidb-in-kubernetes-${version}-en-manual.pdf"
+                rclone copyto -P output_zh.pdf "${dst}/tidb-in-kubernetes-${version}-zh-manual.pdf"
+            env:
+              - name: TENCENTCLOUD_RCLONE_CONN
+                valueFrom:
+                  secretKeyRef:
+                    name: docs-cn
+                    key: tencent-ak
+              - name: TENCENTCLOUD_BUCKET_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: docs-cn
+                    key: tencent-bn
             resources:
               requests:
                 memory: 2Gi
