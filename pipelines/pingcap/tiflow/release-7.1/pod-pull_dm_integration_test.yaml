@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/golang-tini:1.20"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21"
       args:
         - cat
       tty: true
@@ -17,7 +17,7 @@ spec:
           memory: 16Gi
           cpu: "6"
     - name: mysql1
-      image: "hub.pingcap.net/jenkins/mysql:5.7"
+      image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
         limits:
@@ -35,7 +35,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: "registry-mirror.pingcap.net/library/mysql:8.0.21"
+      image: "docker.io/library/mysql:8.0.21"
       tty: true
       resources:
         limits:
