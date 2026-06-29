@@ -22,7 +22,7 @@ RUN set -eux; \
     arm64) aws_arch=aarch64 ;; \
     *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o awscliv2.zip; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${aws_arch}.zip" -o awscliv2.zip; \
     unzip awscliv2.zip; \
     ./aws/install; \
     rm -rf aws awscliv2.zip
