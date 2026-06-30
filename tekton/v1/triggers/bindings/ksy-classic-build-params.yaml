@@ -9,7 +9,7 @@ spec:
     - name: boskos-server-url
       value: http://boskos.ee-cd.svc
     - name: publisher-url
-      value: https://publisher.pingcap.net
+      value: "https://internal2-do.pingcap.net/publisher"
     - name: git-instead-of
       value: >-
         https://github.com/ => http://git-cdn.cache.svc:8000/,

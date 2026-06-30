@@ -7,4 +7,4 @@ spec:
     - name: registry
       value: us-docker.pkg.dev/pingcap-testing-account/internal
     - name: publisher-url
-      value: "http://publisher.publisher.svc" # in cluster
+      value: "https://do2.pingcap.net/publisher"
