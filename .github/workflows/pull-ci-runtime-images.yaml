@@ -23,6 +23,7 @@ jobs:
       base-jenkins: ${{ steps.filter.outputs.base-jenkins }}
       jenkins-special: ${{ steps.filter.outputs.jenkins-special }}
       tici: ${{ steps.filter.outputs.tici }}
+      tidb-operator: ${{ steps.filter.outputs.tidb-operator }}
       skaffold: ${{ steps.filter.outputs.skaffold }}
     steps:
       - name: Checkout sources
@@ -42,6 +43,8 @@ jobs:
               - 'dockerfiles/ci/jenkins/tiflash/**'
             tici:
               - 'dockerfiles/ci/tici/**'
+            tidb-operator:
+              - 'dockerfiles/ci/tidb-operator/**'
             skaffold:
               - 'dockerfiles/ci/skaffold.yaml'
   skaffold-go:
@@ -194,6 +197,55 @@ jobs:
         uses: heypigeonhq/setup-skaffold@3b1a0687de1b580d3879bf6b9d423255c9954587
         with:
           version: 2.15.0
+
+      - name: Build images
+        working-directory: dockerfiles/ci
+        run: |
+          skaffold build \
+            --build-concurrency=1 \
+            --cache-artifacts \
+            --default-repo=ghcr.io/pingcap-qe/ci \
+            --module=${{ matrix.module }} \
+            --platform=${{ matrix.platform }} \
+            --push=false
+
+  skaffold-tidb-operator:
+    name: build tidb-operator images with skaffold
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.tidb-operator == 'true' || needs.detect-changes.outputs.skaffold == 'true' }}
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        module: [ci-tidb-operator]
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-depth: "0"
+          fetch-tags: "true"
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup skaffold
+        uses: heypigeonhq/setup-skaffold@3b1a0687de1b580d3879bf6b9d423255c9954587
+        with:
+          version: 2.16.0
 
       - name: Build images
         working-directory: dockerfiles/ci

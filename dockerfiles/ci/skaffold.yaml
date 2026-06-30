@@ -93,3 +93,26 @@ build:
     useBuildkit: true
     concurrency: 0
     tryImportMissing: true
+---
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: ci-tidb-operator
+build:
+  artifacts:
+    - image: tidb-operator/e2e-base
+      platforms: [linux/amd64, linux/arm64]
+      docker:
+        dockerfile: tidb-operator/e2e-base/Dockerfile
+    - image: tidb-operator/backup-manager-base
+      platforms: [linux/amd64, linux/arm64]
+      docker:
+        dockerfile: tidb-operator/backup-manager-base/Dockerfile
+  tagPolicy:
+    customTemplate:
+      template: "{{ .GIT }}"
+  local:
+    useDockerCLI: true
+    useBuildkit: true
+    concurrency: 0
+    tryImportMissing: true
