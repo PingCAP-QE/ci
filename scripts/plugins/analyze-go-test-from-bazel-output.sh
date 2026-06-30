@@ -8,7 +8,7 @@ BAZEL_FLAKY_SUMMARY_FILE="bazel-flaky-summaries.log"
 # parse bazel go test case index log
 # param $1 file path
 function parse_bazel_go_test_index_log() {
-    indexReg="((===|---) (RUN|PASS|FAIL))|-- Test timed out at|==================== Test output for //|WARNING: DATA RACE|testing.go:[0-9]+: race detected during execution of test|panic:"
+    indexReg="((===|---) (RUN|PASS|FAIL|SKIP))|-- Test timed out at|==================== Test output for //|WARNING: DATA RACE|testing.go:[0-9]+: race detected during execution of test|panic:"
     local logPath="$1"
     grep --color -nE "$indexReg" "$logPath" >"$DEFAULT_GO_TEST_INDEX_FILE"
 }
@@ -90,11 +90,23 @@ function parse_bazel_go_test_new_flaky_cases() {
             for n in $targetShardOutputLineNum; do
                 local newFlakyCases=($(
                     sed -nE "/^${n}:/,/^[0-9]+:=+ Test output for \//p" "$DEFAULT_GO_TEST_INDEX_FILE" |
-                        grep -E "=== RUN|--- PASS" |
+                        grep -E "=== RUN|--- (PASS|SKIP)" |
                         grep -Eo "\bTest\w+" | sort | uniq -c |
                         grep "^\s*1\b" |
                         grep -Eo "\bTest\w+"
                 ))
+
+                ##### verify each candidate has --- FAIL in the same shard section.
+                if [ "${#newFlakyCases[@]}" -gt 0 ]; then
+                    local shardContent=$(sed -nE "/^${n}:/,/^[0-9]+:=+ Test output for \//p" "$DEFAULT_GO_TEST_INDEX_FILE")
+                    local verifiedCases=()
+                    for c in "${newFlakyCases[@]}"; do
+                        if echo "$shardContent" | grep -qE -e "--- FAIL:\s*${c}\b"; then
+                            verifiedCases+=("$c")
+                        fi
+                    done
+                    newFlakyCases=("${verifiedCases[@]}")
+                fi
 
                 ##### add into result json file.
                 if [ "${#newFlakyCases[@]}" -gt 0 ]; then
