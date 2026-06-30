@@ -14,6 +14,8 @@ RUN --mount=type=cache,target=/var/cache/dnf \
     dnf install -y make git gcc wget unzip psmisc lsof jq python27 python3.12 python3.12-pip nc ncurses-compat-libs && \
     ln -s /usr/bin/python2 /usr/bin/python && \
     ln -s /usr/bin/pip2 /usr/bin/pip && \
+    ln -sf /usr/bin/python3.12 /usr/local/bin/python3 && \
+    ln -sf /usr/bin/pip3.12 /usr/local/bin/pip3 && \
     pip install s3cmd==2.3.0 requests==2.26.0 certifi==2021.10.8 && \
     pip3 install requests==2.27.1
 
