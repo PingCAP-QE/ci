@@ -20,9 +20,16 @@ else
     files=$(find pipelines -type f \( -name '*.yaml' -o -name '*.yml' \) | LC_ALL=C sort)
 fi
 
+CRANE_BIN=${CRANE_BIN:-crane}
+
 count=0
 failed=0
 kubectl_validation_enabled=0
+crane_validation_enabled=0
+
+if command -v "$CRANE_BIN" >/dev/null 2>&1; then
+    crane_validation_enabled=1
+fi
 
 validate_with_kubectl() {
     file=$1
@@ -50,6 +57,22 @@ validate_with_kubectl() {
     fi
 
     rm -f "$manifest" "$manifest_with_ns" "$stderr_file"
+}
+
+validate_images_with_crane() {
+    file=$1
+
+    images=$(yq e '.spec.containers[].image, .spec.initContainers[].image' "$file" 2>/dev/null | grep -v '^$' | grep -v '^null$' | sort -u || true)
+    if [ -z "$images" ]; then
+        return
+    fi
+
+    for image in $images; do
+        if ! "$CRANE_BIN" digest "$image" >/dev/null 2>&1; then
+            echo "$file: image not found in registry: $image"
+            failed=1
+        fi
+    done
 }
 
 check_file() {
@@ -87,6 +110,10 @@ check_file() {
         echo "$file: explicit null nodes are not allowed in Pod YAML:"
         echo "$null_paths" | sed 's/^/  - /'
         failed=1
+    fi
+
+    if [ "$crane_validation_enabled" -eq 1 ]; then
+        validate_images_with_crane "$file"
     fi
 
     if [ "$kubectl_validation_enabled" -eq 1 ]; then
