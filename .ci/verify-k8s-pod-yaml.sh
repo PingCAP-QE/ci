@@ -69,7 +69,7 @@ validate_images_with_crane() {
 
     for image in $images; do
         if ! "$CRANE_BIN" digest "$image" >/dev/null 2>&1; then
-            echo "$file: image not found in registry: $image"
+            echo "$file: image not found: $image"
             failed=1
         fi
     done
