@@ -5,6 +5,7 @@ set -euo pipefail
 readonly PINGCAP_HOST_PATTERN='([[:alnum:]-]+\.)+pingcap\.net'
 readonly -a ALLOWED_PINGCAP_HOSTS=(
     "cla.pingcap.net"
+    "do2.pingcap.net"
 )
 readonly -a FORBIDDEN_LITERAL_SUBSTRINGS=(
     "FILESERVER"
@@ -214,7 +215,7 @@ print_policy_report() {
 PR content policy violations detected in added pull request lines.
 Current rules:
   - deny literal substrings: FILESERVER, FILE_SERVER
-  - deny pingcap.net hosts except: cla.pingcap.net
+  - deny pingcap.net hosts except: cla.pingcap.net, do2.pingcap.net
 EOF
     cat "$REPORT_FILE" >&2
     return 1
