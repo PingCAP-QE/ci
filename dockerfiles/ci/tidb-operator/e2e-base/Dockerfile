@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 # install kubectl, helm CLIs
 ARG KUBECTL_VERSION=v1.28.5
-ENV HELM_VERSION=v3.11.0
+ARG HELM_VERSION=v3.11.0
 RUN curl -fsSL "https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" -o /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl \
     && curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-${TARGETARCH}.tar.gz" | tar xz -C /usr/local/bin --strip-components=1 linux-${TARGETARCH}/helm
