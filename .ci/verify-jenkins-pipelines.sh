@@ -14,5 +14,5 @@ SCRIPT_DIR="$(realpath $(dirname "${BASH_SOURCE[0]}"))"
 if command -v parallel > /dev/null; then
     find pipelines -name "*.groovy" | parallel -j+0 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
 else
-        find pipelines -name "*.groovy" -exec "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh" {} \;
+    find pipelines -name "*.groovy" -exec "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh" {} \;
 fi
