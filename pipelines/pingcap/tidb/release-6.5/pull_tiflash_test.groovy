@@ -13,7 +13,7 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
             defaultContainer 'golang'
         }
@@ -73,7 +73,7 @@ pipeline {
                         ./tidb-server -V
                         """
                         sh label: 'build tmp tidb image', script: """
-                        docker build -t hub.pingcap.net/qa/tidb:${REFS.base_ref} -f tidb.Dockerfile .
+                        docker build -t us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/tidb/images/tidb-server:${REFS.base_ref} -f tidb.Dockerfile .
                         """
                     }
                     dir("tiflash/tests/docker") {

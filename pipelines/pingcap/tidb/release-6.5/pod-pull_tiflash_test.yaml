@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.19:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21"
       tty: true
       resources:
         requests:
@@ -22,8 +22,7 @@ spec:
           value: ""
         - name: DOCKER_HOST
           value: tcp://localhost:2375
-        - name: DOCKER_REGISTRY_MIRROR
-          value: https://registry-mirror.pingcap.net
+
       securityContext:
         privileged: true
       resources:
@@ -34,7 +33,7 @@ spec:
           memory: 8Gi
           cpu: "4"
     - name: docker
-      image: "hub.pingcap.net/jenkins/alpine-docker:tics-test"
+      image: "docker.io/library/docker:20.10.24-dind"
       tty: true
       command:
         - "cat"
