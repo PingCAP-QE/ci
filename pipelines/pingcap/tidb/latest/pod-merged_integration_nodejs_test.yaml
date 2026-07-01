@@ -5,7 +5,7 @@ spec:
     runAsUser: 0
   containers:
     - name: nodejs
-      image: "hub.pingcap.net/ee/ci/base:v20230810-go1.23.0"
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2025.12.7-3-g1c0b8cf-go1.23
       tty: true
       resources:
         requests:
