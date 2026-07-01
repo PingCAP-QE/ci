@@ -45,7 +45,7 @@ if [[ -n $1 ]]; then
     tail -1 $1
 fi
 
-file_server_url="https://download.pingcap.org"
+file_server_url="http://sunset-fileserver.pingcap.net"
 oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
 # Note: osci_base_url is only available in the ci environment.
 # dl.apps.svc is an internal k8s service; the oci-files download chain

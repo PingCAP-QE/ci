@@ -11,9 +11,9 @@ set -o pipefail
 
 # Specify which branch to be utilized for executing the test, which is
 # exclusively accessible when obtaining binaries from
-# https://download.pingcap.org.
+# http://sunset-fileserver.pingcap.net.
 branch=${1:-release-6.5-fips}
-file_server_url=${2:-https://download.pingcap.org}
+file_server_url=${2:-http://sunset-fileserver.pingcap.net}
 oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
 # Note: osci_base_url is only available in the ci environment.
 # dl.apps.svc is an internal k8s service; the oci-files download chain
