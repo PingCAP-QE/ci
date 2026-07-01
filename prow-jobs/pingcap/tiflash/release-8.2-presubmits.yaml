@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tiflash/release-8.2/pull_unit_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-unit-test
@@ -17,7 +17,7 @@ presubmits:
     - name: pingcap/tiflash/release-8.2/pull_integration_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-integration-test
