@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -13,6 +14,7 @@ type Pattern struct {
 	Name        string   `yaml:"name"`
 	Description string   `yaml:"description"`
 	Regex       string   `yaml:"regex"`
+	Files       []string `yaml:"files,omitempty"`
 	Excludes    []string `yaml:"excludes,omitempty"`
 	compiled    *regexp.Regexp
 }
@@ -100,5 +102,34 @@ func matchesAnyPattern(filePath string, patterns []string) bool {
 			}
 		}
 	}
+	return false
+}
+
+// matchesFileScope checks if a file path is in scope for a file-limited pattern.
+// Patterns without a path separator match against the file basename so "go.mod"
+// applies to nested modules like "tools/foo/go.mod" as well as the repository root.
+func matchesFileScope(filePath string, patterns []string) bool {
+	if len(patterns) == 0 {
+		return true
+	}
+
+	base := filepath.Base(filePath)
+	for _, pattern := range patterns {
+		if strings.Contains(pattern, "/") {
+			if matchesAnyPattern(filePath, []string{pattern}) {
+				return true
+			}
+			continue
+		}
+
+		matched, err := filepath.Match(pattern, base)
+		if err != nil {
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
+
 	return false
 }
