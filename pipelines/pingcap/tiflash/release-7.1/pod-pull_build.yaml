@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64-llvm-13.0.0"
+      image: "ghcr.io/pingcap-qe/cd/builders/tiflash:v20231106"
       command:
         - "/bin/bash"
         - "-c"
@@ -40,16 +40,6 @@ spec:
         - mountPath: "/tmp-memfs"
           name: "volume-7"
           readOnly: false
-    - name: util
-      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v2026.3.29-14-g90ae7ef
-      tty: true
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "500Mi"
-        limits:
-          cpu: "500m"
-          memory: "500Mi"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       args: ["sleep", "infinity"]
