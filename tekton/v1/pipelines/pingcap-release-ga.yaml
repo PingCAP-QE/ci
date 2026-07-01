@@ -21,8 +21,8 @@ spec:
       default: us-docker.pkg.dev/pingcap-testing-account/hub
       description: The OCI registry stored the origin artifacts.
     - name: publisher-url
+      type: string
       description: the publisher url,current for publish tiup packages.
-      default: https://publisher.pingcap.net
   workspaces:
     - name: s3-secrets
     - name: github
