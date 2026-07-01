@@ -43,7 +43,7 @@ function parse_bazel_target_output_log() {
                 append="$append.race"
             fi
 
-        elif grep -E "(---|===) (PASS|FAIL|RUN|SKIP)" "$saveFlag.log" | grep -oE "\bTest\w+\b" | sort | uniq -c | grep "^\s*1\b" >/dev/null; then
+        elif grep -E "(---|===) (PASS|FAIL|RUN|SKIP)" "$saveFlag.log" | grep -oE "\bTest[[:alnum:]_/]+\b" | sort | uniq -c | grep "^\s*1\b" >/dev/null; then
             append="$append.fatal"
         fi
 
@@ -91,9 +91,9 @@ function parse_bazel_go_test_new_flaky_cases() {
                 local newFlakyCases=($(
                     sed -nE "/^${n}:/,/^[0-9]+:=+ Test output for \//p" "$DEFAULT_GO_TEST_INDEX_FILE" |
                         grep -E "=== RUN|--- (PASS|SKIP)" |
-                        grep -Eo "\bTest\w+" | sort | uniq -c |
+                        grep -Eo "\bTest[[:alnum:]_/]+" | sort | uniq -c |
                         grep "^\s*1\b" |
-                        grep -Eo "\bTest\w+"
+                        grep -Eo "\bTest[[:alnum:]_/]+"
                 ))
 
                 ##### verify each candidate has --- FAIL in the same shard section.
@@ -150,7 +150,7 @@ function parse_bazel_go_test_long_cases() {
         target=$(head -n1 "$f" | grep -Eo "//[-_:/a-zA-Z0-9]+\b")
 
         # add test cases with time cost value -1(means timed out).
-        grep -E "=== RUN|--- PASS:" "$f" | grep -Eo "\bTest\w+" | sort | uniq |
+        grep -E "=== RUN|--- PASS:" "$f" | grep -Eo "\bTest[[:alnum:]_/]+" | sort | uniq |
             while read c; do
                 jq --arg target "$target" \
                    --arg c "$c" \
@@ -159,7 +159,7 @@ function parse_bazel_go_test_long_cases() {
             done
 
         # update the timecost of passed test cases.
-        grep -E "\-\-\- PASS:" "$f" | grep -Eo '\bTest\w+(\s+\([0-9.]+s\))' | sed -E 's/[\(\)]//g;s/s$//g' |
+        grep -E "\-\-\- PASS:" "$f" | grep -Eo '\bTest[[:alnum:]_/]+(\s+\([0-9.]+s\))' | sed -E 's/[\(\)]//g;s/s$//g' |
             while read name time; do
                 echo "$name $time"
                 jq --arg target "$target" \
