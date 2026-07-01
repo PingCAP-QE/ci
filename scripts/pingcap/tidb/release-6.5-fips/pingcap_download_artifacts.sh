@@ -45,9 +45,13 @@ if [[ -n $1 ]]; then
     tail -1 $1
 fi
 
-file_server_url="http://fileserver.pingcap.net"
+file_server_url="https://download.pingcap.org"
 oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
 # Note: osci_base_url is only available in the ci environment.
+# dl.apps.svc is an internal k8s service; the oci-files download chain
+# (internal OCI registry) has no direct public equivalent. These scripts
+# will remain non-functional in public cloud until the artifact
+# infrastructure is migrated (release-6.5-fips is EOL; acceptable debt).
 oci_base_url="http://dl.apps.svc"
 
 tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${TIFLASH}/sha1"
