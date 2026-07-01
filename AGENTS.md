@@ -87,6 +87,8 @@ Follow the **Conventional Commits** specification for commit messages:
   - `scope`: optional but recommended for this repo (e.g. `prow-jobs`, `pipelines`, `jobs`, `tekton`, `tools`, `libraries`)
   - `subject`: imperative, present tense (e.g. "add", "fix", "update")
 
+- **Language**: All commit messages and PR titles/descriptions must be written in English.
+
 Examples:
 - `ci(prow): add presubmit for tiflow lint`
 - `pipelines(tiflow): increase pipeline timeout`
