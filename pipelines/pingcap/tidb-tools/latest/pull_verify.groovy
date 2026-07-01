@@ -18,7 +18,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'https://download.pingcap.org'
+        FILE_SERVER_URL = 'http://sunset-fileserver.pingcap.net'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')

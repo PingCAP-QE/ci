@@ -11,9 +11,9 @@ set -o pipefail
 
 # Specify which branch to be utilized for executing the test, which is
 # exclusively accessible when obtaining binaries from
-# http://fileserver.pingcap.net.
+# http://sunset-fileserver.pingcap.net.
 branch=${1:-master}
-file_server_url=${2:-https://download.pingcap.org}
+file_server_url=${2:-http://sunset-fileserver.pingcap.net}
 
 tikv_importer_branch="release-5.0"
 tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${branch}/sha1"
