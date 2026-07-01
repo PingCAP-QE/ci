@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: runner
-      image: "hub.pingcap.net/tiflash/tiflash-llvm-base:amd64-llvm-13.0.0"
+      image: "ghcr.io/pingcap-qe/cd/builders/tiflash:v20231106"
       command:
         - "/bin/bash"
         - "-c"
@@ -40,47 +40,6 @@ spec:
         - mountPath: "/tmp-memfs"
           name: "volume-7"
           readOnly: false
-    - name: jnlp
-      image: "jenkins/inbound-agent:3345.v03dee9b_f88fc-1"
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "500Mi"
-        limits:
-          cpu: "500m"
-          memory: "500Mi"
-      volumeMounts:
-        - mountPath: "/home/jenkins/agent/rust"
-          name: "volume-0"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent/ccache"
-          name: "volume-1"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent/dependency"
-          name: "volume-2"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent/ci-cached-code-daily"
-          name: "volume-4"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent/proxy-cache"
-          name: "volume-5"
-          readOnly: false
-        - mountPath: "/tmp"
-          name: "volume-6"
-          readOnly: false
-        - mountPath: "/tmp-memfs"
-          name: "volume-7"
-          readOnly: false
-    - name: util
-      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v2026.3.29-14-g90ae7ef
-      tty: true
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "500Mi"
-        limits:
-          cpu: "500m"
-          memory: "500Mi"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       args: ["sleep", "infinity"]
