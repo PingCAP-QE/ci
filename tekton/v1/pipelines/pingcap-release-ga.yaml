@@ -27,6 +27,11 @@ spec:
     - name: s3-secrets
     - name: github
       description: for creating github release
+    - name: delivery-config
+      optional: true
+      description: >
+        ConfigMap volume containing delivery.yaml and related scripts.
+        When provided, tasks read from this workspace instead of downloading from GitHub.
   tasks:
     - name: ga-tag-oci-artifacts
       params:
@@ -40,6 +45,9 @@ spec:
           value: $(params.publisher-url)
       taskRef:
         name: tag-and-deliver-rc2ga-on-oci-artifacts
+      workspaces:
+        - name: delivery-config
+          workspace: delivery-config
     - name: create-releases
       runAfter: [ga-tag-oci-artifacts]
       taskRef:
@@ -68,6 +76,9 @@ spec:
           value: https://github.com/PingCAP-QE/artifacts/raw/main/packages/delivery.yaml
       taskRef:
         name: wait-delivery-images
+      workspaces:
+        - name: delivery-config
+          workspace: delivery-config
     - name: compose-offline-pkgs-amd64-community
       runAfter: [wait-delivery-tiup]
       taskRef: { name: pingcap-compose-offline-pkgs }

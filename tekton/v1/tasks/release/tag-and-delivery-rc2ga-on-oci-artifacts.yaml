@@ -5,6 +5,12 @@ metadata:
   name: tag-and-deliver-rc2ga-on-oci-artifacts
 spec:
   description: include images and non-image artifacts.
+  workspaces:
+    - name: delivery-config
+      optional: true
+      description: >
+        ConfigMap volume containing delivery.yaml and gen-delivery-image-commands.ts.
+        When provided, files are read from this workspace instead of downloading from GitHub.
   params:
     - name: rc-version
       description: >
@@ -88,11 +94,25 @@ spec:
         # prepare the images info file
         yq -r '.images[]' /workspace/results.yaml | awk -F: '{print "- { repo: " $1 ", tag: " $2, "}"}' | tee /workspace/images.yaml
 
-        # prepare the delivery script
-        wget -O delivery.yaml $(params.delivery-config-url)
+        # prepare the delivery script - try ConfigMap workspace first, fall back to download
+        config_dir="$(workspaces.delivery-config.path)"
+        if [ -n "$config_dir" ] && [ -f "$config_dir/delivery.yaml" ]; then
+          echo "Using delivery.yaml from ConfigMap workspace"
+          cp "$config_dir/delivery.yaml" delivery.yaml
+        else
+          echo "ConfigMap not available, falling back to download"
+          wget -O delivery.yaml $(params.delivery-config-url)
+        fi
+        if [ -n "$config_dir" ] && [ -f "$config_dir/gen-delivery-image-commands.ts" ]; then
+          echo "Using gen-delivery-image-commands.ts from ConfigMap workspace"
+          generator_script="$config_dir/gen-delivery-image-commands.ts"
+        else
+          echo "ConfigMap not available, falling back to download"
+          generator_script="$(params.generator-script-url)"
+        fi
         script="/workspace/delivery.sh"
         targetsInfo="/workspace/delivery-targets.yaml"
-        deno run --allow-read --allow-write "$(params.generator-script-url)" \
+        deno run --allow-read --allow-write "$generator_script" \
           --images_file="/workspace/images.yaml" \
           --yaml_file=delivery.yaml \
           --outfile=$script \
