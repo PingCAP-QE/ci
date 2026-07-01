@@ -13,7 +13,7 @@ set -o pipefail
 # exclusively accessible when obtaining binaries from
 # http://fileserver.pingcap.net.
 branch=${1:-master}
-file_server_url=${2:-http://fileserver.pingcap.net}
+file_server_url=${2:-https://download.pingcap.org}
 
 tikv_importer_branch="release-5.0"
 tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${branch}/sha1"
