@@ -48,7 +48,6 @@ spec:
       type: string
       default: "false"
     - name: registry
-      default: hub.pingcap.net
   steps:
     - name: generate
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
@@ -104,7 +103,6 @@ spec:
         # - name: RUSTUP_UPDATE_ROOT
         #   value: https://rsproxy.cn/rustup
         # - name: GOPROXY
-        #   value: "http://goproxy.apps.svc,direct"
         # - name: CARGO_HOME
         #   value: /workspace/.cargo
         # - name: NPM_CONFIG_REGISTRY
