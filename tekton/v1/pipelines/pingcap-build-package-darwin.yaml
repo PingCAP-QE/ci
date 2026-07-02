@@ -48,7 +48,6 @@ spec:
       default: "true"
     - name: registry
       description: the base OCI registry server for store artifacts, it can be set with prefix repo path.
-      default: "hub.pingcap.net"
     - name: force-builder-image
       description: >
         The builder image to use for building binaries by force, if empty.
@@ -60,7 +59,6 @@ spec:
       default: http://boskos
     - name: publisher-url
       description: The URL of the running publisher server
-      default: https://publisher.pingcap.net
     - name: external-git-ref
       description: >-
         Explicit enterprise-plugin ref. When non-empty, the git-clone task

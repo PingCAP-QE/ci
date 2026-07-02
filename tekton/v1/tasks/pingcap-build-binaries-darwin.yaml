@@ -43,7 +43,6 @@ spec:
       type: string
       default: "false"
     - name: registry
-      default: hub.pingcap.net
     - name: boskos-server-url
       description: The URL of the running boskos server
       default: "http://boskos.test-pods.svc.cluster.local"

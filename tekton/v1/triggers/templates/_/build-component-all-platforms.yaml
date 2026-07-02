@@ -18,7 +18,6 @@ spec:
       description: build target profile
       default: release
     - name: registry
-      default: hub.pingcap.net
     - name: timeout
       description: pipeline run timeout
       default: 2h
@@ -37,7 +36,6 @@ spec:
     - name: boskos-server-url
       default: "http://boskos"
     - name: publisher-url
-      default: "https://publisher.pingcap.net"
     - name: git-instead-of
       description: |
         Configure Git to use the `insteadOf` feature to speed up cloning.

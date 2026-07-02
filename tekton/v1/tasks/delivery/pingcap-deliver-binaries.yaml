@@ -22,7 +22,6 @@ spec:
         - oci-info # yaml/json content that stored oci information return by binaries build task
     - name: publisher-url
       description: URL of the publisher service
-      default: https://publisher.pingcap.net
     - name: notify-webhook-url
       description: URL of the webhook for notification
       default: "http://el-harbor:8080"

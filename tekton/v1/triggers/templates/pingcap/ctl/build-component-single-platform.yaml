@@ -22,7 +22,6 @@ spec:
       description: build target profile
       default: release
     - name: registry
-      default: hub.pingcap.net
     - name: timeout
       description: pipeline run timeout
       default: 30m
@@ -39,7 +38,6 @@ spec:
     - name: force-builder-image
       default: ""
     - name: publisher-url
-      default: "https://publisher.pingcap.net"
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun

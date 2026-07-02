@@ -20,7 +20,6 @@ spec:
       description: build target profile
       default: release
     - name: registry
-      default: hub.pingcap.net
     - name: timeout
       description: pipeline run timeout
       default: 2h
@@ -38,7 +37,6 @@ spec:
       description: force use the builder image to prepare container to build binaries.
       default: ""
     - name: publisher-url
-      default: "https://publisher.pingcap.net"
     - name: git-instead-of
       description: |
         Configure Git to use the `insteadOf` feature to speed up cloning.
