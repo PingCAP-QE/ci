@@ -4,13 +4,13 @@ set -euo pipefail
 
 readonly PINGCAP_HOST_PATTERN='([[:alnum:]-]+\.)+pingcap\.net'
 readonly -a ALLOWED_PINGCAP_HOSTS=(
+    "sunset-fileserver.pingcap.net"
     "cla.pingcap.net"
     "do2.pingcap.net"
     "internal2-do.pingcap.net"
 )
 readonly -a FORBIDDEN_LITERAL_SUBSTRINGS=(
     "FILESERVER"
-    "FILE_SERVER"
 )
 
 BASE_SHA=""

@@ -50,7 +50,7 @@ echo "TICDC         = ${TICDC}"
 
 
 tikv_importer_branch="release-5.0"
-file_server_url="http://fileserver.pingcap.net"
+file_server_url="http://sunset-fileserver.pingcap.net"
 
 tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${TIKV}/sha1"
 pd_sha1_url="${file_server_url}/download/refs/pingcap/pd/${PD}/sha1"
