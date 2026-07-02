@@ -20,7 +20,7 @@ spec:
             &&
             body.event_data.resources[0].tag.matches('[-_](amd64|arm64)$')
             &&
-            body.event_data.resources[0].resource_url.startsWith('us-docker.pkg.dev/pingcap-testing-account/')
+            body.event_data.resources[0].resource_url.startsWith('hub.pingcap.net/')
   bindings:
     - ref: harbor-image-push
   template:
