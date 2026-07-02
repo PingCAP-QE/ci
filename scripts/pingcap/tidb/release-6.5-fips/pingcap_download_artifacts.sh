@@ -52,7 +52,7 @@ oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
 # (internal OCI registry) has no direct public equivalent. These scripts
 # will remain non-functional in public cloud until the artifact
 # infrastructure is migrated (release-6.5-fips is EOL; acceptable debt).
-oci_base_url="http://dl.apps.svc"
+oci_base_url="http://dl.dl.svc"
 
 tiflash_sha1_url="${file_server_url}/download/refs/pingcap/tiflash/${TIFLASH}/sha1"
 
