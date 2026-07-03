@@ -21,7 +21,7 @@ interface prowJobRun {
 
 async function main() {
   const res = await fetch(
-    "https://prow.tidb.net/prowjobs.js?var=allBuilds&omit=annotations,labels,decoration_config,pod_spec",
+    `${Deno.env.get("PROW_URL") || "https://prow.tidb.net"}/prowjobs.js?var=allBuilds&omit=annotations,labels,decoration_config,pod_spec`,
   );
   const js = await res.text();
   const list = js.replace(/^var\s+allBuilds\s*=\s*/g, "").replace(/;$/, "");

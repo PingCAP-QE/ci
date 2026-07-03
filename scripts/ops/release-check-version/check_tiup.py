@@ -1,3 +1,4 @@
+import os
 import subprocess
 import argparse
 from check_info import check_version
@@ -48,9 +49,9 @@ def uninstall_component(component, version):
 def check_tiup_component_exists(component, version, is_tiup_staging):
     check_result = True
     check_detail = []
-    tiup_mirror = "https://tiup-mirrors.pingcap.com"
+    tiup_mirror = os.environ.get("TIUP_MIRROR_URL", TIUP_MIRRORS["prod-pingcap"])
     if is_tiup_staging:
-        tiup_mirror = "http://tiup.pingcap.net:8988"
+        tiup_mirror = os.environ.get("TIUP_STAGING_MIRROR_URL", TIUP_MIRRORS["staging-internal"])
 
     for tiup_component in COMPONENT_META[component]["tiup_components"]:
         single_component_check_detail = {
@@ -97,9 +98,9 @@ def check_tiup_component_version(component, version, commit_hash, is_tiup_stagin
     tiup_check_version = version
     if is_tiup_staging:
         tiup_check_version = f"{version}-pre"
-    tiup_mirror = "https://tiup-mirrors.pingcap.com"
+    tiup_mirror = os.environ.get("TIUP_MIRROR_URL", TIUP_MIRRORS["prod-pingcap"])
     if is_tiup_staging:
-        tiup_mirror = "http://tiup.pingcap.net:8988"
+        tiup_mirror = os.environ.get("TIUP_STAGING_MIRROR_URL", TIUP_MIRRORS["staging-internal"])
     set_tiup_mirror(tiup_mirror)
     subprocess.run(["tiup", "mirror", "show"], capture_output=True, text=True, check=True)
 

@@ -36,7 +36,7 @@ fetch_next_gen_exact_tags() {
 }
 
 fetch_all() {
-    registry="us.gcr.io"
+    registry="${OCI_ARTIFACT_HOST:-us.gcr.io}"
     common_release_branch="release-nextgen-202603"
     # Authenticate against both registries because tiproxy trunk still resolves from gcr.io
     # while the other TiDB X artifacts are stored under us.gcr.io.

@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import csv
@@ -13,7 +14,8 @@ stats_csv_filename = f'prow_job_stats_{today}.csv'
 
 
 def main():
-    url = "https://prow.tidb.net/prowjobs.js?var=allBuilds&omit=annotations,labels,decoration_config,pod_spec"
+    prow_url = os.environ.get("PROW_URL", "https://prow.tidb.net")
+    url = f"{prow_url}/prowjobs.js?var=allBuilds&omit=annotations,labels,decoration_config,pod_spec"
     response = requests.get(url)
     text = response.text
     # Remove the first string 'var allBuilds = ' and also remove the last string ';' to get valid json string
