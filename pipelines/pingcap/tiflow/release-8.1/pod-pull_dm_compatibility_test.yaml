@@ -9,18 +9,31 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 12Gi
-          cpu: "4"
+          memory: 10Gi
+          cpu: 2500m
         limits:
           memory: 16Gi
-          cpu: "6"
-    - name: mysql1
-      image: 'docker.io/library/mysql:5.7'
+          cpu: 6000m
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
         limits:
           memory: 4Gi
-          cpu: 2
+          cpu: 1000m
+    - name: mysql1
+      image: "us-docker.pkg.dev/pingcap-testing-account/dockerhub-remote/mysql:5.7"
+      tty: true
+      resources:
+        requests:
+          memory: 2Gi
+          cpu: 500m
+        limits:
+          memory: 4Gi
+          cpu: 1000m
       env:
         - name: MYSQL_ROOT_PASSWORD
           value: '123456'
@@ -33,12 +46,15 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: 'docker.io/library/mysql:5.7'
+      image: "us-docker.pkg.dev/pingcap-testing-account/dockerhub-remote/mysql:5.7"
       tty: true
       resources:
+        requests:
+          memory: 2Gi
+          cpu: 500m
         limits:
           memory: 4Gi
-          cpu: 2
+          cpu: 1000m
       env:
         - name: MYSQL_ROOT_PASSWORD
           value: '123456'
