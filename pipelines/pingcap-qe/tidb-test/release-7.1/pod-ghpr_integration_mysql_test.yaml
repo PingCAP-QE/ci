@@ -11,11 +11,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 8Gi
-          cpu: "4"
+          memory: 12Gi
+          cpu: "3"
         limits:
           memory: 24Gi
-          cpu: "8"
+          cpu: "6"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
