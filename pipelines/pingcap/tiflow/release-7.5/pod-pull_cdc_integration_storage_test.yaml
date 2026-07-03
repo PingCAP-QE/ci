@@ -5,15 +5,15 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21"
+      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
       tty: true
       resources:
         requests:
-          memory: 24Gi
-          cpu: 6000m
+          memory: 12Gi
+          cpu: "4"
         limits:
-          memory: 24Gi
-          cpu: 6000m
+          memory: 16Gi
+          cpu: "6"
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
