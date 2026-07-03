@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-6.2/pod-ghpr_integration_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-6.5/pod-ghpr_integration_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)

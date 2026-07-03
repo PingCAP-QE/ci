@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 
-pipelineJob('pingcap-qe/tidb-test/release-6.2/ghpr_integration_mysql_test') {
+pipelineJob('pingcap-qe/tidb-test/release-6.5/ghpr_build') {
     logRotator {
         daysToKeep(30)
     }
@@ -14,7 +14,7 @@ pipelineJob('pingcap-qe/tidb-test/release-6.2/ghpr_integration_mysql_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-qe/tidb-test/release-6.2/ghpr_integration_mysql_test.groovy")
+            scriptPath("pipelines/pingcap-qe/tidb-test/release-6.5/ghpr_build.groovy")
             scm {
                 git{
                     remote {
