@@ -202,7 +202,11 @@ function main() {
     fi
     if [[ -n "$SYNC_DIFF_INSPECTOR" ]]; then
         echo "🚀 start download sync-diff-inspector"
-        download_and_extract_with_path "$sync_diff_inspector_oci_url" '^sync-diff-inspector-v.+.tar.gz$' sync-diff-inspector.tar.gz sync_diff_inspector
+        if [[ "${SYNC_DIFF_INSPECTOR}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            download_and_extract_with_path "$sync_diff_inspector_oci_url" '^tidb-tools-v.+.tar.gz$' sync-diff-inspector.tar.gz sync_diff_inspector
+        else
+            download_and_extract_with_path "$sync_diff_inspector_oci_url" '^sync-diff-inspector-v.+.tar.gz$' sync-diff-inspector.tar.gz sync_diff_inspector
+        fi
         chmod +x sync_diff_inspector
         echo "🎉 download sync-diff-inspector success"
     fi
@@ -416,7 +420,12 @@ function parse_cli_args() {
     ticdc_oci_url="$(build_oci_url "${registry_host}" "pingcap/tiflow/package" "${TICDC}" "${tag_suffix}")"
     ticdc_new_oci_url="$(build_oci_url "${registry_host}" "pingcap/ticdc/package" "${TICDC_NEW}" "${tag_suffix}")"
     tici_oci_url="$(build_oci_url "${registry_host}" "pingcap/tici/package" "${TICI}" "${tag_suffix}")"
-    sync_diff_inspector_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/tiflow/package" "${SYNC_DIFF_INSPECTOR}" "${tag_suffix}")"
+    # sync-diff-inspector: semver tags come from tidb-tools, non-semver (e.g. master) from tiflow
+    if [[ "${SYNC_DIFF_INSPECTOR}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        sync_diff_inspector_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/tidb-tools/package" "${SYNC_DIFF_INSPECTOR}" "${tag_suffix}")"
+    else
+        sync_diff_inspector_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/tiflow/package" "${SYNC_DIFF_INSPECTOR}" "${tag_suffix}")"
+    fi
 
     # third party or public test tools.
     minio_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/minio" "${MINIO}" "${tag_suffix}")"
