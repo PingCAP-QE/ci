@@ -4,7 +4,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.1/pod-pull_cdc_integration_kafka_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.1/pod-pull_cdc_integration_mysql_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-7.1/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
@@ -22,7 +22,7 @@ final WORKSPACE_STASH_NAME = 'tiflow-cdc-workspace'
 pipeline {
     agent none
     options {
-        timeout(time: 65, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
     }
     stages {
         stage('Checkout & Prepare') {
@@ -110,7 +110,7 @@ pipeline {
                     axis {
                         name 'TEST_GROUP'
                         values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13',
-                            'G14', 'G15', 'G16', 'G17', 'G18', 'G19', 'G20', 'G21', 'G22', 'G23', 'G24'
+                            'G14', 'G15', 'G16', 'G17', 'G18', 'G19', 'G20', 'G21'
                     }
                 }
                 agent{
@@ -128,7 +128,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
+                        options { timeout(time: 40, unit: 'MINUTES') }
                         environment {
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
@@ -136,22 +136,10 @@ pipeline {
                         steps {
                             dir(REFS.repo) {
                                 unstash name: WORKSPACE_STASH_NAME
-                                container("kafka") {
-                                    timeout(time: 6, unit: 'MINUTES') {
-                                        sh label: "Waiting for kafka ready", script: """
-                                            echo "Waiting for zookeeper to be ready..."
-                                            while ! nc -z localhost 2181; do sleep 10; done
-                                            echo "Waiting for kafka to be ready..."
-                                            while ! nc -z localhost 9092; do sleep 10; done
-                                            echo "Waiting for kafka-broker to be ready..."
-                                            while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                        """
-                                    }
-                                }
                                 sh label: "${TEST_GROUP}", script: """
                                     rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
                                     chmod +x ./tests/integration_tests/run_group.sh
-                                    ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
+                                    ./tests/integration_tests/run_group.sh mysql ${TEST_GROUP}
                                 """
                             }
                         }
