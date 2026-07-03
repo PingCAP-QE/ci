@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tidb-tools/pull_verify
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: true
       skip_report: false
