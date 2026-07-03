@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap/tiflow/release-7.1.0/pull_cdc_integration_storage_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(^dm/|^engine/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
       run_before_merge: true

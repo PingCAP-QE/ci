@@ -89,8 +89,6 @@ configMapGenerator:
       - pingcap_tiflow_latest-presubmits-next-gen.yaml=pingcap/tiflow/latest-presubmits-next-gen.yaml
       - pingcap_tiflow_latest-presubmits-wip.yaml=pingcap/tiflow/latest-presubmits-wip.yaml
       - pingcap_tiflow_latest-presubmits.yaml=pingcap/tiflow/latest-presubmits.yaml
-      - pingcap_tiflow_release-6.0-presubmits.yaml=pingcap/tiflow/release-6.0-presubmits.yaml
-      - pingcap_tiflow_release-6.2-presubmits.yaml=pingcap/tiflow/release-6.2-presubmits.yaml
       - pingcap_tiflow_release-6.5-fips-presubmits.yaml=pingcap/tiflow/release-6.5-fips-presubmits.yaml
       - pingcap_tiflow_release-6.5-presubmits.yaml=pingcap/tiflow/release-6.5-presubmits.yaml
       - pingcap_tiflow_release-7.1-presubmits.yaml=pingcap/tiflow/release-7.1-presubmits.yaml
