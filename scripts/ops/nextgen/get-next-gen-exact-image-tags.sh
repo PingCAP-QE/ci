@@ -36,7 +36,7 @@ fetch_next_gen_exact_tags() {
 }
 
 fetch_all() {
-    registry="us.gcr.io"
+    registry="${GCR_REPO:-us.gcr.io}"
     common_release_branch="release-nextgen-202603"
     # Authenticate against both registries because tiproxy trunk still resolves from gcr.io
     # while the other TiDB X artifacts are stored under us.gcr.io.
@@ -88,8 +88,9 @@ fetch_all() {
     echo "🚀 Fetch images built from pingcap/tiproxy..."
     trunk_branch=main
     release_branch=release-nextgen-202603
-    echo "  💿 gcr.io/pingcap-public/dbaas/tiproxy"
-    fetch_next_gen_exact_tags "gcr.io/pingcap-public/dbaas/tiproxy" "$trunk_branch"
+    dbaas_repo="${GCR_DBAAS_REPO:-gcr.io/pingcap-public/dbaas}"
+    echo "  💿 ${dbaas_repo}/tiproxy"
+    fetch_next_gen_exact_tags "${dbaas_repo}/tiproxy" "$trunk_branch"
     echo "  💿 us.gcr.io/pingcap-public/tidbx/tiproxy"
     fetch_next_gen_exact_tags "us.gcr.io/pingcap-public/tidbx/tiproxy" $release_branch
 

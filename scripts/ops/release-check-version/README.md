@@ -82,7 +82,7 @@ python3 main.py tiup --components_url='https://raw.githubusercontent.com/wuhuizu
 # build the image
 ```shell
 # build the single arch image
-docker build -t hub.pingcap.net/jenkins/release-check-version:{tag} .
+docker build -t ${OCI_REGISTRY:-hub.pingcap.net}/jenkins/release-check-version:{tag} .
 # build the multi-arch image
-docker buildx build --platform linux/amd64,linux/arm64 -t hub.pingcap.net/jenkins/release-check-version:{tag}. --push
+docker buildx build --platform linux/amd64,linux/arm64 -t ${OCI_REGISTRY:-hub.pingcap.net}/jenkins/release-check-version:{tag}. --push
 ```

@@ -3,7 +3,7 @@
 
 ### Notice: it's depended on GitHub cli tool `gh`, it should be installed and added to `PATH` env var.
 
-download_base_url="http://fileserver.pingcap.net/download/builds/pingcap"
+download_base_url="${ARTIFACT_DOWNLOAD_BASE_URL:-http://fileserver.pingcap.net}/download/builds/pingcap"
 
 function install_github_cli_if_not_exist() {
     which gh >/dev/null || {
@@ -67,7 +67,7 @@ function get_artifacts_of_by_commit_sha() {
     is_artifact_existed "${artifact_url}" && echo "😄 ${artifact_url} ✅" || echo "🤷 ${artifact_url} ❌"
 }
 
-# param $1 url of artifact url, example: http://fileserver.pingcap.net/download/builds/pingcap/tidb/a936e8e103c5cbe34115a082d68f18dc30475f40/centos7/tidb-server.tar.gz
+# param $1 url of artifact url, example: ${ARTIFACT_DOWNLOAD_BASE_URL:-http://fileserver.pingcap.net}/download/builds/pingcap/tidb/a936e8e103c5cbe34115a082d68f18dc30475f40/centos7/tidb-server.tar.gz
 function is_artifact_existed() {
     local artifact_url="${1}"
     # grep "Content-Length" | grep -Eo "\d+"

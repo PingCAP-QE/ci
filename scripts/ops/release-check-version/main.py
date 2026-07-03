@@ -93,27 +93,30 @@ if __name__ == "__main__":
     if args.type == 'image':
         all_results = []
         failed_images = []
+        oci_registry = os.environ.get("OCI_REGISTRY", "hub.pingcap.net")
         if is_rc_build:
             for image in components["docker_images"]:
-                success, failure = check_docker_image(image, "enterprise", "hub.pingcap.net", "qa", is_rc_build)
+                success, failure = check_docker_image(image, "enterprise", oci_registry, "qa", is_rc_build)
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)
-                success, failure = check_docker_image(image, "community", "hub.pingcap.net", "qa", is_rc_build)
+                success, failure = check_docker_image(image, "community", oci_registry, "qa", is_rc_build)
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)
         else:
+            enterprise_project = os.environ.get("ENTERPRISE_IMAGE_REGISTRY", "pingcap-public/dbaas")
+            ucloud_registry = os.environ.get("UCLOUD_REGISTRY", "uhub.service.ucloud.cn")
             print("checking docker images on gcr.io")
             for image in components["docker_images"]:
-                success, failure = check_docker_image(image, "enterprise", "gcr.io", "pingcap-public/dbaas")
+                success, failure = check_docker_image(image, "enterprise", "gcr.io", enterprise_project)
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)
 
             print("checking docker images on uhub.service.ucloud.cn")
             for image in components["docker_images"]:
-                success, failure = check_docker_image(image, "community", "uhub.service.ucloud.cn", "pingcap")
+                success, failure = check_docker_image(image, "community", ucloud_registry, "pingcap")
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)

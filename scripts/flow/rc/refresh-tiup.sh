@@ -23,7 +23,7 @@ refresh_tiup_packages() {
 
     local svc_url="$1"
     local branch="$2"
-    local repo_base="${3:-hub.pingcap.net}"
+    local repo_base="${3:-${OCI_REGISTRY:-hub.pingcap.net}}"
 
     local platforms=(
         linux_amd64

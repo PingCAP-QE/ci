@@ -45,7 +45,7 @@ if [[ -n $1 ]]; then
     tail -1 $1
 fi
 
-file_server_url="http://sunset-fileserver.pingcap.net"
+file_server_url="${ARTIFACT_DOWNLOAD_BASE_URL:-http://sunset-fileserver.pingcap.net}"
 oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
 # Note: osci_base_url is only available in the ci environment.
 # dl.dl.svc is an internal k8s service; the oci-files download chain
@@ -73,8 +73,9 @@ function download() {
 function download_from_oci() {
     local org_and_repo=$1
     local grep_pattern=$2
-    local list_api="${oci_base_url}/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
-    local download_api="${oci_base_url}/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
+    local oci_registry="${OCI_REGISTRY:-hub.pingcap.net}"
+    local list_api="${oci_base_url}/oci-files/${oci_registry}/${org_and_repo}/package?tag=${oci_fips_branch}"
+    local download_api="${oci_base_url}/oci-file/${oci_registry}/${org_and_repo}/package?tag=${oci_fips_branch}&file="
 
     # TODO: remove --insecure after the certificate issue is fixed
     local file_list=$(curl -s $list_api --insecure | grep -o ${grep_pattern} |  sort | uniq)
