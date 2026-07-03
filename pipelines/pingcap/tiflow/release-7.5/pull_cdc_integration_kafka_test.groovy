@@ -23,7 +23,6 @@ pipeline {
     agent none
     options {
         timeout(time: 65, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout & Prepare') {
