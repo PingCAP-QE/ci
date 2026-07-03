@@ -10,7 +10,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.5/pod-pull_dm_comp
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
 final OCI_TAG_TIDB = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
-final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'v7.5.7'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 def skipRemainingStages = false
 
