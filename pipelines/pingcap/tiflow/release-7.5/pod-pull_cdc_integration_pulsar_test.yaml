@@ -5,27 +5,15 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.3.15-1-g5625431-go1.25"
       tty: true
       resources:
         requests:
-          memory: 12Gi
-          cpu: "4"
+          memory: 24Gi
+          cpu: 6000m
         limits:
-          memory: 16Gi
-          cpu: "6"
-    - name: pulsar
-      image: "apachepulsar/pulsar:2.10.4"
-      imagePullPolicy: IfNotPresent
-      tty: true
-      resources:
-        requests:
-          memory: 4Gi
-          cpu: "4"
-        limits:
-          memory: 6Gi
-          cpu: "6"
-      command: ["bin/pulsar", "standalone"]
+          memory: 32Gi
+          cpu: 8000m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
