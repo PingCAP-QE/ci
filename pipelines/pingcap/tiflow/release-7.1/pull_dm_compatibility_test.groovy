@@ -1,6 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
-// should triggerd for master branches
+// should triggerd for release-7.1 branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
@@ -8,6 +8,10 @@ final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.1/pod-pull_dm_compatibility_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
+final OCI_TAG_TIDB = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'v7.1.6'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 def skipRemainingStages = false
 
 pipeline {
@@ -16,11 +20,9 @@ pipeline {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
             defaultContainer 'golang'
         }
-    }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -33,11 +35,11 @@ pipeline {
                     script {
                         def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
                         def pattern = /(^dm\/|^pkg\/|^go\.mod).*$/
-                        println "pr_diff_files: ${pr_diff_files}"
+                        echo "pr_diff_files: ${pr_diff_files}"
                         // if any diff files start with dm/ or pkg/ or file go.mod, run the dm compatibility test
                         def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
                         if (matched) {
-                            println "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm compatibility test"
+                            echo "matched, some diff files full path start with dm/ or pkg/ or go.mod, run the dm compatibility test"
                         } else {
                             echo "not matched, all files full path not start with dm/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm compatibility test"
                             currentBuild.result = 'SUCCESS'
@@ -82,36 +84,40 @@ pipeline {
                                 mv bin/dm-worker.test bin/dm-worker.test.current
                                 ls -alh ./bin/
                             """
-                            script {
-                                def branchInfo = component.extractHotfixInfo(REFS.base_ref)
-                                sh label: "download third_party", script: """
-                                    if [[ "${branchInfo.isHotfix}" == "true" ]]; then
-                                        echo "Hotfix version tag: ${branchInfo.versionTag}"
-                                        echo "This is a hotfix branch, downloading exact version ${branchInfo.versionTag} binaries"
-                                        cp ../scripts/pingcap/tiflow/download_test_binaries_by_tag.sh dm/tests/
-                                        chmod +x dm/tests/download_test_binaries_by_tag.sh
-                                        # First download binary using the release branch script
-                                        cd dm/tests && ./download-compatibility-test-binaries.sh release-7.1
-                                        rm -rf bin/tidb-server
-                                        mv bin tmp_bin
-                                        # Then download and replace other components with exact versions
-                                        ./download_test_binaries_by_tag.sh ${branchInfo.versionTag} tidb
-                                        mv tmp_bin/* bin/ && rm -rf tmp_bin
-                                        cd -
-                                    else
-                                        echo "Release branch, downloading binaries from ${REFS.base_ref}"
-                                        cd dm/tests && ./download-compatibility-test-binaries.sh release-7.1
-                                        cd -
-                                    fi
-                                    # Verify all required binaries
-                                    cp -r dm/tests/bin/* ./bin/
-                                    pwd && ls -alh ./bin
-                                    ls -alh dm/tests/bin
-                                    ./bin/tidb-server -V
-                                    ./bin/sync_diff_inspector -V
-                                    ./bin/mydumper -V
-                                """
+                            sh label: "prepare third_party dir", script: "mkdir -p ./bin"
+                            container("utils") {
+                                dir("bin") {
+                                    sh label: "download third_party from OCI", script: """
+                                        script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        \$script \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR} \
+                                            --minio=${OCI_TAG_MINIO}
+                                    """
+                                }
                             }
+                            sh label: "download extra non-OCI tools", script: """
+                                cd ./bin
+                                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    -O tidb-enterprise-tools-latest-linux-amd64.tar.gz \
+                                    https://download.pingcap.com/tidb-enterprise-tools-latest-linux-amd64.tar.gz
+                                tar -xzf tidb-enterprise-tools-latest-linux-amd64.tar.gz \
+                                    tidb-enterprise-tools-latest-linux-amd64/bin/mydumper
+                                mv tidb-enterprise-tools-latest-linux-amd64/bin/mydumper ./
+                                rm -rf tidb-enterprise-tools-latest-linux-amd64 tidb-enterprise-tools-latest-linux-amd64.tar.gz
+
+                                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    -O gh-ost.tar.gz \
+                                    https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz
+                                tar -xzf gh-ost.tar.gz
+                                rm -f gh-ost.tar.gz
+                                [ -f ./mydumper ] && chmod +x ./mydumper
+                                [ -f ./gh-ost ] && chmod +x ./gh-ost
+                                cd -
+                                ls -alh ./bin
+                                ./bin/tidb-server -V
+                                ./bin/mydumper -V
+                            """
                         }
                 }
             }
