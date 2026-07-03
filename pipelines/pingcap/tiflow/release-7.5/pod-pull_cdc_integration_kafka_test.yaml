@@ -18,10 +18,10 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.15-1-g5625431-go1.25
+    - image: ghcr.io/pingcap-qe/ci/jenkins:centos7-go1.21
       imagePullPolicy: Always
       name: golang
-      command: [tini, --, bash]
+      command: [/tini, --, /bin/bash]
       resources:
         requests:
           cpu: 4000m
