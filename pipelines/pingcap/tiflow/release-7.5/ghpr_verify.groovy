@@ -1,5 +1,6 @@
 // REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+// should triggerd for release-7.5 branches
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
@@ -8,32 +9,12 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.5/pod-ghpr_verify.
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
-            defaultContainer 'golang'
-        }
-    }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-    }
+    agent none
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
-            steps {
-                dir(REFS.repo) {
-                    script {
-                        prow.checkoutRefsWithCacheLock(REFS)
-                    }
-                }
-            }
-        }
         stage('Tests') {
             matrix {
                 axes {
@@ -45,8 +26,9 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }
@@ -62,18 +44,35 @@ pipeline {
                         }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh label: "${TEST_CMD}", script: """
-                                        make ${TEST_CMD}
-                                    """
+                                script {
+                                    prow.checkoutRefsWithCacheLock(REFS)
                                 }
+                                sh label: "${TEST_CMD}", script: """
+                                    make ${TEST_CMD}
+                                """
                             }
                         }
                         post {
+                            success {
+                                dir(REFS.repo) {
+                                    script {
+
+                                        def testConfigs = [
+                                            dm_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/dm_test/cov.unit_test.out"],
+                                            unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/tidb_cdc_test/cov.unit.out"],
+                                            engine_unit_test_in_verify_ci: [flags: "unit", coverage_file: "/tmp/engine_test/cov.unit_test.out"]
+                                        ]
+                                        def config = testConfigs[TEST_CMD]
+                                        if (config && config.coverage_file) {
+                                            prow.uploadCoverageToCodecov(REFS, config.flags, config.coverage_file)
+                                        }
+                                    }
+                                }
+                                script { matrixCache.markDone(REFS, 'Test', [test_cmd: env.TEST_CMD]) }
+                            }
                             always {
                                 junit(testResults: "**/tiflow/*-junit-report.xml", allowEmptyResults : true)
                             }
-                            success { script { matrixCache.markDone(REFS, 'Test', [test_cmd: env.TEST_CMD]) } }
                         }
                     }
                 }
