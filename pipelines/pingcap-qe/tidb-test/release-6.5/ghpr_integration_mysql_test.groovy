@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-6.0/pod-ghpr_integration_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-6.5/pod-ghpr_integration_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
@@ -23,7 +23,7 @@ pipeline {
         OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
     }
     options {
-        timeout(time: 70, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
     }
     stages {
         stage('Checkout & Prepare') {
@@ -57,6 +57,10 @@ pipeline {
             matrix {
                 axes {
                     axis {
+                        name 'PART'
+                        values '1', '2', '3', '4'
+                    }
+                    axis {
                         name 'CACHE_ENABLED'
                         values '0', "1"
                     }
@@ -71,7 +75,7 @@ pipeline {
                 }
                 when {
                     beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED]) }
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART, cache_enabled: env.CACHE_ENABLED]) }
                 }
                 stages {
                     stage("Test") {
@@ -86,7 +90,7 @@ pipeline {
                                         ls bin/pd-server && ./bin/pd-server -V
                                         ls bin/tikv-server && ./bin/tikv-server -V
                                     """
-                                    sh label: "CACHE_ENABLED ${CACHE_ENABLED}", script: """
+                                    sh label: "PART ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh
                                         echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
@@ -95,12 +99,17 @@ pipeline {
                                         export CACHE_ENABLED=${CACHE_ENABLED}
                                         export TIKV_PATH="127.0.0.1:2379"
                                         export TIDB_TEST_STORE_NAME="tikv"
-                                        ./test.sh
+                                        ./test.sh -blacklist=1 -part=${PART}
                                     """
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED]) } } }
+                        post{
+                            always {
+                                junit(testResults: "**/result.xml")
+                            }
+                            success { script { matrixCache.markDone(REFS, 'Test', [part: env.PART, cache_enabled: env.CACHE_ENABLED]) } }
+                        }
                     }
                 }
             }

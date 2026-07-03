@@ -5,7 +5,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-6.0/pod-ghpr_mysql_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-6.5/pod-ghpr_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
@@ -36,7 +36,7 @@ pipeline {
                 dir("tidb-test") {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
-                            script {
+                             script {
                                 prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
                             }
                         }
@@ -63,6 +63,10 @@ pipeline {
             matrix {
                 axes {
                     axis {
+                        name 'PART'
+                        values '1', '2', '3', '4'
+                    }
+                    axis {
                         name 'CACHE_ENABLED'
                         values '0', "1"
                     }
@@ -77,7 +81,7 @@ pipeline {
                 }
                 when {
                     beforeAgent true
-                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED]) }
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART, cache_enabled: env.CACHE_ENABLED]) }
                 }
                 stages {
                     stage("Test") {
@@ -89,16 +93,21 @@ pipeline {
                             }
                             dir('tidb-test/mysql_test') {
                                 cache(path: "./", includes: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
-                                    sh label: "CACHE_ENABLED ${CACHE_ENABLED}", script: """
+                                    sh label: "part ${PART},CACHE_ENABLED ${CACHE_ENABLED}", script: """
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
                                     export CACHE_ENABLED=${CACHE_ENABLED}
                                     export TIDB_TEST_STORE_NAME="unistore"
-                                    ./test.sh
+                                    ./test.sh -backlist=1 -part=${PART}
                                     """
                                 }
                             }
                         }
-                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED]) } } }
+                        post{
+                            always {
+                                junit(testResults: "**/result.xml")
+                            }
+                            success { script { matrixCache.markDone(REFS, 'Test', [part: env.PART, cache_enabled: env.CACHE_ENABLED]) } }
+                        }
                     }
                 }
             }
