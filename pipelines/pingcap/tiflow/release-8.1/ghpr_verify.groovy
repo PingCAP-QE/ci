@@ -9,32 +9,12 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.1/pod-ghpr_verify.
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            retries 2
-            defaultContainer 'golang'
-        }
-    }
-    environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-    }
+    agent none
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
-            steps {
-                dir(REFS.repo) {
-                    script {
-                        prow.checkoutRefsWithCacheLock(REFS)
-                    }
-                }
-            }
-        }
         stage('Tests') {
             matrix {
                 axes {
@@ -46,8 +26,9 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
                         retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'hyperdisk-rwo')
                         defaultContainer 'golang'
                     }
                 }
@@ -63,11 +44,12 @@ pipeline {
                         }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
-                                    sh label: "${TEST_CMD}", script: """
-                                        make ${TEST_CMD}
-                                    """
+                                script {
+                                    prow.checkoutRefsWithCacheLock(REFS)
                                 }
+                                sh label: "${TEST_CMD}", script: """
+                                    make ${TEST_CMD}
+                                """
                             }
                         }
                         post {

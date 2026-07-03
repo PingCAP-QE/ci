@@ -9,11 +9,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 16Gi
-          cpu: "8"
+          memory: 24Gi
+          cpu: 6000m
         limits:
-          memory: 16Gi
-          cpu: "8"
+          memory: 32Gi
+          cpu: 8000m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
