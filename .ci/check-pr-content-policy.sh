@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly PINGCAP_HOST_PATTERN='([[:alnum:]-]+\.)+pingcap\.net'
+readonly PINGCAP_HOST_PATTERN='([[:alnum:]][[:alnum:]-]*\.)+pingcap\.net'
 readonly -a ALLOWED_PINGCAP_HOSTS=(
     "sunset-fileserver.pingcap.net"
     "fileserver.pingcap.net"
