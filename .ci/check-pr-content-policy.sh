@@ -219,7 +219,7 @@ print_policy_report() {
 PR content policy violations detected in added pull request lines.
 Current rules:
   - deny literal substrings: FILESERVER, FILE_SERVER
-  - deny pingcap.net hosts except: cla.pingcap.net, do2.pingcap.net, "internal2-do.pingcap.net"
+  - deny pingcap.net hosts except: cla.pingcap.net, do2.pingcap.net, fileserver.pingcap.net, hub.pingcap.net, internal2-do.pingcap.net, sunset-fileserver.pingcap.net, tiup.pingcap.net
 EOF
     cat "$REPORT_FILE" >&2
     return 1
