@@ -47,7 +47,7 @@ if [[ -n $1 ]]; then
     tail -1 $1
 fi
 
-file_server_url="http://fileserver.pingcap.net"
+file_server_url="${ARTIFACT_DOWNLOAD_BASE_URL:-http://fileserver.pingcap.net}"
 tidb_sha1_url="${file_server_url}/download/refs/pingcap/tidb/${TIDB}/sha1"
 tikv_sha1_url="${file_server_url}/download/refs/pingcap/tikv/${TIKV}/sha1"
 pd_sha1_url="${file_server_url}/download/refs/pingcap/pd/${PD}/sha1"

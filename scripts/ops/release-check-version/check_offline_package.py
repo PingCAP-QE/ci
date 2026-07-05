@@ -19,7 +19,7 @@ def get_base_url(is_internal=None):
         tuple: (public_base_url, internal_base_url, use_internal)
     """
     public_base_url = "https://download.pingcap.com"
-    internal_base_url = "http://fileserver.pingcap.net/download/release"
+    internal_base_url = os.environ.get("ARTIFACT_DOWNLOAD_BASE_URL", "http://fileserver.pingcap.net") + "/download/release"
 
     # If is_internal is explicitly provided, use it
     if is_internal is not None:

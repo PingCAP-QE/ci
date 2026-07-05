@@ -1,3 +1,5 @@
+import os
+
 COMPONENT_META = {
     "pd": {
         "entrypoints": ["/pd-server"],
@@ -230,6 +232,6 @@ COMPONENT_META = {
 
 TIUP_PACKAGE_DEFAULT_EDITION = "Community"
 TIUP_MIRRORS = {
-    "prod-pingcap": "https://tiup-mirrors.pingcap.com",
-    "staging-internal": "http://tiup.pingcap.net:8988"
+    "prod-pingcap": os.environ.get("TIUP_MIRROR_URL", "https://tiup-mirrors.pingcap.com"),
+    "staging-internal": os.environ.get("TIUP_STAGING_MIRROR_URL", "http://tiup.pingcap.net:8988")
 }

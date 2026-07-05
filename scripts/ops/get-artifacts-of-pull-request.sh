@@ -3,7 +3,7 @@
 
 ### Notice: it's depended on GitHub cli tool `gh`, it should be installed and added to `PATH` env var.
 
-download_base_url="http://fileserver.pingcap.net/download/builds/pingcap"
+download_base_url="${ARTIFACT_DOWNLOAD_BASE_URL:-http://fileserver.pingcap.net}/download/builds/pingcap"
 
 function install_github_cli_if_not_exist() {
     which gh >/dev/null || {

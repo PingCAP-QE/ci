@@ -194,7 +194,7 @@ function publish_tiup_oci_repo() {
   tkn -n ee-cd task start publish-tiup-from-oci-artifact \
     --param artifact-url="${repo}:${tag}" \
     --param nightly=false \
-    --param tiup-mirror="http://tiup.pingcap.net:8988" \
+    --param tiup-mirror="${TIUP_STAGING_MIRROR_URL:-http://tiup.pingcap.net:8988}" \
     -w name=lock-tiup,claimName=pvc-lock-tiup-staging \
     -w name=dockerconfig,secret=hub-pingcap-net-ee \
     -w name=tiup-keys,secret=tiup-credentials-staging \
@@ -206,7 +206,7 @@ function publish_tiup_oci_repo() {
 function main() {
   local rc_ver="$1"
   local ga_ver="$2"
-  local registry="${3:-hub.pingcap.net}"
+  local registry="${3:-${OCI_REGISTRY:-hub.pingcap.net}}"
   local force="${4:-false}"
   local save_results_file="${5:-results.yaml}"
 
