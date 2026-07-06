@@ -152,6 +152,12 @@ function main() {
         ls -alh tiflash
         echo "🎉 download TiFlash success"
     fi
+    if [[ -n "$TIPROXY" ]]; then
+        echo "🚀 start download TiProxy"
+        download_and_extract_with_path "$tiproxy_oci_url" '^tiproxy-v.+.tar.gz$' tiproxy.tar.gz tiproxy
+        chmod +x tiproxy
+        echo "🎉 download TiProxy success"
+    fi
     if [[ -n "$TICDC" ]]; then
         echo "🚀 start download TiCDC"
         download_and_extract_with_path "$ticdc_oci_url" '^cdc-v.+.tar.gz$' cdc.tar.gz cdc
@@ -292,6 +298,10 @@ function parse_cli_args() {
         TIFLASH="${i#*=}"
         shift # past argument=value
         ;;
+        -tiproxy=*|--tiproxy=*)
+        TIPROXY="${i#*=}"
+        shift # past argument=value
+        ;;
         -ticdc=*|--ticdc=*)
         TICDC="${i#*=}"
         shift # past argument=value
@@ -361,6 +371,7 @@ function parse_cli_args() {
     [[ -n "${PD}" ]]            && echo "PD          = ${PD}"
     [[ -n "${PD_CTL}" ]]        && echo "PD_CTL      = ${PD_CTL}"
     [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
+    [[ -n "${TIPROXY}" ]]       && echo "TIPROXY     = ${TIPROXY}"
     [[ -n "${TICDC}" ]]         && echo "TICDC       = ${TICDC}"
     [[ -n "${TICDC_NEW}" ]]     && echo "TICDC_NEW   = ${TICDC_NEW}"
     [[ -n "${TICI}" ]]          && echo "TICI        = ${TICI}"
@@ -420,6 +431,7 @@ function parse_cli_args() {
     ticdc_oci_url="$(build_oci_url "${registry_host}" "pingcap/tiflow/package" "${TICDC}" "${tag_suffix}")"
     ticdc_new_oci_url="$(build_oci_url "${registry_host}" "pingcap/ticdc/package" "${TICDC_NEW}" "${tag_suffix}")"
     tici_oci_url="$(build_oci_url "${registry_host}" "pingcap/tici/package" "${TICI}" "${tag_suffix}")"
+    tiproxy_oci_url="$(build_oci_url "${registry_host}" "pingcap/tiproxy/package" "${TIPROXY}" "${tag_suffix}")"
     # sync-diff-inspector: semver tags come from tidb-tools, non-semver (e.g. master) from tiflow
     if [[ "${SYNC_DIFF_INSPECTOR}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
         sync_diff_inspector_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/tidb-tools/package" "${SYNC_DIFF_INSPECTOR}" "${tag_suffix}")"

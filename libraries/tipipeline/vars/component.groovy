@@ -45,7 +45,7 @@ def parseCIParamsFromPRTitle(String prTitle) {
 // Returns a list of error messages; empty list means no errors.
 def validatePreBuiltComponentParams(String prTitle, String prTargetBranch) {
     // Supported components for pre-built binary download
-    final List<String> supportedComponents = ['tidb', 'tikv', 'pd', 'tiflash', 'ticdc', 'tiflow']
+    final List<String> supportedComponents = ['tidb', 'tikv', 'pd', 'tiflash', 'ticdc', 'tiflow', 'tiproxy']
     // Standard core branch patterns where pre-built mode is REJECTED
     final String deniedBranchReg = /^(main|master|release-\d+\.\d+(-beta\.\d+)?|release-nextgen-\d{6,8})$/
 
