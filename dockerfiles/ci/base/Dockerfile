@@ -82,7 +82,7 @@ ENV PATH=$PATH:/opt/apache-maven-${MAVEN_VER}/bin
 
 #### install tools: bazelisk, codecov, oras
 # renovate: datasource=github-tags depName=bazelbuild/bazelisk
-ARG BAZELISK_VERSION=v1.28.1
+ARG BAZELISK_VERSION=v1.29.0
 RUN OS=linux; ARCH=$([ "$(arch)" = "x86_64" ] && echo amd64 || echo arm64); \
     curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/${BAZELISK_VERSION}/bazelisk-${OS}-${ARCH}" -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
 
