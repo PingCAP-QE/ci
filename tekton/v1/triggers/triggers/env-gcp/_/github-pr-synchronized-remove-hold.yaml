@@ -89,7 +89,7 @@ spec:
                     repo="$(params.repo)"
                     number="$(params.number)"
 
-                    last_labeler=$(gh api --paginate "repos/$owner/$repo/issues/$number/timeline?per_page=100" --jq '[.[] | select(.event == "labeled" and .label.name == "do-not-merge/hold")][-1].actor.login' 2>/dev/null | tail -1)
+                    last_labeler=$(gh api --paginate "repos/$owner/$repo/issues/$number/timeline?per_page=100" --jq '.[] | select(.event == "labeled" and .label.name == "do-not-merge/hold") | .actor.login' 2>/dev/null | tail -1 || echo "")
 
                     if [ "$last_labeler" != "ti-chi-bot" ] && [ "$last_labeler" != "ti-chi-bot[bot]" ]; then
                       echo "do-not-merge/hold was not added by bot (labeler: $last_labeler), skipping."
