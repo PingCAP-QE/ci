@@ -17,7 +17,6 @@ aliases:
     - dillon-zheng
 
   sig-reviewers-ee:
-    - lybcodes
     - timzxz
 
   sig-approvers-raft-engine:
@@ -58,6 +57,7 @@ aliases:
     # emeritus will be keeped here, but will not be used.
     # reviewers:
     - lijie0123 # emeritus since 2024-04
+    - lybcodes # emeritus since 2026-07
 
     # approvers:
     - purelind # emeritus since 2026-04
