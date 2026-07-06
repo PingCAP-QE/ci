@@ -19,6 +19,7 @@ resources:
   - _/git-push-on-fips-branches.yaml
   - _/github-pr-labeled-with-lgtm.yaml
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
+  - _/github-pr-synchronized-remove-hold.yaml
   - _/github-tag-build-community-linux-fts.yaml
   - _/notify/notified-successful-image-delivery-tidbx.yaml
   - _/notify/update-ops-when-tidbx-image-distributed-to-clouds.yaml
