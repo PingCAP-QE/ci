@@ -1,0 +1,111 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-pr-synchronized-remove-hold-for-cherry-pick
+  labels:
+    type: github-pr
+spec:
+  interceptors:
+    - name: filter on repo, branch, and labels
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.action == 'synchronize'
+            &&
+            body.repository.full_name in [
+              'pingcap/tidb',
+              'pingcap/tiflash',
+              'pingcap/tiflow',
+              'pingcap/ticdc',
+              'tikv/tikv',
+              'tikv/pd',
+            ]
+            &&
+            body.pull_request.base.ref.startsWith('release-')
+            &&
+            body.pull_request.labels.exists(l, l.name == 'do-not-merge/hold')
+            &&
+            body.pull_request.labels.exists(l, l.name.startsWith('type/cherry-pick-for-release'))
+  bindings:
+    - ref: github-pr
+  template:
+    spec:
+      params:
+        - name: pr-owner
+        - name: pr-repo
+        - name: pr-number
+      resourcetemplates:
+        - apiVersion: tekton.dev/v1
+          kind: TaskRun
+          metadata:
+            generateName: auto-remove-hold-from-cherry-pick-
+          spec:
+            params:
+              - name: owner
+                value: $(tt.params.pr-owner)
+              - name: repo
+                value: $(tt.params.pr-repo)
+              - name: number
+                value: $(tt.params.pr-number)
+            taskSpec:
+              description: Auto-remove do-not-merge/hold from cherry-pick PRs when conflicts are resolved
+              params:
+                - name: owner
+                  description: repo owner
+                - name: repo
+                  description: repo short name
+                - name: number
+                  description: pull request number
+              steps:
+                - name: wait-for-mergeable-and-remove-hold
+                  image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-7-geb77a69
+                  script: |
+                    #!/usr/bin/env bash
+                    set -eo pipefail
+
+                    export GH_TOKEN="$(cat $(workspaces.github.path)/token)"
+                    pr_url="https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
+
+                    # Wait for mergeability (GitHub computes it async after push)
+                    mergeable=""
+                    for i in $(seq 1 10); do
+                      mergeable=$(gh pr view "$pr_url" --json mergeable --jq '.mergeable' 2>/dev/null || echo "UNKNOWN")
+                      if [ "$mergeable" = "MERGEABLE" ]; then
+                        break
+                      fi
+                      if [ "$i" -lt 10 ]; then
+                        sleep 5
+                      fi
+                    done
+
+                    if [ "$mergeable" != "MERGEABLE" ]; then
+                      echo "PR is not mergeable (state: $mergeable), keeping hold."
+                      exit 0
+                    fi
+
+                    # Check bot origin: only proceed if do-not-merge/hold was added by ti-chi-bot
+                    owner="$(params.owner)"
+                    repo="$(params.repo)"
+                    number="$(params.number)"
+
+                    last_labeler=$(gh api --paginate "repos/$owner/$repo/issues/$number/timeline?per_page=100" --jq '[.[] | select(.event == "labeled" and .label.name == "do-not-merge/hold")][-1].actor.login' 2>/dev/null | tail -1)
+
+                    if [ "$last_labeler" != "ti-chi-bot" ] && [ "$last_labeler" != "ti-chi-bot[bot]" ]; then
+                      echo "do-not-merge/hold was not added by bot (labeler: $last_labeler), skipping."
+                      exit 0
+                    fi
+
+                    # Post tip comment
+                    gh pr comment "$pr_url" --body "Cherry-pick conflicts appear resolved; removing the \`do-not-merge/hold\` label."
+
+                    # Remove the hold label
+                    gh pr edit --remove-label "do-not-merge/hold" "$pr_url"
+
+              workspaces:
+                - name: github
+                  description: Must includes a key `token`
+            workspaces:
+              - name: github
+                secret:
+                  secretName: github
