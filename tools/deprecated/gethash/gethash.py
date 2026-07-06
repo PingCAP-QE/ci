@@ -105,6 +105,6 @@ if __name__ == "__main__":
     parser.add_argument("-repo", type=str, help="github repo")
     parser.add_argument("-version", type=str, help="brance/tag")
     parser.add_argument("-source", type=str, help="from github or fileserver")
-    parser.add_argument("-s", type=str, help="file server url", default='http://fileserver.pingcap.net')
+    parser.add_argument("-s", type=str, help="file server url", default=os.environ.get("ARTIFACT_DOWNLOAD_BASE_URL", "http://fileserver.pingcap.net"))
     args = parser.parse_args()
     main(args)
