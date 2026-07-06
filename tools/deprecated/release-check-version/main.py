@@ -93,8 +93,8 @@ if __name__ == "__main__":
     if args.type == 'image':
         all_results = []
         failed_images = []
-        oci_registry = os.environ.get("OCI_REGISTRY", "hub.pingcap.net")
         if is_rc_build:
+            oci_registry = os.environ.get("OCI_REGISTRY", "hub.pingcap.net")
             for image in components["docker_images"]:
                 success, failure = check_docker_image(image, "enterprise", oci_registry, "qa", is_rc_build)
                 all_results.append(success)
@@ -105,18 +105,20 @@ if __name__ == "__main__":
                 if not success:
                     failed_images.append(failure)
         else:
-            enterprise_project = os.environ.get("ENTERPRISE_IMAGE_REGISTRY", "pingcap-public/dbaas")
-            ucloud_registry = os.environ.get("UCLOUD_REGISTRY", "uhub.service.ucloud.cn")
-            print("checking docker images on gcr.io")
+            enterprise_registry = os.environ.get("ENTERPRISE_IMAGE_REGISTRY", "gcr.io/pingcap-public/dbaas")
+            enterprise_registry_parts = enterprise_registry.split("/", 1)
+            print(f"checking docker images on {enterprise_registry}")
             for image in components["docker_images"]:
-                success, failure = check_docker_image(image, "enterprise", "gcr.io", enterprise_project)
+                success, failure = check_docker_image(image, "enterprise", enterprise_registry_parts[0], enterprise_registry_parts[1])
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)
 
-            print("checking docker images on uhub.service.ucloud.cn")
+            ucloud_registry = os.environ.get("UCLOUD_REGISTRY", "uhub.service.ucloud.cn/pingcap")
+            ucloud_registry_parts = ucloud_registry.split("/", 1)
+            print(f"checking docker images on {ucloud_registry}")
             for image in components["docker_images"]:
-                success, failure = check_docker_image(image, "community", ucloud_registry, "pingcap")
+                success, failure = check_docker_image(image, "community", ucloud_registry_parts[0], ucloud_registry_parts[1])
                 all_results.append(success)
                 if not success:
                     failed_images.append(failure)

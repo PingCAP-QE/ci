@@ -39,7 +39,7 @@ function gather_results() {
         done
 
         # enterprise image
-        for image in "${oci_registry}/qa/$com-enterprise:$VERSION" "${ENTERPRISE_IMAGE_REGISTRY:-gcr.io/pingcap-public/dbaas}/$com:$VERSION"; do
+        for image in "${oci_registry}/qa/$com-enterprise:$VERSION" "${ENTERPRISE_IMAGE_REGISTRY:-gcr.io/pingcap-public/dbaas}/${com}:${VERSION}"; do
             echo "🚧 check container image: $image"
             for platform in linux/amd64 linux/arm64; do
                 echo "🚧 check container image: $image, platform: $platform"
