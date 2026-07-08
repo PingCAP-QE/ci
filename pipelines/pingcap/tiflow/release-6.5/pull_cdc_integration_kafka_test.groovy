@@ -14,7 +14,7 @@ final OCI_TAG_TIFLASH = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : componen
 final OCI_TAG_TIKV = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'v6.5.12'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
-final OCI_TAG_ETCD = 'v3.5.17'
+final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 final WORKSPACE_STASH_NAME = 'tiflow-cdc-workspace'
 
