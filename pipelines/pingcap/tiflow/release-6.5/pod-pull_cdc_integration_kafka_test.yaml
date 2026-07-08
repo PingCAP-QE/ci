@@ -20,7 +20,6 @@ spec:
           name: volume-0
     - image: ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21
       name: golang
-      command: [/tini, --, /bin/bash]
       resources:
         requests:
           cpu: "2"
