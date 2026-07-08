@@ -4,7 +4,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-6.5/pod-pull_cdc_integration_kafka_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-6.5/pod-pull_cdc_integration_mysql_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-6.5/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
@@ -21,7 +21,7 @@ final WORKSPACE_STASH_NAME = 'tiflow-cdc-workspace'
 pipeline {
     agent none
     options {
-        timeout(time: 65, unit: 'MINUTES')
+        timeout(time: 80, unit: 'MINUTES')
     }
     stages {
         stage('Checkout & Prepare') {
@@ -125,7 +125,7 @@ pipeline {
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
+                        options { timeout(time: 60, unit: 'MINUTES') }
                         environment {
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
                             TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
@@ -133,24 +133,12 @@ pipeline {
                         steps {
                             dir(REFS.repo) {
                                 unstash name: WORKSPACE_STASH_NAME
-                                container("kafka") {
-                                    timeout(time: 6, unit: 'MINUTES') {
-                                        sh label: "Waiting for kafka ready", script: """
-                                            echo "Waiting for zookeeper to be ready..."
-                                            while ! nc -z localhost 2181; do sleep 10; done
-                                            echo "Waiting for kafka to be ready..."
-                                            while ! nc -z localhost 9092; do sleep 10; done
-                                            echo "Waiting for kafka-broker to be ready..."
-                                            while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                        """
-                                    }
-                                }
                                 sh label: "${TEST_GROUP}", script: """
                                     rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
+                                    ln -s ${WORKSPACE}/tiflow/bin ${WORKSPACE}/tiflow/tests/bin
                                     chmod +x ../scripts/pingcap/tiflow/release-6.5/cdc_run_group.sh
                                     cp ../scripts/pingcap/tiflow/release-6.5/cdc_run_group.sh tests/integration_tests/
-                                    ln -s ${WORKSPACE}/tiflow/bin ${WORKSPACE}/tiflow/tests/bin
-                                    ./tests/integration_tests/cdc_run_group.sh kafka ${TEST_GROUP}
+                                    ./tests/integration_tests/cdc_run_group.sh mysql ${TEST_GROUP}
                                 """
                             }
                         }
