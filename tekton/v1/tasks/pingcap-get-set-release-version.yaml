@@ -64,7 +64,7 @@ spec:
         - run
         - --allow-read
         - --allow-write
-        - https://github.com/PingCAP-QE/ci/raw/refs/heads/main/scripts/flow/build/versioning-strategy.ts
+        - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/build/versioning-strategy.ts
       args:
         - --git_version_file=/workspace/raw-version.txt
         - --contain_branches_file=/workspace/branches.txt

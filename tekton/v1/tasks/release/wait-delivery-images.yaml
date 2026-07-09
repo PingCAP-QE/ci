@@ -15,13 +15,13 @@ spec:
       default: us-docker.pkg.dev/pingcap-testing-account/hub
       description: The OCI registry stored the origin tarball files.
     - name: delivery-config
-      default: "https://github.com/PingCAP-QE/artifacts/raw/main/packages/delivery.yaml"
+      default: "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml"
       description: The delivery config yaml file, it contains delivery rules.
   steps:
     - name: compute
       image: docker.io/denoland/deno:alpine-2.1.4
       script: |
-        deno run --allow-all https://github.com/PingCAP-QE/artifacts/raw/main/packages/scripts/get-delivery-target-images.ts \
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/get-delivery-target-images.ts \
           --version="$(params.version)" \
           --registry="$(params.oci-registry)" \
           --config="$(params.delivery-config)" \

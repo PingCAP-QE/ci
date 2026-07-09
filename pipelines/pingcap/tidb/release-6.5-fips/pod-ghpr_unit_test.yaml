@@ -25,10 +25,6 @@ spec:
           mountPath: /bazel-out-lower
         - name: bazel-out-overlay
           mountPath: /bazel-out-overlay
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -44,12 +40,6 @@ spec:
     - name: bazel-repository-cache
       persistentVolumeClaim:
         claimName: bazel-repository-cache
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
     - name: bazel-out-lower
       persistentVolumeClaim:
         claimName: bazel-out-data

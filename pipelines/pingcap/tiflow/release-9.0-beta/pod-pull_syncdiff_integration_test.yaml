@@ -7,9 +7,6 @@ spec:
     - name: runner
       image: ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25
       tty: true
-      env:
-        - name: GOPATH
-          value: /go
       resources:
         limits:
           memory: 8Gi

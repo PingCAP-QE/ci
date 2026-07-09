@@ -16,18 +16,6 @@ spec:
         limits:
           memory: 6Gi
           cpu: "3"
-      volumeMounts:
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
-  volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

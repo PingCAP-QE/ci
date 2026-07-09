@@ -31,22 +31,10 @@ pipeline {
             }
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiproxy") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tiproxy/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiproxy/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('https://github.com/pingcap/tiproxy.git', 'tiproxy', "main", "", "")
-                            }
-                        }
-                    }
-                }
                 dir("tidb-test") {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
-                }
-                dir('tiproxy') {
-                    sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
@@ -55,12 +43,11 @@ pipeline {
                             container("utils") {
                                 dir('bin') {
                                     sh label: 'download thirdparty binary', script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tidb=master --pd=master --tikv=master
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tidb=master --pd=master --tikv=master --tiproxy=main
                                     """
                                 }
                             }
                             sh label: 'prepare tiproxy binary', script: """
-                            cp ../tiproxy/bin/tiproxy ./bin/
                             ls -alh bin/
                             ./bin/tidb-server -V
                             ./bin/pd-server -V

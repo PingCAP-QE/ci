@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap/tiflow/release-6.5/pull_cdc_integration_test') {
+pipelineJob('pingcap/tiflow/release-6.5/pull_cdc_integration_mysql_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -13,7 +13,7 @@ pipelineJob('pingcap/tiflow/release-6.5/pull_cdc_integration_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflow/release-6.5/pull_cdc_integration_test.groovy")
+            scriptPath("pipelines/pingcap/tiflow/release-6.5/pull_cdc_integration_mysql_test.groovy")
             scm {
                 git{
                     remote {

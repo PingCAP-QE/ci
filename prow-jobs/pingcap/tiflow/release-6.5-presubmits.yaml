@@ -35,7 +35,7 @@ presubmits:
       skip_branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
 
-    - name: pingcap/tiflow/release-6.5/pull_cdc_integration_test
+    - name: pingcap/tiflow/release-6.5/pull_cdc_integration_mysql_test
       agent: jenkins
       labels:
         master: "1"
