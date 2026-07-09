@@ -2,6 +2,8 @@
 
 VERSION=$1
 failure=0
+OCI_REGISTRY="${OCI_REGISTRY:-hub.pingcap.net}"
+ENTERPRISE_IMAGE_REGISTRY="${ENTERPRISE_IMAGE_REGISTRY:-gcr.io/pingcap-public/dbaas}"
 
 function record_failure() {
     if [ "$1" -eq 0 ]; then
@@ -39,7 +41,7 @@ function gather_results() {
         tikv/pd/package \
         tikv/tikv/package; do
         for platform in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
-            repo="${OCI_REGISTRY:-hub.pingcap.net}/${source_oci_pkg_repo}:${VERSION}_${platform}"
+            repo="${OCI_REGISTRY}/${source_oci_pkg_repo}:${VERSION}_${platform}"
             oras manifest fetch-config $repo >tmp-oci-artifact-config.yaml
             yq '.["net.pingcap.tibuild.git-sha"]' tmp-oci-artifact-config.yaml
             git_sha=$(yq .'["net.pingcap.tibuild.git-sha"]' tmp-oci-artifact-config.yaml)
@@ -56,7 +58,7 @@ function gather_results() {
     # check docker
     for com in 'br' 'dm' 'dumpling' 'ng-monitoring' 'pd' 'ticdc' 'tidb' 'tidb-binlog' 'tidb-lightning' 'tidb-monitor-initializer' 'tiflash' 'tikv'; do
         # community image
-        image="${OCI_REGISTRY:-hub.pingcap.net}/qa/$com:$VERSION"
+        image="${OCI_REGISTRY}/qa/$com:$VERSION"
         echo "🚧 check container image: $image"
         for platform in linux/amd64 linux/arm64; do
             echo "🚧 check container image: $image, platform: $platform"
@@ -71,7 +73,7 @@ function gather_results() {
         done
 
         # enterprise image
-        for image in "${OCI_REGISTRY:-hub.pingcap.net}/qa/$com-enterprise:$VERSION" "${ENTERPRISE_IMAGE_REGISTRY:-gcr.io/pingcap-public/dbaas}/$com:$VERSION"; do
+        for image in "${OCI_REGISTRY}/qa/$com-enterprise:$VERSION" "${ENTERPRISE_IMAGE_REGISTRY}/$com:$VERSION"; do
             echo "🚧 check container image: $image"
             for platform in linux/amd64 linux/arm64; do
                 echo "🚧 check container image: $image, platform: $platform"
@@ -89,7 +91,7 @@ function gather_results() {
 
     # check failpoint
     for com in 'pd' 'tidb' 'tikv'; do
-        image="${OCI_REGISTRY:-hub.pingcap.net}/qa/$com:$VERSION-failpoint"
+        image="${OCI_REGISTRY}/qa/$com:$VERSION-failpoint"
         echo "🚧 check container image: $image"
         for platform in linux/amd64 linux/arm64; do
             echo "🚧 check container image: $image, platform: $platform"
