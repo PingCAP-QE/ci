@@ -238,9 +238,9 @@ pipeline {
                                     docker ps -a && docker version
                                     """
                                     script {
-                                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                        def pdBranch = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                        def tikvBranch = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+                                        def tidbBranch = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
                                         def tidbImage = "${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}"
                                         def tidbFailpointImage = "${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}-failpoint"
                                         def tidbRuntimeImage = env.TEST_PATH == 'tidb-ci' ? tidbFailpointImage : tidbImage
