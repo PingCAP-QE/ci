@@ -65,7 +65,7 @@ spec:
         - { name: version, value: $(params.version) }
         - { name: oci-registry, value: $(params.oci-registry) }
         - name: delivery-config
-          value: https://github.com/PingCAP-QE/artifacts/raw/main/packages/delivery.yaml
+          value: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
       taskRef:
         name: wait-delivery-images
     - name: compose-offline-pkgs-amd64-community
