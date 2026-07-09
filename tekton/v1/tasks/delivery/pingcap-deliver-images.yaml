@@ -22,10 +22,10 @@ spec:
         - images-info # yaml/json content that stored images information return by image build task
     - name: delivery-config-url
       description: URL of the delivery configuration file
-      default: https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/packages/delivery.yaml
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
     - name: generator-script-url
       description: URL of the generator script
-      default: https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/packages/scripts/gen-delivery-image-commands.ts
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
     - name: retries
       description: Number of retries for image delivery step
       default: "3"

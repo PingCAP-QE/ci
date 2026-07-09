@@ -135,7 +135,7 @@ spec:
         fi
 
         env_file="/workspace/remote.env"
-        deno run --allow-all https://github.com/PingCAP-QE/artifacts/raw/refs/heads/main/packages/scripts/build-in-darwin-boskos.ts \
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/build-in-darwin-boskos.ts \
           --sshInfoDir ${WORKSPACE_SSH_DIRECTORY_PATH} \
           --sourcePath $(workspaces.source.path) \
           --envFile ${env_file} \

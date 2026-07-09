@@ -16,12 +16,12 @@ spec:
   steps:
     - name: create-releases
       script: |
-        deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/flow/ga/create_github_release.ts \
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/ga/create_github_release.ts \
           --version="$(params.version)" \
           --token="$(cat $(workspaces.github.path)/token)"
     - name: create-branches
       onError: continue # it's not so important.
       script: |
-        deno run --allow-net https://github.com/PingCAP-QE/ci/raw/main/scripts/flow/ga/create-patch-release-branches.ts \
+        deno run --allow-net https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/ga/create-patch-release-branches.ts \
           --version="$(params.version)" \
           --token="$(cat $(workspaces.github.path)/token)"
