@@ -1,0 +1,254 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: zot-validate-repair-image
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: CLI
+    tekton.dev/tags: zot,registry,repair
+    tekton.dev/displayName: "zot validate repair image"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Validate a zot registry image and repair broken layer blobs by
+    downloading them from a source image and uploading to KSY S3.
+
+    zot stores blobs in S3 at: s3://<bucket>/<repo-path>/blobs/sha256/<digest>
+    where <repo-path> is auto-derived from the target-image URL (e.g.
+    mirrors/hub/pingcap/tiflash/image for hub-zot.pingcap.net/mirrors/hub/pingcap/tiflash/image:tag).
+
+  params:
+    - name: target-image
+      description: The zot registry image URL to validate/repair.
+      type: string
+    - name: source-image
+      description: Source image URL to download healthy blobs from.
+      type: string
+    - name: bucket
+      description: S3 bucket name for blob storage.
+      type: string
+    - name: config-file-path
+      description: Path to ks3util config within the ks3util-config workspace.
+      type: string
+      default: ".ks3utilconfig"
+
+  workspaces:
+    - name: ks3util-config
+      description: Contains the ks3util config file for S3 authentication.
+
+  stepTemplate:
+    env:
+      - name: TARGET_IMAGE
+        value: $(params.target-image)
+      - name: SOURCE_IMAGE
+        value: $(params.source-image)
+      - name: S3_BUCKET
+        value: $(params.bucket)
+      - name: KS3_CONFIG_FILE
+        value: $(params.config-file-path)
+
+  steps:
+    - name: validate
+      image: gcr.io/go-containerregistry/crane/debug:latest
+      env:
+        - name: REPO_PATH
+          value: ""
+      results:
+        - name: broken-digests-file
+          type: string
+      script: |
+        #!/busybox/sh
+        set -e
+
+        BLOB_DIR="/workspace/blob-data"
+        mkdir -p "$BLOB_DIR"
+
+        DIGESTS_FILE="$BLOB_DIR/broken-digests.txt"
+        VALIDATE_LOG="$BLOB_DIR/validate.log"
+
+        echo "=== Validating: $TARGET_IMAGE ==="
+
+        if crane validate --remote "$TARGET_IMAGE" >"$VALIDATE_LOG" 2>&1; then
+          echo "Image is valid. No repair needed."
+          echo -n "" > "$DIGESTS_FILE"
+          echo -n "$DIGESTS_FILE" > "$(step.results.broken-digests-file.path)"
+          exit 0
+        fi
+
+        echo "Image validation FAILED."
+
+        grep -oE 'sha256:[a-f0-9]{64}' "$VALIDATE_LOG" | sort -u > "$DIGESTS_FILE"
+
+        BROKEN_COUNT=$(wc -l < "$DIGESTS_FILE" | tr -d ' ')
+        echo "Broken blob count: $BROKEN_COUNT"
+        echo "Broken digests:"
+        cat "$DIGESTS_FILE"
+
+        echo -n "$DIGESTS_FILE" > "$(step.results.broken-digests-file.path)"
+
+    - name: derive-repo-path
+      image: gcr.io/go-containerregistry/crane/debug:latest
+      results:
+        - name: repo-path
+          type: string
+      script: |
+        #!/busybox/sh
+        set -e
+
+        IMAGE="$TARGET_IMAGE"
+        IMAGE="${IMAGE%%@*}"
+        IMAGE="${IMAGE%%:*}"
+
+        REPO_PATH="${IMAGE#*://}"
+        REPO_PATH="${REPO_PATH#*/}"
+
+        if [ -z "$REPO_PATH" ] || [ "$REPO_PATH" = "$IMAGE" ]; then
+          echo "ERROR: Cannot extract repo path from: $TARGET_IMAGE"
+          exit 1
+        fi
+
+        echo "Repo path: $REPO_PATH"
+        echo -n "$REPO_PATH" > "$(step.results.repo-path.path)"
+
+    - name: download
+      image: gcr.io/go-containerregistry/crane/debug:latest
+      when:
+        - input: "$(steps.validate.results.broken-digests-file)"
+          operator: notin
+          values: [""]
+      results:
+        - name: downloaded
+          type: string
+      script: |
+        #!/busybox/sh
+        set -e
+
+        DIGESTS_FILE="$(steps.validate.results.broken-digests-file)"
+
+        BROKEN_COUNT=$(wc -l < "$DIGESTS_FILE" | tr -d ' ')
+        if [ "$BROKEN_COUNT" -eq 0 ]; then
+          echo "No broken blobs to download."
+          echo -n "false" > "$(step.results.downloaded.path)"
+          exit 0
+        fi
+
+        BLOB_DIR="/workspace/blob-data"
+        mkdir -p "$BLOB_DIR"
+
+        echo "Downloading $BROKEN_COUNT broken blob(s) from: $SOURCE_IMAGE"
+
+        FAILED=0
+        while IFS= read -r DIGEST; do
+          [ -z "$DIGEST" ] && continue
+
+          BLOB_NAME=$(echo "$DIGEST" | tr ':' '_' | tr '/' '_')
+          BLOB_FILE="$BLOB_DIR/$BLOB_NAME"
+
+          echo "--- Downloading $DIGEST ---"
+          if crane blob "${SOURCE_IMAGE}@${DIGEST}" > "$BLOB_FILE" 2>/dev/null; then
+            SIZE=$(wc -c < "$BLOB_FILE" | tr -d ' ')
+            echo "  OK: $SIZE bytes"
+          else
+            echo "  FAILED: could not download $DIGEST"
+            FAILED=$((FAILED + 1))
+          fi
+        done < "$DIGESTS_FILE"
+
+        if [ "$FAILED" -gt 0 ]; then
+          echo "ERROR: $FAILED blob(s) failed to download."
+          exit 1
+        fi
+
+        echo "All blobs downloaded successfully."
+        echo -n "true" > "$(step.results.downloaded.path)"
+
+    - name: upload
+      image: ghcr.io/pingcap-qe/cd/utils/ks3util:v2025.10.26-7-geb77a69
+      when:
+        - input: "$(steps.download.results.downloaded)"
+          operator: in
+          values: ["true"]
+      script: |
+        #!/bin/bash
+        set -e
+
+        REPO_PATH="$(steps.derive-repo-path.results.repo-path)"
+        BLOB_DIR="/workspace/blob-data"
+        DIGESTS_FILE="$(steps.validate.results.broken-digests-file)"
+        CONFIG_FILE="$(workspaces.ks3util-config.path)/${KS3_CONFIG_FILE}"
+
+        if [ ! -f "$CONFIG_FILE" ]; then
+          echo "ERROR: ks3util config file not found at: $CONFIG_FILE"
+          exit 1
+        fi
+
+        KS3UTIL="ks3util --config-file $CONFIG_FILE"
+
+        echo "Repo path: $REPO_PATH"
+        echo "S3 bucket: $S3_BUCKET"
+        echo "S3 prefix : s3://${S3_BUCKET}/${REPO_PATH}/blobs/"
+
+        FAILED=0
+        SUCCESS=0
+        while IFS= read -r DIGEST; do
+          [ -z "$DIGEST" ] && continue
+
+          BLOB_NAME=$(echo "$DIGEST" | tr ':' '_' | tr '/' '_')
+          BLOB_FILE="$BLOB_DIR/$BLOB_NAME"
+
+          ALG="${DIGEST%%:*}"
+          HASH="${DIGEST#*:}"
+          S3_PATH="s3://${S3_BUCKET}/${REPO_PATH}/blobs/${ALG}/${HASH}"
+
+          if [ ! -f "$BLOB_FILE" ]; then
+            echo "--- SKIP $DIGEST (file not found) ---"
+            FAILED=$((FAILED + 1))
+            continue
+          fi
+
+          echo "--- Uploading $DIGEST -> $S3_PATH ---"
+          if $KS3UTIL cp "$BLOB_FILE" "$S3_PATH"; then
+            echo "  OK"
+            SUCCESS=$((SUCCESS + 1))
+          else
+            echo "  FAILED"
+            FAILED=$((FAILED + 1))
+          fi
+        done < "$DIGESTS_FILE"
+
+        echo ""
+        echo "Upload complete: $SUCCESS succeeded, $FAILED failed"
+
+        if [ "$FAILED" -gt 0 ]; then
+          exit 1
+        fi
+
+    - name: re-validate
+      image: gcr.io/go-containerregistry/crane/debug:latest
+      when:
+        - input: "$(steps.download.results.downloaded)"
+          operator: in
+          values: ["true"]
+      script: |
+        #!/busybox/sh
+        set -e
+
+        echo "=== Re-validating: $TARGET_IMAGE ==="
+
+        if crane validate --remote "$TARGET_IMAGE"; then
+          echo ""
+          echo "=============================================="
+          echo "  Repair successful — image is now valid."
+          echo "=============================================="
+          exit 0
+        else
+          echo ""
+          echo "=============================================="
+          echo "  Image still has validation errors."
+          echo "  Manual investigation required."
+          echo "=============================================="
+          exit 1
+        fi
