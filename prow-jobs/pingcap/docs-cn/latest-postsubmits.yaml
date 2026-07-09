@@ -11,7 +11,7 @@ postsubmits:
       max_concurrency: 5
       branches:
         - ^master$
-        - ^release-6\.[15]$
+        - ^release-6\.5$
         - ^release-7\.[15]$
         - ^release-8\.[15]$
       spec:
