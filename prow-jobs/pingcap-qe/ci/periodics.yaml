@@ -57,8 +57,7 @@ periodics:
               end_date=$(date +%Y-%m-%d)
               email_subject="Flaky Tests Report of $PARAM_REPO repository (branch: $PARAM_BRANCH) between ${start_date} and ${end_date}"
 
-              cd tools/reporters/ci/flaky-tests
-              deno task run \
+              deno task --cwd tools/reporters/ci/flaky-tests --quiet run \
                 --repo ${PARAM_REPO} \
                 --branch ${PARAM_BRANCH} \
                 --from ${start_date} \
