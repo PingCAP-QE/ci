@@ -249,9 +249,9 @@ pipeline {
                                     docker ps -a && docker version
                                     """
                                     script {
-                                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
-                                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
-                                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        def pdBranch = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        def tikvBranch = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
+                                        def tidbBranch = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
                                         withEnv([
                                             "PD_IMAGE=${OCI_ARTIFACT_HOST}/tikv/pd/image:${pdBranch}",
                                             "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${tikvBranch}",
