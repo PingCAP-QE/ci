@@ -51,11 +51,11 @@ ${BOLD}Authentication:${NC}
   and pass them directly to ks3util.
 
 ${BOLD}Non-interactive example:${NC}
-  $0 --source hub-os.pingcap.net/mirrors/hub/pingcap/tiflash/image:v8.5.0 \\
-     --bucket ee-zot \\
+  $0 --source source-registry.example.com/mirrors/example/image:tag \\
+     --bucket my-bucket \\
      --config-file /path/to/ks3utilconfig \\
      --yes \\
-     hub-zot.pingcap.net/mirrors/hub/pingcap/tiflash/image:v8.5.0
+     target-registry.example.com/mirrors/example/image:tag
 EOF
 }
 

@@ -18,7 +18,7 @@ spec:
 
     zot stores blobs in S3 at: s3://<bucket>/<repo-path>/blobs/sha256/<digest>
     where <repo-path> is auto-derived from the target-image URL (e.g.
-    mirrors/hub/pingcap/tiflash/image for hub-zot.pingcap.net/mirrors/hub/pingcap/tiflash/image:tag).
+    mirrors/example/image for registry.example.com/mirrors/example/image:tag).
 
   params:
     - name: target-image
