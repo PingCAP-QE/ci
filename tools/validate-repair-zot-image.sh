@@ -170,11 +170,13 @@ prompt_required() {
     local env_var="$2"
     local val
 
-    val="${!env_var:-}"
-    if [[ -n "$val" ]]; then
-        info "Using $env_var from environment."
-        echo "$val"
-        return
+    if [[ -n "${env_var:-}" ]]; then
+        val="${!env_var:-}"
+        if [[ -n "$val" ]]; then
+            info "Using $env_var from environment."
+            echo "$val"
+            return
+        fi
     fi
 
     while true; do
