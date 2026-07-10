@@ -35,7 +35,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: maniator/gh:v2.95.0
+            image: maniator/gh:v2.96.0
             env:
               - name: GH_TOKEN
                 valueFrom:
