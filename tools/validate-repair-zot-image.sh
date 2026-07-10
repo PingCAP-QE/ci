@@ -29,6 +29,7 @@ ${BOLD}Options:${NC}
                       When not set, ks3util uses its default config
                       (~/.ks3utilconfig).
   -y, --yes           Auto-confirm all prompts (non-interactive mode)
+  --max-retries <n>   Max download/upload attempts per blob (default: 3)
 
 ${BOLD}Description:${NC}
   1. Runs ${CYAN}crane validate${NC} against the remote image.
@@ -201,7 +202,29 @@ download_blob() {
         cat "$TMPDIR/blob-dl.log" >&2
         return 1
     fi
-    info "  -> saved $(wc -c < "$outfile" | tr -d ' ') bytes"
+
+    local hash="${digest#*:}"
+    local downloaded_hash
+    if command -v sha256sum >/dev/null 2>&1; then
+        downloaded_hash=$(sha256sum "$outfile" | awk '{print $1}')
+    elif command -v shasum >/dev/null 2>&1; then
+        downloaded_hash=$(shasum -a 256 "$outfile" | awk '{print $1}')
+    else
+        error "No sha256sum or shasum found, cannot verify blob integrity."
+        return 1
+    fi
+
+    if [[ "$downloaded_hash" != "$hash" ]]; then
+        error "Blob integrity check failed for $digest."
+        error "  expected: $hash"
+        error "  got:      $downloaded_hash"
+        rm -f "$outfile"
+        return 1
+    fi
+
+    local size
+    size=$(wc -c < "$outfile" | tr -d ' ')
+    info "  -> saved $size bytes (digest verified)"
     echo "$outfile"
 }
 
@@ -238,6 +261,7 @@ repair_blobs() {
     local bucket="$3"
     local repo_path="$4"
     local config_file="$5"
+    local max_retries="${6:-3}"
 
     local failed=()
     local repaired=()
@@ -248,18 +272,35 @@ repair_blobs() {
         echo ""
         info "--- Processing $digest ---"
 
-        local local_file
-        if ! local_file=$(download_blob "$source_image" "$digest"); then
-            failed+=("$digest")
-            continue
-        fi
+        local retry=0
+        local local_file=""
+        local ok=false
 
-        if ! upload_blob "$local_file" "$digest" "$bucket" "$repo_path" "$config_file"; then
-            failed+=("$digest")
-            continue
-        fi
+        while (( retry < max_retries )); do
+            if (( retry > 0 )); then
+                warn "  Retry $retry/$((max_retries - 1)) for $digest ..."
+            fi
 
-        repaired+=("$digest")
+            if ! local_file=$(download_blob "$source_image" "$digest"); then
+                retry=$((retry + 1))
+                continue
+            fi
+
+            if ! upload_blob "$local_file" "$digest" "$bucket" "$repo_path" "$config_file"; then
+                retry=$((retry + 1))
+                continue
+            fi
+
+            ok=true
+            break
+        done
+
+        if $ok; then
+            repaired+=("$digest")
+        else
+            error "Failed to repair $digest after $max_retries attempt(s)."
+            failed+=("$digest")
+        fi
     done
 
     echo ""
@@ -290,6 +331,7 @@ main() {
     local bucket=""
     local config_file=""
     local auto_yes=false
+    local max_retries=3
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -303,6 +345,10 @@ main() {
                 ;;
             -c|--config-file)
                 config_file="$2"
+                shift 2
+                ;;
+            --max-retries)
+                max_retries="$2"
                 shift 2
                 ;;
             -y|--yes)
@@ -428,7 +474,7 @@ main() {
 
     # ---- Step 6-7: Download & Upload ----
 
-    repair_blobs "$source_image" broken_digests "$bucket" "$repo_path" "$config_file" || {
+    repair_blobs "$source_image" broken_digests "$bucket" "$repo_path" "$config_file" "$max_retries" || {
         error "Some blobs could not be repaired. See above for details."
     }
 
