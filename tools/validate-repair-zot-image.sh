@@ -245,14 +245,12 @@ upload_blob() {
     fi
 
     info "Uploading to ${CYAN}$s3_path${NC} ..."
-    ks3util cp "${config_opt[@]}" "$local_file" "$s3_path" 2>&1 | sed 's/^/  /'
-    local ret=${PIPESTATUS[0]}
-
-    if [[ $ret -ne 0 ]]; then
-        error "Upload failed for $digest (exit $ret)."
+    if ks3util cp "${config_opt[@]}" "$local_file" "$s3_path" 2>&1 | sed 's/^/  /'; then
+        info "  -> uploaded successfully."
+    else
+        error "Upload failed for $digest."
         return 1
     fi
-    info "  -> uploaded successfully."
 }
 
 repair_blobs() {
