@@ -33,3 +33,4 @@ resources:
   - release/tag-and-deliver-rc2ga-on-oci-artifacts.yaml
   - release/wait-delivery-images.yaml
   - release/wait-delivery-tiup.yaml
+  - zot-validate-repair-image.yaml
