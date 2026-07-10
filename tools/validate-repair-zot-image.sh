@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+CYAN=$'\033[0;36m'
+BOLD=$'\033[1m'
+NC=$'\033[0m'
 
 TMPDIR="${TMPDIR:-/tmp}/validate-repair-$$"
 VALIDATE_LOG=""
@@ -60,10 +60,10 @@ ${BOLD}Non-interactive example:${NC}
 EOF
 }
 
-info()    { echo -e "${GREEN}[INFO]${NC}  $*"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-error()   { echo -e "${RED}[ERROR]${NC} $*"; }
-header()  { echo -e "\n${BOLD}${CYAN}=== $* ===${NC}\n"; }
+info()    { echo "${GREEN}[INFO]${NC}  $*"; }
+warn()    { echo "${YELLOW}[WARN]${NC}  $*"; }
+error()   { echo "${RED}[ERROR]${NC} $*"; }
+header()  { echo; echo "${BOLD}${CYAN}=== $* ===${NC}"; echo; }
 
 require_command() {
     command -v "$1" >/dev/null 2>&1 || { error "Required command '$1' not found in PATH."; exit 1; }
@@ -113,9 +113,9 @@ print_validate_errors() {
     local logfile="$1"
 
     echo ""
-    echo -e "${BOLD}--- Error details (last 20 lines) ---${NC}"
+    echo "${BOLD}--- Error details (last 20 lines) ---${NC}"
     tail -20 "$logfile" | sed 's/^/  /'
-    echo -e "${BOLD}---------------------------------------${NC}"
+    echo "${BOLD}---------------------------------------${NC}"
     echo ""
 }
 
@@ -155,10 +155,10 @@ confirm() {
     local answer
 
     if [[ "$default" == "Y" ]]; then
-        read -r -p "$(echo -e "${YELLOW}$prompt [Y/n]: ${NC}")" answer
+        read -r -p "$(echo "${YELLOW}$prompt [Y/n]: ${NC}")" answer
         answer="${answer:-Y}"
     else
-        read -r -p "$(echo -e "${YELLOW}$prompt [y/N]: ${NC}")" answer
+        read -r -p "$(echo "${YELLOW}$prompt [y/N]: ${NC}")" answer
         answer="${answer:-N}"
     fi
 
@@ -178,7 +178,7 @@ prompt_required() {
     fi
 
     while true; do
-        read -r -p "$(echo -e "${CYAN}$prompt: ${NC}")" val
+        read -r -p "$(echo "${CYAN}$prompt: ${NC}")" val
         if [[ -n "$val" ]]; then
             echo "$val"
             return
@@ -399,9 +399,10 @@ main() {
         exit 1
     fi
 
-    echo -e "\n${BOLD}Broken blob digests (${#broken_digests[@]} total):${NC}"
+    echo
+    echo "${BOLD}Broken blob digests (${#broken_digests[@]} total):${NC}"
     for d in "${broken_digests[@]}"; do
-        echo -e "  ${RED}$d${NC}"
+        echo "  ${RED}$d${NC}"
     done
     echo ""
 
@@ -451,16 +452,16 @@ main() {
 
     echo ""
     header "Summary"
-    echo -e "  ${BOLD}Target image:${NC}    $remote_image"
-    echo -e "  ${BOLD}Source image:${NC}    $source_image"
-    echo -e "  ${BOLD}S3 bucket:${NC}      $bucket"
-    echo -e "  ${BOLD}S3 blob path:${NC}    s3://${bucket}/${repo_path}/blobs/<alg>/<digest>"
+    echo "  ${BOLD}Target image:${NC}    $remote_image"
+    echo "  ${BOLD}Source image:${NC}    $source_image"
+    echo "  ${BOLD}S3 bucket:${NC}      $bucket"
+    echo "  ${BOLD}S3 blob path:${NC}    s3://${bucket}/${repo_path}/blobs/<alg>/<digest>"
     if [[ -n "$config_file" ]]; then
-        echo -e "  ${BOLD}Config file:${NC}     $config_file"
+        echo "  ${BOLD}Config file:${NC}     $config_file"
     else
-        echo -e "  ${BOLD}Config file:${NC}     (ks3util default)"
+        echo "  ${BOLD}Config file:${NC}     (ks3util default)"
     fi
-    echo -e "  ${BOLD}Blobs to repair:${NC} ${#broken_digests[@]}"
+    echo "  ${BOLD}Blobs to repair:${NC} ${#broken_digests[@]}"
     echo ""
 
     if ! $auto_yes; then
