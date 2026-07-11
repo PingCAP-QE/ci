@@ -19,7 +19,7 @@ periodics:
             - deno
             - run
             - --allow-net
-            - insight/crawlers/ci/prow-jobs.ts
+            - https://github.com/PingCAP-QE/ee-apps/raw/main/insight/crawlers/ci/prow-jobs.ts
           args: [--dsn=$(DSN)]
           env:
             - name: DSN
