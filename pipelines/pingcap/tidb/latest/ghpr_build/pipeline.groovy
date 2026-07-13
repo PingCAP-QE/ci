@@ -34,19 +34,19 @@ pipeline {
                 }
             }
         }
-        stage("Hotfix deps URL (temporary CI workaround)") {
+        stage('Hotfix bazel deps/cache (temporary)') {
             steps {
                 dir(REFS.repo) {
-                    sh '''
-                    set -euxo pipefail
-                    for f in WORKSPACE DEPS.bzl; do
-                      [ -f "$f" ] || continue
-                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                    done
-                    if [ -f Makefile ]; then
-                      sed -i 's/^check: check-bazel-prepare /check: /' Makefile
-                    fi
-                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
+                    sh '''#!/usr/bin/env bash
+                        set -euxo pipefail
+                        for f in WORKSPACE DEPS.bzl; do
+                          [ -f "$f" ] || continue
+                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
+                        done
+                        if [ -f Makefile ]; then
+                          sed -i 's/^check: check-bazel-prepare /check: /' Makefile
+                        fi
+                        grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
                     '''
                 }
             }
@@ -58,7 +58,7 @@ pipeline {
                 }
             }
             post {
-                always {
+                failure {
                     dir(REFS.repo) {
                         archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
                     }
