@@ -65,7 +65,7 @@ pipeline {
                 }
             }
             post {
-                always {
+                failure {
                     dir(REFS.repo) {
                         archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
                     }
