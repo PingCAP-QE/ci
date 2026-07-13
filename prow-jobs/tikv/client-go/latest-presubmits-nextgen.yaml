@@ -18,6 +18,8 @@ presubmits:
       branches:
         - ^master$
         - ^feature/.*$
+      skip_branches:
+        - ^feature/release-.+$
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
       optional: true
