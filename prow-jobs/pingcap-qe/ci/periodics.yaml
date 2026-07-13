@@ -4,12 +4,6 @@ periodics:
     decorate: true # need add this.
     cron: "0 * * * *" # @hourly
     hidden: true
-    extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-      - org: PingCAP-QE
-        repo: ci
-        base_ref: main
-        skip_submodules: true
-        clone_depth: 1
     spec:
       activeDeadlineSeconds: 300
       containers:
@@ -19,7 +13,7 @@ periodics:
             - deno
             - run
             - --allow-net
-            - https://github.com/PingCAP-QE/ee-apps/raw/main/insight/crawlers/ci/prow-jobs.ts
+            - https://cdn.jsdelivr.net/gh/PingCAP-QE/ee-apps@main/insight/crawlers/ci/prow-jobs.ts
           args: [--dsn=$(DSN)]
           env:
             - name: DSN
@@ -35,12 +29,6 @@ periodics:
     decorate: true # need add this.
     cron: "5 0 * * *" # Run daily at 8:05 UTC+8 (which is 00:05 UTC)
     # hidden: true
-    extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-      - org: PingCAP-QE
-        repo: ci
-        base_ref: main
-        skip_submodules: true
-        clone_depth: 1
     spec:
       activeDeadlineSeconds: 300
       containers:
@@ -53,11 +41,12 @@ periodics:
               #!/usr/bin/env bash
               set -euo pipefail
 
+              script_url="https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/tools/reporters/ci/flaky-tests/main.ts"
               start_date=$(date -d "1 days ago" +%Y-%m-%d)
               end_date=$(date +%Y-%m-%d)
               email_subject="Flaky Tests Report of $PARAM_REPO repository (branch: $PARAM_BRANCH) between ${start_date} and ${end_date}"
 
-              deno task --cwd tools/reporters/ci/flaky-tests --quiet run \
+              deno run --allow-env --allow-net --allow-write ${script_url} \
                 --repo ${PARAM_REPO} \
                 --branch ${PARAM_BRANCH} \
                 --from ${start_date} \
