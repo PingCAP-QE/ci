@@ -119,14 +119,15 @@ spec:
         - input: "$(steps.validate.results.broken-digests-file)"
           operator: notin
           values: [""]
+      env:
+        - name: DIGESTS_FILE
+          value: $(steps.validate.results.broken-digests-file)
       results:
         - name: downloaded
           type: string
       script: |
         #!/busybox/sh
         set -e
-
-        DIGESTS_FILE="$(steps.validate.results.broken-digests-file)"
 
         BROKEN_COUNT=$(wc -l < "$DIGESTS_FILE" | tr -d ' ')
         if [ "$BROKEN_COUNT" -eq 0 ]; then
@@ -171,13 +172,16 @@ spec:
         - input: "$(steps.download.results.downloaded)"
           operator: in
           values: ["true"]
+      env:
+        - name: REPO_PATH
+          value: $(steps.derive-repo-path.results.repo-path)
+        - name: DIGESTS_FILE
+          value: $(steps.validate.results.broken-digests-file)
       script: |
         #!/bin/bash
         set -e
 
-        REPO_PATH="$(steps.derive-repo-path.results.repo-path)"
         BLOB_DIR="/workspace/blob-data"
-        DIGESTS_FILE="$(steps.validate.results.broken-digests-file)"
         CONFIG_FILE="$(workspaces.ks3util-config.path)/${KS3_CONFIG_FILE}"
 
         if [ ! -f "$CONFIG_FILE" ]; then
