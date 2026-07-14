@@ -94,7 +94,7 @@ RUN folder=$([ "$(arch)" = "x86_64" ] && echo linux || echo aarch64); \
     chmod +x /usr/local/bin/codecov
 
 # oras tool
-COPY --from=ghcr.io/oras-project/oras:v1.3.2 /bin/oras /usr/local/bin/oras
+COPY --from=ghcr.io/oras-project/oras:v1.3.3 /bin/oras /usr/local/bin/oras
 
 # gh-ost
 # linux amd64 only

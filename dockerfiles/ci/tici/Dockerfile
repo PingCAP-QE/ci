@@ -26,7 +26,7 @@ RUN pip3 install protobuf==3.6.1 mysql mysql-connector-python==8.0.23
 # renovate: datasource=docker depName=mikefarah/yq
 COPY --from=mikefarah/yq:4.53.3 /usr/bin/yq /usr/local/bin/yq
 # renovate: datasource=github-tags depName=oras-project/oras
-COPY --from=ghcr.io/oras-project/oras:v1.3.2 /bin/oras /usr/local/bin/oras
+COPY --from=ghcr.io/oras-project/oras:v1.3.3 /bin/oras /usr/local/bin/oras
 
 # For rustup toolchain
 RUN rustup install nightly-2025-02-28
