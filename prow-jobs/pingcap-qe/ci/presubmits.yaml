@@ -117,6 +117,42 @@ presubmits:
                 memory: 256Mi
                 cpu: 200m
 
+    - name: pull-verify-tekton-yaml
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^tekton/v1/.*\\.yaml$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.24
+            command: [sh, -ce]
+            args:
+              - |
+                apk add --no-cache kubectl yq-go git
+                changed_files=$(git diff --name-only --diff-filter=d "${PULL_BASE_SHA:?}" -- 'tekton/v1/**/*.yaml' | LC_ALL=C sort)
+                if [ -z "$changed_files" ]; then
+                  echo "No changed Tekton YAML files to verify."
+                  exit 0
+                fi
+                failed=0
+                for f in $changed_files; do
+                  echo "Validating: $f"
+                  if ! kubectl apply --dry-run=server -f "$f" 2>&1 | sed 's/^/  /'; then
+                    failed=1
+                  fi
+                done
+                if [ "$failed" -eq 0 ]; then
+                  echo "All Tekton YAML files passed server dry-run validation."
+                fi
+                exit $failed
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+
     - name: pull-test-jenkins-libraries
       labels: *labels
       decorate: true
