@@ -19,6 +19,7 @@ configMapGenerator:
       - pingcap-qe_ci_postsubmits.yaml=pingcap-qe/ci/postsubmits.yaml
       - pingcap-qe_ci_presubmits.yaml=pingcap-qe/ci/presubmits.yaml
       - pingcap-qe_ee-apps_presubmits.yaml=pingcap-qe/ee-apps/presubmits.yaml
+      - pingcap-qe_ee-infra_presubmits.yaml=pingcap-qe/ee-infra/presubmits.yaml
       - pingcap-qe_tidb-test_latest-presubmits-next-gen.yaml=pingcap-qe/tidb-test/latest-presubmits-next-gen.yaml
       - pingcap-qe_tidb-test_latest-presubmits.yaml=pingcap-qe/tidb-test/latest-presubmits.yaml
       - pingcap-qe_tidb-test_release-6.5-presubmits.yaml=pingcap-qe/tidb-test/release-6.5-presubmits.yaml
