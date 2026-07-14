@@ -1,0 +1,59 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  PingCAP-QE/ee-infra:
+    - name: pull-ee-infra-validate-gcp-terraform
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^terraform/gcp/pingcap-testing-account/.*\\.tf$"
+      branches:
+        - ^main$
+      spec:
+        service_account_name: terraform-plan-reader
+        containers:
+          - name: main
+            image: hashicorp/terraform:1.5.7
+            command: [sh, -ce]
+            args:
+              - |
+                cd terraform/gcp/pingcap-testing-account
+                terraform fmt -check -recursive
+                terraform init -backend=false
+                terraform validate
+                terraform plan -input=false
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+    - name: pull-ee-infra-validate-tencentcloud-terraform
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^terraform/tencentcloud/.*\\.tf$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: hashicorp/terraform:1.5.7
+            command: [sh, -ce]
+            args:
+              - |
+                cd terraform/tencentcloud/tidb-cicd
+                terraform fmt -check -recursive
+                terraform init -backend=false
+                terraform validate
+                terraform plan -input=false
+            env:
+              - name: TENCENTCLOUD_SECRET_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: tencentcloud-terraform-creds
+                    key: TENCENTCLOUD_SECRET_ID
+              - name: TENCENTCLOUD_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: tencentcloud-terraform-creds
+                    key: TENCENTCLOUD_SECRET_KEY
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
