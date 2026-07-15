@@ -3,6 +3,10 @@ presubmits:
   PingCAP-QE/ee-infra:
     - name: pull-ee-infra-validate-gcp-terraform
       decorate: true
+      decoration_config:
+        oauth_token_secret:
+          name: github-token
+          key: token
       max_concurrency: 1
       run_if_changed: "^terraform/gcp/pingcap-testing-account/.*\\.tf$"
       branches:
@@ -11,21 +15,25 @@ presubmits:
         service_account_name: terraform-plan-reader
         containers:
           - name: main
-            image: hashicorp/terraform:1.5.7
+            image: ghcr.io/opentofu/opentofu:1.6
             command: [sh, -ce]
             args:
               - |
                 cd terraform/gcp/pingcap-testing-account
-                terraform fmt -check -recursive
-                terraform init -backend=false
-                terraform validate
-                terraform plan -input=false
+                tofu fmt -check -recursive
+                tofu init -backend=false
+                tofu validate
+                tofu plan -input=false
             resources:
               limits:
                 memory: 256Mi
                 cpu: 200m
     - name: pull-ee-infra-validate-tencentcloud-terraform
       decorate: true
+      decoration_config:
+        oauth_token_secret:
+          name: github-token
+          key: token
       max_concurrency: 1
       run_if_changed: "^terraform/tencentcloud/.*\\.tf$"
       branches:
@@ -33,15 +41,15 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: hashicorp/terraform:1.5.7
+            image: ghcr.io/opentofu/opentofu:1.6
             command: [sh, -ce]
             args:
               - |
                 cd terraform/tencentcloud/tidb-cicd
-                terraform fmt -check -recursive
-                terraform init -backend=false
-                terraform validate
-                terraform plan -input=false
+                tofu fmt -check -recursive
+                tofu init -backend=false
+                tofu validate
+                tofu plan -input=false
             env:
               - name: TENCENTCLOUD_SECRET_ID
                 valueFrom:
