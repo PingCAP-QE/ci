@@ -20,9 +20,13 @@ presubmits:
             args:
               - |
                 cd terraform/gcp/pingcap-testing-account
+                echo "🔧 tofu fmt"
                 tofu fmt -check -recursive
+                echo "📦 tofu init"
                 tofu init -backend=false
+                echo "🔍 tofu validate"
                 tofu validate
+                echo "📋 tofu plan"
                 tofu plan -input=false
             resources:
               limits:
@@ -46,9 +50,13 @@ presubmits:
             args:
               - |
                 cd terraform/tencentcloud/tidb-cicd
+                echo "🔧 tofu fmt"
                 tofu fmt -check -recursive
+                echo "📦 tofu init"
                 tofu init -backend=false
+                echo "🔍 tofu validate"
                 tofu validate
+                echo "📋 tofu plan"
                 tofu plan -input=false
             env:
               - name: TENCENTCLOUD_SECRET_ID
