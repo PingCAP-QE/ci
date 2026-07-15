@@ -3,6 +3,10 @@ presubmits:
   PingCAP-QE/ee-infra:
     - name: pull-ee-infra-validate-gcp-terraform
       decorate: true
+      decoration_config:
+        oauth_token_secret:
+          name: github-token
+          key: token
       max_concurrency: 1
       run_if_changed: "^terraform/gcp/pingcap-testing-account/.*\\.tf$"
       branches:
@@ -26,6 +30,10 @@ presubmits:
                 cpu: 200m
     - name: pull-ee-infra-validate-tencentcloud-terraform
       decorate: true
+      decoration_config:
+        oauth_token_secret:
+          name: github-token
+          key: token
       max_concurrency: 1
       run_if_changed: "^terraform/tencentcloud/.*\\.tf$"
       branches:
