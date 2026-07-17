@@ -103,7 +103,7 @@ pipeline {
                         CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
                         # Cargo metadata
                         cargo metadata --format-version 1 > test-metadata.json
-                        wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/tikv/tikv/gen_test_binary_json.py
+                        wget https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/tikv/tikv/gen_test_binary_json.py
                         export TIKV_SRC_DIR=${WORKSPACE}/${SRC_DIR}
                         python gen_test_binary_json.py
                         cat test-binaries.json

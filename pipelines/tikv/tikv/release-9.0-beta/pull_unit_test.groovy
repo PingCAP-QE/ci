@@ -101,7 +101,7 @@ pipeline {
                             # Cargo metadata
                             cargo metadata --format-version 1 > test-metadata.json
                             # cp ${WORKSPACE}/scripts/tikv/tikv/gen_test_binary_json.py ./gen_test_binary_json.py
-                            wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/tikv/tikv/gen_test_binary_json.py
+                            wget https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/tikv/tikv/gen_test_binary_json.py
                             python gen_test_binary_json.py
                             cat test-binaries.json
 
