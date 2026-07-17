@@ -21,16 +21,16 @@ spec:
         - name: CACHE_READ_SERVER_BASE_URL
           value: "http://fileserver.pingcap.net/download"
       script: |
-        cfg_github_raw_path_url="PingCAP-QE/artifacts/main/packages/delivery.yaml"
-        gs_github_raw_path_url="PingCAP-QE/artifacts/main/packages/scripts/gen-delivery-image-commands.ts"
-        cfg_yaml_file="https://raw.githubusercontent.com/$cfg_github_raw_path_url"
-        gen_script_url="https://raw.githubusercontent.com/$gs_github_raw_path_url"
+        cfg_github_raw_path_url="PingCAP-QE/artifacts@main/packages/delivery.yaml"
+        gs_github_raw_path_url="PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts"
+        cfg_yaml_file="https://cdn.jsdelivr.net/gh/$cfg_github_raw_path_url"
+        gen_script_url="https://cdn.jsdelivr.net/gh/$gs_github_raw_path_url"
 
-        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$cfg_github_raw_path_url"; then
-          cfg_yaml_file="$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$cfg_github_raw_path_url"
+        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/cdn.jsdelivr.net/gh/$cfg_github_raw_path_url"; then
+          cfg_yaml_file="$CACHE_READ_SERVER_BASE_URL/cdn.jsdelivr.net/gh/$cfg_github_raw_path_url"
         fi
-        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$gs_github_raw_path_url"; then
-          gen_script_url="$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$gs_github_raw_path_url"
+        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/cdn.jsdelivr.net/gh/$gs_github_raw_path_url"; then
+          gen_script_url="$CACHE_READ_SERVER_BASE_URL/cdn.jsdelivr.net/gh/$gs_github_raw_path_url"
         fi
 
         wget -O delivery.yaml "$cfg_yaml_file"
