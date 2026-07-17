@@ -44,6 +44,7 @@ ${BOLD}Description:${NC}
 ${BOLD}Requirements:${NC}
   - crane   (go-containerregistry)     https://github.com/google/go-containerregistry
   - ks3util (Kingsoft Cloud S3 CLI)    https://www.ksyun.com
+  - jq      (JSON processor)           https://jqlang.github.io/jq
 
 ${BOLD}Authentication:${NC}
   ks3util reads credentials from a config file. Use --config-file to specify
@@ -101,12 +102,95 @@ run_validate() {
     return 1
 }
 
-extract_broken_digests() {
-    local logfile="$1"
+# ---------------------------------------------------------------------------
+# Error parsing & layer digest resolution
+# ---------------------------------------------------------------------------
 
-    grep -oE 'sha256:[a-f0-9]{64}' "$logfile" 2>/dev/null \
-        | sort -u \
-        || true
+parse_validate_errors() {
+    local logfile="$1"
+    local -n _out_type=$2
+    local -n _out_children=$3
+    local -n _out_sizes=$4
+
+    _out_type="image"
+    _out_children=()
+    _out_sizes=()
+
+    if grep -q 'Manifests\[' "$logfile" 2>/dev/null; then
+        _out_type="index"
+        while IFS= read -r digest; do
+            [[ -n "$digest" ]] && _out_children+=("$digest")
+        done < <(grep -oE 'Manifests\[[0-9]+\]\(sha256:[a-f0-9]{64}\)' "$logfile" \
+            | grep -oE 'sha256:[a-f0-9]{64}' | sort -u)
+    fi
+
+    while IFS= read -r size; do
+        [[ -n "$size" ]] && _out_sizes+=("$size")
+    done < <(grep -oE 'want [0-9]+' "$logfile" | awk '{print $2}' | sort -u)
+}
+
+_resolve_layers_from_ref() {
+    local manifest_ref="$1"
+    local -n _rl_sizes=$2
+    local -n _rl_digests=$3
+
+    local manifest_json
+    manifest_json=$(crane manifest "$manifest_ref" 2>/dev/null) || {
+        warn "Failed to get manifest for: $manifest_ref"
+        return 1
+    }
+
+    if [[ ${#_rl_sizes[@]} -eq 0 ]]; then
+        info "  No size hints — will repair all layers in manifest."
+        while IFS= read -r d; do
+            [[ -n "$d" ]] && _rl_digests+=("$d")
+        done < <(echo "$manifest_json" | jq -r '.layers[]?.digest // empty' 2>/dev/null)
+    else
+        for want_size in "${_rl_sizes[@]}"; do
+            info "  Looking for layer with size=${want_size} ..."
+            local matching
+            matching=$(echo "$manifest_json" | jq -r --argjson size "${want_size}" \
+                '.layers[]? | select(.size == $size) | .digest' 2>/dev/null)
+            local found=false
+            while IFS= read -r d; do
+                [[ -n "$d" ]] || continue
+                _rl_digests+=("$d")
+                found=true
+            done <<< "$matching"
+            if ! $found; then
+                warn "  No layer found with size=${want_size} in manifest."
+            fi
+        done
+    fi
+}
+
+resolve_layer_digests() {
+    local image="$1"
+    local validate_type="$2"
+    local -n _rs_children=$3
+    local -n _rs_sizes=$4
+    local -n _out_digests=$5
+
+    _out_digests=()
+
+    if [[ "$validate_type" == "index" && ${#_rs_children[@]} -gt 0 ]]; then
+        for child_digest in "${_rs_children[@]}"; do
+            local ref="${image}@${child_digest}"
+            header "Resolving layers from child manifest: $child_digest"
+            _resolve_layers_from_ref "$ref" _rs_sizes _out_digests
+        done
+    else
+        _resolve_layers_from_ref "$image" _rs_sizes _out_digests
+    fi
+
+    local -A _seen
+    local deduped=()
+    for d in "${_out_digests[@]}"; do
+        [[ -n "${_seen[$d]:-}" ]] && continue
+        _seen[$d]=1
+        deduped+=("$d")
+    done
+    _out_digests=("${deduped[@]}")
 }
 
 print_validate_errors() {
@@ -194,11 +278,11 @@ download_blob() {
 
     mkdir -p "$(dirname "$outfile")"
 
-    info "Downloading blob ${CYAN}$digest${NC} from ${CYAN}$source_image${NC} ..."
+    info "Downloading blob ${CYAN}$digest${NC} from ${CYAN}$source_image${NC} ..." >&2
     crane blob "${source_image}@${digest}" > "$outfile" 2>"$TMPDIR/blob-dl.log"
 
     if [[ ! -s "$outfile" ]]; then
-        error "Downloaded blob is empty or failed for $digest."
+        error "Downloaded blob is empty or failed for $digest." >&2
         cat "$TMPDIR/blob-dl.log" >&2
         return 1
     fi
@@ -210,21 +294,21 @@ download_blob() {
     elif command -v shasum >/dev/null 2>&1; then
         downloaded_hash=$(shasum -a 256 "$outfile" | awk '{print $1}')
     else
-        error "No sha256sum or shasum found, cannot verify blob integrity."
+        error "No sha256sum or shasum found, cannot verify blob integrity." >&2
         return 1
     fi
 
     if [[ "$downloaded_hash" != "$hash" ]]; then
-        error "Blob integrity check failed for $digest."
-        error "  expected: $hash"
-        error "  got:      $downloaded_hash"
+        error "Blob integrity check failed for $digest." >&2
+        error "  expected: $hash" >&2
+        error "  got:      $downloaded_hash" >&2
         rm -f "$outfile"
         return 1
     fi
 
     local size
     size=$(wc -c < "$outfile" | tr -d ' ')
-    info "  -> saved $size bytes (digest verified)"
+    info "  -> saved $size bytes (digest verified)" >&2
     echo "$outfile"
 }
 
@@ -238,14 +322,14 @@ upload_blob() {
     local alg="${digest%%:*}"
     local hash="${digest#*:}"
 
-    local s3_path="s3://${bucket}/${repo_path}/blobs/${alg}/${hash}"
+    local s3_path="ks3://${bucket}/${repo_path}/blobs/${alg}/${hash}"
     local config_opt=()
     if [[ -n "$config_file" ]]; then
         config_opt=(--config-file "$config_file")
     fi
 
     info "Uploading to ${CYAN}$s3_path${NC} ..."
-    if ks3util cp "${config_opt[@]}" "$local_file" "$s3_path" 2>&1 | sed 's/^/  /'; then
+    if ks3util cp -f "${config_opt[@]}" "$local_file" "$s3_path" 2>&1 | sed 's/^/  /'; then
         info "  -> uploaded successfully."
     else
         error "Upload failed for $digest."
@@ -323,6 +407,7 @@ repair_blobs() {
 main() {
     require_command crane
     require_command ks3util
+    require_command jq
 
     local remote_image=""
     local source_image=""
@@ -390,22 +475,6 @@ main() {
 
     print_validate_errors "$VALIDATE_LOG"
 
-    local broken_digests
-    mapfile -t broken_digests < <(extract_broken_digests "$VALIDATE_LOG")
-
-    if [[ ${#broken_digests[@]} -eq 0 ]]; then
-        warn "No sha256 digests found in error output. Cannot determine broken blobs."
-        error "Raw error log saved at: $VALIDATE_LOG"
-        exit 1
-    fi
-
-    echo
-    echo "${BOLD}Broken blob digests (${#broken_digests[@]} total):${NC}"
-    for d in "${broken_digests[@]}"; do
-        echo "  ${RED}$d${NC}"
-    done
-    echo ""
-
     # ---- Step 4: Ask to repair ----
 
     if ! $auto_yes; then
@@ -415,7 +484,7 @@ main() {
         fi
     fi
 
-    # ---- Step 5: Gather repair info ----
+    # ---- Step 5: Gather repair info (once) ----
 
     echo ""
     if ! $auto_yes; then
@@ -448,46 +517,101 @@ main() {
         info "No --config-file specified, ks3util will use default config (~/.ks3utilconfig)."
     fi
 
-    # ---- Show summary and confirm ----
+    # ---- Repair loop: parse → repair → re-validate → detect new errors ----
 
-    echo ""
-    header "Summary"
-    echo "  ${BOLD}Target image:${NC}    $remote_image"
-    echo "  ${BOLD}Source image:${NC}    $source_image"
-    echo "  ${BOLD}S3 bucket:${NC}      $bucket"
-    echo "  ${BOLD}S3 blob path:${NC}    s3://${bucket}/${repo_path}/blobs/<alg>/<digest>"
-    if [[ -n "$config_file" ]]; then
-        echo "  ${BOLD}Config file:${NC}     $config_file"
-    else
-        echo "  ${BOLD}Config file:${NC}     (ks3util default)"
-    fi
-    echo "  ${BOLD}Blobs to repair:${NC} ${#broken_digests[@]}"
-    echo ""
+    local -A attempted_digests=()
+    local round=0
+    local validate_type="image"
+    local child_manifests=()
+    local size_hints=()
+    local broken_digests=()
 
-    if ! $auto_yes; then
-        if ! confirm "Proceed with repair?" "Y"; then
-            info "Repair cancelled. Exiting."
+    while true; do
+        round=$((round + 1))
+
+        validate_type="image"
+        child_manifests=()
+        size_hints=()
+        parse_validate_errors "$VALIDATE_LOG" validate_type child_manifests size_hints
+
+        info "Validation scope: ${CYAN}${validate_type}${NC} (round ${round})"
+        if [[ ${#child_manifests[@]} -gt 0 ]]; then
+            # Process only the first broken child manifest per round;
+            # the next will surface on re-validation after this one is fixed.
+            child_manifests=("${child_manifests[0]}")
+            info "  Child manifests with errors:"
+            for cm in "${child_manifests[@]}"; do
+                echo "    ${YELLOW}$cm${NC}"
+            done
+        fi
+        if [[ ${#size_hints[@]} -gt 0 ]]; then
+            info "  Layer size hints: ${size_hints[*]}"
+        fi
+
+        broken_digests=()
+        resolve_layer_digests "$remote_image" "$validate_type" child_manifests size_hints broken_digests
+
+        if [[ ${#broken_digests[@]} -eq 0 ]]; then
+            warn "Could not resolve any broken layer blob digests from error output."
+            error "Raw error log saved at: $VALIDATE_LOG"
             exit 1
         fi
-    fi
 
-    # ---- Step 6-7: Download & Upload ----
+        local new_digests=()
+        for d in "${broken_digests[@]}"; do
+            if [[ -z "${attempted_digests[$d]:-}" ]]; then
+                new_digests+=("$d")
+            fi
+        done
 
-    repair_blobs "$source_image" broken_digests "$bucket" "$repo_path" "$config_file" "$max_retries" || {
-        error "Some blobs could not be repaired. See above for details."
-    }
+        if [[ ${#new_digests[@]} -eq 0 ]]; then
+            warn "All broken layers have already been repaired/attempted. Cannot make further progress."
+            exit 1
+        fi
 
-    # ---- Step 8: Re-validate ----
+        for d in "${new_digests[@]}"; do
+            attempted_digests[$d]=1
+        done
 
-    if run_validate "$remote_image"; then
-        info "${GREEN}Repair successful — image is now valid.${NC}"
-        exit 0
-    else
+        echo
+        header "Repair round ${round}"
+        echo "${BOLD}Broken layer blob digests (${#new_digests[@]} new, ${#attempted_digests[@]} total attempted):${NC}"
+        for d in "${new_digests[@]}"; do
+            echo "  ${RED}$d${NC}"
+        done
+        echo ""
+
+        echo "  ${BOLD}Target image:${NC}    $remote_image"
+        echo "  ${BOLD}Source image:${NC}    $source_image"
+        echo "  ${BOLD}S3 bucket:${NC}      $bucket"
+        echo "  ${BOLD}S3 blob path:${NC}    ks3://${bucket}/${repo_path}/blobs/<alg>/<digest>"
+        if [[ -n "$config_file" ]]; then
+            echo "  ${BOLD}Config file:${NC}     $config_file"
+        else
+            echo "  ${BOLD}Config file:${NC}     (ks3util default)"
+        fi
+        echo "  ${BOLD}Blobs to repair:${NC} ${#new_digests[@]}"
+        echo ""
+
+        if [[ $round -eq 1 ]] && ! $auto_yes; then
+            if ! confirm "Proceed with repair?" "Y"; then
+                info "Repair cancelled. Exiting."
+                exit 1
+            fi
+        fi
+
+        repair_blobs "$source_image" new_digests "$bucket" "$repo_path" "$config_file" "$max_retries" || {
+            error "Some blobs could not be repaired. See above for details."
+        }
+
+        if run_validate "$remote_image"; then
+            info "${GREEN}Repair successful — image is now valid after ${round} round(s).${NC}"
+            exit 0
+        fi
+
         print_validate_errors "$VALIDATE_LOG"
-        warn "Image still has validation errors after repair."
-        warn "You may need to repair additional blobs or check S3 connectivity."
-        exit 1
-    fi
+        info "Still has validation errors after round ${round}; checking for new broken layers..."
+    done
 }
 
 main "$@"
