@@ -120,7 +120,7 @@ run_with_pod {
         }
         retry(5) {
             sh """
-            wget -qnc https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/pipelines/cd/tiup/tiup_utils.groovy
+            wget -qnc https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/pipelines/cd/tiup/tiup_utils.groovy
             """
         }
 

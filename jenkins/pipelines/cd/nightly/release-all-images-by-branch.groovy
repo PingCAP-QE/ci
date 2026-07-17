@@ -200,7 +200,7 @@ def parseBuildInfo(repo) {
             "dockerfileAmd64"                 : dockerfileAmd64,
             "dockerfileArm64"                 : dockerfileArm64,
             "dockerfileForDebugAmd64"         : get_dockerfile_url('amd64',repo,true),
-            // "dockerfileForDebugArm64": "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/${repo}",  // TODO: arm64 have not unique debug image Dockerfile
+            // "dockerfileForDebugArm64": "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-arm64/${repo}",  // TODO: arm64 have not unique debug image Dockerfile
             "imageName"                       : "${HARBOR_PROJECT_PREFIX}/${repo}:${GIT_BRANCH}",
             "imageNameEnableFailpoint"        : "${HARBOR_PROJECT_PREFIX}/${repo}:${GIT_BRANCH}-failpoint",
             "imageNameForDebug"               : "${HARBOR_PROJECT_PREFIX}/${repo}:${GIT_BRANCH}-debug",
@@ -218,14 +218,14 @@ def get_dockerfile_url(arch, repo, isDebug){
     def fileName = Product
     if (RELEASE_TAG >='v6.6.0'){
         if (Product == 'tiflash'){
-            "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${fileName}_nightly"
+            "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-${arch}/${fileName}_nightly"
         }
-        return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/${fileName}.Dockerfile"
+        return "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/${fileName}.Dockerfile"
     }else{
         if (isDebug){
-            return "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/debug-image/${fileName}"
+            return "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/debug-image/${fileName}"
         }
-        return "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${fileName}"
+        return "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-${arch}/${fileName}"
     }
 }
 

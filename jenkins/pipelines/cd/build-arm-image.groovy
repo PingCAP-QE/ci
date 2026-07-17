@@ -1,4 +1,4 @@
-def baseUrl = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/"
+def baseUrl = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-arm64/"
 node("arm_image") {
    dir("go/src/github.com/pingcap/monitoring") {
        stage("prepare monitor") {

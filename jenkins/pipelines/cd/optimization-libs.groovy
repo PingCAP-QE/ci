@@ -178,12 +178,12 @@ def build_tidb_enterprise_image(product, sha1, plugin_hash, arch, if_release, if
     plugin_binary = "builds/pingcap/enterprise-plugin/optimization/${RELEASE_TAG}/${plugin_hash}/centos7/enterprise-plugin-linux-${arch}-enterprise.tar.gz"
 
 
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    def dockerfile = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-${arch}/${product}"
     if (product == "tidb" && arch == "amd64") {
-        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
+        dockerfile = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
     }
     if (product == "tidb" && arch == "arm64") {
-        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-arm64/enterprise/tidb"
+        dockerfile = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-arm64/enterprise/tidb"
     }
     def image = get_image_str_for_enterprise("tidb", arch, RELEASE_TAG, if_release, if_multi_arch)
 
@@ -335,7 +335,7 @@ def build_enterprise_image(product, sha1, arch, if_release, if_multi_arch) {
     if (product == "tidb-lightning") {
         binary = "builds/pingcap/br/optimization/${RELEASE_TAG}/${sha1}/centos7/br-linux-${arch}-enterprise.tar.gz"
     }
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    def dockerfile = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-${arch}/${product}"
     def repo = product
     def image = get_image_str_for_enterprise(product, arch, RELEASE_TAG, if_release, if_multi_arch)
 
@@ -545,9 +545,9 @@ def release_online_image(product, sha1, arch, os, platform, tag, enterprise, pre
         binary = "builds/pingcap/${product}/optimization/${tag}/${sha1}/${platform}/${product}-${os}-${arch}-enterprise.tar.gz"
     }
 
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${product}"
+    def dockerfile = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-${arch}/${product}"
     if (enterprise && product == "tidb" && os == "linux" && arch == "amd64") {
-        dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
+        dockerfile = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-amd64/enterprise/tidb"
     }
     def imageName = product
     def repo = product

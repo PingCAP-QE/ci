@@ -101,7 +101,7 @@ prepare_download_tools() {
   else
     log "Fetching OCI download helper"
     curl -fsSL --retry 3 \
-      "https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/artifacts/download_pingcap_oci_artifact.sh" \
+      "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/artifacts/download_pingcap_oci_artifact.sh" \
       -o "${OCI_SCRIPT}"
   fi
   chmod +x "${OCI_SCRIPT}"
