@@ -21,7 +21,7 @@ presubmits:
                     - amd64
         containers:
           - name: rust
-            image: rust:1.85.0
+            image: rust:1.97.1
             command: ["/bin/sh", "-c"]
             env:
               # Raft-engine lacks Cargo.lock, so we pin a nightly toolchain version here.
@@ -70,7 +70,7 @@ presubmits:
                     - amd64
         containers:
           - name: rust
-            image: rust:1.85.0
+            image: rust:1.97.1
             command: ["/bin/sh", "-c"]
             env:
               - name: WITH_STABLE_TOOLCHAIN
