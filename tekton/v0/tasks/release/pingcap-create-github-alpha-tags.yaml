@@ -15,7 +15,7 @@ spec:
     - name: create-tags
       image: docker.io/denoland/deno:alpine-2.1.4
       script: |
-        deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/flow/sprint/create_github_alpha_tags.ts \
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/sprint/create_github_alpha_tags.ts \
           --version="$(params.version)" \
           --token="$(cat $(workspaces.github.path)/token)" \
           --pushEventUrl=http://el-public:8080
