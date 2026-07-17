@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: zot-validate-repair-image
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/pipelines.minVersion: "0.17.0"
     tekton.dev/categories: CLI
@@ -63,6 +63,10 @@ spec:
         #!/busybox/sh
         set -e
 
+        # Install static jq for JSON parsing
+        JQ_URL="https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64"
+        wget -q -O /usr/local/bin/jq "$JQ_URL" && chmod +x /usr/local/bin/jq
+
         BLOB_DIR="/workspace/blob-data"
         mkdir -p "$BLOB_DIR"
 
@@ -79,11 +83,53 @@ spec:
         fi
 
         echo "Image validation FAILED."
+        echo "---"
+        tail -20 "$VALIDATE_LOG"
+        echo "---"
 
-        grep -oE 'sha256:[a-f0-9]{64}' "$VALIDATE_LOG" | sort -u > "$DIGESTS_FILE"
+        # Determine manifest reference: for index (multi-arch) errors,
+        # fetch the child manifest to resolve actual layer blob digests.
+        MANIFEST_JSON=""
+        if grep -q 'Manifests\[' "$VALIDATE_LOG"; then
+          CHILD_DIGEST=$(grep -oE 'Manifests\[[0-9]+\]\(sha256:[a-f0-9]{64}\)' "$VALIDATE_LOG" \
+            | head -1 | grep -oE 'sha256:[a-f0-9]{64}')
+          if [ -n "$CHILD_DIGEST" ]; then
+            echo "Index validation — resolving from child manifest: $CHILD_DIGEST"
+            MANIFEST_JSON=$(crane manifest "${TARGET_IMAGE}@${CHILD_DIGEST}" 2>/dev/null)
+          fi
+        fi
+
+        if [ -z "$MANIFEST_JSON" ]; then
+          MANIFEST_JSON=$(crane manifest "$TARGET_IMAGE" 2>/dev/null)
+        fi
+
+        if [ -z "$MANIFEST_JSON" ]; then
+          echo "ERROR: Could not fetch manifest for $TARGET_IMAGE"
+          exit 1
+        fi
+
+        # Extract size hints from validate error (e.g. "error verifying size; got 0, want 768870")
+        WANT_SIZES=$(grep -oE 'want [0-9]+' "$VALIDATE_LOG" | awk '{print $2}' | sort -u)
+
+        > "$DIGESTS_FILE"
+        if [ -z "$WANT_SIZES" ]; then
+          echo "No size hints — listing all layers in manifest."
+          echo "$MANIFEST_JSON" | jq -r '.layers[]?.digest // empty' > "$DIGESTS_FILE"
+        else
+          for SIZE in $WANT_SIZES; do
+            echo "Looking for layer with size=$SIZE ..."
+            DIGEST=$(echo "$MANIFEST_JSON" | jq -r --argjson s "$SIZE" \
+              '.layers[]? | select(.size == $s) | .digest')
+            if [ -n "$DIGEST" ]; then
+              echo "$DIGEST" >> "$DIGESTS_FILE"
+            else
+              echo "WARN: No layer found with size=$SIZE"
+            fi
+          done
+        fi
 
         BROKEN_COUNT=$(wc -l < "$DIGESTS_FILE" | tr -d ' ')
-        echo "Broken blob count: $BROKEN_COUNT"
+        echo "Broken layer blob count: $BROKEN_COUNT"
         echo "Broken digests:"
         cat "$DIGESTS_FILE"
 
@@ -193,7 +239,7 @@ spec:
 
         echo "Repo path: $REPO_PATH"
         echo "S3 bucket: $S3_BUCKET"
-        echo "S3 prefix : s3://${S3_BUCKET}/${REPO_PATH}/blobs/"
+        echo "S3 prefix : ks3://${S3_BUCKET}/${REPO_PATH}/blobs/"
 
         FAILED=0
         SUCCESS=0
@@ -205,7 +251,7 @@ spec:
 
           ALG="${DIGEST%%:*}"
           HASH="${DIGEST#*:}"
-          S3_PATH="s3://${S3_BUCKET}/${REPO_PATH}/blobs/${ALG}/${HASH}"
+          S3_PATH="ks3://${S3_BUCKET}/${REPO_PATH}/blobs/${ALG}/${HASH}"
 
           if [ ! -f "$BLOB_FILE" ]; then
             echo "--- SKIP $DIGEST (file not found) ---"
@@ -214,7 +260,7 @@ spec:
           fi
 
           echo "--- Uploading $DIGEST -> $S3_PATH ---"
-          if $KS3UTIL cp "$BLOB_FILE" "$S3_PATH"; then
+          if $KS3UTIL cp -f "$BLOB_FILE" "$S3_PATH"; then
             echo "  OK"
             SUCCESS=$((SUCCESS + 1))
           else
