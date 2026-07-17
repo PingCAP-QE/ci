@@ -87,51 +87,58 @@ spec:
         tail -20 "$VALIDATE_LOG"
         echo "---"
 
-        # Determine manifest reference: for index (multi-arch) errors,
-        # fetch the child manifest to resolve actual layer blob digests.
-        MANIFEST_JSON=""
+        # Resolve manifest reference: for index (multi-arch) errors,
+        # fetch the child manifest to inspect its layers.
+        MANIFEST_REF="$TARGET_IMAGE"
         if grep -q 'Manifests\[' "$VALIDATE_LOG"; then
           CHILD_DIGEST=$(grep -oE 'Manifests\[[0-9]+\]\(sha256:[a-f0-9]{64}\)' "$VALIDATE_LOG" \
             | head -1 | grep -oE 'sha256:[a-f0-9]{64}')
           if [ -n "$CHILD_DIGEST" ]; then
-            echo "Index validation — resolving from child manifest: $CHILD_DIGEST"
-            MANIFEST_JSON=$(crane manifest "${TARGET_IMAGE}@${CHILD_DIGEST}" 2>/dev/null)
+            echo "Index validation — inspecting child manifest: $CHILD_DIGEST"
+            MANIFEST_REF="${TARGET_IMAGE}@${CHILD_DIGEST}"
           fi
         fi
 
+        MANIFEST_JSON=$(crane manifest "$MANIFEST_REF" 2>/dev/null)
         if [ -z "$MANIFEST_JSON" ]; then
-          MANIFEST_JSON=$(crane manifest "$TARGET_IMAGE" 2>/dev/null)
-        fi
-
-        if [ -z "$MANIFEST_JSON" ]; then
-          echo "ERROR: Could not fetch manifest for $TARGET_IMAGE"
+          echo "ERROR: Could not fetch manifest for $MANIFEST_REF"
           exit 1
         fi
 
-        # Extract size hints from validate error (e.g. "error verifying size; got 0, want 768870")
-        WANT_SIZES=$(grep -oE 'want [0-9]+' "$VALIDATE_LOG" | awk '{print $2}' | sort -u)
-
+        # Iterate ALL layers, download each from target and verify digest.
+        # crane validate stops at the first error, so we must check every
+        # layer individually to find all broken blobs in one pass.
         > "$DIGESTS_FILE"
-        if [ -z "$WANT_SIZES" ]; then
-          echo "No size hints — listing all layers in manifest."
-          echo "$MANIFEST_JSON" | jq -r '.layers[]?.digest // empty' > "$DIGESTS_FILE"
-        else
-          for SIZE in $WANT_SIZES; do
-            echo "Looking for layer with size=$SIZE ..."
-            DIGEST=$(echo "$MANIFEST_JSON" | jq -r --argjson s "$SIZE" \
-              '.layers[]? | select(.size == $s) | .digest')
-            if [ -n "$DIGEST" ]; then
-              echo "$DIGEST" >> "$DIGESTS_FILE"
+        ALL_LAYERS=$(echo "$MANIFEST_JSON" | jq -r '.layers[]?.digest')
+
+        for DIGEST in $ALL_LAYERS; do
+          [ -z "$DIGEST" ] && continue
+          echo -n "Checking $DIGEST ... "
+
+          TMP_BLOB="$BLOB_DIR/.check_$(echo "$DIGEST" | tr ':/' '__')"
+          if crane blob "${TARGET_IMAGE}@${DIGEST}" > "$TMP_BLOB" 2>/dev/null; then
+            EXPECTED="${DIGEST#*:}"
+            ACTUAL=$(sha256sum "$TMP_BLOB" | awk '{print $1}')
+            if [ "$EXPECTED" = "$ACTUAL" ]; then
+              echo "OK ($(wc -c < "$TMP_BLOB" | tr -d ' ') bytes)"
             else
-              echo "WARN: No layer found with size=$SIZE"
+              echo "CORRUPT (digest mismatch)"
+              echo "$DIGEST" >> "$DIGESTS_FILE"
             fi
-          done
-        fi
+          else
+            echo "MISSING"
+            echo "$DIGEST" >> "$DIGESTS_FILE"
+          fi
+          rm -f "$TMP_BLOB"
+        done
 
         BROKEN_COUNT=$(wc -l < "$DIGESTS_FILE" | tr -d ' ')
+        echo ""
         echo "Broken layer blob count: $BROKEN_COUNT"
-        echo "Broken digests:"
-        cat "$DIGESTS_FILE"
+        if [ "$BROKEN_COUNT" -gt 0 ]; then
+          echo "Broken digests:"
+          cat "$DIGESTS_FILE"
+        fi
 
         echo -n "$DIGESTS_FILE" > "$(step.results.broken-digests-file.path)"
 
