@@ -18,7 +18,7 @@ postsubmits:
               - deno
               - run
               - --allow-all
-              - https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/sync-owners-to-release.ts
+              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/sync-owners-to-release.ts
             args:
               - --owner=$(REPO_OWNER)
               - --repository=$(REPO_NAME)
