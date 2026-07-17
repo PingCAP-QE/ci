@@ -253,7 +253,7 @@ def release_one(repo, arch, failpoint) {
     }
 
 
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/${repo}"
+    def dockerfile = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-${arch}/${repo}"
     // if current version not need multi-arch image, then use image image to distingush amd64 and arm64.
     // otherwise, use imageTag to distingush different version.
     // example1:
@@ -282,7 +282,7 @@ def release_one(repo, arch, failpoint) {
 
 
     if (NEED_DEBUG_IMAGE && arch == "amd64") {
-        def dockerfileForDebug = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/debug-image/${repo}"
+        def dockerfileForDebug = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/debug-image/${repo}"
         def imageForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${repo}:${IMAGE_TAG}-debug"
         if (failpoint) {
             imageForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/${repo}:${IMAGE_TAG}-failpoint-debug"
@@ -310,7 +310,7 @@ def release_one(repo, arch, failpoint) {
 
     // dm version >= v5.3.0 && < v6.0.0 need build image pingcap/dm-monitor-initializer
     if (repo == "dm" && RELEASE_TAG < "v6.0.0") {
-        def dockerfileForDmMonitorInitializer = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/dm-monitor-initializer"
+        def dockerfileForDmMonitorInitializer = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-${arch}/dm-monitor-initializer"
         def imageNameForDmMonitorInitializer = "dm-monitor-initializer"
         if (arch == "arm64") {
             imageNameForDmMonitorInitializer = imageNameForDmMonitorInitializer + "-arm64"
@@ -338,7 +338,7 @@ def release_one(repo, arch, failpoint) {
 
     if (repo == "br") {
         println("start push tidb-lightning")
-        def dockerfileLightning = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-${arch}/tidb-lightning"
+        def dockerfileLightning = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-${arch}/tidb-lightning"
         imageName = "tidb-lightning"
         if (arch == "arm64" && !NEED_MULTIARCH) {
             imageName = imageName + "-arm64"
@@ -366,7 +366,7 @@ def release_one(repo, arch, failpoint) {
                 parameters: paramsDockerLightning
 
         if (NEED_DEBUG_IMAGE && arch == "amd64") {
-            def dockerfileLightningForDebug = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/debug-image/tidb-lightning"
+            def dockerfileLightningForDebug = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/debug-image/tidb-lightning"
             def imageLightlingForDebug = "${HARBOR_REGISTRY_PROJECT_PREFIX}/tidb-lightning:${IMAGE_TAG}-debug"
             def paramsDockerLightningForDebug = [
                     string(name: "ARCH", value: "amd64"),

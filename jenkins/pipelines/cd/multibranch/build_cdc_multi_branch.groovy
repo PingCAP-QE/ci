@@ -72,7 +72,7 @@ def release_docker_image(product, filepath, tag) {
     def image = "pingcap/${product}:$tag"
     echo "docker image ${image}"
 
-    def dockerfile = "https://raw.githubusercontent.com/PingCAP-QE/ci/main/jenkins/Dockerfile/release/linux-amd64/${product}"
+    def dockerfile = "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/jenkins/Dockerfile/release/linux-amd64/${product}"
     def paramsDocker = [
         string(name: "ARCH", value: "amd64"),
         string(name: "OS", value: "linux"),

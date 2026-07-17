@@ -94,67 +94,67 @@ def get_dockerfile_url={arch ->
     // Use semverCompare to check if Version >= v6.6.0
     if (semverCompare(Version, 'v6.6.0-0') >= 0){
         if (Product == "tidb" && Edition == "enterprise") {
-            return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.enterprise.Dockerfile"
+            return "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/tidb.enterprise.Dockerfile"
         }
         // note new ticdc only supports from v9.0.0
         return [
-            "tidb":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.Dockerfile",
-            "tidb-lightning":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb-lightning.Dockerfile",
-            "br":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/br.Dockerfile",
-            "dumpling":         "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/dumpling.Dockerfile",
-            "tiflash":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/Dockerfile",
-            "dm":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/dm.Dockerfile",
-            "ticdc":            "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/ticdc.Dockerfile",
-            "ticdc-newarch":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ticdc/Dockerfile",
-            "drainer":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/Dockerfile",
-            "pump":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/Dockerfile",
-            "tidb-tools":       "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-tools/Dockerfile",
-            "tidb-dashboard":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-dashboard/Dockerfile",
-            "tikv":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tikv/Dockerfile",
-            "pd":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/pd/Dockerfile",
-            "ng-monitoring":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ng-monitoring/Dockerfile",
+            "tidb":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/tidb.Dockerfile",
+            "tidb-lightning":   "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/tidb-lightning.Dockerfile",
+            "br":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/br.Dockerfile",
+            "dumpling":         "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/dumpling.Dockerfile",
+            "tiflash":          "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflash/Dockerfile",
+            "dm":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflow/dm.Dockerfile",
+            "ticdc":            "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflow/ticdc.Dockerfile",
+            "ticdc-newarch":    "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/ticdc/Dockerfile",
+            "drainer":          "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-binlog/Dockerfile",
+            "pump":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-binlog/Dockerfile",
+            "tidb-tools":       "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-tools/Dockerfile",
+            "tidb-dashboard":   "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-dashboard/Dockerfile",
+            "tikv":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tikv/Dockerfile",
+            "pd":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/pd/Dockerfile",
+            "ng-monitoring":    "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/ng-monitoring/Dockerfile",
         ][Product]
     } else if (semverCompare(Version, 'v6.5.12-0') >= 0) {
         if (Product == "tidb" && Edition == "enterprise") {
-            return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/~6.5.12/tidb.enterprise.Dockerfile"
+            return "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/~6.5.12/tidb.enterprise.Dockerfile"
         }
 
         return [
-            "tidb":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/~6.5.12/tidb.Dockerfile",
-            "tidb-lightning":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/~6.5.12/tidb-lightning.Dockerfile",
-            "br":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/~6.5.12/br.Dockerfile",
-            "dumpling":         "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/~6.5.12/dumpling.Dockerfile",
-            "tiflash":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/~6.5.12/Dockerfile",
-            "dm":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/~6.5.12/dm.Dockerfile",
-            "ticdc":            "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/~6.5.12/ticdc.Dockerfile",
-            "drainer":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/~6.5.12/Dockerfile",
-            "pump":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/~6.5.12/Dockerfile",
-            "tidb-tools":       "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-tools/~6.5.12/Dockerfile",
-            "tidb-dashboard":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-dashboard/~6.5.12/Dockerfile",
-            "tikv":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tikv/~6.5.12/Dockerfile",
-            "pd":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/pd/~6.5.12/Dockerfile",
-            "ng-monitoring":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ng-monitoring/~6.5.12/Dockerfile",
+            "tidb":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/~6.5.12/tidb.Dockerfile",
+            "tidb-lightning":   "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/~6.5.12/tidb-lightning.Dockerfile",
+            "br":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/~6.5.12/br.Dockerfile",
+            "dumpling":         "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/~6.5.12/dumpling.Dockerfile",
+            "tiflash":          "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflash/~6.5.12/Dockerfile",
+            "dm":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflow/~6.5.12/dm.Dockerfile",
+            "ticdc":            "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflow/~6.5.12/ticdc.Dockerfile",
+            "drainer":          "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-binlog/~6.5.12/Dockerfile",
+            "pump":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-binlog/~6.5.12/Dockerfile",
+            "tidb-tools":       "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-tools/~6.5.12/Dockerfile",
+            "tidb-dashboard":   "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-dashboard/~6.5.12/Dockerfile",
+            "tikv":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tikv/~6.5.12/Dockerfile",
+            "pd":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/pd/~6.5.12/Dockerfile",
+            "ng-monitoring":    "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/ng-monitoring/~6.5.12/Dockerfile",
         ][Product]
     } else {
         if (Product == "tidb" && Edition == "enterprise") {
-            return "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/tidb.enterprise.Dockerfile"
+            return "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/lt6.5.12/tidb.enterprise.Dockerfile"
         }
 
         return [
-            "tidb":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/tidb.Dockerfile",
-            "tidb-lightning":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/tidb-lightning.Dockerfile",
-            "br":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/br.Dockerfile",
-            "dumpling":         "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/lt6.5.12/dumpling.Dockerfile",
-            "tiflash":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflash/lt6.5.12/Dockerfile",
-            "dm":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/lt6.5.12/dm.Dockerfile",
-            "ticdc":            "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tiflow/lt6.5.12/ticdc.Dockerfile",
-            "drainer":          "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/lt6.5.12/Dockerfile",
-            "pump":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-binlog/lt6.5.12/Dockerfile",
-            "tidb-tools":       "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-tools/lt6.5.12/Dockerfile",
-            "tidb-dashboard":   "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb-dashboard/lt6.5.12/Dockerfile",
-            "tikv":             "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tikv/lt6.5.12/Dockerfile",
-            "pd":               "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/pd/lt6.5.12/Dockerfile",
-            "ng-monitoring":    "https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/ng-monitoring/lt6.5.12/Dockerfile",
+            "tidb":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/lt6.5.12/tidb.Dockerfile",
+            "tidb-lightning":   "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/lt6.5.12/tidb-lightning.Dockerfile",
+            "br":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/lt6.5.12/br.Dockerfile",
+            "dumpling":         "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/lt6.5.12/dumpling.Dockerfile",
+            "tiflash":          "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflash/lt6.5.12/Dockerfile",
+            "dm":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflow/lt6.5.12/dm.Dockerfile",
+            "ticdc":            "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tiflow/lt6.5.12/ticdc.Dockerfile",
+            "drainer":          "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-binlog/lt6.5.12/Dockerfile",
+            "pump":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-binlog/lt6.5.12/Dockerfile",
+            "tidb-tools":       "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-tools/lt6.5.12/Dockerfile",
+            "tidb-dashboard":   "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb-dashboard/lt6.5.12/Dockerfile",
+            "tikv":             "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tikv/lt6.5.12/Dockerfile",
+            "pd":               "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/pd/lt6.5.12/Dockerfile",
+            "ng-monitoring":    "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/ng-monitoring/lt6.5.12/Dockerfile",
         ][Product]
     }
 }
