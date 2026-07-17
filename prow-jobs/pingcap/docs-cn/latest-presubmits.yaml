@@ -40,7 +40,7 @@ presubmits:
                   check-tags.py \
                   check-manual-line-breaks.py \
                   check-file-encoding.py; do
-                  curl -fsSL --retry 3 "https://raw.githubusercontent.com/pingcap/docs/master/scripts/${check_script}" \
+                  curl -fsSL --retry 3 "https://cdn.jsdelivr.net/gh/pingcap/docs@master/scripts/${check_script}" \
                     -o "/tmp/check-scripts/${check_script}"
                 done
                 cp -r /tmp/check-scripts/* ./
