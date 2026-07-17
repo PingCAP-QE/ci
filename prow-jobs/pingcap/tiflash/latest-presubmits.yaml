@@ -231,7 +231,7 @@ presubmits:
                   echo "JOB_TYPE is batch, skipping error log review check"
                   exit 0
                 fi
-                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
+                wget -O /tmp/config.yaml https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/configs/error-log-review/config.yaml
                 go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
                   -config /tmp/config.yaml \
                   -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
