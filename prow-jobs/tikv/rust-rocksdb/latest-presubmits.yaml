@@ -31,7 +31,7 @@ presubmits:
                 set -exo pipefail
 
                 # Sync rust-toolchain with TiKV
-                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+                curl -sSL https://cdn.jsdelivr.net/gh/tikv/tikv@master/rust-toolchain.toml > ./rust-toolchain.toml
 
                 # Check Rust formatting
                 cargo fmt --all -- --check
@@ -82,7 +82,7 @@ presubmits:
                 cmake --version
 
                 # Sync rust-toolchain with TiKV
-                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+                curl -sSL https://cdn.jsdelivr.net/gh/tikv/tikv@master/rust-toolchain.toml > ./rust-toolchain.toml
 
                 # Test 1: Build and test with x86 minimal features
                 echo "=========================================="
@@ -153,7 +153,7 @@ presubmits:
                 cmake --version
 
                 # Sync rust-toolchain with TiKV
-                curl -sSL https://raw.githubusercontent.com/tikv/tikv/master/rust-toolchain.toml > ./rust-toolchain.toml
+                curl -sSL https://cdn.jsdelivr.net/gh/tikv/tikv@master/rust-toolchain.toml > ./rust-toolchain.toml
 
                 # echo "=========================================="
                 # echo "Testing: arm minimal features (no features)"
