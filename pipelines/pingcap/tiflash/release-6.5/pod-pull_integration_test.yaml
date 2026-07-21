@@ -13,76 +13,66 @@ spec:
         timeoutSeconds: 2
         failureThreshold: 3
       env:
-        - name: "DOCKER_TLS_CERTDIR"
-          value: "/certs"
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+        - name: DOCKER_DRIVER
+          value: overlay2
       resources:
         limits:
           memory: "32Gi"
-          cpu: "16000m"
+          cpu: "8"
+          ephemeral-storage: 150Gi
         requests:
-          memory: "10Gi"
-          cpu: "5000m"
+          memory: "16Gi"
+          cpu: "4"
+          ephemeral-storage: 20Gi
       securityContext:
         privileged: true
       tty: false
       volumeMounts:
-        - mountPath: "/home/jenkins"
-          name: "volume-0"
-          readOnly: false
         - mountPath: "/tmp"
-          name: "volume-3"
+          name: "tmp"
           readOnly: false
-        - mountPath: "/home/jenkins/agent"
-          name: "workspace-volume"
-          readOnly: false
-        - mountPath: "/certs"
-          name: "docker-certs"
-          readOnly: false
+        - mountPath: "/var/lib/docker"
+          name: "docker-graph"
     - command:
         - "cat"
       env:
         - name: "DOCKER_HOST"
-          value: "tcp://localhost:2376"
-        - name: "DOCKER_TLS_CERTDIR"
-          value: "/certs"
-        - name: "DOCKER_CERT_PATH"
-          value: "/certs/client"
-        - name: "DOCKER_TLS_VERIFY"
-          value: "1"
-      image: "ghcr.io/pingcap-qe/ci/base:v2026.4.12-11-g402978f-go1.25"
+          value: "tcp://localhost:2375"
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+      image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-11-g402978f-go1.25
       imagePullPolicy: "Always"
       name: "docker"
       resources:
         requests:
-          memory: "8Gi"
-          cpu: "5000m"
+          memory: "16Gi"
+          cpu: "4"
+          ephemeral-storage: 10Gi
+        limits:
+          memory: "32Gi"
+          cpu: "8"
+          ephemeral-storage: 50Gi
       tty: true
       volumeMounts:
-        - mountPath: "/home/jenkins"
-          name: "volume-0"
-          readOnly: false
         - mountPath: "/tmp"
-          name: "volume-3"
-          readOnly: false
-        - mountPath: "/home/jenkins/agent"
-          name: "workspace-volume"
-          readOnly: false
-        - mountPath: "/certs"
-          name: "docker-certs"
+          name: "tmp"
           readOnly: false
   volumes:
     - emptyDir:
         medium: ""
-      name: "volume-0"
-    - emptyDir:
-        medium: ""
-      name: "workspace-volume"
-    - emptyDir:
-        medium: ""
-      name: "volume-3"
-    - name: "docker-certs"
-      emptyDir:
-        medium: ""
+      name: "tmp"
+    - name: "docker-graph"
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 200Gi
+            storageClassName: hyperdisk-rwo
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -92,7 +82,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"
