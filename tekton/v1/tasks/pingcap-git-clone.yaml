@@ -256,7 +256,7 @@ spec:
         test -z "${PARAM_NO_PROXY}" || export NO_PROXY="${PARAM_NO_PROXY}"
 
         if [ -n "${PARAM_GIT_INSTEAD_OF}" ] ; then
-          echo -n "${PARAM_GIT_INSTEAD_OF}" | tr ',' '\n' | while IFS= read -r mapping; do
+          echo -n "${PARAM_GIT_INSTEAD_OF}" | tr ',' '\n' | while IFS= read -r mapping || [ -n "${mapping}" ]; do
             instead_of_url=$(echo "${mapping}" | cut -d '=' -f 1 | tr -d ' ' | tr -d '"')
             new_url=$(echo "${mapping}" | cut -d '>' -f 2 | tr -d ' ' | tr -d '"')
             git config --global --add url."${new_url}".insteadOf "${instead_of_url}"
