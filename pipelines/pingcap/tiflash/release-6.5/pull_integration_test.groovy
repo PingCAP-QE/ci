@@ -4,15 +4,12 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
-final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-6.5/pod-pull_build.yaml'
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-6.5/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v20231106'
+final WORKSPACE_STASH_NAME = 'tiflash-release-6.5-it-workspace'
 final PARALLELISM = 16
-final dependency_dir = "/home/jenkins/agent/dependency"
-Boolean proxy_cache_ready = false
-String proxy_commit_hash = null
 String tiflash_commit_hash = null
 
 pipeline {
@@ -179,8 +176,7 @@ pipeline {
                                     --file_path=compile_commands.json \\
                                     --load_diff_files_from "/tmp/tiflash-diff-files.json"
                                 python3 ${run_clang_tidy} -p \$(realpath .) -j \$NPROC --files ".*/tiflash/dbms/*"
-                            """
-                        }
+                        """
                     }
                 }
             }
