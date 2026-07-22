@@ -267,7 +267,17 @@ pipeline {
                                                         timeout 300 docker pull "${PD_IMAGE}"
                                                         timeout 300 docker pull "${TIKV_IMAGE}"
                                                         timeout 300 docker pull "${TIDB_IMAGE}"
-                                                        timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}" || true
+                                                        # release-6.5 failpoint images are no longer published upstream.
+                                                        # Fall back to the regular branch image so compose does not hard-fail on a missing tag,
+                                                        # and skip fail-point-tests that require a real failpoint TiDB binary.
+                                                        if ! timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}"; then
+                                                            echo "WARN: ${TIDB_FAILPOINT_IMAGE} not found; falling back to ${TIDB_IMAGE}"
+                                                            TIDB_FAILPOINT_IMAGE="${TIDB_IMAGE}"
+                                                            if [ -f ./run.sh ] && grep -q 'tidb-ci/fail-point-tests' ./run.sh; then
+                                                                echo "WARN: skipping tidb-ci/fail-point-tests because TiDB failpoint image is unavailable"
+                                                                sed -i -e 's#./run-test.sh tidb-ci/fail-point-tests && ##g' ./run.sh
+                                                            fi
+                                                        fi
                                                         timeout 600 docker pull "${TIFLASH_IMAGE}"
 
                                                         find ../docker . -name '*.yaml' -type f -exec sed -i \
