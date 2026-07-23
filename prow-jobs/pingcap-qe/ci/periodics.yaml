@@ -8,7 +8,7 @@ periodics:
       activeDeadlineSeconds: 300
       containers:
         - name: main
-          image: denoland/deno:2.9.1
+          image: denoland/deno:2.9.4
           command:
             - deno
             - run
@@ -34,7 +34,7 @@ periodics:
       containers:
         - &periodic-reporter-flaky-tests-tidb-container
           name: main
-          image: denoland/deno:2.9.1
+          image: denoland/deno:2.9.4
           command: [bash, -c]
           args:
             - |
