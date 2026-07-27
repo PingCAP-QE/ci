@@ -17,11 +17,11 @@ spec:
       resources:
         requests:
           memory: 60Gi
-          cpu: "24"
+          cpu: "20"
           ephemeral-storage: 20Gi
         limits:
           memory: 64Gi
-          cpu: "24"
+          cpu: "20"
           ephemeral-storage: 300Gi
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
