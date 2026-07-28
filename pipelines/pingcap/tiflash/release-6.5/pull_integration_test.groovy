@@ -278,6 +278,7 @@ pipeline {
                                                             -e 's#${TIFLASH_IMAGE:[^}]*}#'"${TIFLASH_IMAGE}"'#g' \
                                                             -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
                                                             -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
+                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base$#'"${TIFLASH_IMAGE}"'#g' \
                                                             -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
                                                             -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
                                                             -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:master#${PD_IMAGE}#g" \
