@@ -7,7 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflash"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-6.5/pod-pull_build.yaml'
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-6.5/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v20231106'
+final TIFLASH_IT_BASE_IMAGE = 'ghcr.io/pingcap-qe/bases/tiflash-base:v1.9.1'
 final WORKSPACE_STASH_NAME = 'tiflash-release-6.5-it-workspace'
 final PARALLELISM = 16
 String tiflash_commit_hash = null
@@ -249,7 +249,7 @@ pipeline {
                                             "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${tikvBranch}",
                                             "TIDB_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}",
                                             "TIDB_FAILPOINT_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}-failpoint",
-                                            "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
+                                            "TIFLASH_IT_BASE_IMAGE=${TIFLASH_IT_BASE_IMAGE}",
                                         ]) {
                                             withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
                                                 sh label: "prepare docker images", script: '''
@@ -278,7 +278,14 @@ pipeline {
                                                                 sed -i -e 's#./run-test.sh tidb-ci/fail-point-tests && ##g' ./run.sh
                                                             fi
                                                         fi
-                                                        timeout 600 docker pull "${TIFLASH_IMAGE}"
+                                                        # Old hub.pingcap.net/tiflash/tiflash-ci-base included mysql client for run-test.sh.
+                                                        # Builder images do not; rebuild the historical runtime locally (see tiflash_ci_base Dockerfile).
+                                                        timeout 600 docker pull "${TIFLASH_IT_BASE_IMAGE}"
+                                                        docker build -t tiflash-ci-base-local:with-mysql - <<EOF
+FROM ${TIFLASH_IT_BASE_IMAGE}
+RUN yum install -y mysql
+EOF
+                                                        TIFLASH_IMAGE=tiflash-ci-base-local:with-mysql
 
                                                         find ../docker . -name '*.yaml' -type f -exec sed -i \
                                                             -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
