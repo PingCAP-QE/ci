@@ -37,7 +37,15 @@ spec:
               - /data/bazel-prepare-in-container.sh
   volumes:
     - name: bazel-out-merged
-      emptyDir: {}
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 200Gi
+            storageClassName: hyperdisk-rwo
     - name: bazel-rc
       configMap:
         name: bazel
