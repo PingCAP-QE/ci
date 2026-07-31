@@ -1,0 +1,16 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+────────────
+ Nextest run ID cd0678f2-d3b8-4f96-ba4f-eeab6a2a69d2 with nextest profile: ci
+    Starting 1 test across 1 binary (4 tests skipped)
+TRY 1 TRMNTG [>  0.500s] (───) demo tests::test_flaky_timeout
+   TRY 1 TMT [   0.505s] (───) demo tests::test_flaky_timeout
+  stdout ───
+
+    running 1 test
+
+    (test timed out)
+
+  TRY 2 PASS [   0.021s] (1/1) demo tests::test_flaky_timeout
+────────────
+     Summary [   0.528s] 1 test run: 1 passed (1 flaky), 4 skipped
+   FLAKY 2/3 [   0.021s] (1/1) demo tests::test_flaky_timeout

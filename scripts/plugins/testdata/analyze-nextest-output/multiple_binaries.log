@@ -1,0 +1,68 @@
+   Compiling demo2 v0.1.0 (/private/tmp/multica-task-384010209/demo/demo2)
+warning: unused import: `std::io::Write`
+ --> demo2/src/lib.rs:1:5
+  |
+1 | use std::io::Write;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: function `counter_file` is never used
+ --> demo2/src/lib.rs:4:4
+  |
+4 | fn counter_file(key: &str) -> PathBuf {
+  |    ^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: `demo2` (lib) generated 2 warnings (run `cargo fix --lib -p demo2` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+────────────
+ Nextest run ID 7654515c-96f3-4ac4-a3b5-e75753a5ddad with nextest profile: ci
+    Starting 4 tests across 2 binaries (3 tests skipped)
+        PASS [   0.019s] (1/4) demo tests::test_ok
+        PASS [   0.019s] (2/4) demo2 tests::test_ok_b
+  TRY 1 FAIL [   0.019s] (───) demo tests::test_flaky
+  stdout ───
+
+    running 1 test
+    test tests::test_flaky ... FAILED
+
+    failures:
+
+    failures:
+        tests::test_flaky
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::test_flaky' panicked at src/lib.rs:46:9:
+    flaky failure
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 1 FAIL [   0.020s] (───) demo2 tests::test_flaky_b
+  stdout ───
+
+    running 1 test
+    test tests::test_flaky_b ... FAILED
+
+    failures:
+
+    failures:
+        tests::test_flaky_b
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::test_flaky_b' panicked at demo2/src/lib.rs:24:9:
+    flaky failure in demo2
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 PASS [   0.011s] (3/4) demo2 tests::test_flaky_b
+  TRY 2 PASS [   0.011s] (4/4) demo tests::test_flaky
+────────────
+     Summary [   0.031s] 4 tests run: 4 passed (2 flaky), 3 skipped
+   FLAKY 2/3 [   0.011s] (3/4) demo2 tests::test_flaky_b
+   FLAKY 2/3 [   0.011s] (4/4) demo tests::test_flaky

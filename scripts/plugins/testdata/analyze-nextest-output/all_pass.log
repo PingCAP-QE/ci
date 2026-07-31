@@ -1,0 +1,8 @@
+   Compiling demo v0.1.0 (/private/tmp/multica-task-384010209/demo)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+────────────
+ Nextest run ID b02737bc-73c1-4db6-a213-762947bfc758 with nextest profile: ci
+    Starting 1 test across 1 binary (4 tests skipped)
+        PASS [   0.008s] (1/1) demo tests::test_ok
+────────────
+     Summary [   0.008s] 1 test run: 1 passed, 4 skipped

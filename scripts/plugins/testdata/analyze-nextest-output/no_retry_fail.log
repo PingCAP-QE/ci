@@ -1,0 +1,28 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+────────────
+ Nextest run ID dccc0d77-b136-4b37-b0b3-aa5676b6f484 with nextest profile: default
+    Starting 1 test across 1 binary (4 tests skipped)
+        FAIL [   0.004s] (1/1) demo tests::test_always_fail
+  stdout ───
+
+    running 1 test
+    test tests::test_always_fail ... FAILED
+
+    failures:
+
+    failures:
+        tests::test_always_fail
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::test_always_fail' panicked at src/lib.rs:61:9:
+    always fails
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 
+────────────
+     Summary [   0.005s] 1 test run: 0 passed, 1 failed, 4 skipped
+        FAIL [   0.004s] (1/1) demo tests::test_always_fail
+error: test run failed

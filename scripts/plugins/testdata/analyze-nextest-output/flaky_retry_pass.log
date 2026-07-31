@@ -1,0 +1,28 @@
+   Compiling demo v0.1.0 (/private/tmp/multica-task-384010209/demo)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+────────────
+ Nextest run ID 137fadac-6a97-4e99-8c77-62d63d26ac81 with nextest profile: ci
+    Starting 1 test across 1 binary (4 tests skipped)
+  TRY 1 FAIL [   0.011s] (───) demo tests::test_flaky
+  stdout ───
+
+    running 1 test
+    test tests::test_flaky ... FAILED
+
+    failures:
+
+    failures:
+        tests::test_flaky
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'tests::test_flaky' panicked at src/lib.rs:46:9:
+    flaky failure
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 PASS [   0.009s] (1/1) demo tests::test_flaky
+────────────
+     Summary [   0.022s] 1 test run: 1 passed (1 flaky), 4 skipped
+   FLAKY 2/3 [   0.009s] (1/1) demo tests::test_flaky
