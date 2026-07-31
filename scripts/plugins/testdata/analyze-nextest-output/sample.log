@@ -1,0 +1,17 @@
+────────────  Nextest run ID 00000000-0000-0000-0000-000000000007 with nextest profile: default
+    Starting 4 tests across 2 binaries (0 skipped)
+       PASS [   0.001s] fixture::basic test_pass
+       TRY 1 FAIL [   0.003s] fixture::basic test_flaky_mod_2
+     stderr ---
+        thread 'test_flaky_mod_2' panicked at src/basic.rs:42:9:
+        assertion failed
+       TRY 2 PASS [   0.002s] fixture::basic test_flaky_mod_2
+       TRY 1 FAIL [   0.003s] fixture::panic test_crash
+     stderr ---
+        thread 'test_crash' panicked at src/panic.rs:5:5:
+        index out of bounds
+       TRY 2 FAIL [   0.003s] fixture::panic test_crash
+────────────
+  Summary [   0.012s] 4 tests run: 3 passed (1 flaky), 0 skipped, 1 failed (1 persistent failure)
+     FLAKY 2/3 [   0.002s] fixture::basic test_flaky_mod_2
+       FAIL [   0.003s] fixture::panic test_crash

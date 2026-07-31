@@ -1,0 +1,10 @@
+────────────  Nextest run ID 00000000-0000-0000-0000-000000000004 with nextest profile: default
+    Starting 1 test across 1 binary (0 skipped)
+       TRY 1 TIMEOUT [   5.000s] fixture::basic test_flaky_timeout
+     stderr ---
+        thread 'test_flaky_timeout' panicked at src/basic.rs:200:5:
+        timed out waiting for lock
+       TRY 2 PASS [   0.002s] fixture::basic test_flaky_timeout
+────────────
+  Summary [   5.010s] 1 test run: 1 passed (1 flaky), 0 skipped, 0 failed
+     FLAKY 2/2 [   0.002s] fixture::basic test_flaky_timeout
