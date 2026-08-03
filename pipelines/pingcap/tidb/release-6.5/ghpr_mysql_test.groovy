@@ -95,7 +95,7 @@ pipeline {
                                     cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
                                         sh 'ls mysql_test'
                                         dir('mysql_test') {
-                                            sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh -part=${PART}'
+                                            sh label: "part ${PART}", script: 'TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh 1 ${PART}'
                                         }
                                     }
                                 }
