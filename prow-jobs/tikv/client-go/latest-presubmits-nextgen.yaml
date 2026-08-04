@@ -125,7 +125,7 @@ presubmits:
                 memory: 4Gi
         containers: &containers
           - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2026.4.12-27-g440b0c8-go1.25
+            image: ghcr.io/pingcap-qe/ci/base:v2026.7.12-6-gc8582dde-go1.25
             command: [bash, -ce]
             env:
               - name: GOTOOLCHAIN
