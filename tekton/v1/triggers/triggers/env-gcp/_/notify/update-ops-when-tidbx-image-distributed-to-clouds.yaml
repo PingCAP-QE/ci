@@ -41,6 +41,7 @@ spec:
         - name: images
         - name: target_images
         - name: stage
+        - name: publisher-url
       resourceTemplates:
         - apiVersion: tekton.dev/v1
           kind: TaskRun
