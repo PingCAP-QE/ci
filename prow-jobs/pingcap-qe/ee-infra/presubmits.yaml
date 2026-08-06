@@ -15,7 +15,7 @@ presubmits:
         service_account_name: terraform-plan-reader
         containers:
           - name: main
-            image: ghcr.io/opentofu/opentofu:1.6
+            image: ghcr.io/opentofu/opentofu:1.12
             command: [sh, -ce]
             args:
               - |
@@ -45,7 +45,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: ghcr.io/opentofu/opentofu:1.6
+            image: ghcr.io/opentofu/opentofu:1.12
             command: [sh, -ce]
             args:
               - |
