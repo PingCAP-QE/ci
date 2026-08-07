@@ -117,6 +117,27 @@ presubmits:
                 memory: 256Mi
                 cpu: 200m
 
+    - name: pull-verify-storage-class-policy
+      labels: *labels
+      decorate: true
+      always_run: true
+      max_concurrency: 1
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.24
+            command: [sh, -ce]
+            args:
+              - |
+                apk add --no-cache bash grep sed
+                bash .ci/verify-storage-class-policy.sh
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+
     - name: pull-verify-tekton-yaml
       labels: *labels
       decorate: true

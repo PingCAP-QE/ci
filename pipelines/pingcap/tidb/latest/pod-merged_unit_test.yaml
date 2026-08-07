@@ -47,7 +47,7 @@ spec:
             resources:
               requests:
                 storage: 200Gi
-            storageClassName: hyperdisk-rwo
+            storageClassName: ci-rwo
     - name: bazel-rc
       configMap:
         name: bazel

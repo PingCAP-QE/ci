@@ -130,7 +130,7 @@ postsubmits:
               volumeClaimTemplate:
                 spec:
                   accessModes: ["ReadWriteOnce"]
-                  storageClassName: "hyperdisk-rwo"
+                  storageClassName: "ci-rwo"
                   resources:
                     requests:
                       storage: 100Gi

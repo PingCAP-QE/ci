@@ -36,7 +36,7 @@ presubmits:
                   resources:
                     requests:
                       storage: 100Gi
-                  storageClassName: hyperdisk-rwo
+                  storageClassName: ci-rwo
           - name: minio-data
             ephemeral:
               volumeClaimTemplate:
@@ -45,7 +45,7 @@ presubmits:
                   resources:
                     requests:
                       storage: 20Gi
-                  storageClassName: hyperdisk-rwo
+                  storageClassName: ci-rwo
         initContainers:
           - &sidecar-minio
             name: sidecar-minio
