@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ghcr.io/pingcap-qe/bases/pingcap-base:v1.11.3@sha256:e4763f0b3947c257a9efde18c83d748b56beb5239cf23de37bfeee9a9bbea431
+FROM ghcr.io/pingcap-qe/bases/pingcap-base:v1.12.2@sha256:07772021ca1a9e31f6f89c745c15a577a1cd752da3c6df0f64e9453b8091cfb9
 
 ARG TARGETARCH
 RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked \
