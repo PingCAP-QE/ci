@@ -196,10 +196,6 @@ This example triggers a TaskRun only when an issue comment is created in selecte
                   - name: notify-config
                     secret:
                       secretName: image-delivery-notify-config-tidbx
-                  - name: ops-config
-                    secret:
-                      secretName: image-delivery-ops-config-tidbx
-
 
 ## 9) Validation and troubleshooting
 
