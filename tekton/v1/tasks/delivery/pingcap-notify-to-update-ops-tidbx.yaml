@@ -35,12 +35,7 @@ spec:
         Include files:
         - <stage>_lark_webhook: lark bot webhook url
       readOnly: true
-    - name: ops-config
-      description: |
-        Configuration to call Ops platform APIs.
-        Include files:
-        - <stage>.json
-      readOnly: true
+
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
   steps:
