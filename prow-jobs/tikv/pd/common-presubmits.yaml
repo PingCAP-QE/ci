@@ -22,7 +22,7 @@ presubmits:
             resources:
               requests: { memory: 128Mi, cpu: "50m" }
               limits: { memory: 256Mi, cpu: "100m" }
-            image: golang:1.26.4
+            image: golang:1.26.5
             command: [bash, -c]
             args:
               - |
