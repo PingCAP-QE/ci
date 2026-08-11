@@ -6,7 +6,6 @@ spec:
   containers:
     - name: runner
       image: "ghcr.io/pingcap-qe/ci/jenkins/tikv:v2026.3.22-4-gd9d1135"
-      imagePullPolicy: Always
       tty: true
       command:
         - "/bin/sh"
