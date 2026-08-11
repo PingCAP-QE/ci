@@ -716,14 +716,28 @@ run_parallel_replays() {
     spawn_next() {
         local idx="$1"
         local script_file="${scripts[$idx]}"
+        local label
+        label="$(basename "$script_file")"
         (
+            # Stream log lines live with a task prefix instead of buffering
+            # them in a file, so the prow build log stays as detailed as the
+            # serial mode. The overrides apply to everything replay_one and
+            # its callees emit, thanks to bash's dynamic function scoping.
+            log() {
+                printf '[%s] [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$label" "$*" >&2
+            }
+            vlog() {
+                if [[ "${VERBOSE:-false}" == "true" ]]; then
+                    log "$*"
+                fi
+            }
             if replay_one "$script_file" "" ""; then
                 printf '%s' "${REPLAY_LAST_RESULT}" > "${tmpdir}/${idx}.result"
                 exit 0
             fi
             printf '%s' "${REPLAY_LAST_RESULT:-failed}" > "${tmpdir}/${idx}.result"
             exit 1
-        ) >"${tmpdir}/${idx}.log" 2>&1 &
+        ) &
         pids+=($!)
         pid_to_idx[$!]="$idx"
         running=$((running+1))
@@ -758,7 +772,6 @@ run_parallel_replays() {
         result="$(cat "${tmpdir}/${done_idx}.result" 2>/dev/null || echo failed)"
         record_summary "$result"
         log "--- replay finished: ${scripts[$done_idx]} -> ${result} (exit ${exit_code}) ---"
-        cat "${tmpdir}/${done_idx}.log" || true
 
         if [[ "$exit_code" != "0" ]]; then
             failed=1
