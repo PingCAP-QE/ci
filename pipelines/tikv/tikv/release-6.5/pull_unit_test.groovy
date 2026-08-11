@@ -71,10 +71,8 @@ pipeline {
                             export ROCKSDB_SYS_SSE=1
                             export RUST_BACKTRACE=1
                             export LOG_LEVEL=INFO
-                            if [ -f /opt/rh/devtoolset-8/enable ]; then
-                              echo "using devtoolset-8 (gcc 8)"
-                              source /opt/rh/devtoolset-8/enable
-                            fi
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
                             make clippy || (echo Please fix the clippy error; exit 1)
                         """
                     }
@@ -94,10 +92,8 @@ pipeline {
                             export LOG_LEVEL=INFO
                             export CARGO_INCREMENTAL=0
                             export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
-                            if [ -f /opt/rh/devtoolset-8/enable ]; then
-                              echo "using devtoolset-8 (gcc 8)"
-                              source /opt/rh/devtoolset-8/enable
-                            fi
+                            echo using gcc 8
+                            source /opt/rh/devtoolset-8/enable
                             set -e
                             set -o pipefail
 
