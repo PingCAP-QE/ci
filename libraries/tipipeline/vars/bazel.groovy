@@ -10,6 +10,12 @@
 // that logic and make the cache endpoints configurable per cloud
 // environment, so the same job definition can run on any cloud.
 //
+// The actual workspace manipulation lives in the plain shell script
+// scripts/pingcap/tidb/prepare-bazel-workspace.sh (available in the
+// agent workspace via the ci repo checkout), so no fragile shell
+// escaping is needed in Groovy. Configuration flows to the script
+// through BAZEL_* env vars computed by workspaceEnv().
+//
 // The cloud environment is selected through the CI_CLOUD_ENV env var
 // (injected globally by Jenkins), defaulting to 'gcp'. To onboard a new
 // cloud, add an entry to envConfig() and adjust the pod templates'
@@ -56,140 +62,63 @@ def stripPattern(List<String> urls) {
     return urls.collect { it.replaceAll(/\./, '[.]') }.join('|')
 }
 
-// Generate the script that cleans legacy bazel cache/mirror references
-// from the checked out workspace. Run it inside the repo dir.
+// Compute the BAZEL_* environment map consumed by resources/bazel/prepare-workspace.sh.
 //
 // opts:
 //   cloud:            override cloud env name (default: CI_CLOUD_ENV or 'gcp')
 //   stripUrls:        override stale URLs to remove (default: envConfig)
-//   patchCheckTarget: patch Makefile "check:" target to drop check-bazel-prepare (default: true)
+//   patchCheckTarget: patch Makefile "check:" target (default: true)
 //   remoteCache:      null, [mode: 'disable'] or [mode: 'set', url: '...'] (default: envConfig)
 //   repositoryCache:  null, '/path' or [path: '/path', guard: true|false] (default: envConfig)
-//   ensureTmpDir:     create /home/jenkins/.tidb/tmp (default: false)
-def buildWorkspaceScript(Map opts = [:]) {
+//   ensureTmpDir:     create the bazel tmp dir (default: false)
+def workspaceEnv(Map opts = [:]) {
     def cfg = envConfig(opts.cloud)
     def stripUrls = opts.containsKey('stripUrls') ? opts.stripUrls : cfg.stripUrls
     def patchCheckTarget = opts.containsKey('patchCheckTarget') ? opts.patchCheckTarget : true
-    def remoteCache = opts.containsKey('remoteCache') ? opts.remoteCache : cfg.remoteCache
-    def repositoryCache = opts.containsKey('repositoryCache') ? opts.repositoryCache : (cfg.repositoryCachePath ? [path: cfg.repositoryCachePath, guard: true] : null)
     def ensureTmpDir = opts.containsKey('ensureTmpDir') ? opts.ensureTmpDir : false
-
+    def repositoryCache = opts.containsKey('repositoryCache') ? opts.repositoryCache : (cfg.repositoryCachePath ? [path: cfg.repositoryCachePath, guard: true] : null)
     if (repositoryCache instanceof String) {
         repositoryCache = [path: repositoryCache, guard: true]
     }
-
-    def lines = []
-    lines << '#!/usr/bin/env bash'
-    lines << 'set -euxo pipefail'
-
-    if (stripUrls) {
-        def pattern = stripPattern(stripUrls)
-        lines << '# Clean legacy bazel cache/mirror URLs that are unstable outside the legacy environment.'
-        lines << 'for f in WORKSPACE DEPS.bzl; do'
-        lines << '  [ -f "$f" ] || continue'
-        lines << "  sed -i -E '/${pattern}/d' \"\$f\""
-        lines << 'done'
-
-        if (patchCheckTarget) {
-            lines << '# Avoid "check" targets re-writing legacy cache settings during replay validation.'
-            lines << "sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true"
-        }
-
-        if (ensureTmpDir) {
-            lines << '# Ensure expected bazel tmp dir exists after mount point change.'
-            lines << 'mkdir -p /home/jenkins/.tidb/tmp'
-        }
-
-        if (repositoryCache) {
-            if (repositoryCache.guard) {
-                lines << '# Prefer shared local repository cache when writable, fallback to default path.'
-                lines << "if [ -d ${repositoryCache.path} ] && mkdir -p ${repositoryCache.path}/content_addressable/sha256 2>/dev/null; then"
-                lines << "  sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=${repositoryCache.path}|g' Makefile.common"
-                lines << "  echo \"using shared bazel repository cache: ${repositoryCache.path}\""
-                lines << 'else'
-                lines << '  echo "shared bazel repository cache unavailable or not writable, keep repository_cache=/home/jenkins/.tidb/tmp"'
-                lines << 'fi'
-            } else {
-                lines << "sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=${repositoryCache.path}|g' Makefile.common"
-            }
-        }
-
-        if (remoteCache) {
-            switch (remoteCache.mode) {
-                case 'disable':
-                    lines << '# Disable remote cache usage for this migration replay path.'
-                    lines << 'if [ -f .bazelrc ]; then'
-                    lines << "  sed -i '/^try-import \u005C/data\u005C/bazel\$/d' .bazelrc"
-                    ['build', 'test', 'run'].each { scope ->
-                        lines << "  grep -q '^${scope} --noremote_accept_cached\$' .bazelrc || echo '${scope} --noremote_accept_cached' >> .bazelrc"
-                        lines << "  grep -q '^${scope} --noremote_upload_local_results\$' .bazelrc || echo '${scope} --noremote_upload_local_results' >> .bazelrc"
-                    }
-                    lines << 'fi'
-                    break
-                case 'set':
-                    def url = remoteCache.url?.trim()
-                    if (!url) {
-                        throw new Exception('remoteCache mode "set" requires a url')
-                    }
-                    lines << '# Point bazel remote cache at the cloud cache service.'
-                    lines << 'if [ -f .bazelrc ]; then'
-                    lines << "  sed -i '/^try-import \u005C/data\u005C/bazel\$/d' .bazelrc"
-                    lines << "  sed -i '/^build --remote_cache=/d; /^test --remote_cache=/d; /^run --remote_cache=/d' .bazelrc"
-                    ['build', 'test', 'run'].each { scope ->
-                        lines << "  echo '${scope} --remote_cache=${url}' >> .bazelrc"
-                    }
-                    lines << 'fi'
-                    break
-                default:
-                    throw new Exception("unsupported remoteCache mode: ${remoteCache.mode}")
-            }
-        }
-
-        lines << '# Verify no legacy bazel cache/mirror URLs remain.'
-        lines << "grep -nE '${pattern}' WORKSPACE DEPS.bzl || true"
-        lines << "grep -n '^check:' Makefile | head -n 3 || true"
-    } else {
-        lines << "echo 'No stale bazel cache URLs configured (stripUrls empty), skip cleanup'"
+    def remoteCache = opts.containsKey('remoteCache') ? opts.remoteCache : cfg.remoteCache
+    def remoteMode = remoteCache?.mode?.trim() ?: ''
+    if (remoteMode == 'set' && !(remoteCache.url?.trim())) {
+        throw new Exception('remoteCache mode "set" requires a url')
+    }
+    if (remoteMode != '' && remoteMode != 'disable' && remoteMode != 'set') {
+        throw new Exception("unsupported remoteCache mode: ${remoteMode}")
     }
 
-    return lines.join('\n')
+    return [
+        'BAZEL_STRIP_URLS': stripUrls ? stripPattern(stripUrls) : '',
+        'BAZEL_PATCH_CHECK_TARGET': patchCheckTarget ? 'true' : 'false',
+        'BAZEL_ENSURE_TMP_DIR': ensureTmpDir ? 'true' : 'false',
+        'BAZEL_REPOSITORY_CACHE_PATH': repositoryCache ? repositoryCache.path : '',
+        'BAZEL_REPOSITORY_CACHE_GUARD': repositoryCache ? ((repositoryCache.containsKey('guard') ? repositoryCache.guard : true) ? 'true' : 'false') : '',
+        'BAZEL_REMOTE_CACHE_MODE': remoteMode,
+        'BAZEL_REMOTE_CACHE_URL': remoteMode == 'set' ? remoteCache.url : '',
+    ]
 }
 
 // Run the workspace preparation script. Must be called inside the repo dir.
 def prepareWorkspace(Map opts = [:]) {
-    sh script: buildWorkspaceScript(opts), label: 'prepare bazel workspace'
+    runBazelScript('prepare-bazel-workspace.sh', workspaceEnv(opts))
 }
 
-// Generate the lightweight cleanup script used inside matrix test stages,
-// where the workspace is restored from cache and may contain stale URLs
-// again. Run it inside the repo dir.
-//
-// opts:
-//   cloud:     override cloud env name (default: CI_CLOUD_ENV or 'gcp')
-//   stripUrls: override stale URLs to remove (default: envConfig)
-def buildStaleUrlCleanupScript(Map opts = [:]) {
-    def cfg = envConfig(opts.cloud)
-    def stripUrls = opts.containsKey('stripUrls') ? opts.stripUrls : cfg.stripUrls
-
-    if (!stripUrls) {
-        return '#!/usr/bin/env bash\nset -euxo pipefail\necho "No stale bazel cache URLs configured, skip cleanup"'
-    }
-    def pattern = stripPattern(stripUrls)
-    return """#!/usr/bin/env bash
-set -euxo pipefail
-if grep -qE '${pattern}' WORKSPACE DEPS.bzl 2>/dev/null; then
-  for f in WORKSPACE DEPS.bzl; do
-    [ -f "\$f" ] || continue
-    sed -i -E '/${pattern}/d' "\$f"
-  done
-  sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-else
-  echo "No legacy bazel deps URL found in WORKSPACE/DEPS.bzl."
-fi
-"""
-}
-
-// Run the lightweight stale URL cleanup. Must be called inside the repo dir.
+// Lightweight cleanup for matrix test stages, where the workspace is
+// restored from cache and may contain stale URLs again. Must be called
+// inside the repo dir.
 def reapplyStaleUrlCleanup(Map opts = [:]) {
-    sh script: buildStaleUrlCleanupScript(opts), label: 're-apply bazel deps URL cleanup'
+    def env = workspaceEnv(opts)
+    env['BAZEL_GUARDED'] = 'true'
+    runBazelScript('prepare-bazel-workspace.sh', env)
+}
+
+// Run the workspace preparation script with the given BAZEL_* env vars.
+// Must be called inside the repo dir; the script is looked up in the ci
+// repo checkout in the agent workspace.
+def runBazelScript(String scriptName, Map bazelEnv) {
+    withEnv(bazelEnv.collect { key, value -> "${key}=${value}" }) {
+        sh "bash \${WORKSPACE}/scripts/pingcap/tidb/${scriptName}"
+    }
 }
