@@ -30,22 +30,10 @@ pipeline {
                 }
             }
         }
-        stage('Clean Legacy Bazel URL') {
+        stage('Prepare bazel workspace') {
             steps {
                 dir(REFS.repo) {
-                    sh '''#!/usr/bin/env bash
-                        set -euxo pipefail
-
-                        if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
-                            for f in WORKSPACE DEPS.bzl; do
-                                [ -f "$f" ] || continue
-                                sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                            done
-                            sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-                        else
-                            echo "No legacy bazel deps URL found in WORKSPACE/DEPS.bzl."
-                        fi
-                    '''
+                    script { bazel.reapplyStaleUrlCleanup() }
                 }
             }
         }
