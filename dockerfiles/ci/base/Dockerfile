@@ -80,7 +80,7 @@ RUN wget https://archive.apache.org/dist/maven/maven-3/${MAVEN_VER}/binaries/apa
     rm apache-maven-${MAVEN_VER}-bin.tar.gz
 ENV PATH=$PATH:/opt/apache-maven-${MAVEN_VER}/bin
 
-#### install tools: bazelisk, codecov, oras
+#### install tools: bazelisk, codecov, codecovcli, oras
 # renovate: datasource=github-tags depName=bazelbuild/bazelisk
 ARG BAZELISK_VERSION=v1.29.0
 RUN OS=linux; ARCH=$([ "$(arch)" = "x86_64" ] && echo amd64 || echo arm64); \
@@ -92,6 +92,13 @@ ARG CODECOV_VERSION=v0.8.0
 RUN folder=$([ "$(arch)" = "x86_64" ] && echo linux || echo aarch64); \
     curl -fsSL https://uploader.codecov.io/${CODECOV_VERSION}/${folder}/codecov -o /usr/local/bin/codecov && \
     chmod +x /usr/local/bin/codecov
+
+# codecov-cli tool
+# renovate: datasource=github-tags depName=codecov/codecov-cli
+ARG CODECOVCLI_VERSION=v11.3.1
+RUN ARCH=$([ "$(arch)" = "x86_64" ] && echo linux || echo linux_arm64); \
+    curl -fsSL "https://github.com/codecov/codecov-cli/releases/download/${CODECOVCLI_VERSION}/codecovcli_${ARCH}" -o /usr/local/bin/codecovcli && \
+    chmod +x /usr/local/bin/codecovcli
 
 # oras tool
 COPY --from=ghcr.io/oras-project/oras:v1.3.3 /bin/oras /usr/local/bin/oras
