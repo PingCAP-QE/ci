@@ -66,6 +66,7 @@ presubmits:
                   --selector lastSuccessfulBuild \
                   --wait \
                   --max-replays 20 \
+                  --parallel 10 \
                   --verbose \
                   --timeout 7200 \
                   --poll-interval 20

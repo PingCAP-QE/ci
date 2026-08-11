@@ -28,6 +28,9 @@ Options:
   --timeout <seconds>      Max wait seconds for queue/build completion. Default: 3600.
   --poll-interval <sec>    Poll interval in seconds. Default: 15.
   --max-replays <count>    Max replay count in --auto-changed mode. Default: 20.
+  --parallel <count>       Max concurrent replays in --auto-changed mode. Default: 1.
+  --fast-fail              Exit with failure as soon as one replay fails, instead
+                           of waiting for all of them.
   --no-inline-pod-yaml     Keep yamlFile in replay script (default: inline local pod yaml).
   --verbose                Print detailed mapping and resolution logs.
   --dry-run                Print actions only.
@@ -539,6 +542,8 @@ init_defaults() {
     POLL_INTERVAL_SEC=15
     DRY_RUN="false"
     MAX_REPLAYS=20
+    PARALLEL=1
+    FAST_FAIL="false"
     INLINE_POD_YAML="true"
     VERBOSE="false"
     JENKINS_URL="${JENKINS_URL:-https://prow.tidb.net/jenkins}"
@@ -602,6 +607,14 @@ parse_args() {
                 MAX_REPLAYS="$2"
                 shift 2
                 ;;
+            --parallel)
+                PARALLEL="$2"
+                shift 2
+                ;;
+            --fast-fail)
+                FAST_FAIL="true"
+                shift
+                ;;
             --no-inline-pod-yaml)
                 INLINE_POD_YAML="false"
                 shift
@@ -641,6 +654,12 @@ validate_inputs() {
     [[ "$TIMEOUT_SEC" =~ ^[0-9]+$ ]] || fatal "--timeout must be integer seconds"
     [[ "$POLL_INTERVAL_SEC" =~ ^[0-9]+$ ]] || fatal "--poll-interval must be integer seconds"
     [[ "$MAX_REPLAYS" =~ ^[0-9]+$ ]] || fatal "--max-replays must be integer count"
+    [[ "$PARALLEL" =~ ^[0-9]+$ ]] && [[ "$PARALLEL" -ge 1 ]] || fatal "--parallel must be an integer >= 1"
+    if (( PARALLEL > 1 )); then
+        # wait -n -p is used by the parallel runner.
+        [[ "${BASH_VERSINFO[0]}" -ge 5 ]] || fatal "--parallel > 1 requires bash 5.1+ (found ${BASH_VERSION})"
+        [[ "${BASH_VERSINFO[0]}" -gt 5 || "${BASH_VERSINFO[1]}" -ge 1 ]] || fatal "--parallel > 1 requires bash 5.1+ (found ${BASH_VERSION})"
+    fi
 
     if [[ "$AUTO_CHANGED" == "true" ]]; then
         [[ -z "$SCRIPT_FILE" ]] || fatal "--script-file cannot be used with --auto-changed"
@@ -672,6 +691,92 @@ record_summary() {
             vlog "unknown replay result: ${result}"
             ;;
     esac
+}
+
+# Replay a batch of changed scripts concurrently, at most PARALLEL at a time.
+# Each task runs in its own subshell (isolated globals such as REPLAY_LAST_RESULT),
+# logging to its own file so output is not interleaved. Fails the batch when any
+# task fails; with FAST_FAIL=true the remaining tasks are aborted immediately.
+run_parallel_replays() {
+    local -a scripts=("$@")
+    local tmpdir
+    tmpdir="$(mktemp -d)"
+    local -a pids=()
+    local -A pid_to_idx=()
+    local next=0
+    local running=0
+    local failed=0
+    local done_pid=""
+    local done_idx=""
+    local exit_code=0
+    local result=""
+    local p=""
+    local -a alive=()
+
+    spawn_next() {
+        local idx="$1"
+        local script_file="${scripts[$idx]}"
+        (
+            if replay_one "$script_file" "" ""; then
+                printf '%s' "${REPLAY_LAST_RESULT}" > "${tmpdir}/${idx}.result"
+                exit 0
+            fi
+            printf '%s' "${REPLAY_LAST_RESULT:-failed}" > "${tmpdir}/${idx}.result"
+            exit 1
+        ) >"${tmpdir}/${idx}.log" 2>&1 &
+        pids+=($!)
+        pid_to_idx[$!]="$idx"
+        running=$((running+1))
+    }
+
+    while (( next < ${#scripts[@]} || running > 0 )); do
+        while (( running < PARALLEL && next < ${#scripts[@]} )); do
+            spawn_next "$next"
+            next=$((next+1))
+        done
+
+        done_pid=""
+        exit_code=0
+        # wait -n returns the exit status of the first completed job. It must
+        # run in this shell (not in a $(...) substitution) so it can see the
+        # background jobs spawned above.
+        wait -n -p done_pid "${pids[@]}" 2>/dev/null
+        exit_code=$?
+        if [[ -z "$done_pid" ]]; then
+            break
+        fi
+
+        done_idx="${pid_to_idx[$done_pid]}"
+        alive=()
+        for p in "${pids[@]}"; do
+            [[ "$p" != "$done_pid" ]] && alive+=("$p")
+        done
+        pids=("${alive[@]}")
+        unset "pid_to_idx[$done_pid]"
+        running=$((running-1))
+
+        result="$(cat "${tmpdir}/${done_idx}.result" 2>/dev/null || echo failed)"
+        record_summary "$result"
+        log "--- replay finished: ${scripts[$done_idx]} -> ${result} (exit ${exit_code}) ---"
+        cat "${tmpdir}/${done_idx}.log" || true
+
+        if [[ "$exit_code" != "0" ]]; then
+            failed=1
+            if [[ "$FAST_FAIL" == "true" ]]; then
+                log "fast fail: aborting ${running} remaining replays"
+                for p in "${pids[@]}"; do
+                    kill "$p" 2>/dev/null || true
+                done
+                wait 2>/dev/null || true
+                running=0
+                pids=()
+                break
+            fi
+        fi
+    done
+
+    rm -rf "$tmpdir"
+    return "$failed"
 }
 
 print_summary() {
@@ -711,14 +816,21 @@ run_main_flow() {
             fatal "replay file count ${#changed_scripts[@]} exceeds --max-replays ${MAX_REPLAYS}"
         fi
 
-        for script in "${changed_scripts[@]}"; do
-            if replay_one "$script" "" ""; then
-                record_summary "${REPLAY_LAST_RESULT}"
-            else
-                record_summary "${REPLAY_LAST_RESULT:-failed}"
+        if (( PARALLEL > 1 )); then
+            vlog "replaying ${#changed_scripts[@]} pipelines with parallel=${PARALLEL} fast-fail=${FAST_FAIL}"
+            if ! run_parallel_replays "${changed_scripts[@]}"; then
                 failed=1
             fi
-        done
+        else
+            for script in "${changed_scripts[@]}"; do
+                if replay_one "$script" "" ""; then
+                    record_summary "${REPLAY_LAST_RESULT}"
+                else
+                    record_summary "${REPLAY_LAST_RESULT:-failed}"
+                    failed=1
+                fi
+            done
+        fi
     else
         if replay_one "$SCRIPT_FILE" "$BUILD_URL" "$JOB_URL"; then
             record_summary "${REPLAY_LAST_RESULT}"
