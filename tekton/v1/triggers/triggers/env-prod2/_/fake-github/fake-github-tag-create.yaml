@@ -126,7 +126,7 @@ spec:
                     'memory': '32Gi'
                   },
                   'tikv': {
-                    'timeout': '2h30m',
+                    'timeout': '4h',
                     'sourceWsSize': '100Gi',
                     'cpu': '16',
                     'memory': '64Gi'
