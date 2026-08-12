@@ -113,35 +113,12 @@ pipeline {
                     // Apply compatibility hotfixes before writing ws cache so matrix pods restore cleaned files.
                     // - strip legacy bazel deps URLs
                     // - disable remote bazel cache read/write for this job
-                    sh '''#!/usr/bin/env bash
-                        set -euxo pipefail
-
-                        if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
-                          for f in WORKSPACE DEPS.bzl; do
-                            [ -f "$f" ] || continue
-                            sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                          done
-                          sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-                        else
-                          echo "No legacy bazel deps URL found in WORKSPACE/DEPS.bzl before ws cache."
-                        fi
-
-                        if [ -f .bazelrc ]; then
-                          sed -i '/^try-import \\/data\\/bazel$/d' .bazelrc
-                          grep -q '^build --noremote_accept_cached$' .bazelrc || echo 'build --noremote_accept_cached' >> .bazelrc
-                          grep -q '^build --noremote_upload_local_results$' .bazelrc || echo 'build --noremote_upload_local_results' >> .bazelrc
-                          grep -q '^test --noremote_accept_cached$' .bazelrc || echo 'test --noremote_accept_cached' >> .bazelrc
-                          grep -q '^test --noremote_upload_local_results$' .bazelrc || echo 'test --noremote_upload_local_results' >> .bazelrc
-                          grep -q '^run --noremote_accept_cached$' .bazelrc || echo 'run --noremote_accept_cached' >> .bazelrc
-                          grep -q '^run --noremote_upload_local_results$' .bazelrc || echo 'run --noremote_upload_local_results' >> .bazelrc
-                        else
-                          echo ".bazelrc not found; skip remote-cache disable patch."
-                        fi
-                    '''
-                    // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch rev-${REFS.pulls[0].sha}"
-                    }
+                    script { bazel.prepareWorkspace(remoteCache: [mode: 'disable']) }
+                    // Back up the prepared workspace for the matrix test pods (S3-backed stash).
+                    sh """
+                        touch rev-${REFS.pulls[0].sha}
+                    """
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -203,39 +180,8 @@ pipeline {
                         }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                                }
-
-                                // Matrix pods restore ws cache, so keep a fallback patch in each pod.
-                                // Re-apply only when stale URLs are still present in restored cache.
-                                // Conditional fallback: re-apply only if restored cache still contains legacy URLs.
-                                sh '''#!/usr/bin/env bash
-                                    set -euxo pipefail
-
-                                    if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
-                                      for f in WORKSPACE DEPS.bzl; do
-                                        [ -f "$f" ] || continue
-                                        sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                                      done
-                                      sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-                                    else
-                                      echo "No legacy bazel deps URL found in restored ws cache; skip fallback hotfix."
-                                    fi
-
-                                    if [ -f .bazelrc ]; then
-                                      sed -i '/^try-import \\/data\\/bazel$/d' .bazelrc
-                                      # Ensure a trailing newline before appending, avoiding line corruption.
-                                      [ -n "$(tail -c1 .bazelrc 2>/dev/null)" ] && echo "" >> .bazelrc
-                                      for cmd in build test run; do
-                                        for opt in noremote_accept_cached noremote_upload_local_results; do
-                                          grep -q "^${cmd} --${opt}$" .bazelrc || echo "${cmd} --${opt}" >> .bazelrc
-                                        done
-                                      done
-                                    else
-                                      echo ".bazelrc not found; skip remote-cache disable patch."
-                                    fi
-                                '''
+                                unstash 'ws'
+                                sh "ls -l rev-${REFS.pulls[0].sha}" // sanity: restored from stash.
 
                                 // addindextest4 is temporarily disabled in matrix; keep single execution path for now.
                                 // Re-introduce a dedicated retry block when addindextest4 is re-enabled.

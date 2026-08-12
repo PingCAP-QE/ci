@@ -52,32 +52,10 @@ pipeline {
                 }
             }
         }
-        stage('Hotfix bazel deps/cache (temporary)') {
+        stage('Prepare bazel workspace') {
             steps {
                 dir('tidb') {
-                    sh '''#!/usr/bin/env bash
-                        set -euxo pipefail
-
-                        # Clean legacy cache/mirror URLs that are unstable on GCP workers.
-                        for f in WORKSPACE DEPS.bzl; do
-                          [ -f "$f" ] || continue
-                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                        done
-
-                        # Avoid "check" targets re-writing legacy cache settings during migration replay.
-                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-
-                        # Disable remote cache usage for this migration replay path.
-                        if [ -f .bazelrc ]; then
-                          sed -i '/^try-import \\/data\\/bazel$/d' .bazelrc
-                          grep -q '^build --noremote_accept_cached$' .bazelrc || echo 'build --noremote_accept_cached' >> .bazelrc
-                          grep -q '^build --noremote_upload_local_results$' .bazelrc || echo 'build --noremote_upload_local_results' >> .bazelrc
-                          grep -q '^test --noremote_accept_cached$' .bazelrc || echo 'test --noremote_accept_cached' >> .bazelrc
-                          grep -q '^test --noremote_upload_local_results$' .bazelrc || echo 'test --noremote_upload_local_results' >> .bazelrc
-                          grep -q '^run --noremote_accept_cached$' .bazelrc || echo 'run --noremote_accept_cached' >> .bazelrc
-                          grep -q '^run --noremote_upload_local_results$' .bazelrc || echo 'run --noremote_upload_local_results' >> .bazelrc
-                        fi
-                    '''
+                    script { bazel.prepareWorkspace(remoteCache: [mode: 'disable']) }
                 }
             }
         }
