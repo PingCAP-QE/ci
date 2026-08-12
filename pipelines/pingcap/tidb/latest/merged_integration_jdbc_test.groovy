@@ -59,12 +59,11 @@ pipeline {
                             """
                         }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/
-                            touch ws-${BUILD_TAG}
-                        """
-                    }
+                    sh label: 'cache tidb-test', script: """
+                        cp -r ../tidb/bin/tidb-server bin/
+                        touch ws-${BUILD_TAG}
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -101,14 +100,13 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                    ls -alh bin/
-                                    ./bin/pd-server -V
-                                    ./bin/tikv-server -V
-                                    ./bin/tidb-server -V
-                                    """
-                                }
+                                unstash 'tidb-test'
+                                sh """
+                                ls -alh bin/
+                                ./bin/pd-server -V
+                                ./bin/tikv-server -V
+                                ./bin/tidb-server -V
+                                """
                                 container("java") {
                                     sh label: "test_params=${TEST_PARAMS} ", script: """
                                         #!/usr/bin/env bash

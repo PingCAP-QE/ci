@@ -75,9 +75,8 @@ pipeline {
                         sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh"
                     }
                     // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch rev-${REFS.pulls[0].sha}"
-                    }
+                    sh "touch rev-${REFS.pulls[0].sha}"
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -107,9 +106,8 @@ pipeline {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                                }
+                                unstash 'ws'
+                                sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: "chmod +x br/tests/*.sh && ./br/tests/run_group_br_tests.sh ${TEST_GROUP}"
                             }
                         }

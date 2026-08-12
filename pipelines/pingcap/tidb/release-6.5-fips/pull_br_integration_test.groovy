@@ -84,11 +84,10 @@ pipeline {
                         """
                     }
                     // cache workspace for matrix pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
-                            touch rev-${REFS.pulls[0].sha}
-                        """
-                    }
+                    sh """
+                        touch rev-${REFS.pulls[0].sha}
+                    """
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -118,9 +117,8 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls rev-${REFS.pulls[0].sha}"
-                                }
+                                unstash 'ws'
+                                sh "ls rev-${REFS.pulls[0].sha}"
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group_v2.sh br/tests/run_group.sh
                                     chmod +x br/tests/*.sh

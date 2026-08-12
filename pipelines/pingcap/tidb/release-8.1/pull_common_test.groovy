@@ -46,15 +46,14 @@ pipeline {
                     sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'prepare binary', script: """#!/usr/bin/env bash
-                            touch ws-${BUILD_TAG}
-                            mkdir -p bin
-                            cp ${WORKSPACE}/tidb/bin/tidb-server bin/ && chmod +x bin/tidb-server
-                            ls -alh bin/
-                            ./bin/tidb-server -V
-                        """
-                    }
+                    sh label: 'prepare binary', script: """#!/usr/bin/env bash
+                        touch ws-${BUILD_TAG}
+                        mkdir -p bin
+                        cp ${WORKSPACE}/tidb/bin/tidb-server bin/ && chmod +x bin/tidb-server
+                        ls -alh bin/
+                        ./bin/tidb-server -V
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -87,12 +86,11 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """#!/usr/bin/env bash
-                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                        cd ${TEST_DIR} && ${TEST_CMD}
-                                    """
-                                }
+                                unstash 'tidb-test'
+                                sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """#!/usr/bin/env bash
+                                    export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                    cd ${TEST_DIR} && ${TEST_CMD}
+                                """
                             }
                         }
                         post{

@@ -87,12 +87,11 @@ pipeline {
                         ls -alh ./bin
                         ./bin/tidb-server -V
                     """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") {
-                        sh label: "prepare cache binary", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare cache binary", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'lightning-tests', includes: '**/*'
                 }
             }
         }
@@ -121,12 +120,11 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-tests") {
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        chmod +x lightning/tests/*.sh
-                                        ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'lightning-tests'
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    chmod +x lightning/tests/*.sh
+                                    ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
+                                """
                             }
 
                         }

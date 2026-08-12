@@ -54,15 +54,14 @@ pipeline {
                         ls -alh ./bin/
                     """
                     // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
-                            which bin/tidb-server
-                            which bin/tikv-server
-                            which bin/pd-server
-                            mv bin/tidb-server bin/explain_test_tidb-server
-                            touch rev-${REFS.pulls[0].sha}
-                        """
-                    }
+                    sh """
+                        which bin/tidb-server
+                        which bin/tikv-server
+                        which bin/pd-server
+                        mv bin/tidb-server bin/explain_test_tidb-server
+                        touch rev-${REFS.pulls[0].sha}
+                    """
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -100,9 +99,8 @@ pipeline {
                         options { timeout(time: 30, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                                }
+                                unstash 'ws'
+                                sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
 
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh """

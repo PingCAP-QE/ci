@@ -75,9 +75,8 @@ pipeline {
                         }
                     }
                     // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch rev-${REFS.pulls[0].sha}"
-                    }
+                    sh "touch rev-${REFS.pulls[0].sha}"
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -139,9 +138,8 @@ pipeline {
                         }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                                }
+                                unstash 'ws'
+                                sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
 
                                 sh '''
                                     mkdir -p /home/jenkins/.tidb/tmp

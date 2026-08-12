@@ -66,12 +66,11 @@ pipeline {
                             ./bin/tidb-server -V
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'br-lightning', includes: '**/*'
                 }
             }
         }
@@ -101,16 +100,15 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-lightning") {
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """
-                                        #!/usr/bin/env bash
-                                        cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group_v2.sh br/tests/run_group.sh
-                                        chmod +x br/tests/*.sh
-                                        ln -s ${WORKSPACE}/tidb/bin ${WORKSPACE}/tidb/br/bin
-                                        cd br/
-                                        ./tests/run_group.sh ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'br-lightning'
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """
+                                    #!/usr/bin/env bash
+                                    cp ${WORKSPACE}/scripts/pingcap/tidb/br-lightning_run_group_v2.sh br/tests/run_group.sh
+                                    chmod +x br/tests/*.sh
+                                    ln -s ${WORKSPACE}/tidb/bin ${WORKSPACE}/tidb/br/bin
+                                    cd br/
+                                    ./tests/run_group.sh ${TEST_GROUP}
+                                """
                             }
                         }
                         post{

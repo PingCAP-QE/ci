@@ -71,9 +71,8 @@ pipeline {
                         '''
                     }
                     // cache workspace for matrix pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch rev-${REFS.pulls[0].sha}"
-                    }
+                    sh "touch rev-${REFS.pulls[0].sha}"
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -103,9 +102,8 @@ pipeline {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls rev-${REFS.pulls[0].sha}"
-                                }
+                                unstash 'ws'
+                                sh "ls rev-${REFS.pulls[0].sha}"
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     chmod +x lightning/tests/*.sh
                                     if [ "${TEST_GROUP}" = "G00" ]; then

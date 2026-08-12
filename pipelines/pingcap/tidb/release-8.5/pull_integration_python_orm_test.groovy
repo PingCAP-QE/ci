@@ -62,17 +62,16 @@ pipeline {
                 }
                 container("golang") {
                     dir('tidb-test') {
-                        cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                            sh label: "prepare", script: """
-                                touch ws-${BUILD_TAG}
-                                mkdir -p bin
-                                cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                ls -alh bin/
-                                ./bin/tidb-server -V
-                                ./bin/tikv-server -V
-                                ./bin/pd-server -V
-                            """
-                        }
+                        sh label: "prepare", script: """
+                            touch ws-${BUILD_TAG}
+                            mkdir -p bin
+                            cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                            ls -alh bin/
+                            ./bin/tidb-server -V
+                            ./bin/tikv-server -V
+                            ./bin/pd-server -V
+                        """
+                        stash name: 'tidb-test', includes: '**/*'
                     }
                 }
             }
@@ -107,25 +106,24 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh label: 'print version', script: """
-                                        ls -alh bin/
-                                        ./bin/tidb-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/pd-server -V
-                                    """
-                                    sh label: "test_params=${TEST_PARAMS} ", script: """#!/usr/bin/env bash
-                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                        export TIDB_TEST_STORE_NAME="\$TEST_STORE"
-                                        set -- \${TEST_PARAMS}
-                                        TEST_DIR=\$1
-                                        TEST_SCRIPT=\$2
-                                        echo "TEST_DIR=\${TEST_DIR}"
-                                        echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                unstash 'tidb-test'
+                                sh label: 'print version', script: """
+                                    ls -alh bin/
+                                    ./bin/tidb-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/pd-server -V
+                                """
+                                sh label: "test_params=${TEST_PARAMS} ", script: """#!/usr/bin/env bash
+                                    export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                    export TIDB_TEST_STORE_NAME="\$TEST_STORE"
+                                    set -- \${TEST_PARAMS}
+                                    TEST_DIR=\$1
+                                    TEST_SCRIPT=\$2
+                                    echo "TEST_DIR=\${TEST_DIR}"
+                                    echo "TEST_SCRIPT=\${TEST_SCRIPT}"
 
-                                        cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                    """
-                                }
+                                    cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                """
                             }
                         }
                         post{

@@ -58,9 +58,8 @@ pipeline {
                 }
                 dir('tidb-test') {
                     sh "git branch && git status"
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh 'touch ws-${BUILD_TAG}'
-                    }
+                    sh 'touch ws-${BUILD_TAG}'
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -94,13 +93,12 @@ pipeline {
                                 }
                             }
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh 'ls mysql_test' // if cache missed, fail it(should not miss).
-                                    dir('mysql_test') {
-                                        sh label: "part ${PART}", script: """#!/usr/bin/env bash
-                                            TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh 1 ${PART}
-                                        """
-                                    }
+                                unstash 'tidb-test'
+                                sh 'ls mysql_test' // if cache missed, fail it(should not miss).
+                                dir('mysql_test') {
+                                    sh label: "part ${PART}", script: """#!/usr/bin/env bash
+                                        TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server ./test.sh 1 ${PART}
+                                    """
                                 }
                             }
                         }

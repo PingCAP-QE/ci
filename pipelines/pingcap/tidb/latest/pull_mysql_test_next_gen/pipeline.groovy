@@ -70,9 +70,8 @@ pipeline {
                         }
                     }
                     // Cache for next test stages.
-                    cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: 'touch ws-${BUILD_TAG}'
-                    }
+                    sh label: 'cache tidb-test', script: 'touch ws-${BUILD_TAG}'
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -107,10 +106,9 @@ pipeline {
                         steps {
                             dir('tidb-test') {
                                 // restore the cache saved by previous stage.
-                                cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    // if cache missed, it will fail(should not miss).
-                                    sh 'ls mysql_test && chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
-                                }
+                                unstash 'tidb-test'
+                                // if cache missed, it will fail(should not miss).
+                                sh 'ls mysql_test && chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
 
                                 // run the test.
                                 // TODO: use a script for next-gen, consider merging the script.
