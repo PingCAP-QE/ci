@@ -36,26 +36,17 @@ pipeline {
                 }
             }
         }
-        stage('Hotfix bazel deps URL (temporary)') {
+        stage('Prepare bazel workspace') {
             steps {
                 dir(REFS.repo) {
+                    script { bazel.prepareWorkspace() }
+
                     sh '''#!/usr/bin/env bash
                     set -euxo pipefail
-                    for f in WORKSPACE DEPS.bzl; do
-                      [ -f "$f" ] || continue
-                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                    done
-
-                    # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
-                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-
                     # Replay-only timeout hotfix: raise ci shard timeout to avoid 150s timeout flakes.
                     if [ -f .bazelrc ]; then
                       echo 'test:ci --test_timeout=600,900,1800,3600' >> .bazelrc
                     fi
-
-                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
-                    grep -n '^check:' Makefile | head -n 3 || true
                     grep -n 'test:ci --test_timeout=' .bazelrc | tail -n 3 || true
                     '''
                 }
