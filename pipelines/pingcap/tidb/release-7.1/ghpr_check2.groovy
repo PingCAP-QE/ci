@@ -111,7 +111,7 @@ pipeline {
                                 unstash 'ws'
                                 sh "ls -l rev-${REFS.pulls[0].sha}" // sanity: restored from stash.
 
-                                sh 'chmod +x ../scripts/pingcap/tidb/*.sh' 
+                                sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
