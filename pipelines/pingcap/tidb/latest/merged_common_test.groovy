@@ -61,12 +61,11 @@ pipeline {
                             """
                         }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/
-                            touch ws-${BUILD_TAG}
-                        """
-                    }
+                    sh label: 'cache tidb-test', script: """
+                        cp -r ../tidb/bin/tidb-server bin/
+                        touch ws-${BUILD_TAG}
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -99,14 +98,13 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    container("java") {
-                                        sh 'chmod +x bin/* && ls -alh bin/'
-                                        sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """#!/usr/bin/env bash
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                            cd ${TEST_DIR} && ${TEST_CMD}
-                                        """
-                                    }
+                                unstash 'tidb-test'
+                                container("java") {
+                                    sh 'chmod +x bin/* && ls -alh bin/'
+                                    sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """#!/usr/bin/env bash
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                        cd ${TEST_DIR} && ${TEST_CMD}
+                                    """
                                 }
                             }
                         }

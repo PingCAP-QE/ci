@@ -54,14 +54,13 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'prepare tidb-test', script: """
-                            touch ws-${BUILD_TAG}
-                            cd sqllogic_test && ./build.sh
-                            cp ${WORKSPACE}/tidb/bin/tidb-server ./
-                            chmod +x tidb-server && ./tidb-server -V
-                        """
-                    }
+                    sh label: 'prepare tidb-test', script: """
+                        touch ws-${BUILD_TAG}
+                        cd sqllogic_test && ./build.sh
+                        cp ${WORKSPACE}/tidb/bin/tidb-server ./
+                        chmod +x tidb-server && ./tidb-server -V
+                    """
+                    stash name: 'tidb-test', includes: 'sqllogic_test/**'
                 }
             }
         }
@@ -98,29 +97,28 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh label: "print version", script: """
-                                        ls -alh sqllogic_test/
-                                        ./sqllogic_test/tidb-server -V
-                                    """
-                                    container("golang") {
-                                        sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
-                                            cd sqllogic_test/
-                                            env
-                                            ulimit -n
-                                            sed -i '3i\\set -x' test.sh
+                                unstash 'tidb-test'
+                                sh label: "print version", script: """
+                                    ls -alh sqllogic_test/
+                                    ./sqllogic_test/tidb-server -V
+                                """
+                                container("golang") {
+                                    sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
+                                        cd sqllogic_test/
+                                        env
+                                        ulimit -n
+                                        sed -i '3i\\set -x' test.sh
 
-                                            path_array=(${TEST_PATH_STRING})
-                                            for path in \${path_array[@]}; do
-                                                echo "test path: \${path}"
-                                                export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
-                                                export TIDB_PARALLELISM=8
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
-                                                export CACHE_ENABLED="${CACHE_ENABLED}"
-                                                ./test.sh
-                                            done
-                                        """
-                                    }
+                                        path_array=(${TEST_PATH_STRING})
+                                        for path in \${path_array[@]}; do
+                                            echo "test path: \${path}"
+                                            export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
+                                            export TIDB_PARALLELISM=8
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
+                                            export CACHE_ENABLED="${CACHE_ENABLED}"
+                                            ./test.sh
+                                        done
+                                    """
                                 }
                             }
                         }
@@ -160,29 +158,28 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh label: "print version", script: """
-                                        ls -alh sqllogic_test/
-                                        ./sqllogic_test/tidb-server -V
-                                    """
-                                    container("golang") {
-                                        sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
-                                            cd sqllogic_test/
-                                            env
-                                            ulimit -n
-                                            sed -i '3i\\set -x' test.sh
+                                unstash 'tidb-test'
+                                sh label: "print version", script: """
+                                    ls -alh sqllogic_test/
+                                    ./sqllogic_test/tidb-server -V
+                                """
+                                container("golang") {
+                                    sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
+                                        cd sqllogic_test/
+                                        env
+                                        ulimit -n
+                                        sed -i '3i\\set -x' test.sh
 
-                                            path_array=(${TEST_PATH_STRING})
-                                            for path in \${path_array[@]}; do
-                                                echo "test path: \${path}"
-                                                export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
-                                                export TIDB_PARALLELISM=8
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
-                                                export CACHE_ENABLED="${CACHE_ENABLED}"
-                                                ./test.sh
-                                            done
-                                        """
-                                    }
+                                        path_array=(${TEST_PATH_STRING})
+                                        for path in \${path_array[@]}; do
+                                            echo "test path: \${path}"
+                                            export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
+                                            export TIDB_PARALLELISM=8
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
+                                            export CACHE_ENABLED="${CACHE_ENABLED}"
+                                            ./test.sh
+                                        done
+                                    """
                                 }
                             }
                         }

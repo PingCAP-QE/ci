@@ -77,13 +77,12 @@ pipeline {
                             """
                         }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/
-                            cp -r ../tidb/bin/ddltest bin/
-                            touch ws-${BUILD_TAG}
-                        """
-                    }
+                    sh label: 'cache tidb-test', script: """
+                        cp -r ../tidb/bin/tidb-server bin/
+                        cp -r ../tidb/bin/ddltest bin/
+                        touch ws-${BUILD_TAG}
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -117,26 +116,25 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                        ls -alh bin/
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tidb-server -V
-                                    """
-                                    container("golang") {
-                                        sh label: "ddl_test ${DDL_TEST}", script: """#!/usr/bin/env bash
-                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                unstash 'tidb-test'
+                                sh """
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
+                                """
+                                container("golang") {
+                                    sh label: "ddl_test ${DDL_TEST}", script: """#!/usr/bin/env bash
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
 
-                                            cp bin/tidb-server bin/ddltest_tidb-server && ls -alh bin/
-                                            export log_level=debug
-                                            export PATH=`pwd`/bin:\$PATH
-                                            export DDLTEST_PATH="${WORKSPACE}/tidb-test/bin/ddltest"
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/ddltest_tidb-server"
-                                            cd ddl_test/ && pwd && ./test.sh -test.run="${DDL_TEST}"
-                                        """
-                                    }
+                                        cp bin/tidb-server bin/ddltest_tidb-server && ls -alh bin/
+                                        export log_level=debug
+                                        export PATH=`pwd`/bin:\$PATH
+                                        export DDLTEST_PATH="${WORKSPACE}/tidb-test/bin/ddltest"
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/ddltest_tidb-server"
+                                        cd ddl_test/ && pwd && ./test.sh -test.run="${DDL_TEST}"
+                                    """
                                 }
                             }
                         }

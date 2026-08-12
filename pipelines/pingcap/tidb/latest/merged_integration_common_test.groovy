@@ -62,12 +62,11 @@ pipeline {
                             """
                         }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/
-                            touch ws-${BUILD_TAG}
-                        """
-                    }
+                    sh label: 'cache tidb-test', script: """
+                        cp -r ../tidb/bin/tidb-server bin/
+                        touch ws-${BUILD_TAG}
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -99,29 +98,28 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                    ls -alh bin/
-                                    ./bin/pd-server -V
-                                    ./bin/tikv-server -V
-                                    ./bin/tidb-server -V
+                                unstash 'tidb-test'
+                                sh """
+                                ls -alh bin/
+                                ./bin/pd-server -V
+                                ./bin/tikv-server -V
+                                ./bin/tidb-server -V
+                                """
+                                container("golang") {
+                                    sh label: "test_store=${TEST_STORE} test_dir=${TEST_DIR}", script: """#!/usr/bin/env bash
+                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIKV_PATH="127.0.0.1:2379"
+                                            export TIDB_TEST_STORE_NAME="tikv"
+                                            cd ${TEST_DIR} && ./test.sh
+                                        else
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIDB_TEST_STORE_NAME="unistore"
+                                            cd ${TEST_DIR} && ./test.sh
+                                        fi
                                     """
-                                    container("golang") {
-                                        sh label: "test_store=${TEST_STORE} test_dir=${TEST_DIR}", script: """#!/usr/bin/env bash
-                                            if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIKV_PATH="127.0.0.1:2379"
-                                                export TIDB_TEST_STORE_NAME="tikv"
-                                                cd ${TEST_DIR} && ./test.sh
-                                            else
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIDB_TEST_STORE_NAME="unistore"
-                                                cd ${TEST_DIR} && ./test.sh
-                                            fi
-                                        """
-                                    }
                                 }
                             }
                         }

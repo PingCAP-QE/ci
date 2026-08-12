@@ -94,12 +94,11 @@ pipeline {
                         chmod +x br/tests/*.sh
                         ./br/tests/run_group_br_tests.sh others
                     """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh label: "prepare cache", script: """
-                            touch ${CACHE_MARKER}
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare cache", script: """
+                        touch ${CACHE_MARKER}
+                        ls -alh ./bin
+                    """
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -129,17 +128,16 @@ pipeline {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls ${CACHE_MARKER}"
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        if [ "${TEST_GROUP}" = "G07" ] || [ "${TEST_GROUP}" = "G08" ]; then
-                                            echo "Temporary hotfix: skip ${TEST_GROUP} due flaky/long-running BR cases during migration validation"
-                                            exit 0
-                                        fi
-                                        chmod +x br/tests/*.sh
-                                        ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'ws'
+                                sh "ls ${CACHE_MARKER}"
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    if [ "${TEST_GROUP}" = "G07" ] || [ "${TEST_GROUP}" = "G08" ]; then
+                                        echo "Temporary hotfix: skip ${TEST_GROUP} due flaky/long-running BR cases during migration validation"
+                                        exit 0
+                                    fi
+                                    chmod +x br/tests/*.sh
+                                    ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
+                                """
                             }
 
                         }

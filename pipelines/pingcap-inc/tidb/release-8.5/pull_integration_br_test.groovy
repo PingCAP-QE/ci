@@ -87,9 +87,8 @@ pipeline {
                     }
 
                     // cache workspace for matrix pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch rev-${REFS.pulls[0].sha}"
-                    }
+                    sh "touch rev-${REFS.pulls[0].sha}"
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -120,9 +119,8 @@ pipeline {
                         options { timeout(time: 90, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls rev-${REFS.pulls[0].sha}"
-                                }
+                                unstash 'ws'
+                                sh "ls rev-${REFS.pulls[0].sha}"
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
                                     if [ "${TEST_GROUP}" = "G08" ]; then
                                         echo "Applying temporary G08 hotfix: relax key_types count check to current observed value"
