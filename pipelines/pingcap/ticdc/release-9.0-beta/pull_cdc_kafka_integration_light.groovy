@@ -83,12 +83,11 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'ticdc', includes: '**/*'
                 }
             }
         }
@@ -119,23 +118,22 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('ticdc') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    container("kafka") {
-                                        timeout(time: 6, unit: 'MINUTES') {
-                                            sh label: "Waiting for kafka ready", script: """
-                                                echo "Waiting for zookeeper to be ready..."
-                                                while ! nc -z localhost 2181; do sleep 10; done
-                                                echo "Waiting for kafka to be ready..."
-                                                while ! nc -z localhost 9092; do sleep 10; done
-                                                echo "Waiting for kafka-broker to be ready..."
-                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                            """
-                                        }
+                                unstash 'ticdc'
+                                container("kafka") {
+                                    timeout(time: 6, unit: 'MINUTES') {
+                                        sh label: "Waiting for kafka ready", script: """
+                                            echo "Waiting for zookeeper to be ready..."
+                                            while ! nc -z localhost 2181; do sleep 10; done
+                                            echo "Waiting for kafka to be ready..."
+                                            while ! nc -z localhost 9092; do sleep 10; done
+                                            echo "Waiting for kafka-broker to be ready..."
+                                            while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                        """
                                     }
-                                    sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_light_it_in_ci.sh kafka ${TEST_GROUP}
-                                    """
                                 }
+                                sh label: "${TEST_GROUP}", script: """
+                                    ./tests/integration_tests/run_light_it_in_ci.sh kafka ${TEST_GROUP}
+                                """
                             }
                         }
                         post {

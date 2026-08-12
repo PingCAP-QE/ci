@@ -65,12 +65,11 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'tiflow-cdc', includes: '**/*'
                 }
             }
         }
@@ -101,23 +100,22 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    // TODO: currently we encounter some issue when using pulsar container to run shell script
-                                    // so we comment out this part now.
-                                    // container("pulsar") {
-                                    //     timeout(time: 6, unit: 'MINUTES') {
-                                    //         sh label: "Waiting for pulsar ready", script: """
-                                    //             echo "Waiting for pulsar to be ready..."
-                                    //             while ! nc -z localhost 6650; do sleep 10; done
-                                    //         """
-                                    //     }
-                                    // }
-                                    sh label: "${TEST_GROUP}", script: """
-                                        rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh pulsar ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'tiflow-cdc'
+                                // TODO: currently we encounter some issue when using pulsar container to run shell script
+                                // so we comment out this part now.
+                                // container("pulsar") {
+                                //     timeout(time: 6, unit: 'MINUTES') {
+                                //         sh label: "Waiting for pulsar ready", script: """
+                                //             echo "Waiting for pulsar to be ready..."
+                                //             while ! nc -z localhost 6650; do sleep 10; done
+                                //         """
+                                //     }
+                                // }
+                                sh label: "${TEST_GROUP}", script: """
+                                    rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
+                                    chmod +x ./tests/integration_tests/run_group.sh
+                                    ./tests/integration_tests/run_group.sh pulsar ${TEST_GROUP}
+                                """
                             }
                         }
                         post {

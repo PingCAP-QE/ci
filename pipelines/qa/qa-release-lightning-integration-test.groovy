@@ -75,11 +75,10 @@ pipeline {
                             ./tiflash --version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
-                        sh label: "prepare", script: """
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        ls -alh ./bin
+                    """
+                    stash name: 'lightning-test', includes: '**/*'
                 }
             }
         }
@@ -107,12 +106,11 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        chmod +x lightning/tests/*.sh
-                                        ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'lightning-test'
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    chmod +x lightning/tests/*.sh
+                                    ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
+                                """
                             }
                         }
                         post{

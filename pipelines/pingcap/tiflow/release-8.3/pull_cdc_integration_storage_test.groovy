@@ -66,12 +66,11 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'tiflow-cdc', includes: '**/*'
                 }
             }
         }
@@ -106,13 +105,12 @@ pipeline {
                         }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ./tests/integration_tests/run_group.sh
-                                        ./tests/integration_tests/run_group.sh storage ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'tiflow-cdc'
+                                sh label: "${TEST_GROUP}", script: """
+                                    rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
+                                    chmod +x ./tests/integration_tests/run_group.sh
+                                    ./tests/integration_tests/run_group.sh storage ${TEST_GROUP}
+                                """
                             }
                         }
                         post {

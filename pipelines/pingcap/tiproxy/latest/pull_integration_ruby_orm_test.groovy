@@ -55,27 +55,26 @@ pipeline {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch ws-${BUILD_TAG}"
-                        dir("bin") {
-                            container("utils") {
-                                retry(2) {
-                                    sh label: 'download binary', script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
-                                        --tidb=master --pd=master --tikv=master
-                                    """
-                                }
+                    sh "touch ws-${BUILD_TAG}"
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: 'download binary', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                    --tidb=master --pd=master --tikv=master
+                                """
                             }
                         }
-                        sh label: 'prepare thirdparty binary', script: """
-                        cp ../tiproxy/bin/tiproxy ./bin/
-                        ls -alh bin/
-                        ./bin/tidb-server -V
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tiproxy --version
-                        """
                     }
+                    sh label: 'prepare thirdparty binary', script: """
+                    cp ../tiproxy/bin/tiproxy ./bin/
+                    ls -alh bin/
+                    ./bin/tidb-server -V
+                    ./bin/pd-server -V
+                    ./bin/tikv-server -V
+                    ./bin/tiproxy --version
+                    """
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -104,32 +103,31 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    container("ruby") {
-                                        sh label: "prepare ruby test deps", script: """
-                                            #!/usr/bin/env bash
-                                            set -euxo pipefail
-                                            if ! command -v mysql >/dev/null 2>&1 || ! dpkg-query -W default-libmysqlclient-dev >/dev/null 2>&1 || ! dpkg-query -W libsqlite3-dev >/dev/null 2>&1; then
-                                                apt-get update
-                                                DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
-                                                    default-mysql-client \\
-                                                    build-essential \\
-                                                    default-libmysqlclient-dev \\
-                                                    libsqlite3-dev \\
-                                                    pkg-config
-                                                rm -rf /var/lib/apt/lists/*
-                                            fi
-                                            if ! gem list -i bundler -v 2.3.17 >/dev/null 2>&1; then
-                                                gem install bundler -v 2.3.17
-                                            fi
-                                            command -v mysql
-                                            bundle -v
-                                        """
-                                        sh label: "test_cmds=${TEST_CMDS} ", script: """
-                                            #!/usr/bin/env bash
-                                            ${TEST_CMDS}
-                                        """
-                                    }
+                                unstash 'ws'
+                                container("ruby") {
+                                    sh label: "prepare ruby test deps", script: """
+                                        #!/usr/bin/env bash
+                                        set -euxo pipefail
+                                        if ! command -v mysql >/dev/null 2>&1 || ! dpkg-query -W default-libmysqlclient-dev >/dev/null 2>&1 || ! dpkg-query -W libsqlite3-dev >/dev/null 2>&1; then
+                                            apt-get update
+                                            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
+                                                default-mysql-client \\
+                                                build-essential \\
+                                                default-libmysqlclient-dev \\
+                                                libsqlite3-dev \\
+                                                pkg-config
+                                            rm -rf /var/lib/apt/lists/*
+                                        fi
+                                        if ! gem list -i bundler -v 2.3.17 >/dev/null 2>&1; then
+                                            gem install bundler -v 2.3.17
+                                        fi
+                                        command -v mysql
+                                        bundle -v
+                                    """
+                                    sh label: "test_cmds=${TEST_CMDS} ", script: """
+                                        #!/usr/bin/env bash
+                                        ${TEST_CMDS}
+                                    """
                                 }
                             }
                         }

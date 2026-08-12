@@ -48,14 +48,12 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                        sh label: 'tidb-server', script: 'make'
-                    }
+                    sh label: 'tidb-server', script: 'make'
+                    stash name: 'tidb-server', includes: 'bin/**'
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
+                    sh "touch ws-${BUILD_TAG}"
+                    stash name: 'mysql-test', includes: 'mysql_test/**'
                 }
             }
         }
@@ -84,18 +82,16 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                                }
+                                unstash 'tidb-server'
+                                sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                             }
                             dir('tidb-test/mysql_test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                                    sh label: "part ${PART}", script: """
-                                    export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
-                                    export TIDB_TEST_STORE_NAME="unistore"
-                                    ./test.sh -backlist=1 -part=${PART}
-                                    """
-                                }
+                                unstash 'mysql-test'
+                                sh label: "part ${PART}", script: """
+                                export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
+                                export TIDB_TEST_STORE_NAME="unistore"
+                                ./test.sh -backlist=1 -part=${PART}
+                                """
                             }
                         }
                         post{
