@@ -37,25 +37,24 @@ pipeline {
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiproxy-mysql-test") {
-                        retry(2) {
-                            sh "touch ws-${BUILD_TAG}"
-                            container("utils") {
-                                dir('bin') {
-                                    sh label: 'download thirdparty binary', script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tidb=master --pd=master --tikv=master --tiproxy=main
-                                    """
-                                }
+                    retry(2) {
+                        sh "touch ws-${BUILD_TAG}"
+                        container("utils") {
+                            dir('bin') {
+                                sh label: 'download thirdparty binary', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tidb=master --pd=master --tikv=master --tiproxy=main
+                                """
                             }
-                            sh label: 'prepare tiproxy binary', script: """
-                            ls -alh bin/
-                            ./bin/tidb-server -V
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiproxy --version
-                            """
                         }
+                        sh label: 'prepare tiproxy binary', script: """
+                        ls -alh bin/
+                        ./bin/tidb-server -V
+                        ./bin/pd-server -V
+                        ./bin/tikv-server -V
+                        ./bin/tiproxy --version
+                        """
                     }
+                    stash name: 'tiproxy-mysql-test', includes: '**/*'
                     stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }

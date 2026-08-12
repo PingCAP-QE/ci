@@ -68,12 +68,11 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'tiflow-cdc', includes: '**/*'
                 }
             }
         }
@@ -108,27 +107,26 @@ pipeline {
                         }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    container("kafka") {
-                                        timeout(time: 6, unit: 'MINUTES') {
-                                            sh label: "Waiting for kafka ready", script: """
-                                                echo "Waiting for zookeeper to be ready..."
-                                                while ! nc -z localhost 2181; do sleep 10; done
-                                                echo "Waiting for kafka to be ready..."
-                                                while ! nc -z localhost 9092; do sleep 10; done
-                                                echo "Waiting for kafka-broker to be ready..."
-                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                            """
-                                        }
+                                unstash 'tiflow-cdc'
+                                container("kafka") {
+                                    timeout(time: 6, unit: 'MINUTES') {
+                                        sh label: "Waiting for kafka ready", script: """
+                                            echo "Waiting for zookeeper to be ready..."
+                                            while ! nc -z localhost 2181; do sleep 10; done
+                                            echo "Waiting for kafka to be ready..."
+                                            while ! nc -z localhost 9092; do sleep 10; done
+                                            echo "Waiting for kafka-broker to be ready..."
+                                            while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                        """
                                     }
-                                    sh label: "${TEST_GROUP}", script: """
-                                        rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
-                                        chmod +x ../scripts/pingcap/tiflow/release-6.5-fips/cdc_run_group.sh
-                                        cp ../scripts/pingcap/tiflow/release-6.5-fips/cdc_run_group.sh tests/integration_tests/
-                                        ln -s ${WORKSPACE}/tiflow/bin ${WORKSPACE}/tiflow/tests/bin
-                                        ./tests/integration_tests/cdc_run_group.sh kafka ${TEST_GROUP}
-                                    """
                                 }
+                                sh label: "${TEST_GROUP}", script: """
+                                    rm -rf /tmp/tidb_cdc_test && mkdir -p /tmp/tidb_cdc_test
+                                    chmod +x ../scripts/pingcap/tiflow/release-6.5-fips/cdc_run_group.sh
+                                    cp ../scripts/pingcap/tiflow/release-6.5-fips/cdc_run_group.sh tests/integration_tests/
+                                    ln -s ${WORKSPACE}/tiflow/bin ${WORKSPACE}/tiflow/tests/bin
+                                    ./tests/integration_tests/cdc_run_group.sh kafka ${TEST_GROUP}
+                                """
                             }
                         }
                         post {

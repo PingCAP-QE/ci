@@ -50,23 +50,22 @@ pipeline {
                     }
                 }
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                        sh label: 'tidb-server', script: 'make'
-                        container("utils") {
-                            dir("bin") {
-                                retry(3) {
-                                    sh label: 'download tidb components', script: """
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                    """
-                                }
+                    sh label: 'tidb-server', script: 'make'
+                    container("utils") {
+                        dir("bin") {
+                            retry(3) {
+                                sh label: 'download tidb components', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                """
                             }
                         }
-                        sh label: "check binary", script: """
-                                ls bin/tidb-server && ./bin/tidb-server -V
-                                ls bin/pd-server && ./bin/pd-server -V
-                                ls bin/tikv-server && ./bin/tikv-server -V
-                            """
                     }
+                    sh label: "check binary", script: """
+                            ls bin/tidb-server && ./bin/tidb-server -V
+                            ls bin/pd-server && ./bin/pd-server -V
+                            ls bin/tikv-server && ./bin/tikv-server -V
+                        """
+                    stash name: 'dependencies', includes: 'bin/**'
                     stash includes: 'bin/**', name: TIDB_BIN_STASH_NAME
                 }
                 dir('tidb-test') {

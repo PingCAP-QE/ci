@@ -48,10 +48,9 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                        // FIXME: https://github.com/PingCAP-QE/tidb-test/issues/1987
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
-                    }
+                    // FIXME: https://github.com/PingCAP-QE/tidb-test/issues/1987
+                    sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
+                    stash name: 'tidb-server', includes: 'bin/**'
                 }
                 dir('tidb-test') {
                     cache(path: "./mysql_test", includes: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {
@@ -89,9 +88,8 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                                }
+                                unstash 'tidb-server'
+                                sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                             }
                             dir('tidb-test/mysql_test') {
                                 cache(path: "./", includes: '**/*', key: "ws/tidb-test/mysql-test/rev-${REFS.pulls[0].sha}") {

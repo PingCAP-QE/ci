@@ -59,32 +59,31 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('migration') {
-                    cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
-                        container("utils") {
-                            sh label: 'download test binaries via OCI', script: """
-                                mkdir -p ./cdc/scripts/bin
-                                cd ./cdc/scripts/bin
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
-                                    --tidb=${OCI_TAG_TIDB} \
-                                    --tikv=${OCI_TAG_TIKV} \
-                                    --pd=${OCI_TAG_PD} \
-                                    --pd-ctl=${OCI_TAG_PD} \
-                                    --etcdctl=${OCI_TAG_ETCD} \
-                                    --ycsb=${OCI_TAG_YCSB}
-                                chmod +x tidb-server tikv-server pd-server pd-ctl etcdctl go-ycsb
-                                cd ../../
-                                touch prepare_test_binaries
-                                ls -alh
-                            """
-                        }
-                        container("golang") {
-                            sh label: 'integration test prepare', script: """#!/usr/bin/env bash
-                            cd cdc/
-                            make check_third_party_binary
-                            make integration_test_build
-                            """
-                        }
+                    container("utils") {
+                        sh label: 'download test binaries via OCI', script: """
+                            mkdir -p ./cdc/scripts/bin
+                            cd ./cdc/scripts/bin
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                --tidb=${OCI_TAG_TIDB} \
+                                --tikv=${OCI_TAG_TIKV} \
+                                --pd=${OCI_TAG_PD} \
+                                --pd-ctl=${OCI_TAG_PD} \
+                                --etcdctl=${OCI_TAG_ETCD} \
+                                --ycsb=${OCI_TAG_YCSB}
+                            chmod +x tidb-server tikv-server pd-server pd-ctl etcdctl go-ycsb
+                            cd ../../
+                            touch prepare_test_binaries
+                            ls -alh
+                        """
                     }
+                    container("golang") {
+                        sh label: 'integration test prepare', script: """#!/usr/bin/env bash
+                        cd cdc/
+                        make check_third_party_binary
+                        make integration_test_build
+                        """
+                    }
+                    stash name: 'tikvcdc', includes: 'cdc/**'
                 }
             }
         }
@@ -114,13 +113,12 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
-                                    sh "printenv"
-                                    sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
-                                        cd cdc/
-                                        ./tests/integration_tests/run_group.sh tikv ${TEST_GROUP}
-                                    """
-                               }
+                               unstash 'tikvcdc'
+                                sh "printenv"
+                                sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
+                                    cd cdc/
+                                    ./tests/integration_tests/run_group.sh tikv ${TEST_GROUP}
+                                """
                             }
                         }
                         post {

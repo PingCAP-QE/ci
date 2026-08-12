@@ -75,9 +75,8 @@ pipeline {
                             }
                         }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                        sh label: "prepare", script: "ls -alh ./bin"
-                    }
+                    sh label: "prepare", script: "ls -alh ./bin"
+                    stash name: 'tiflow-cdc', includes: '**/*'
                 }
             }
         }
@@ -108,17 +107,16 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-cdc") {
-                                    sh """
-                                        ln -sf /usr/bin/jq ./bin/jq
-                                        make check_third_party_binary
-                                        ls -alh ./bin
-                                        ./bin/tidb-server -V
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tiflash --version
-                                    """
-                                }
+                                unstash 'tiflow-cdc'
+                                sh """
+                                    ln -sf /usr/bin/jq ./bin/jq
+                                    make check_third_party_binary
+                                    ls -alh ./bin
+                                    ./bin/tidb-server -V
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tiflash --version
+                                """
                                 container("kafka") {
                                     timeout(time: 6, unit: 'MINUTES') {
                                         sh label: "Waiting for kafka ready", script: """

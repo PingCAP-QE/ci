@@ -55,27 +55,26 @@ pipeline {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch ws-${BUILD_TAG}"
-                        dir("bin") {
-                            container("utils") {
-                                retry(2) {
-                                    sh label: 'download binary', script: """
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
-                                        --tidb=master --pd=master --tikv=master
-                                    """
-                                }
+                    sh "touch ws-${BUILD_TAG}"
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: 'download binary', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                    --tidb=master --pd=master --tikv=master
+                                """
                             }
                         }
-                        sh label: 'prepare thirdparty binary', script: """
-                        cp ../tiproxy/bin/tiproxy ./bin/
-                        ls -alh bin/
-                        ./bin/tidb-server -V
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tiproxy --version
-                        """
                     }
+                    sh label: 'prepare thirdparty binary', script: """
+                    cp ../tiproxy/bin/tiproxy ./bin/
+                    ls -alh bin/
+                    ./bin/tidb-server -V
+                    ./bin/pd-server -V
+                    ./bin/tikv-server -V
+                    ./bin/tiproxy --version
+                    """
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -106,13 +105,12 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    container("java") {
-                                        sh label: "test_cmds=${TEST_CMDS} ", script: """
-                                            #!/usr/bin/env bash
-                                            ${TEST_CMDS}
-                                        """
-                                    }
+                                unstash 'ws'
+                                container("java") {
+                                    sh label: "test_cmds=${TEST_CMDS} ", script: """
+                                        #!/usr/bin/env bash
+                                        ${TEST_CMDS}
+                                    """
                                 }
                             }
                         }

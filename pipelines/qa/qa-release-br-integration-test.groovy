@@ -80,11 +80,10 @@ pipeline {
                             ./tiflash --version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
-                        sh label: "prepare", script: """
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        ls -alh ./bin
+                    """
+                    stash name: 'br-tests', includes: '**/*'
                 }
             }
         }
@@ -112,12 +111,11 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/br-tests") {
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        chmod +x br/tests/*.sh
-                                        ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'br-tests'
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    chmod +x br/tests/*.sh
+                                    ./br/tests/run_group_br_tests.sh ${TEST_GROUP}
+                                """
                             }
                         }
                         post{

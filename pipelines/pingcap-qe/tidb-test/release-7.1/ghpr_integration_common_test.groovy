@@ -54,24 +54,23 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                        sh label: 'tidb-server', script: 'make'
-                        container("utils") {
-                            dir("bin") {
-                                retry(3) {
-                                    sh label: 'download tidb components', script: """
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                    """
-                                }
+                    sh label: 'tidb-server', script: 'make'
+                    container("utils") {
+                        dir("bin") {
+                            retry(3) {
+                                sh label: 'download tidb components', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                """
                             }
                         }
-                        sh label: "check binary", script: """
-                                pwd && ls -alh
-                                ls bin/tidb-server && ./bin/tidb-server -V
-                                ls bin/pd-server && ./bin/pd-server -V
-                                ls bin/tikv-server && ./bin/tikv-server -V
-                            """
                     }
+                    sh label: "check binary", script: """
+                            pwd && ls -alh
+                            ls bin/tidb-server && ./bin/tidb-server -V
+                            ls bin/pd-server && ./bin/pd-server -V
+                            ls bin/tikv-server && ./bin/tikv-server -V
+                        """
+                    stash name: 'dependencies', includes: 'bin/**'
                 }
             }
         }
@@ -104,14 +103,13 @@ pipeline {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                                    sh label: "print version", script: """
-                                        pwd && ls -alh
-                                        ls bin/tidb-server && ./bin/tidb-server -V
-                                        ls bin/pd-server && ./bin/pd-server -V
-                                        ls bin/tikv-server && ./bin/tikv-server -V
-                                    """
-                                }
+                                unstash 'dependencies'
+                                sh label: "print version", script: """
+                                    pwd && ls -alh
+                                    ls bin/tidb-server && ./bin/tidb-server -V
+                                    ls bin/pd-server && ./bin/pd-server -V
+                                    ls bin/tikv-server && ./bin/tikv-server -V
+                                """
                             }
                             dir('tidb-test') {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {

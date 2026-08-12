@@ -82,12 +82,11 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'ticdc', includes: '**/*'
                 }
             }
         }
@@ -117,11 +116,10 @@ pipeline {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('ticdc') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_light_it_in_ci.sh mysql ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'ticdc'
+                                sh label: "${TEST_GROUP}", script: """
+                                    ./tests/integration_tests/run_light_it_in_ci.sh mysql ${TEST_GROUP}
+                                """
                             }
                         }
                         post {
