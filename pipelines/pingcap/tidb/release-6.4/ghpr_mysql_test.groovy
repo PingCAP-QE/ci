@@ -42,14 +42,7 @@ pipeline {
                     }
                 }
                 dir(REFS.repo) {
-                    sh '''#!/usr/bin/env bash
-                    set -euxo pipefail
-                    for f in WORKSPACE DEPS.bzl; do
-                      [ -f "$f" ] || continue
-                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                    done
-                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-                    '''
+                    script { bazel.prepareWorkspace() }
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}-${REFS.pulls[0].sha}") {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
