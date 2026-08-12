@@ -40,7 +40,13 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     script { bazel.prepareWorkspace() }
+                }
+            }
+        }
 
+        stage('Replay workarounds (temporary)') {
+            steps {
+                dir(REFS.repo) {
                     sh '''#!/usr/bin/env bash
                     set -euxo pipefail
                     # Replay-only timeout hotfix: raise ci shard timeout to avoid 150s timeout flakes.
