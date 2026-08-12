@@ -52,35 +52,13 @@ pipeline {
                         }
                     }
 
-                    sh '''#!/usr/bin/env bash
-                    set -euxo pipefail
-                    for f in WORKSPACE DEPS.bzl; do
-                      [ -f "$f" ] || continue
-                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                    done
-
-                    # Keep replay and job behavior aligned until tidb repo deps URLs are cleaned up.
-                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-
-                    if [ -f .bazelrc ]; then
-                      [ -n "$(tail -c1 .bazelrc 2>/dev/null)" ] && echo "" >> .bazelrc
-                      for cmd in build test run; do
-                        grep -q "^${cmd} --noremote_upload_local_results$" .bazelrc || echo "${cmd} --noremote_upload_local_results" >> .bazelrc
-                      done
-                    fi
-
-                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
-                    grep -n '^check:' Makefile | head -n 3 || true
-                    grep -n 'noremote_upload_local_results' .bazelrc | tail -n 6 || true
-                    '''
-
-                    // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
+                    script { bazel.prepareWorkspace() }
+                    // Back up the prepared workspace for the matrix test pods (S3-backed stash).
+                    sh """
                             mv bin/tidb-server bin/integration_test_tidb-server
                             touch rev-${REFS.pulls[0].sha}
                         """
-                    }
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -133,21 +111,12 @@ pipeline {
                         options { timeout(time: 50, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                                }
+                                unstash 'ws'
 
-                                // Lightweight fallback: only re-apply when stale URLs are still present in restored cache.
+                                sh "ls -l rev-${REFS.pulls[0].sha}" // sanity: restored from stash.
+
                                 sh '''#!/usr/bin/env bash
                                     set -euxo pipefail
-                                    if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
-                                        for f in WORKSPACE DEPS.bzl; do
-                                          [ -f "$f" ] || continue
-                                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                                        done
-                                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-                                    fi
-
                                     if [ -f .bazelrc ]; then
                                         [ -n "$(tail -c1 .bazelrc 2>/dev/null)" ] && echo "" >> .bazelrc
                                         for cmd in build test run; do
@@ -157,10 +126,6 @@ pipeline {
                                 '''
 
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
-                                sh """
-                                git diff .
-                                git status
-                                """
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }

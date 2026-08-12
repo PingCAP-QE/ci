@@ -50,22 +50,13 @@ pipeline {
                             }
                         }
                     }
-                    sh '''#!/usr/bin/env bash
-                    set -euxo pipefail
-                    for f in WORKSPACE DEPS.bzl; do
-                      [ -f "$f" ] || continue
-                      sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                    done
-                    sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-                    grep -nE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl || true
-                    grep -n '^check:' Makefile | head -n 3 || true
-                    '''
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh """
+                    script { bazel.prepareWorkspace() }
+                    // Back up the prepared workspace for the matrix test pods (S3-backed stash).
+                    sh """
                             mv bin/tidb-server bin/integration_test_tidb-server
                             touch rev-${REFS.pulls[0].sha}
                         """
-                    }
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -116,24 +107,10 @@ pipeline {
                         }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls -l rev-${REFS.pulls[0].sha}"
-                                }
-                                sh '''#!/usr/bin/env bash
-                                    set -euxo pipefail
-                                    if grep -qE 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' WORKSPACE DEPS.bzl 2>/dev/null; then
-                                        for f in WORKSPACE DEPS.bzl; do
-                                          [ -f "$f" ] || continue
-                                          sed -i -E '/bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build/d' "$f"
-                                        done
-                                        sed -i 's/^check: check-bazel-prepare /check: /' Makefile || true
-                                    fi
-                                '''
+                                unstash 'ws'
+
+                                sh "ls -l rev-${REFS.pulls[0].sha}" // sanity: restored from stash.
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
-                                sh """
-                                git diff .
-                                git status
-                                """
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
                         }
