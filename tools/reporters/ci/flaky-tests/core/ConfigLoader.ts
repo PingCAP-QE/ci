@@ -285,7 +285,7 @@ Examples:
     if (cli.dbUrl) {
       const parsed = convertDsnToClientConfig(cli.dbUrl);
       if (!parsed) throw new Error(`Invalid --db-url: ${cli.dbUrl}`);
-      parsed.ssl = "VERIFY_IDENTITY";
+      parsed.ssl = { rejectUnauthorized: true };
       return parsed;
     }
     const host = cli.dbHost ?? "";
@@ -304,7 +304,7 @@ Examples:
       user,
       password,
       database,
-      ssl: "VERIFY_IDENTITY",
+      ssl: { rejectUnauthorized: true },
     };
   }
 
