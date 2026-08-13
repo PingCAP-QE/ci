@@ -120,13 +120,6 @@ periodics:
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
     cron: "30 0 * * *" # Run daily at 8:30 UTC+8 (which is 0:30 UTC)
-    # hidden: true
-    extra_refs: # Periodic job doesn't clone any repo by default, needs to be added explicitly
-      - org: PingCAP-QE
-        repo: ci
-        base_ref: main
-        skip_submodules: true
-        clone_depth: 1
     spec:
       activeDeadlineSeconds: 300
       containers:
