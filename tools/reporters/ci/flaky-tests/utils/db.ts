@@ -1,19 +1,19 @@
-import * as mysql from "https://deno.land/x/mysql@v2.12.1/mod.ts";
+import type { ConnectionOptions } from "npm:mysql2/promise";
 
-function convertDsnToClientConfig(dsn: string): mysql.ClientConfig {
+function convertDsnToClientConfig(dsn: string): ConnectionOptions {
   try {
     const url = new URL(dsn);
     if (url.protocol !== "mysql:") {
       throw new Error("Invalid DSN protocol. Expected 'mysql:'.");
     }
-    const config: mysql.ClientConfig = {
-      hostname: url.hostname,
+    const config: ConnectionOptions = {
+      host: url.hostname,
       port: Number(url.port),
-      username: decodeURIComponent(url.username),
+      user: decodeURIComponent(url.username),
       password: decodeURIComponent(url.password),
-      db: url.pathname.substring(1),
+      database: url.pathname.substring(1),
     };
-    if (!config.hostname || !config.port || !config.username || !config.db) {
+    if (!config.host || !config.port || !config.user || !config.database) {
       throw new Error(
         "Incomplete DSN. Must include user, host, port, and database.",
       );

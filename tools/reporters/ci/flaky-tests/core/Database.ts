@@ -15,21 +15,27 @@
 
 // deno-lint-ignore-file no-explicit-any
 
-import {
-  Client as MySQLClient,
-  ClientConfig,
-} from "https://deno.land/x/mysql@v2.12.1/mod.ts";
+import { createConnection } from "npm:mysql2/promise";
+import type { ConnectionOptions } from "npm:mysql2/promise";
 import type { OwnerEntry, ProblemCaseRunRow, TimeWindow } from "./types.ts";
 
+interface QueryConnection {
+  execute(
+    sql: string,
+    values?: unknown[],
+  ): Promise<[unknown[], unknown[]]>;
+  end(): Promise<void>;
+}
+
 export class Database {
-  private client: MySQLClient | null = null;
-  private readonly cfg: ClientConfig;
+  private client: QueryConnection | null = null;
+  private readonly cfg: ConnectionOptions;
   private readonly verbose: boolean;
   private readonly repo?: string;
   private readonly branch?: string;
 
   constructor(
-    cfg: ClientConfig,
+    cfg: ConnectionOptions,
     options?: { verbose?: boolean; repo?: string; branch?: string },
   ) {
     this.cfg = cfg;
@@ -44,13 +50,14 @@ export class Database {
    */
   async connect(): Promise<void> {
     if (this.client) return; // Already connected
-    this.client = new MySQLClient();
     if (this.verbose) {
       console.debug(
-        `[db] connecting: ${this.cfg.username}@${this.cfg.hostname}:${this.cfg.port}/${this.cfg.db}`,
+        `[db] connecting: ${this.cfg.user}@${this.cfg.host}:${this.cfg.port}/${this.cfg.database}`,
       );
     }
-    await this.client.connect(this.cfg);
+    this.client = await createConnection(
+      this.cfg,
+    ) as unknown as QueryConnection;
     if (this.verbose) {
       console.debug("[db] connected");
     }
@@ -62,7 +69,7 @@ export class Database {
   async close(): Promise<void> {
     if (!this.client) return;
     try {
-      await this.client.close();
+      await this.client.end();
       if (this.verbose) console.debug("[db] closed");
     } finally {
       this.client = null;
@@ -104,10 +111,9 @@ export class Database {
       );
     }
 
-    const res = await this.client!.execute(sql, params);
-    const rows = (res?.rows ?? []) as any[];
+    const [rows] = await this.client!.execute(sql, params);
 
-    return rows.map((r) => {
+    return (rows as any[]).map((r) => {
       const report_time: Date = r.report_time instanceof Date
         ? r.report_time
         : new Date(r.report_time);
@@ -140,8 +146,8 @@ export class Database {
         `[db] fetchOwners: table=${quotedTable}`,
       );
     }
-    const res = await this.client!.execute(sql);
-    return res?.rows ?? [];
+    const [rows] = await this.client!.execute(sql);
+    return (rows ?? []) as any[];
   }
 
   /**

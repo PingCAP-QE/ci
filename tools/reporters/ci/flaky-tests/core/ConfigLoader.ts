@@ -22,7 +22,7 @@
 
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { parse as parseYaml } from "jsr:@std/yaml";
-import * as mysql from "https://deno.land/x/mysql@v2.12.1/mod.ts";
+import type { ConnectionOptions } from "npm:mysql2/promise";
 import { convertDsnToClientConfig } from "../utils/db.ts";
 
 import { CliConfig, OwnerEntry, SmtpConfig, TimeWindow } from "./types.ts";
@@ -281,30 +281,30 @@ Examples:
     return { from, to };
   }
 
-  determineDbConfig(cli: CliConfig): mysql.ClientConfig {
+  determineDbConfig(cli: CliConfig): ConnectionOptions {
     if (cli.dbUrl) {
       const parsed = convertDsnToClientConfig(cli.dbUrl);
       if (!parsed) throw new Error(`Invalid --db-url: ${cli.dbUrl}`);
-      parsed.tls = { mode: mysql.TLSMode.VERIFY_IDENTITY };
+      parsed.ssl = { rejectUnauthorized: true };
       return parsed;
     }
-    const hostname = cli.dbHost ?? "";
+    const host = cli.dbHost ?? "";
     const port = cli.dbPort ?? 3306;
-    const username = cli.dbUser ?? "";
+    const user = cli.dbUser ?? "";
     const password = cli.dbPass ?? "";
-    const db = cli.dbName ?? "";
-    if (!hostname || !username || !db) {
+    const database = cli.dbName ?? "";
+    if (!host || !user || !database) {
       throw new Error(
         `DB connection is incomplete. Provide --db-url or --db-host/--db-user/--db-name`,
       );
     }
     return {
-      hostname,
+      host,
       port,
-      username,
+      user,
       password,
-      db,
-      tls: { mode: mysql.TLSMode.VERIFY_IDENTITY },
+      database,
+      ssl: { rejectUnauthorized: true },
     };
   }
 
