@@ -5,12 +5,14 @@
     "run": "deno run --allow-net --allow-read --allow-write --allow-env main.ts"
   },
   "imports": {
-    "@std/assert": "jsr:@std/assert@1",
-    "@std/cli": "jsr:@std/cli@^1.0.22",
-    "@std/path": "jsr:@std/path@^1.1.2",
-    "@std/yaml": "jsr:@std/yaml@^1.0.9",
-    "@octokit/rest": "npm:@octokit/rest@^22.0.0",
-    "@octokit/plugin-throttling": "npm:@octokit/plugin-throttling@^11.0.0",
-    "@octokit/plugin-retry": "npm:@octokit/plugin-retry@^8.0.0"
+    "@std/assert": "jsr:@std/assert@^1.0.19",
+    "@std/cli": "jsr:@std/cli@^1.0.32",
+    "@std/path": "jsr:@std/path@^1.1.6",
+    "@std/yaml": "jsr:@std/yaml@^1.2.0",
+    "@octokit/rest": "npm:@octokit/rest@^22.0.1",
+    "@octokit/plugin-throttling": "npm:@octokit/plugin-throttling@^11.0.5",
+    "@octokit/plugin-retry": "npm:@octokit/plugin-retry@^8.1.1",
+    "mysql2": "npm:mysql2@^3.11.5",
+    "nodemailer": "npm:nodemailer@^6.9.16"
   }
 }
