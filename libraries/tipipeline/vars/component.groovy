@@ -40,14 +40,14 @@ def parseCIParamsFromPRTitle(String prTitle) {
 
 // Validate pre-built component params in PR title and target branch.
 // prTargetBranch is checked to REJECT pre-built mode on standard core branches
-// (main/master/release-X.Y/release-nextgen-YYYYMM/release-nextgen-YYYYMMDD).
+// (main/master/release-X.Y/release-nextgen-YYYYMM/release-nextgen-YYYYMMDD/release-nextgen-X.Y.Z-YYYYMMDD).
 // This prevents workaround usage that could bypass standard CI and cause quality issues.
 // Returns a list of error messages; empty list means no errors.
 def validatePreBuiltComponentParams(String prTitle, String prTargetBranch) {
     // Supported components for pre-built binary download
     final List<String> supportedComponents = ['tidb', 'tikv', 'pd', 'tiflash', 'ticdc', 'tiflow', 'tiproxy']
     // Standard core branch patterns where pre-built mode is REJECTED
-    final String deniedBranchReg = /^(main|master|release-\d+\.\d+(-beta\.\d+)?|release-nextgen-\d{6,8})$/
+    final String deniedBranchReg = /^(main|master|release-\d+\.\d+(-beta\.\d+)?|release-nextgen-(\d{6,8}|\d+\.\d+\.\d+-\d{8}))$/
 
     def errors = []
     def params = parseCIParamsFromPRTitle(prTitle)
@@ -91,6 +91,24 @@ def computeArtifactOciTagFromPR(String component, String prTargetBranch, String 
     return branchName.replaceAll('/', '-')
 }
 
+// Compute the peer-component source branch for a nextgen release branch.
+// Nextgen patch branches (release-nextgen-YY.M.N-YYYYMMDD) are hotfix-like branches where
+// peer components are not built with the same branch name, so peer binaries/code should be
+// fetched from the corresponding monthly release-nextgen branch instead:
+//   - release-nextgen-25.10-YYYYMMDD  -> release-nextgen-20251011 (special case)
+//   - release-nextgen-26.Y.Z-YYYYMMDD -> release-nextgen-20260Y (e.g. release-nextgen-26.3.9-20260817 -> release-nextgen-202603)
+// Other release-nextgen-* branches are returned unchanged.
+def computeNextgenPeerBranch(String branch) {
+    if (branch ==~ /^release-nextgen-25\.10-\d{8}$/) {
+        return 'release-nextgen-20251011'
+    }
+    def matcher = (branch =~ /^release-nextgen-(2[6-9])\.(\d+)\.\d+-\d{8}$/)
+    if (matcher) {
+        return String.format('release-nextgen-20%s%02d', matcher[0][1], Integer.parseInt(matcher[0][2]))
+    }
+    return branch
+}
+
 // compute component branch from pr info.
 def computeBranchFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     // pr title xxx | dep1=release-x.y
@@ -116,6 +134,12 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     // - feature/release-8.1.1-abcdefg
     // - feature_release-8.1.1-abcdefg
     final historyReleaseFeatureBranchReg = /^feature[\/_]release\-((\d+\.\d+)\.\d+)-.+/
+
+    // - release-nextgen-202603
+    // - release-nextgen-20260301
+    // - release-nextgen-25.10-20251123
+    // - release-nextgen-26.3.9-20260817
+    final nextgenReleaseBranchReg = /^release-nextgen-(\d{6,8}|(\d+\.\d+|\d+\.\d+\.\d+)-\d{8})$/
 
     // - feature/abcd
     // - feature_abcd
@@ -162,6 +186,9 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
         } else {
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][2]) // => release-X.Y
         }
+    } else if (prTargetBranch =~ nextgenReleaseBranchReg) {
+        // peer components are fetched from the monthly release-nextgen branch.
+        componentBranch = computeNextgenPeerBranch(prTargetBranch)
     } else if (prTargetBranch =~ featureBranchReg) {
         componentBranch = trunkBranch
     }

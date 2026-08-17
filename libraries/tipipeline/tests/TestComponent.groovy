@@ -140,6 +140,7 @@ class TestComponent {
                 [branch: 'release-9.0-beta.1',      desc: 'release-X.Y-beta.N'],
                 [branch: 'release-8.5-beta.2',      desc: 'release-X.Y-beta.N (higher)'],
                 [branch: 'release-nextgen-20250601', desc: 'release-nextgen-YYYYMMDD'],
+                [branch: 'release-nextgen-26.3.0-20260817', desc: 'release-nextgen-X.Y.Z-YYYYMMDD'],
             ]
 
             cases.each { c ->
@@ -223,6 +224,9 @@ class TestComponent {
                 ['tidb',     'feat: support fast read', 'release-8.5',                   'release-8.5'],
                 ['tidb',     'feat: support fast read', 'release-8.5-beta.1',            'release-8.5-beta.1'],
                 ['tidb',     'feat: support fast read', 'release-6.2-20220801',          'release-6.2'],
+                ['tidb',     'feat: support fast read', 'release-nextgen-202603',        'release-nextgen-202603'],
+                ['tidb',     'feat: support fast read', 'release-nextgen-26.3.9-20260817', 'release-nextgen-202603'],
+                ['tidb',     'feat: support fast read', 'release-nextgen-25.10-20251123', 'release-nextgen-20251011'],
                 ['tidb',     'feat: support fast read', 'feature/my-feature',            'master'],
             ]
 
@@ -247,6 +251,54 @@ class TestComponent {
                 def (component, target, expected) = c
                 def result = branch(component, target, 'feat: support fast read')
                 assertEquals("${component} on ${target}", expected, result)
+            }
+        }
+    }
+
+    // ============================================================
+    // computeNextgenPeerBranch
+    // ============================================================
+    static class ComputeNextgenPeerBranch {
+        private def script
+
+        @Before
+        void setUp() {
+            script = loadScript()
+        }
+
+        private String peerBranch(String branch) {
+            script.invokeMethod('computeNextgenPeerBranch', [branch])
+        }
+
+        @Test
+        void shouldMapNextgenPatchBranches() {
+            def cases = [
+                // branch,                             expected
+                ['release-nextgen-25.10-20251123',     'release-nextgen-20251011'],
+                ['release-nextgen-26.3.9-20260817',    'release-nextgen-202603'],
+                ['release-nextgen-26.10.1-20261005',   'release-nextgen-202610'],
+                ['release-nextgen-27.1.0-20270101',    'release-nextgen-202701'],
+            ]
+
+            cases.each { c ->
+                def (branch, expected) = c
+                def result = peerBranch(branch)
+                assertEquals("peer branch: ${branch} → ${expected}", expected, result)
+            }
+        }
+
+        @Test
+        void shouldKeepOtherBranchesUnchanged() {
+            def cases = [
+                'release-nextgen-202603',
+                'release-nextgen-20251011',
+                'release-nextgen-20260301',
+                'master',
+                'release-8.5',
+            ]
+
+            cases.each { branch ->
+                assertEquals("unchanged: ${branch}", branch, peerBranch(branch))
             }
         }
     }

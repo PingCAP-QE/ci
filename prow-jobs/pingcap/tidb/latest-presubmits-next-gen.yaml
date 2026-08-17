@@ -2,7 +2,7 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
-      - ^release-nextgen-\d+$
+      - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
       - ^feature/next[-]gen.*
       - ^feature/tidb-zero.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"

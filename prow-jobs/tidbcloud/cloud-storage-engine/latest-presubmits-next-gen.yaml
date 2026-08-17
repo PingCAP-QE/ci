@@ -3,7 +3,7 @@ global_definitions:
     branches:
       - ^dedicated$
       - ^cloud-engine$
-      - ^release-nextgen-\d+$
+      - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
       - ^feature/tidb-zero.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   jenkins_job: &jenkins_job
