@@ -29,6 +29,8 @@ spec:
             params:
               - name: src
                 value: $(tt.params.data)
+              - name: publisher-url
+                value: "http://publisher.publisher.svc"
             taskRef:
               name: pingcap-notify-to-deliver-images-to-cloud-tidbx
             workspaces:
