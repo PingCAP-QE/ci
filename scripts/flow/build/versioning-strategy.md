@@ -38,4 +38,6 @@ The table below maps the input git version and branches to the expected version 
 | New style - nextgen GA tag | v26.3.1 | release-nextgen-20260301 | v26.3.1 | |
 | New style - nextgen GA tag with master | v26.3.1 | master, release-nextgen-20260301 | v26.3.1 | |
 | New style - commits after nextgen GA tag | v26.3.1-2-g1234567 | release-nextgen-20260301 | v26.3.1-2-g1234567 | |
+| New style - nextgen GA tag on version+date nextgen branch | v26.3.0 | release-nextgen-26.3.0-20260817 | v26.3.0 | |
+| New style - commits after nextgen GA tag on version+date nextgen branch | v26.3.0-2-g1234567 | release-nextgen-26.3.0-20260817 | v26.3.0-2-g1234567 | |
 | **Feature branch - prerelease** | v9.0.0-beta.1.pre-151-gb4c8f4dc8 | feature/fts | v9.0.0-feature.fts | v9.0.0-feature.fts |

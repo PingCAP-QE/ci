@@ -396,7 +396,7 @@ spec:
               external_revision="release-$major_minor"
               echo "Matched exact minor release branch: $external_revision"
             else
-              nextgen_candidates="$(echo "$contains_list" | grep -E '^release-nextgen-[0-9]+$' || true)"
+              nextgen_candidates="$(echo "$contains_list" | grep -E '^release-nextgen-([0-9]+|[0-9]+[.][0-9]+[.][0-9]+-[0-9]{8})$' || true)"
               if [ -n "$nextgen_candidates" ]; then
                 external_revision="$(echo "$nextgen_candidates" | sort -V | tail -n1)"
                 echo "Matched nextgen release branch: $external_revision"

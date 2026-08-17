@@ -158,6 +158,24 @@ Deno.test("compute", () => {
       },
     },
     {
+      description:
+        "new style - nextgen GA tag on version+date nextgen release branch",
+      gitVer: "v26.3.0",
+      branches: ["release-nextgen-26.3.0-20260817"],
+      expect: {
+        version: "v26.3.0",
+      },
+    },
+    {
+      description:
+        "new style - has new commits after nextgen GA tag on version+date nextgen release branch, we will do nothing for it",
+      gitVer: "v26.3.0-2-g1234567",
+      branches: ["release-nextgen-26.3.0-20260817"],
+      expect: {
+        version: "v26.3.0-2-g1234567",
+      },
+    },
+    {
       description: "history style - has new commits after GA tag",
       gitVer: "v8.5.0-2-g1234567",
       branches: ["release-8.5"],

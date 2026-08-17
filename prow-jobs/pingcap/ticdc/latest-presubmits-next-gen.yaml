@@ -1,7 +1,7 @@
 global_definitions:
   branches: &branches
     - ^master$
-    - ^release-nextgen-\d+$
+    - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
     - ^feature/.+
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   jenkins_job: &jenkins_job
@@ -164,7 +164,7 @@ presubmits:
       run_before_merge: true
       branches:
         - ^master$
-        - ^release-nextgen-\d+$
+        - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
       spec:
         containers:
           - name: check
@@ -187,7 +187,7 @@ presubmits:
       run_before_merge: true
       branches:
         - ^master$
-        - ^release-nextgen-\d+$
+        - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
       spec:
         containers:
           - name: build

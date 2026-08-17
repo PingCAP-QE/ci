@@ -22,7 +22,7 @@ spec:
             'tikv/pd',
             ]
             &&
-            body.ref.matches('^release-nextgen-[0-9]+$')
+            body.ref.matches('^(release-nextgen-[0-9]+|release-nextgen-[0-9]+[.][0-9]+[.][0-9]+-[0-9]{8})$')
   bindings:
     - ref: github-branch-create
   template:
