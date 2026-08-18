@@ -26,7 +26,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_HUB
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -66,7 +66,7 @@ pipeline {
                                 """
                                 sh label: 'download ticdc binary', script: """
                                     # download ticdc
-                                    OCI_ARTIFACT_HOST=us-docker.pkg.dev/pingcap-testing-account/internal \
+                                    OCI_ARTIFACT_HOST=${env._JENKINS_OCI_ARTIFACT_HOST_INTERNAL} \
                                     ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
                                         --ticdc-new=${OCI_TAG_TICDC}
                                 """

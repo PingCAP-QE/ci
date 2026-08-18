@@ -23,7 +23,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_HUB
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -55,7 +55,7 @@ pipeline {
                                 retry(2) {
                                     sh label: "download tidb", script: """
                                         script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
-                                        OCI_ARTIFACT_HOST=us-docker.pkg.dev/pingcap-testing-account/internal \$script --tidb=${OCI_TAG_TIDB}
+                                        OCI_ARTIFACT_HOST=${env._JENKINS_OCI_ARTIFACT_HOST_INTERNAL} \$script --tidb=${OCI_TAG_TIDB}
                                     """
                                     sh label: "download other tidb components", script: """
                                         script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
