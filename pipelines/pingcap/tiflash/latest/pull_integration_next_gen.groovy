@@ -29,7 +29,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_TIDBX
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
     }
     options {
         timeout(time: 120, unit: 'MINUTES')

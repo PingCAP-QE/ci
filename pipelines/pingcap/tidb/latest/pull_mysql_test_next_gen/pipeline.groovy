@@ -26,7 +26,7 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1'
-        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_HUB
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')

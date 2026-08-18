@@ -21,7 +21,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {
-        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_HUB
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 180, unit: 'MINUTES')

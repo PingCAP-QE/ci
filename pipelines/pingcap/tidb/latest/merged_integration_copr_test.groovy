@@ -20,7 +20,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_HUB
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
         GITHUB_TOKEN = credentials('github-bot-token')
     }
     options {

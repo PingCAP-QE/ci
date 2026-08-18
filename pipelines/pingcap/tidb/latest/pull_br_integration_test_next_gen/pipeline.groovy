@@ -27,7 +27,7 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1'
-        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_TIDBX
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')

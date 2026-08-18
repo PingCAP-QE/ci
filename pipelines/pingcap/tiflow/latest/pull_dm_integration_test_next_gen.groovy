@@ -23,7 +23,7 @@ pipeline {
         }
     }
     environment {
-        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_TIDBX
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
         NEXT_GEN = '1'
     }
     options {

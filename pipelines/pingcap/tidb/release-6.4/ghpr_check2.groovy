@@ -18,7 +18,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment {
-        OCI_ARTIFACT_HOST = env._JENKINS_OCI_ARTIFACT_HOST_HUB
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     stages {
         stage('Checkout & Prepare') {
