@@ -170,7 +170,7 @@ spec:
               echo "Matched exact minor release branch: $EXT_REVERSION"
             else
               # 2) Prefer nextgen release branches for calendar-style nextgen tags.
-              NEXTGEN_CANDIDATES="$(echo "$CONTAINS_LIST" | grep -E '^release-nextgen-[0-9]+$' || true)"
+              NEXTGEN_CANDIDATES="$(echo "$CONTAINS_LIST" | grep -E '^release-nextgen-([0-9]+|[0-9]+[.][0-9]+[.][0-9]+-[0-9]{8})$' || true)"
               if [ -n "$NEXTGEN_CANDIDATES" ]; then
                 EXT_REVERSION="$(echo "$NEXTGEN_CANDIDATES" | sort -V | tail -n1)"
                 echo "Matched nextgen release branch: $EXT_REVERSION"

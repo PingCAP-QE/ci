@@ -20,7 +20,7 @@ function isHotfixBranch(branch: string): boolean {
 }
 
 function isNextgenReleaseBranch(branch: string): boolean {
-  return /\brelease-nextgen-(\d{6}|\d{8})\b/.test(branch);
+  return /\brelease-nextgen-(\d{6}|\d{8}|\d+\.\d+\.\d+-\d{8})\b/.test(branch);
 }
 
 /**
