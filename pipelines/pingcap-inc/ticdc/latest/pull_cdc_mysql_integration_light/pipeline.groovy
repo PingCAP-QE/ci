@@ -23,7 +23,7 @@ pipeline {
     agent none
     environment {
         // internal mirror is 'hub-zot.pingcap.net/mirrors/hub'
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -58,7 +58,7 @@ pipeline {
                                     sh label: "download tidb components", script: """
                                         export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
                                         chmod +x \$script
-                                        OCI_ARTIFACT_HOST=us-docker.pkg.dev/pingcap-testing-account/internal \$script --tidb=${OCI_TAG_TIDB}
+                                        OCI_ARTIFACT_HOST=${env._JENKINS_OCI_ARTIFACT_HOST_INTERNAL} \$script --tidb=${OCI_TAG_TIDB}
                                         \$script \
                                             --pd=${OCI_TAG_PD} \
                                             --pd-ctl=${OCI_TAG_PD} \
