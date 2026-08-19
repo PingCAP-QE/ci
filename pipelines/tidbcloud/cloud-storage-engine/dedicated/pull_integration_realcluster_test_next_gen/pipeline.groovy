@@ -31,7 +31,7 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/tidbx'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
     }
     stages {
         stage('Checkout') {

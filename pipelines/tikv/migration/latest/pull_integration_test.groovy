@@ -30,7 +30,7 @@ pipeline {
         // tidb-server: hub-zot.pingcap.net/mirrors/hub/pingcap/tidb/package:<tag>_linux_amd64
         // tikv-server: hub-zot.pingcap.net/mirrors/hub/tikv/tikv/package:<tag>_linux_amd64
         // pd-server:   hub-zot.pingcap.net/mirrors/hub/tikv/pd/package:<tag>_linux_amd64
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 65, unit: 'MINUTES')

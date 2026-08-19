@@ -12,7 +12,7 @@ JENKINS_CRUMB=$(curl -fsS "$JENKINS_URL/crumbIssuer/api/json" | jq .crumb)
 SCRIPT_DIR="$(realpath $(dirname "${BASH_SOURCE[0]}"))"
 
 if command -v parallel > /dev/null; then
-    find pipelines -name "*.groovy" | parallel -j+0 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
+    find pipelines -name "*.groovy" | parallel -j4 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
 else
-    find pipelines -name "*.groovy" -exec "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh" {} \;
+    find pipelines -name "*.groovy" -print0 | xargs -0 -P 4 -n 1 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
 fi
