@@ -132,6 +132,7 @@ global_definitions:
         memory: 64Gi
   pull_sanitizer_decoration_config: &pull_sanitizer_decoration_config
     timeout: 3h
+    pod_pending_timeout: 20m
     ssh_key_secrets:
       - github-ssh-secret
     ssh_host_fingerprints:
