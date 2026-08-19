@@ -14,6 +14,8 @@ resources:
   - github-set-status.yaml
   - golang-build.yaml
   - golang-test.yaml
+  - hotfix/create-pr-to-sync-owners.yaml
+  - hotfix/create-pr-to-update-gomod-fix-ladp.yaml
   - ks3utils.yaml
   - multi-arch-image-collect.yaml
   - multi-arch-image-push.yaml
