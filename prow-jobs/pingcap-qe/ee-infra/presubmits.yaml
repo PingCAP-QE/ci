@@ -12,7 +12,7 @@ presubmits:
       branches:
         - ^main$
       spec:
-        service_account_name: terraform-plan-reader
+        serviceAccountName: terraform-plan-reader
         containers:
           - name: main
             image: ghcr.io/opentofu/opentofu:1.12
