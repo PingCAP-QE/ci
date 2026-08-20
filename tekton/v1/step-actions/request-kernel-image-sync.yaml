@@ -1,0 +1,47 @@
+apiVersion: tekton.dev/v1beta1
+kind: StepAction
+metadata:
+  name: request-kernel-image-sync
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: delivery
+    tekton.dev/tags: images,delivery,cloud,tidbx
+    tekton.dev/displayName: "Request kernel image sync"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: Request kernel image sync to cloud regions via publisher
+  params:
+    - name: src
+      description: images list
+    - name: publisher-url
+      type: string
+      description: publisher url
+      default: "http://publisher.publisher.svc"
+  env:
+    - name: IMAGES_SRC
+      value: $(params.src)
+    - name: PUBLISHER_URL
+      value: $(params.publisher-url)
+  image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+  script: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    printf '%s\n' "$IMAGES_SRC" > /workspace/images.yaml
+
+    for stage in dev prod; do
+      while read -r image; do
+        [ -z "$image" ] && continue
+        echo "🚀 Requesting kernel image sync for $image ($stage) ..."
+        body_file=$(mktemp)
+        jq -n --arg stage "$stage" --arg image "$image" \
+          '{ stage: $stage, image: $image }' > "$body_file"
+        curl --fail -X POST -H "Content-Type: application/json" -d "@$body_file" \
+          "$PUBLISHER_URL/tidbcloud/sync-kernel-images"
+        rm -f "$body_file"
+      done < <(yq '.images[]' /workspace/images.yaml)
+    done
+
+    echo "🎉 Kernel image sync requests sent!"
