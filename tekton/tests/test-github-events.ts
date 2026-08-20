@@ -48,6 +48,7 @@ async function generatePushEventPayload(
   return {
     before: "0000000000000000000000000000000000000000",
     after: await getCommitSha(owner, repoName!, ref, client),
+    created: false,
     ref,
     repository: {
       name: repoName!,
@@ -121,18 +122,24 @@ async function sendGithubEvent(
   console.dir(fetchInit);
   console.dir(fetchInit.body);
 
-  await fetch(eventUrl, fetchInit);
+  if (!eventPayload) {
+    throw new Error(`Unsupported event type: ${eventType}`);
+  }
+
+  const response = await fetch(eventUrl, fetchInit);
+  console.log("Response status:", response.status);
+  console.log("Response body:", await response.text());
 }
 
 async function main(args: CliParams) {
   const gitUrl = args.url;
   const ref = args.ref || "refs/heads/master";
-  const eventUrl = args.eventUrl || "https://example.com";
+  const eventUrl = args.eventUrl;
   const eventType = args.eventType || "push";
 
   const usage =
-    "Usage: deno run script.ts --token <github-token> --url <git-url> --eventType push|create [--ref <ref>] [--eventUrl <event-url>]";
-  if (!gitUrl || !args.token) {
+    "Usage: deno run script.ts --token <github-token> --url <git-url> --eventType push|create [--ref <ref>] --eventUrl <event-url>";
+  if (!gitUrl || !args.token || !eventUrl) {
     console.error(usage);
     Deno.exit(1);
   }
@@ -144,6 +151,11 @@ async function main(args: CliParams) {
   await sendGithubEvent(eventType, gitUrl, ref, eventUrl, octokit);
 }
 
-const args = parseArgs(Deno.args) as CliParams;
+const args = parseArgs(Deno.args, {
+  alias: {
+    "event-type": "eventType",
+    "event-url": "eventUrl",
+  },
+}) as CliParams;
 await main(args);
 Deno.exit();
