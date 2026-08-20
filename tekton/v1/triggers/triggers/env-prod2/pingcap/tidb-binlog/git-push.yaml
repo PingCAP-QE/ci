@@ -13,14 +13,15 @@ spec:
       params:
         - name: filter
           # support branches:
-          # > X, Y, Z, M, N are number chars but X < 9.
-          # - master
-          # - release-X.Y
-          # - release-X.Y-beta.M
+          # - release-6.5
+          # - release-7.1
+          # - release-7.5
+          # - release-7.1
+          # Deprecated at: release-8.4
           value: >-
             body.repository.full_name == 'pingcap/tidb-binlog'
             &&
-            body.ref.matches('^refs/heads/(master|release-[6-8][.][0-9]+(-beta[.][0-9]+)?)$')
+            body.ref.matches('^refs/heads/release-(6[.]5|7[.][15]8[.]1)$')
 
   bindings:
     - ref: github-branch-push
