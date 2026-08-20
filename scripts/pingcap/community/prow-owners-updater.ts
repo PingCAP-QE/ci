@@ -283,12 +283,16 @@ class RepoUpdater {
     }
 
     if (mergedRepoProwOwners.owners["/"]) {
+      // compare against the merged result: the repo's OWNERS_ALIASES usually
+      // contains extra manually-maintained aliases beyond the synced
+      // 'sig-community-*' ones, so comparing current against the new subset
+      // would never be equal and empty PRs would be created.
       const rootIsSame = sameObjects(
         curRepoProwOwners.owners["/"],
-        newRepoProwOwners.owners["/"],
+        mergedRepoProwOwners.owners["/"],
       ) && sameObjects(
         curRepoProwOwners.aliases,
-        newRepoProwOwners.aliases,
+        mergedRepoProwOwners.aliases,
       );
 
       if (rootIsSame) {
@@ -305,7 +309,22 @@ class RepoUpdater {
     const updateFileAndContents = await this.toUpdateFileAndContents(
       mergedRepoProwOwners,
     );
-    if (Object.keys(updateFileAndContents).length == 0) {
+
+    // Drop files whose content is identical to the base branch, otherwise the
+    // contents API creates empty commits and a PR with no file changes.
+    const changedFileAndContents: Record<string, string> = {};
+    for (const [filePath, content] of Object.entries(updateFileAndContents)) {
+      const currentContent = await this.getFileContent(filePath);
+      if (currentContent === content) {
+        console.debug(
+          `content of file '${filePath}' is unchanged for repo ${this.owner}/${this.repo}, skip.`,
+        );
+        continue;
+      }
+      changedFileAndContents[filePath] = content;
+    }
+
+    if (Object.keys(changedFileAndContents).length == 0) {
       console.debug(
         `🏃 no need to create PR for repo ${this.owner}/${this.repo}: no differences found`,
       );
@@ -325,7 +344,7 @@ class RepoUpdater {
     );
 
     await Promise.all(
-      Object.entries(updateFileAndContents).map(
+      Object.entries(changedFileAndContents).map(
         async ([filePath, content], index) => {
           // wait for some seconds to avoid conflicts on fetch the sha of file blob.
           await new Promise((resolve) => setTimeout(resolve, 5000 * index));
