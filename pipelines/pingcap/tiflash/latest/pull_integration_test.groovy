@@ -251,54 +251,50 @@ pipeline {
                                             "TIDB_FAILPOINT_IMAGE=${tidbFailpointImage}",
                                             "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
                                         ]) {
-                                            withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                                                sh label: "prepare docker images", script: '''
-                                                        set -eux
-                                                        mkdir -p ~/.docker
-                                                        cp "${DOCKER_CONFIG_JSON}" ~/.docker/config.json
-                                                        for i in $(seq 1 30); do
-                                                            if docker version; then
-                                                                break
-                                                            fi
-                                                            sleep 2
-                                                        done
-                                                        docker ps -a
+    sh label: "prepare docker images", script: '''
+            set -eux
+            for i in $(seq 1 30); do
+                if docker version; then
+                    break
+                fi
+                sleep 2
+            done
+            docker ps -a
 
-                                                        timeout 300 docker pull "${PD_IMAGE}"
-                                                        timeout 300 docker pull "${TIKV_IMAGE}"
-                                                        timeout 300 docker pull "${TIDB_IMAGE}"
-                                                        timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}" || true
-                                                        timeout 600 docker pull "${TIFLASH_IMAGE}"
+            timeout 300 docker pull "${PD_IMAGE}"
+            timeout 300 docker pull "${TIKV_IMAGE}"
+            timeout 300 docker pull "${TIDB_IMAGE}"
+            timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}" || true
+            timeout 600 docker pull "${TIFLASH_IMAGE}"
 
-                                                        find ../docker . -name '*.yaml' -type f -exec sed -i \
-                                                            -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
-                                                            -e 's#${TIKV_IMAGE:[^}]*}#'"${TIKV_IMAGE}"'#g' \
-                                                            -e 's#${TIDB_IMAGE:[^}]*-failpoint}#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
-                                                            -e 's#${TIDB_IMAGE:[^}]*}#'"${TIDB_IMAGE}"'#g' \
-                                                            -e 's#${TIFLASH_IMAGE:[^}]*}#'"${TIFLASH_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:master#${PD_IMAGE}#g" \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:master#${TIKV_IMAGE}#g" \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master#${TIDB_IMAGE}#g" \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:master#${PD_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:master#${TIKV_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master#${TIDB_IMAGE}#g" \
-                                                            {} +
-                                                        rm -rf ~/.docker
-                                                    '''
-                                            }
+            find ../docker . -name '*.yaml' -type f -exec sed -i \
+                -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
+                -e 's#${TIKV_IMAGE:[^}]*}#'"${TIKV_IMAGE}"'#g' \
+                -e 's#${TIDB_IMAGE:[^}]*-failpoint}#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                -e 's#${TIDB_IMAGE:[^}]*}#'"${TIDB_IMAGE}"'#g' \
+                -e 's#${TIFLASH_IMAGE:[^}]*}#'"${TIFLASH_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:master#${PD_IMAGE}#g" \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:master#${TIKV_IMAGE}#g" \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master#${TIDB_IMAGE}#g" \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:master#${PD_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:master#${TIKV_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master#${TIDB_IMAGE}#g" \
+                {} +
+            rm -rf ~/.docker
+        '''
 
                                             sh label: "run integration tests", script: """
                                                 PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${REFS.pulls[0].sha} BRANCH=${REFS.base_ref} ./run.sh

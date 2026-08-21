@@ -168,29 +168,25 @@ pipeline {
                                         "MINIO_IMAGE=quay.io/minio/minio:${MINIO_VERSION}",
                                         "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
                                     ]) {
-                                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                                            sh label: "prepare docker images", script: '''
-                                                set -eux
-                                                mkdir -p ~/.docker
-                                                cp "${DOCKER_CONFIG_JSON}" ~/.docker/config.json
-                                                for i in $(seq 1 30); do
-                                                    if docker version; then
-                                                        break
-                                                    fi
-                                                    sleep 2
-                                                done
-                                                docker version
-                                                docker ps -a
+    sh label: "prepare docker images", script: '''
+        set -eux
+        for i in $(seq 1 30); do
+            if docker version; then
+                break
+            fi
+            sleep 2
+        done
+        docker version
+        docker ps -a
 
-                                                timeout 300 docker pull "${PD_IMAGE}"
-                                                timeout 300 docker pull "${TIKV_IMAGE}"
-                                                timeout 300 docker pull "${TIDB_IMAGE}"
-                                                timeout 300 docker pull "${MINIO_IMAGE}"
-                                                timeout 600 docker pull "${TIFLASH_IMAGE}"
+        timeout 300 docker pull "${PD_IMAGE}"
+        timeout 300 docker pull "${TIKV_IMAGE}"
+        timeout 300 docker pull "${TIDB_IMAGE}"
+        timeout 300 docker pull "${MINIO_IMAGE}"
+        timeout 600 docker pull "${TIFLASH_IMAGE}"
 
-                                                rm -rf ~/.docker
-                                            '''
-                                        }
+        rm -rf ~/.docker
+    '''
                                         sh label: "run columnar integration test", script: """#!/usr/bin/env bash
                                             set -o pipefail
                                             chmod +x ./run.sh

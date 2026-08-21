@@ -47,12 +47,6 @@ pipeline {
                         retry(2) {
                             sh label: "prepare third_party dir", script: "mkdir -p bin"
                             container("utils") {
-                                withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                                    sh label: "prepare docker auth", script: '''
-                                        mkdir -p ~/.docker
-                                        cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
-                                    '''
-                                }
                                 dir("bin") {
                                     sh label: "download third_party from OCI", script: """
                                         script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh

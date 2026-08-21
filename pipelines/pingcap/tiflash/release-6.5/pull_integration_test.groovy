@@ -251,71 +251,67 @@ pipeline {
                                             "TIDB_FAILPOINT_IMAGE=${OCI_ARTIFACT_HOST}/pingcap/tidb/images/tidb-server:${tidbBranch}-failpoint",
                                             "TIFLASH_IT_BASE_IMAGE=${TIFLASH_IT_BASE_IMAGE}",
                                         ]) {
-                                            withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                                                sh label: "prepare docker images", script: '''
-                                                        set -eux
-                                                        mkdir -p ~/.docker
-                                                        cp "${DOCKER_CONFIG_JSON}" ~/.docker/config.json
-                                                        for i in $(seq 1 30); do
-                                                            if docker version; then
-                                                                break
-                                                            fi
-                                                            sleep 2
-                                                        done
-                                                        docker ps -a
+    sh label: "prepare docker images", script: '''
+            set -eux
+            for i in $(seq 1 30); do
+                if docker version; then
+                    break
+                fi
+                sleep 2
+            done
+            docker ps -a
 
-                                                        timeout 300 docker pull "${PD_IMAGE}"
-                                                        timeout 300 docker pull "${TIKV_IMAGE}"
-                                                        timeout 300 docker pull "${TIDB_IMAGE}"
-                                                        # release-6.5: OCI may still publish a :failpoint tag, but it does not expose
-                                                        # enableTestAPI (fail-point-tests fail on curl_tidb get fail/.../enableTestAPI).
-                                                        # Always use the regular TiDB image and skip suites that need real failpoints.
-                                                        timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}" || true
-                                                        echo "WARN: release-6.5 TiDB failpoint image is not usable for IT; falling back to ${TIDB_IMAGE}"
-                                                        TIDB_FAILPOINT_IMAGE="${TIDB_IMAGE}"
-                                                        if [ -f ./run.sh ] && grep -q 'tidb-ci/fail-point-tests' ./run.sh; then
-                                                            echo "WARN: skipping tidb-ci/fail-point-tests"
-                                                            sed -i -e 's#./run-test.sh tidb-ci/fail-point-tests && ##g' ./run.sh
-                                                        fi
-                                                        # Old hub.pingcap.net/tiflash/tiflash-ci-base included mysql client for run-test.sh.
-                                                        # Builder images do not; rebuild the historical runtime locally (see tiflash_ci_base Dockerfile).
-                                                        timeout 600 docker pull "${TIFLASH_IT_BASE_IMAGE}"
-                                                        docker build -t tiflash-ci-base-local:with-mysql - <<EOF
+            timeout 300 docker pull "${PD_IMAGE}"
+            timeout 300 docker pull "${TIKV_IMAGE}"
+            timeout 300 docker pull "${TIDB_IMAGE}"
+            # release-6.5: OCI may still publish a :failpoint tag, but it does not expose
+            # enableTestAPI (fail-point-tests fail on curl_tidb get fail/.../enableTestAPI).
+            # Always use the regular TiDB image and skip suites that need real failpoints.
+            timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}" || true
+            echo "WARN: release-6.5 TiDB failpoint image is not usable for IT; falling back to ${TIDB_IMAGE}"
+            TIDB_FAILPOINT_IMAGE="${TIDB_IMAGE}"
+            if [ -f ./run.sh ] && grep -q 'tidb-ci/fail-point-tests' ./run.sh; then
+                echo "WARN: skipping tidb-ci/fail-point-tests"
+                sed -i -e 's#./run-test.sh tidb-ci/fail-point-tests && ##g' ./run.sh
+            fi
+            # Old hub.pingcap.net/tiflash/tiflash-ci-base included mysql client for run-test.sh.
+            # Builder images do not; rebuild the historical runtime locally (see tiflash_ci_base Dockerfile).
+            timeout 600 docker pull "${TIFLASH_IT_BASE_IMAGE}"
+            docker build -t tiflash-ci-base-local:with-mysql - <<EOF
 FROM ${TIFLASH_IT_BASE_IMAGE}
 RUN yum install -y mysql
 EOF
-                                                        TIFLASH_IMAGE=tiflash-ci-base-local:with-mysql
+            TIFLASH_IMAGE=tiflash-ci-base-local:with-mysql
 
-                                                        find ../docker . -name '*.yaml' -type f -exec sed -i \
-                                                            -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
-                                                            -e 's#${TIKV_IMAGE:[^}]*}#'"${TIKV_IMAGE}"'#g' \
-                                                            -e 's#${TIDB_IMAGE:[^}]*-failpoint}#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
-                                                            -e 's#${TIDB_IMAGE:[^}]*}#'"${TIDB_IMAGE}"'#g' \
-                                                            -e 's#${TIFLASH_IMAGE:[^}]*}#'"${TIFLASH_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base$#'"${TIFLASH_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:master#${PD_IMAGE}#g" \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:master#${TIKV_IMAGE}#g" \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master#${TIDB_IMAGE}#g" \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
-                                                            -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:master#${PD_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:master#${TIKV_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
-                                                            -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master#${TIDB_IMAGE}#g" \
-                                                            {} +
-                                                        rm -rf ~/.docker
-                                                    '''
-                                            }
+            find ../docker . -name '*.yaml' -type f -exec sed -i \
+                -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
+                -e 's#${TIKV_IMAGE:[^}]*}#'"${TIKV_IMAGE}"'#g' \
+                -e 's#${TIDB_IMAGE:[^}]*-failpoint}#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                -e 's#${TIDB_IMAGE:[^}]*}#'"${TIDB_IMAGE}"'#g' \
+                -e 's#${TIFLASH_IMAGE:[^}]*}#'"${TIFLASH_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky8-20241028#${TIFLASH_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base:rocky9-20250529#${TIFLASH_IMAGE}#g" \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tiflash-ci-base$#'"${TIFLASH_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tiflash/tics:${TAG:-master}#'"${TIFLASH_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/pd/image:master#${PD_IMAGE}#g" \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/tikv/tikv/image:master#${TIKV_IMAGE}#g" \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/pingcap/tidb/images/tidb-server:master#${TIDB_IMAGE}#g" \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:${PD_BRANCH:-master}#'"${PD_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:${TIKV_BRANCH:-master}#'"${TIKV_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
+                -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/pd:master#${PD_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tikv:master#${TIKV_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master-failpoint#${TIDB_FAILPOINT_IMAGE}#g" \
+                -e "s#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:master#${TIDB_IMAGE}#g" \
+                {} +
+            rm -rf ~/.docker
+        '''
 
                                             sh label: "run integration tests", script: """
                                                 PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh

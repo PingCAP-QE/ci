@@ -56,12 +56,6 @@ pipeline {
                         sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     }
                     container("utils") {
-                        withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                            sh label: "prepare docker auth", script: '''
-                                mkdir -p ~/.docker
-                                cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
-                            '''
-                        }
                         dir('bin') {
                             sh """
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
