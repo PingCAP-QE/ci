@@ -19,11 +19,17 @@ spec:
       type: string
       description: publisher url
       default: "http://publisher.publisher.svc"
+    - name: stages
+      type: string
+      description: target stage(s) (dev or prod or "dev prod")
+      default: "dev"
   env:
     - name: IMAGES_SRC
       value: $(params.src)
     - name: PUBLISHER_URL
       value: $(params.publisher-url)
+    - name: TARGET_STAGES
+      value: $(params.stage)
   image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
   script: |
     #!/usr/bin/env bash
@@ -37,7 +43,7 @@ spec:
       exit 0
     fi
 
-    for stage in dev prod; do
+    for stage in $TARGET_STAGES; do
       echo "🚀 Requesting kernel image sync for stage $stage ..."
       body_file=$(mktemp)
       jq -n --arg stage "$stage" --argjson images "$images_json" \
