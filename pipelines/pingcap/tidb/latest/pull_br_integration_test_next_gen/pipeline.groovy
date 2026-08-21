@@ -50,12 +50,6 @@ pipeline {
                     sh label: 'br test binary', script: 'make build_for_br_integration_test'
                     dir('bin') {
                         container("utils") {
-                            withCredentials([file(credentialsId: 'tidbx-docker-config', variable: 'DOCKER_CONFIG_JSON')]) {
-                                sh label: "prepare docker auth", script: '''
-                                    mkdir -p ~/.docker
-                                    cp ${DOCKER_CONFIG_JSON} ~/.docker/config.json
-                                '''
-                            }
                             sh """
                                 script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
                                 chmod +x \$script
