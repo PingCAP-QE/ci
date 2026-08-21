@@ -143,38 +143,87 @@ build_inline_script_with_pod_yaml() {
     local script_file="$1"
     local pod_template_file="$2"
     local out_file="$3"
-    local pod_b64
-    pod_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
 
-    # Build the replacement string in shell and use portable awk/sub() to perform the substitution.
-    # If no substitution is performed, exit with status 2 to preserve previous behavior.
-    local repl
-    repl="yaml new String(java.util.Base64.decoder.decode(\"${pod_b64}\"), 'UTF-8')"
+    # Collect pod template variable declarations (final/def VAR = '<pipeline-relative path>') from the
+    # pipeline script, mapping each variable to its declared pod yaml. This handles pipelines that use
+    # more than one pod template (e.g. tiflash pull_integration_test uses POD_TEMPLATE_FILE for the
+    # build phase and POD_INTEGRATIONTEST_TEMPLATE_FILE for the integration-test phase).
+    # Regexes are stored in variables for bash 3.2 compatibility with [[ =~ ]].
+    local decl_re="^[[:space:]]*(final|def)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*[\"']([^\"']+\.ya?ml)[\"'][[:space:]]*$"
+    local yaml_file_re="(^|[^A-Za-z0-9_])yamlFile[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*(#.*)?$"
+    local with_ci_labels_re="(.*)yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*,[[:space:]]*(.*)\)([[:space:]]*#.*)?[[:space:]]*$"
+    local -a pod_vars=()
+    local -a pod_b64s=()
+    local decl_line var path
+    while IFS= read -r decl_line; do
+        if [[ "$decl_line" =~ $decl_re ]]; then
+            var="${BASH_REMATCH[2]}"
+            path="${BASH_REMATCH[3]}"
+            if [[ "$path" == pipelines/* && -f "$path" ]]; then
+                pod_vars+=("$var")
+                pod_b64s+=("$(base64 < "$path" | tr -d '\n')")
+            fi
+        fi
+    done < "$script_file"
 
-    awk -v repl="$repl" '
-    BEGIN {
-        found=0
-        # Core patterns for legacy/new declarative forms.
-        p1 = "yamlFile[[:space:]]+POD_TEMPLATE_FILE"
-        p2 = "yaml[[:space:]]+pod_label\\.withCiLabels\\([[:space:]]*POD_TEMPLATE_FILE[[:space:]]*,[[:space:]]*REFS[[:space:]]*\\)"
-        suffix = "([[:space:]]*#.*)?[[:space:]]*$"
+    # Fallback b64 for the single-pod-template case (variable declared elsewhere or file missing).
+    # Matches the previous behavior: substitute only POD_TEMPLATE_FILE on the first occurrence.
+    local fallback_b64=""
+    if (( ${#pod_vars[@]} == 0 )); then
+        fallback_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
+    fi
+
+    pod_var_b64() {
+        local v="$1" i n="${#pod_vars[@]}"
+        for (( i = 0; i < n; i++ )); do
+            if [[ "${pod_vars[$i]}" == "$v" ]]; then
+                printf '%s' "${pod_b64s[$i]}"
+                return 0
+            fi
+        done
+        return 1
     }
-    {
-        line = $0
+
+    local found=0
+    : > "$out_file"
+    local line out_line b64 prefix comment repl
+    while IFS= read -r line; do
+        out_line="$line"
         # Declarative form before ci-label migration (allow trailing inline comments).
-        if (line ~ ("^[[:space:]]*" p1 suffix)) {
-            sub(p1, repl, line)
-            found = 1
+        if [[ "$line" =~ $yaml_file_re ]]; then
+            var="${BASH_REMATCH[2]}"
+            b64="$(pod_var_b64 "$var" || true)"
+            if [[ -z "$b64" && -n "$fallback_b64" && "$var" == "POD_TEMPLATE_FILE" && "$found" == "0" ]]; then
+                b64="$fallback_b64"
+            fi
+            if [[ -n "$b64" ]]; then
+                out_line="${line/yamlFile ${var}/yaml new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')}"
+                found=1
+            fi
         # Declarative form after ci-label migration (allow trailing inline comments).
-        } else if (line ~ ("^[[:space:]]*" p2 suffix)) {
-            sub(p2, repl, line)
-            found = 1
-        }
-        print line
-    }
-    END {
-        if (found == 0) exit 2
-    }' "$script_file" > "$out_file"
+        elif [[ "$line" =~ $with_ci_labels_re ]]; then
+            var="${BASH_REMATCH[2]}"
+            b64="$(pod_var_b64 "$var" || true)"
+            if [[ -z "$b64" && -n "$fallback_b64" && "$var" == "POD_TEMPLATE_FILE" && "$found" == "0" ]]; then
+                b64="$fallback_b64"
+            fi
+            if [[ -n "$b64" ]]; then
+                prefix="${BASH_REMATCH[1]}"
+                comment="${BASH_REMATCH[4]}"
+                repl="yaml new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')"
+                out_line="${prefix}${repl}"
+                [[ -n "$comment" ]] && out_line+=" ${comment}"
+                found=1
+            fi
+        fi
+        printf '%s\n' "$out_line" >> "$out_file"
+    done < "$script_file"
+
+    if (( found == 0 )); then
+        rm -f "$out_file"
+        return 2
+    fi
+    return 0
 }
 
 prepare_script_for_replay() {
