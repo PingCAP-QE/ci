@@ -15,6 +15,7 @@ JENKINS_JOB="${JENKINS_JOB:-seed}"
 WAIT_BUILD="${WAIT_BUILD:-false}"
 TIMEOUT_SEC="${TIMEOUT_SEC:-1800}"
 POLL_INTERVAL_SEC="${POLL_INTERVAL_SEC:-10}"
+COOKIE_JAR=""
 
 usage() {
     cat <<'USAGE'
@@ -45,7 +46,7 @@ trim_trailing_slash() {
 get_crumb() {
     local url="$1" field="" value=""
     local json
-    json="$(curl -sS -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
+    json="$(curl -sS -u "${JENKINS_USER}:${JENKINS_TOKEN}" -c "$COOKIE_JAR" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
     if [[ -n "$json" ]]; then
         field="$(jq -r '.crumbRequestField // empty' <<<"$json" 2>/dev/null)"
         value="$(jq -r '.crumb // empty' <<<"$json" 2>/dev/null)"
@@ -76,7 +77,7 @@ wait_queue_to_build_url() {
             return 1
         fi
         local body
-        body="$(curl -sS -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${queue_url}/api/json" 2>/dev/null || true)"
+        body="$(curl -sS -u "${JENKINS_USER}:${JENKINS_TOKEN}" -b "$COOKIE_JAR" "${queue_url}/api/json" 2>/dev/null || true)"
         local cancelled build_url
         cancelled="$(jq -r '.cancelled // false' <<<"$body" 2>/dev/null)"
         build_url="$(jq -r '.executable.url // empty' <<<"$body" 2>/dev/null)"
@@ -102,7 +103,7 @@ wait_build_result() {
             return 1
         fi
         local body
-        body="$(curl -sS -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${build_url}/api/json?tree=building,result,url" 2>/dev/null || true)"
+        body="$(curl -sS -u "${JENKINS_USER}:${JENKINS_TOKEN}" -b "$COOKIE_JAR" "${build_url}/api/json?tree=building,result,url" 2>/dev/null || true)"
         local building result
         building="$(jq -r '.building // false' <<<"$body" 2>/dev/null)"
         result="$(jq -r '.result // empty' <<<"$body" 2>/dev/null)"
@@ -124,6 +125,8 @@ main() {
     JENKINS_URL="$(trim_trailing_slash "$JENKINS_URL")"
     local job_url="${JENKINS_URL}/job/${JENKINS_JOB}"
     local crumb header_args=()
+    COOKIE_JAR="$(mktemp)"
+    trap 'rm -f "$COOKIE_JAR"' EXIT
     crumb="$(get_crumb "$JENKINS_URL")"
     [[ -n "$crumb" ]] && header_args=(-H "$crumb")
 
@@ -137,7 +140,7 @@ main() {
     log "triggering ${JENKINS_URL} job ${JENKINS_JOB} (endpoint ${endpoint})"
     local headers status loc
     headers="$(mktemp)"
-    status="$(curl -sS -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${header_args[@]}" -o /dev/null -D "$headers" \
+    status="$(curl -sS -u "${JENKINS_USER}:${JENKINS_TOKEN}" -b "$COOKIE_JAR" "${header_args[@]}" -o /dev/null -D "$headers" \
         -w '%{http_code}' -X POST "${args[@]}" "${job_url}/${endpoint}" || true)"
     loc="$(awk -F': ' 'tolower($1)=="location" {gsub("\r", "", $2); print $2; exit}' "$headers")"
     rm -f "$headers"
