@@ -1,7 +1,0 @@
-FROM alpine:3.10
-RUN apk add --no-cache tzdata
-COPY dm-worker /dm-worker
-COPY dm-master /dm-master
-COPY dmctl /dmctl
-
-EXPOSE 8291 8261 8262
