@@ -4,6 +4,7 @@ final branchAlias = 'latest' // For trunk and latest release branches.
 final jobName = 'ghpr_build'
 
 pipelineJob("${fullRepo}/${jobName}") {
+    description("Build tidb artifacts (${fullRepo}/${jobName})")
     logRotator {
         daysToKeep(30)
     }
