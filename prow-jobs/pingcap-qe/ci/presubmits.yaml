@@ -44,7 +44,10 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://prow.tidb.net/jenkins
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-url
               - name: JENKINS_USER
                 valueFrom:
                   secretKeyRef:
@@ -70,6 +73,75 @@ presubmits:
                   --verbose \
                   --timeout 7200 \
                   --poll-interval 20
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+    - name: pull-verify-jenkins-migration
+      labels: *labels
+      decorate: true
+      always_run: false
+      optional: true
+      max_concurrency: 1
+      trigger: "(?m)^/test (?:.*? )?pull-verify-jenkins-migration(?: .*?)?$"
+      rerun_command: "/test pull-verify-jenkins-migration"
+      run_if_changed: "^prow-jobs/.*\\.ya?ml$"
+      timeout: 4h
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: wbitt/network-multitool
+            env:
+              - name: FROM_JENKINS_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-from-ci-job-jenkins-url
+              - name: FROM_JENKINS_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-from-ci-job-jenkins-user
+              - name: FROM_JENKINS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-from-ci-job-jenkins-token
+              - name: TO_JENKINS_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-to-ci-job-jenkins-url
+              - name: TO_JENKINS_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-to-ci-job-jenkins-user
+              - name: TO_JENKINS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-to-ci-job-jenkins-token
+              - name: GITHUB_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: github-token
+                    key: token
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                apk add --no-cache git jq ripgrep yq-go
+                .ci/verify-jenkins-migration.sh \
+                  --base-sha "${PULL_BASE_SHA:-}" \
+                  --head-sha "${PULL_PULL_SHA:-}" \
+                  --wait \
+                  --parallel 10 \
+                  --timeout 7200 \
+                  --poll-interval 20 \
+                  --retries 3 \
+                  --verbose
             resources:
               limits:
                 memory: 256Mi
