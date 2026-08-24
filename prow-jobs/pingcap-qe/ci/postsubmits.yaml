@@ -1,17 +1,73 @@
-global_definitions:
-  jenkins_job: &jenkins_job
-    agent: jenkins
-    labels:
-      master: "1"
-    decorate: false # need add this.
-
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
 postsubmits:
   PingCAP-QE/ci:
-    - <<: *jenkins_job
-      name: seed
-      run_if_changed: "^jobs/.*\\.groovy"
-      context: seed
+    - name: seed
+      decorate: true
       max_concurrency: 1
+      run_if_changed: "^jobs/.*\\.groovy"
       branches:
         - ^main$
+      spec:
+        containers:
+          - name: seed-from
+            image: wbitt/network-multitool
+            env:
+              - name: JENKINS_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-url
+              - name: JENKINS_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-user
+              - name: JENKINS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-token
+              - name: JENKINS_JOB
+                value: seed
+              - name: WAIT_BUILD
+                value: "true"
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                apk add --no-cache jq
+                .ci/trigger-jenkins-job.sh
+            resources:
+              limits:
+                memory: 128Mi
+                cpu: 200m
+          - name: seed-to
+            image: wbitt/network-multitool
+            env:
+              - name: JENKINS_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-to-ci-job-jenkins-url
+              - name: JENKINS_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-to-ci-job-jenkins-user
+              - name: JENKINS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: mig-to-ci-job-jenkins-token
+              - name: JENKINS_JOB
+                value: seed
+              - name: WAIT_BUILD
+                value: "true"
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                apk add --no-cache jq
+                .ci/trigger-jenkins-job.sh
+            resources:
+              limits:
+                memory: 128Mi
+                cpu: 200m
