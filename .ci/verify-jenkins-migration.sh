@@ -113,9 +113,9 @@ setup_auth() {
 
     local crumb_json field value
     if [[ "$kind" == "from" ]]; then
-        crumb_json="$(curl -sS "${CURL_AUTH_FROM[@]:-}" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
+        crumb_json="$(curl -sS "${CURL_AUTH_FROM[@]}" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
     else
-        crumb_json="$(curl -sS "${CURL_AUTH_TO[@]:-}" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
+        crumb_json="$(curl -sS "${CURL_AUTH_TO[@]}" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
     fi
     if [[ -n "$crumb_json" ]]; then
         field="$(jq -r '.crumbRequestField // empty' <<<"$crumb_json")"
@@ -133,7 +133,7 @@ setup_auth() {
 
 api_get_with_status() {
     local url="$1" body_file="$2" status
-    status="$(curl -sS -g "${CURL_AUTH_TO[@]:-}" -o "$body_file" -w '%{http_code}' "$url" || true)"
+    status="$(curl -sS -g "${CURL_AUTH_TO[@]}" -o "$body_file" -w '%{http_code}' "$url" || true)"
     printf '%s' "$status"
 }
 
@@ -196,7 +196,7 @@ collect_flipped_jobs() {
 get_last_success_params() {
     local job_path="$1"
     local url="${FROM_JENKINS_URL}/${job_path}/lastSuccessfulBuild/api/json?tree=actions[parameters[name,value]]"
-    curl -fsS -g "${CURL_AUTH_FROM[@]:-}" "$url" | \
+    curl -fsS -g "${CURL_AUTH_FROM[@]}" "$url" | \
         jq -c '[.actions[]?.parameters[]? | select(.name? != null) | {name, value: ((.value // "") | tostring)}]' | \
         jq -r '.[] | @base64'
 }
@@ -224,12 +224,12 @@ trigger_job_build() {
 
     local headers status loc
     headers="$(mktemp)"
-    status="$(curl -sS "${CURL_AUTH_TO[@]:-}" "${CURL_HEADERS_TO[@]:-}" -o /dev/null -D "$headers" \
-        -w '%{http_code}' -X POST "${args[@]:-}" "${TO_JENKINS_URL}/${job_path}/${endpoint}" || true)"
+    status="$(curl -sS "${CURL_AUTH_TO[@]}" "${CURL_HEADERS_TO[@]}" -o /dev/null -D "$headers" \
+        -w '%{http_code}' -X POST "${args[@]}" "${TO_JENKINS_URL}/${job_path}/${endpoint}" || true)"
     loc="$(awk -F': ' 'tolower($1)=="location" {gsub("\r", "", $2); print $2; exit}' "$headers")"
     rm -f "$headers"
     local tf
-    for tf in "${tmpfiles[@]:-}"; do
+    for tf in "${tmpfiles[@]}"; do
         rm -f "$tf"
     done
 
