@@ -9,7 +9,7 @@ postsubmits:
         - ^main$
       spec:
         containers:
-          - name: seed-from
+          - name: jenkins-master-1
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
@@ -40,7 +40,7 @@ postsubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
-          - name: seed-to
+          - name: jenkins-master-0
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
