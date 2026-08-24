@@ -4,6 +4,11 @@ global_definitions:
     labels:
       master: "1"
     decorate: false # need add this.
+  jenkins_job_to: &jenkins_job_to
+    agent: jenkins
+    labels:
+      master: "0"
+    decorate: false # need add this.
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Postsubmit
 postsubmits:
@@ -12,6 +17,13 @@ postsubmits:
       name: seed
       run_if_changed: "^jobs/.*\\.groovy"
       context: seed
+      max_concurrency: 1
+      branches:
+        - ^main$
+    - <<: *jenkins_job_to
+      name: seed-to
+      run_if_changed: "^jobs/.*\\.groovy"
+      context: seed-to
       max_concurrency: 1
       branches:
         - ^main$
