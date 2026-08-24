@@ -22,7 +22,7 @@ postsubmits:
       name: pingcap/tidb/merged_common_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/common-test
@@ -33,7 +33,7 @@ postsubmits:
       name: pingcap/tidb/merged_integration_jdbc_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       context: ci/integration-jdbc-test
       skip_if_only_changed: *skip_if_only_changed
@@ -44,7 +44,7 @@ postsubmits:
       name: pingcap/tidb/merged_integration_mysql_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-mysql-test
@@ -88,7 +88,7 @@ postsubmits:
       name: pingcap/tidb/merged_unit_test_ddlv1
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: wip/unit-test-ddlv1 # TODO: change to ci/ after test.
