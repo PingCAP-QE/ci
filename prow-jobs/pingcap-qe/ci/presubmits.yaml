@@ -82,7 +82,6 @@ presubmits:
       decorate: true
       always_run: false
       optional: true
-      max_concurrency: 1
       trigger: "(?m)^/test (?:.*? )?pull-verify-jenkins-migration(?: .*?)?$"
       rerun_command: "/test pull-verify-jenkins-migration"
       run_if_changed: "^prow-jobs/.*\\.ya?ml$"
