@@ -56,7 +56,6 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 │   ├── gethash/             # Git hash utility (Go)
 │   └── ...
 ├── scripts/                 # Utility scripts
-├── jenkins/                 # [Deprecated] Legacy configs
 ├── .ci/                     # CI maintenance scripts
 └── configs/                 # Tool configurations
 ```

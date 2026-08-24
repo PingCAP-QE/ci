@@ -1,4 +1,0 @@
-FROM pingcap/alpine-glibc:alpine-3.14.6
-COPY tidb-server /tidb-server
-EXPOSE 4000
-ENTRYPOINT ["/tidb-server"]

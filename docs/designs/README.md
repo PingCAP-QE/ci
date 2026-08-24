@@ -8,8 +8,6 @@
 - `/pipelines` - Jenkins pipeline script implementations
 - `/tekton` - Tekton CI/CD static resources definitions
 - `/libraries` - Jenkins CI shared libraries
-- [Deprecated] `/jenkins/jobs` - Legacy CI job DSL files for old CI servers
-- [Deprecated] `/jenkins/pipelines` - Legacy pipeline scripts for old CI servers
 
 ## File Structure and Naming Conventions
 
