@@ -132,7 +132,7 @@ presubmits:
             command: [bash, -ceo, pipefail]
             args:
               - |
-                apk add --no-cache git jq ripgrep yq-go
+                apk add --no-cache git jq ripgrep yq-go github-cli
                 .ci/verify-jenkins-migration.sh \
                   --base-sha "${PULL_BASE_SHA:-}" \
                   --head-sha "${PULL_PULL_SHA:-}" \
