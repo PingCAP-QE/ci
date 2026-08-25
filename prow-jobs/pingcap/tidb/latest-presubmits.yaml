@@ -210,7 +210,7 @@ presubmits:
       name: pingcap/tidb/pull_sqllogic_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-sqllogic-test
