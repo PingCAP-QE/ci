@@ -3,7 +3,7 @@ postsubmits:
   pingcap/docs:
     - name: docs-merged-update-docs
       agent: kubernetes
-      cluster: kce-pingcap-cicd
+      cluster: tke-pingcap-cicd
       decorate: true
       decoration_config:
         timeout: 100m

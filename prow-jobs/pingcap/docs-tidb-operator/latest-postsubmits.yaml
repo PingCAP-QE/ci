@@ -3,7 +3,7 @@ postsubmits:
   pingcap/docs-tidb-operator:
     - name: update-pdfs
       agent: kubernetes
-      cluster: kce-pingcap-cicd
+      cluster: tke-pingcap-cicd
       decorate: true
       decoration_config:
         timeout: 60m
