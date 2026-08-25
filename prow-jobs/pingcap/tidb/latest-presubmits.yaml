@@ -30,7 +30,7 @@ presubmits:
       name: pingcap/tidb/ghpr_check
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev
@@ -63,7 +63,7 @@ presubmits:
       name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/unit-test
@@ -74,7 +74,7 @@ presubmits:
       name: pingcap/tidb/pull_unit_test_ddlv1
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
@@ -130,7 +130,7 @@ presubmits:
       name: pingcap/tidb/pull_e2e_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-e2e-test
@@ -141,7 +141,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_e2e_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-e2e-test
