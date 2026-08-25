@@ -19,7 +19,7 @@ presubmits:
       name: pingcap/tidb/ghpr_build
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/build
@@ -52,7 +52,7 @@ presubmits:
       name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/mysql-test
@@ -108,7 +108,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_copr_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-integration-copr-test
@@ -119,7 +119,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_jdbc_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-integration-jdbc-test
@@ -221,7 +221,7 @@ presubmits:
       name: pingcap/tidb/pull_mysql_client_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-mysql-client-test
