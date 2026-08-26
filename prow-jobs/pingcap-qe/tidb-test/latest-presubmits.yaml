@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/ghpr_build
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md)$"
       context: ci/build
