@@ -35,6 +35,11 @@ Options:
   --timeout <seconds>     Max wait seconds per queue/build. Default: 7200.
   --poll-interval <sec>   Poll interval in seconds. Default: 20.
   --retries <count>       Trigger retries for infra failures. Default: 3.
+  --source-build <url>    Copy parameters from this from-jenkins build URL
+                          instead of <job>/lastSuccessfulBuild (e.g. a recent
+                          pingcap/tidb PR's successful build, to get version-
+                          matched parameters). Falls back to lastSuccessfulBuild
+                          -> lastBuild when unset.
   --repo <owner/repo>     GitHub repo for PR comment reporting (auto from env).
   --pr <number>           PR number for comment reporting (auto from env).
   --dry-run               Detect and plan only, do not trigger.
@@ -210,6 +215,18 @@ get_params_from_build() {
 # returns empty (the job is triggered without parameters). Never skips.
 get_last_success_params() {
     local job_path="$1" body url
+    if [[ -n "$SOURCE_BUILD" ]]; then
+        url="${SOURCE_BUILD%/}/api/json?tree=actions[parameters[name,value]]"
+        if body="$(get_params_from_build "$url" 2>/dev/null)"; then
+            PARAMS_SOURCE="source-build"
+        else
+            PARAMS_SOURCE="source-build-unavailable"
+            body=""
+        fi
+        vlog "params source for ${job_path}: ${PARAMS_SOURCE}"
+        printf '%s' "$body"
+        return 0
+    fi
     url="${FROM_JENKINS_URL}/${job_path}/lastSuccessfulBuild/api/json?tree=actions[parameters[name,value]]"
     if body="$(get_params_from_build "$url" 2>/dev/null)"; then
         PARAMS_SOURCE="lastSuccessfulBuild"
@@ -576,6 +593,7 @@ init_defaults() {
     VERBOSE="false"
     REPO=""
     PR=""
+    SOURCE_BUILD=""
     REPO_LAST_RESULT=""
     BUILD_RESULT=""
     PARAMS_SOURCE=""
@@ -598,6 +616,7 @@ parse_args() {
             --timeout) TIMEOUT_SEC="$2"; shift 2 ;;
             --poll-interval) POLL_INTERVAL_SEC="$2"; shift 2 ;;
             --retries) RETRIES="$2"; shift 2 ;;
+            --source-build) SOURCE_BUILD="$2"; shift 2 ;;
             --repo) REPO="$2"; shift 2 ;;
             --pr) PR="$2"; shift 2 ;;
             --dry-run) DRY_RUN="true"; shift ;;
