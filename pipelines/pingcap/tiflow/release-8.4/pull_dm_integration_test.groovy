@@ -134,10 +134,6 @@ pipeline {
                 stages {
                     stage("Test") {
                         options { timeout(time: 50, unit: 'MINUTES') }
-                        environment {
-                            DM_CODECOV_TOKEN = credentials('codecov-token-tiflow')
-                            DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
-                        }
                         steps {
                             container("mysql1") {
                                 sh label: "copy mysql certs", script: """
