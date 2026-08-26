@@ -50,10 +50,9 @@ spec:
           exit 0
         fi
 
-        chmod +x $script
         tries=0
         max_retries=3
-        until $script; do
+        until /bin/sh $script; do
           tries=$((tries + 1))
           if [ $tries -ge $max_retries ]; then
             echo "Script '$script' failed after $max_retries attempts."
