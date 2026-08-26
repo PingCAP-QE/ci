@@ -16,6 +16,9 @@ Verify a jenkins-agent Prow job migration PR.
 Detects prow-jobs whose labels.master flipped "1" -> "0" in the PR diff,
 copies the parameters of the last successful build from the from Jenkins and
 triggers the same job on the to Jenkins, optionally waiting for completion.
+Parameters fall back to the most recent build (any result) when there is no
+successful build. Failed builds are classified as infra (checkout/SSH/bazel
+fetch errors, ABORTED) vs real test failures and reported separately.
 Reports progress via a single PR comment.
 
 Usage:
@@ -191,14 +194,37 @@ collect_flipped_jobs() {
     done
 }
 
-# Output base64-encoded JSON records {name,value} of the last successful build
-# parameters of a job on the from Jenkins. Exits non-zero when unavailable.
-get_last_success_params() {
-    local job_path="$1"
-    local url="${FROM_JENKINS_URL}/${job_path}/lastSuccessfulBuild/api/json?tree=actions[parameters[name,value]]"
+# Extract parameters from a build URL on the from jenkins; exits non-zero when
+# the build does not exist.
+get_params_from_build() {
+    local url="$1"
     curl -fsS -g "${CURL_AUTH_FROM[@]}" "$url" | \
         jq -c '[.actions[]?.parameters[]? | select(.name? != null) | {name, value: ((.value // "") | tostring)}]' | \
         jq -r '.[] | @base64'
+}
+
+# Output base64-encoded JSON records {name,value} of the parameters used to
+# trigger a job on the to jenkins. Prefers the from jenkins last successful
+# build; falls back to the most recent build (any result) so jobs without a
+# successful build history are still verified. When no build exists at all,
+# returns empty (the job is triggered without parameters). Never skips.
+get_last_success_params() {
+    local job_path="$1" body url
+    url="${FROM_JENKINS_URL}/${job_path}/lastSuccessfulBuild/api/json?tree=actions[parameters[name,value]]"
+    if body="$(get_params_from_build "$url" 2>/dev/null)"; then
+        PARAMS_SOURCE="lastSuccessfulBuild"
+    else
+        url="${FROM_JENKINS_URL}/${job_path}/lastBuild/api/json?tree=actions[parameters[name,value]]"
+        if body="$(get_params_from_build "$url" 2>/dev/null)"; then
+            PARAMS_SOURCE="lastBuild"
+        else
+            PARAMS_SOURCE="none"
+            body=""
+        fi
+    fi
+    vlog "params source for ${job_path}: ${PARAMS_SOURCE}"
+    printf '%s' "$body"
+    return 0
 }
 
 trigger_job_build() {
@@ -297,6 +323,7 @@ wait_build_result() {
             rm -f "$body_file"
             if [[ "$building" != "true" && -n "$result" && "$result" != "null" ]]; then
                 log "build finished: ${build_url} => ${result}"
+                BUILD_RESULT="$result"
                 if [[ "$result" != "SUCCESS" ]]; then
                     return 1
                 fi
@@ -313,6 +340,24 @@ wait_build_result() {
     done
 }
 
+# Known infra/network failure markers in a Jenkins console log (checkout/SSH
+# and bazel fetch errors). Jobs failing with these are infra flakes, not real
+# test failures.
+INFRA_FAIL_PATTERNS='Connection closed by|Error fetching remote repo|Could not read from remote repository|unexpected end of file|No valid crumb was included'
+
+# Classify a failed build as "infra" or "test" by grepping its console log.
+# Only the last 1MB of the console is fetched to bound the transfer size.
+classify_build_failure() {
+    local build_url="$1" console
+    console="$(curl -fsS -g -r -1048576 "${CURL_AUTH_TO[@]}" "${build_url}/consoleText" 2>/dev/null || true)"
+    if [[ -n "$console" ]] && printf '%s' "$console" | rg -q "$INFRA_FAIL_PATTERNS"; then
+        printf 'infra'
+        return 0
+    fi
+    printf 'test'
+    return 0
+}
+
 verify_one() {
     local name="$1" source_file="$2"
     REPO_LAST_RESULT=""
@@ -322,10 +367,9 @@ verify_one() {
     log "verify ${name} (${source_file}) -> ${TO_JENKINS_URL}/${job_path}"
 
     local params_b64=""
-    if ! params_b64="$(get_last_success_params "$job_path" 2>/dev/null)"; then
-        log "skip ${name}: no lastSuccessfulBuild or fetch failed on from jenkins"
-        REPO_LAST_RESULT="skipped"
-        return 0
+    params_b64="$(get_last_success_params "$job_path")"
+    if [[ "$PARAMS_SOURCE" == "none" ]]; then
+        log "no build history on from jenkins for ${name}; triggering without parameters"
     fi
 
     if [[ "$DRY_RUN" == "true" ]]; then
@@ -367,6 +411,17 @@ verify_one() {
             REPO_LAST_RESULT="success"
             return 0
         fi
+        if [[ "$BUILD_RESULT" == "ABORTED" ]]; then
+            log "build aborted for ${name} (infra)"
+            REPO_LAST_RESULT="infra-fail"
+            return 1
+        fi
+        if [[ "$(classify_build_failure "$build_url")" == "infra" ]]; then
+            log "build failure classified as infra for ${name}"
+            REPO_LAST_RESULT="infra-fail"
+            return 1
+        fi
+        log "build failure classified as test failure for ${name}"
         REPO_LAST_RESULT="failed"
         return 1
     fi
@@ -443,6 +498,7 @@ SUMMARY_SUCCESS=0
 SUMMARY_SUBMITTED=0
 SUMMARY_SKIPPED=0
 SUMMARY_FAILED=0
+SUMMARY_INFRA_FAIL=0
 SUMMARY_DRY_RUN=0
 SUMMARY_TOTAL=0
 
@@ -453,6 +509,7 @@ record_summary() {
         submitted) ((SUMMARY_SUBMITTED+=1)) ;;
         skipped) ((SUMMARY_SKIPPED+=1)) ;;
         failed) ((SUMMARY_FAILED+=1)) ;;
+        infra-fail) ((SUMMARY_INFRA_FAIL+=1)) ;;
         dry-run) ((SUMMARY_DRY_RUN+=1)) ;;
     esac
 }
@@ -501,8 +558,8 @@ render_report() {
             esac
             printf -- '- [%s] `%s`\n  - status: %s\n' "$box" "$name" "$r"
         done <<< "$names"
-        printf '\nSummary: success=%d submitted=%d failed=%d skipped=%d dry-run=%d total=%d\n' \
-            "$SUMMARY_SUCCESS" "$SUMMARY_SUBMITTED" "$SUMMARY_FAILED" "$SUMMARY_SKIPPED" "$SUMMARY_DRY_RUN" "$SUMMARY_TOTAL"
+        printf '\nSummary: success=%d submitted=%d failed=%d infra-fail=%d skipped=%d dry-run=%d total=%d\n' \
+            "$SUMMARY_SUCCESS" "$SUMMARY_SUBMITTED" "$SUMMARY_FAILED" "$SUMMARY_INFRA_FAIL" "$SUMMARY_SKIPPED" "$SUMMARY_DRY_RUN" "$SUMMARY_TOTAL"
     } > "$out_file"
 }
 
@@ -520,6 +577,8 @@ init_defaults() {
     REPO=""
     PR=""
     REPO_LAST_RESULT=""
+    BUILD_RESULT=""
+    PARAMS_SOURCE=""
     FROM_JENKINS_URL="${FROM_JENKINS_URL:-}"
     FROM_JENKINS_USER="${FROM_JENKINS_USER:-}"
     FROM_JENKINS_TOKEN="${FROM_JENKINS_TOKEN:-}"
@@ -643,7 +702,7 @@ run_main_flow() {
 
     # Re-derive summary counters from per-job results so parallel runs report accurately.
     local r
-    SUMMARY_SUCCESS=0; SUMMARY_SUBMITTED=0; SUMMARY_SKIPPED=0; SUMMARY_FAILED=0; SUMMARY_DRY_RUN=0
+    SUMMARY_SUCCESS=0; SUMMARY_SUBMITTED=0; SUMMARY_SKIPPED=0; SUMMARY_FAILED=0; SUMMARY_INFRA_FAIL=0; SUMMARY_DRY_RUN=0
     for (( i = 1; i <= SUMMARY_TOTAL; i++ )); do
         r="$(cat "${results_dir}/${i}.result" 2>/dev/null || echo failed)"
         record_summary "$r"
@@ -652,7 +711,7 @@ run_main_flow() {
     render_report "$body_file" "$(printf '%s\n' "${names[@]}")" "$results_dir"
     post_or_update_comment "$body_file"
 
-    log "verify summary: success=${SUMMARY_SUCCESS} submitted=${SUMMARY_SUBMITTED} failed=${SUMMARY_FAILED} skipped=${SUMMARY_SKIPPED} dry-run=${SUMMARY_DRY_RUN} total=${SUMMARY_TOTAL}"
+    log "verify summary: success=${SUMMARY_SUCCESS} submitted=${SUMMARY_SUBMITTED} failed=${SUMMARY_FAILED} infra-fail=${SUMMARY_INFRA_FAIL} skipped=${SUMMARY_SKIPPED} dry-run=${SUMMARY_DRY_RUN} total=${SUMMARY_TOTAL}"
     rm -rf "$tmpdir"
     return "$failed"
 }
