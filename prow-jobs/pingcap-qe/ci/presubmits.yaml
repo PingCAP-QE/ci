@@ -136,6 +136,7 @@ presubmits:
                   --timeout 7200 \
                   --poll-interval 20 \
                   --retries 3 \
+                  --source-build https://do.pingcap.net/jenkins/job/pingcap/job/tidb/job/ghpr_build/43 \
                   --verbose
             resources:
               limits:
