@@ -40,6 +40,9 @@ spec:
           --outfile=/workspace/delivery.sh
     - name: run-commands
       image: gcr.io/go-containerregistry/crane/debug:latest
+      env:
+        - name: PATH
+          value: /:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/busybox
       script: |
         #!/busybox/sh
         set -e
