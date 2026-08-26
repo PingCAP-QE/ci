@@ -37,16 +37,27 @@ pipeline {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
+                    // Skip the expensive prepare sub-steps on re-runs of the same refs; the
+                    // cache restores keep the workspace complete for the stash below.
                     cache(path: "./bin", includes: 'tidb-server', key: prow.getCacheKey('binary', REFS)) {
-                        sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
+                        script {
+                            if (!matrixCache.shouldSkip(REFS, 'Prepare', [:]) || !fileExists('bin/tidb-server')) {
+                                sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
+                            }
+                        }
                     }
-                    container("utils") {
-                        dir("bin") {
-                            script {
-                                retry(2) {
-                                    sh label: "download tidb components", script: """
-                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
-                                    """
+                    cache(path: "./bin", includes: 'pd-server,tikv-server', key: prow.getCacheKey('components', REFS)) {
+                        container("utils") {
+                            dir("bin") {
+                                script {
+                                    if (!matrixCache.shouldSkip(REFS, 'Prepare', [:]) || !fileExists('pd-server') || !fileExists('tikv-server')) {
+                                        retry(2) {
+                                            sh label: "download tidb components", script: """
+                                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                            """
+                                        }
+                                        matrixCache.markDone(REFS, 'Prepare', [:])
+                                    }
                                 }
                             }
                         }
