@@ -85,7 +85,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-integration-mysql-test
@@ -96,7 +96,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_tici_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-tici-test
@@ -185,7 +185,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_common_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       # never run before
       decorate: false # need add this.
       optional: true
@@ -210,7 +210,7 @@ presubmits:
       name: pingcap/tidb/pull_sqllogic_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-sqllogic-test
@@ -254,7 +254,7 @@ presubmits:
       name: pingcap/tidb/pull_tiflash_integration_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       # this job never run before.
       decorate: false # need add this.
       optional: true
