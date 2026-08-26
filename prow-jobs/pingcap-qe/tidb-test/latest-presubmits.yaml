@@ -53,7 +53,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/ghpr_integration_mysql_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "mysql_test/.*"
       context: ci/integration-mysql-test
