@@ -112,7 +112,7 @@ presubmits:
     - name: pingcap/tiproxy/pull_mysql_connector_test
       agent: jenkins
       labels:
-        master: "1" # run on GCP
+        master: "0" # run on GCP
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: "(\\.md|Dockerfile|OWNERS|OWNERS_ALIASES)$"
