@@ -80,10 +80,6 @@ presubmits:
     - name: pull-verify-jenkins-migration
       labels: *labels
       decorate: true
-      always_run: false
-      optional: true
-      trigger: "(?m)^/test (?:.*? )?pull-verify-jenkins-migration(?: .*?)?$"
-      rerun_command: "/test pull-verify-jenkins-migration"
       run_if_changed: "^prow-jobs/.*\\.ya?ml$"
       timeout: 4h
       branches:
