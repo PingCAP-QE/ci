@@ -74,6 +74,9 @@ spec:
           operator: in
           values: ["true"]
       image: gcr.io/go-containerregistry/crane/debug:latest
+      env:
+        - name: PATH
+          value: /:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/busybox
       computeResources:
         requests:
           cpu: 50m
