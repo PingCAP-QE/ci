@@ -174,7 +174,7 @@ presubmits:
       name: pingcap/tidb/pull_common_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-common-test
