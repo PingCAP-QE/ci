@@ -52,7 +52,7 @@ spec:
 
         tries=0
         max_retries=3
-        until /bin/sh $script; do
+        until /busybox/sh $script; do
           tries=$((tries + 1))
           if [ $tries -ge $max_retries ]; then
             echo "Script '$script' failed after $max_retries attempts."
