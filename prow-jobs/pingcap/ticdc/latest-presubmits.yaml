@@ -123,6 +123,8 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_light_v8_1
+      labels:
+        master: "0"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
       optional: true
