@@ -5,7 +5,6 @@ resources:
   - build/pingcap-build-binaries-darwin.yaml
   - build/pingcap-build-binaries-linux.yaml
   - build/pingcap-build-images.yaml
-  - ci/ci-helper-for-pr.yaml
   - crane-copy.yaml # crane copy task
   - echo.yaml ##### an example task.
   - gen-build-binaries-scripts.yaml
