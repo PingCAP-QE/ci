@@ -120,9 +120,6 @@ configMapGenerator:
       - tikv_tikv_release-7.1-presubmits.yaml=tikv/tikv/release-7.1-presubmits.yaml
       - tikv_tikv_release-7.5-presubmits.yaml=tikv/tikv/release-7.5-presubmits.yaml
       - tikv_tikv_release-8.1-presubmits.yaml=tikv/tikv/release-8.1-presubmits.yaml
-      - tikv_tikv_release-8.2-presubmits.yaml=tikv/tikv/release-8.2-presubmits.yaml
-      - tikv_tikv_release-8.3-presubmits.yaml=tikv/tikv/release-8.3-presubmits.yaml
-      - tikv_tikv_release-8.4-presubmits.yaml=tikv/tikv/release-8.4-presubmits.yaml
       - tikv_tikv_release-8.5-presubmits.yaml=tikv/tikv/release-8.5-presubmits.yaml
       - tikv_tikv_release-9.0-beta-presubmits.yaml=tikv/tikv/release-9.0-beta-presubmits.yaml
       - tikv_titan_latest-presubmits.yaml=tikv/titan/latest-presubmits.yaml
