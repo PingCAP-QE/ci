@@ -144,7 +144,7 @@ spec:
         fi
 
     - name: create-pr
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       workingDir: /workspace/src
       script: |
         git config --global --add safe.directory `pwd`
