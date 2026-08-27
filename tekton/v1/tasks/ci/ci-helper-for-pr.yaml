@@ -1,30 +1,37 @@
-apiVersion: tekton.dev/v1beta1
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: ci-helper-for-pr
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.29.0"
+    tekton.dev/categories: GitHub
+    tekton.dev/tags: github,ci
+    tekton.dev/displayName: "ci helper for pull requests"
+    tekton.dev/platforms: "linux/amd64"
 spec:
   description: CI helper for contribution pull requests
   params:
     - name: owner
       description: repo owner
+      type: string
     - name: repo
       description: repo short name
+      type: string
     - name: number
       description: pull request number
+      type: string
   steps:
     - name: create-pull-request
-      image: bitnami/git:2.43.0
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       script: |
         #!/usr/bin/env bash
-        set -exo pipefail
+        set -euo pipefail
 
-        # install `gh` tool
-        type -p curl >/dev/null || ( apt update &&  apt install curl -y)
-        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |  tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-        && apt update \
-        && apt install gh -y
+        # install `gh` tool (release utils image ships `gh`; install if missing)
+        type -p gh >/dev/null || apk add --no-cache gh
 
         gh auth login --with-token < $(workspaces.github.path)/token
 

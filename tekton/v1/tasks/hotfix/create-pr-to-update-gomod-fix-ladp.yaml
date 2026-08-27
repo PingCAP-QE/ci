@@ -24,13 +24,13 @@ spec:
       default: ghcr.io/pingcap-qe/ci/base:v20231216-14-g77d0cd2-go1.19
   steps:
     - name: clone
-      image: bitnami/git:2.43.0
+      image: alpine/git:v2.54.0
       workingDir: /workspace
       script: |
         git clone $(params.git-url) --branch $(params.branch) /workspace/src
 
     - name: update-ladp-crt-key
-      image: bitnami/git:2.43.0
+      image: alpine/git:v2.54.0
       workingDir: /workspace/src
       script: |
         git config --global --add safe.directory `pwd`
@@ -145,7 +145,7 @@ spec:
         fi
 
     - name: create-pr
-      image: bitnami/git:2.43.0
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       workingDir: /workspace/src
       script: |
         git config --global --add safe.directory `pwd`
@@ -203,14 +203,8 @@ spec:
           git commit -am "$go_mod_commit_msg"
         fi
 
-        # login and setup git (gh tool installation assumed to be idempotent or handled)
-        # install `gh` tool (ensure it's available)
-        type -p curl >/dev/null || ( apt update && apt install curl -y)
-        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |  tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-        && apt update \
-        && apt install gh -y
+        # login and setup git (release utils image ships `gh`; install if missing)
+        type -p gh >/dev/null || apk add --no-cache gh
 
         gh auth login --with-token < $(workspaces.github.path)/token
         gh auth setup-git
