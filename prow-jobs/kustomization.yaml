@@ -93,7 +93,6 @@ configMapGenerator:
       - tikv_pd_common-presubmits.yaml=tikv/pd/common-presubmits.yaml
       - tikv_pd_latest-presubmits-next-gen.yaml=tikv/pd/latest-presubmits-next-gen.yaml
       - tikv_pd_latest-presubmits.yaml=tikv/pd/latest-presubmits.yaml
-      - tikv_pd_release-6.5-fips-presubmits.yaml=tikv/pd/release-6.5-fips-presubmits.yaml
       - tikv_pd_release-6.5-presubmits.yaml=tikv/pd/release-6.5-presubmits.yaml
       - tikv_pd_release-7.1-presubmits.yaml=tikv/pd/release-7.1-presubmits.yaml
       - tikv_pd_release-7.5-presubmits.yaml=tikv/pd/release-7.5-presubmits.yaml
