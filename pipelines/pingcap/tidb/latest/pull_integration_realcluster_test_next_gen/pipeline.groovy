@@ -11,6 +11,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "cloud-engine-nextgen")
+final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
 final GIT_CREDENTIALS_ID = ''
 
 prow.setPRDescription(REFS)
@@ -65,6 +66,7 @@ pipeline {
                                     --pd=${OCI_TAG_PD} \
                                     --tikv=${OCI_TAG_TIKV} \
                                     --tikv-worker=${OCI_TAG_TIKV} \
+                                    --tiflash=${OCI_TAG_TIFLASH} \
                                     --minio=RELEASE.2025-07-23T15-54-02Z
                             """
                         }
@@ -177,6 +179,8 @@ pipeline {
                                     mkdir -p "\${logs_dir}"
                                     mv pd*.log "\${logs_dir}" || true
                                     mv tikv*.log "\${logs_dir}" || true
+                                    mv tiflash*.log "\${logs_dir}" || true
+                                    mv minio.log "\${logs_dir}" || true
                                     tar -czvf "\${logs_dir}.tar.gz" "\${logs_dir}" || true
                                     """
                                     archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
