@@ -101,7 +101,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/pull_tiproxy_mysql_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -114,7 +114,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/pull_tiproxy_common_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -127,7 +127,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/pull_tiproxy_jdbc_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -140,7 +140,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/pull_tiproxy_ruby_orm_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -153,7 +153,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/pull_tiproxy_mysql_connector_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
