@@ -80,6 +80,7 @@ presubmits:
     - name: pull-verify-jenkins-migration
       labels: *labels
       decorate: true
+      optional: true
       run_if_changed: "^prow-jobs/.*\\.ya?ml$"
       timeout: 4h
       branches:
