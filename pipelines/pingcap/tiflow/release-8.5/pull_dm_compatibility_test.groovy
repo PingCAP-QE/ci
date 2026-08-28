@@ -28,6 +28,9 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
+    environment {
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
+    }
     stages {
         stage('Check diff files') {
             steps {
