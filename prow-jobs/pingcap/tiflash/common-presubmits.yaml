@@ -4,7 +4,7 @@
 # instead of being duplicated per-branch presubmit file.
 presubmits:
   pingcap/tiflash:
-    - name: pingcap/tiflash/pull_license_check
+    - name: pull-license-check
       decorate: true
       skip_submodules: true
       decoration_config:
@@ -22,7 +22,6 @@ presubmits:
         - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
         - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
       context: pull-license-check
-      always_run: true
       optional: true
       rerun_command: "/test pull-license-check"
       trigger: "(?m)^/test (?:.*? )?(pull-license-check)(?: .*?)?$"
