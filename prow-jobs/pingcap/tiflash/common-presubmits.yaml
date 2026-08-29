@@ -6,9 +6,9 @@ presubmits:
   pingcap/tiflash:
     - name: pingcap/tiflash/pull_license_check
       decorate: true
+      skip_submodules: true
       decoration_config:
         timeout: 30m
-        skip_submodules: true
       branches:
         - ^master$
         - ^feature/.+
