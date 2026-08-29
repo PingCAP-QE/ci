@@ -27,6 +27,29 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
+    - name: pull-verify-prow-jobs-run
+      labels: *labels
+      decorate: true
+      optional: true
+      run_if_changed: "^prow-jobs/.*\\.ya?ml$"
+      max_concurrency: 1
+      timeout: 4h
+      branches:
+        - ^main$
+      spec:
+        serviceAccountName: prow-job-validation
+        containers:
+          - name: main
+            image: wbitt/network-multitool
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                apk add --no-cache bash git jq yq-go kubectl
+                bash .ci/verify-prow-jobs-run.sh
+            resources:
+              limits:
+                memory: 512Mi
+                cpu: 500m
     - name: pull-replay-jenkins-pipelines
       labels: *labels
       decorate: true
