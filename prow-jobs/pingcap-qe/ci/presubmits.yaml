@@ -37,6 +37,7 @@ presubmits:
       branches:
         - ^main$
       spec:
+        serviceAccountName: prow-job-validation
         containers:
           - name: main
             image: wbitt/network-multitool

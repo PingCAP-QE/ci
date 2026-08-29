@@ -22,9 +22,10 @@ set -euo pipefail
 #
 # The dynamic check needs RBAC on the prow cluster: create/get/watch/delete on
 # prowjobs + get/list/watch on pods. The required RBAC is managed by GitOps in
-# PingCAP-QE/ee-ops (apps/gcp/prow/pre/rbac.yaml, applied by Flux `prow-pre`) for
-# the default ServiceAccount of the prow job namespace. Without RBAC the script
-# falls back to static-only and reports the steps to enable the create.
+# PingCAP-QE/ee-ops (apps/gcp/prow/pre/rbac.yaml, applied by Flux `prow-pre`) and
+# granted to the dedicated ServiceAccount `prow-job-validation` that this job
+# runs with (spec.serviceAccountName). Without RBAC the script falls back to
+# static-only and reports the steps to enable the create.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -244,8 +245,7 @@ create_prowjob() {
   echo "    creating ProwJob ${pjname} (${repo}@${branch})"
   if ! kubectl apply -f "${workdir}/${pjname}.yaml" >/dev/null 2>&1; then
     echo "      unable to create ProwJob (RBAC not granted?) - apply the RBAC"
-    echo "      in PingCAP-QE/ee-ops apps/gcp/prow/pre/rbac.yaml (Flux prow-pre) to enable this"
-    return 0
+    echo "      in PingCAP-QE/ee-ops apps/gcp/prow/pre/rbac.yaml (Flux prow-pre) to enable this"    return 0
   fi
 
   local ok=""
