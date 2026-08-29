@@ -23,9 +23,11 @@ set -euo pipefail
 # The dynamic check needs RBAC on the prow cluster: create/get/watch/delete on
 # prowjobs + get/list/watch on pods. The required RBAC is managed by GitOps in
 # PingCAP-QE/ee-ops (apps/gcp/prow/pre/rbac.yaml, applied by Flux `prow-pre`) and
-# granted to the dedicated ServiceAccount `prow-job-validation` that this job
-# runs with (spec.serviceAccountName). Without RBAC the script falls back to
-# static-only and reports the steps to enable the create.
+# granted to the dedicated ServiceAccount `prow-job-validation` in the pod
+# namespace (prow-test-pods) that this job runs with. ProwJob CRs are created in
+# the prowjob namespace (apps) where plank watches them, while the spawned pods
+# run in the pod namespace (prow-test-pods). Without RBAC the script falls back
+# to static-only and reports the steps to enable the create.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -36,7 +38,12 @@ MAX_CREATE_JOBS="${MAX_CREATE_JOBS:-3}"
 POD_START_TIMEOUT="${POD_START_TIMEOUT:-900}"
 SKIP_CREATE="${SKIP_CREATE:-0}"
 
-NAMESPACE="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo default)"
+# The prow cluster splits namespaces: ProwJob CRs live in the prowjob namespace
+# (plank watches it there) while the job pods plank spawns run in the pod
+# namespace. Override via env when targeting a different cluster.
+PJOB_NAMESPACE="${PJOB_NAMESPACE:-apps}"
+POD_NAMESPACE="${POD_NAMESPACE:-prow-test-pods}"
+
 CRANE_BIN=""
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
@@ -217,7 +224,7 @@ create_prowjob() {
 
   jq -n \
     --arg name "${pjname}" \
-    --arg ns "${NAMESPACE}" \
+    --arg ns "${PJOB_NAMESPACE}" \
     --arg type "${job_type}" \
     --arg job "${name}" \
     --arg org "${org}" \
@@ -242,19 +249,20 @@ create_prowjob() {
       }
     }' | yq -P > "${workdir}/${pjname}.yaml"
 
-  echo "    creating ProwJob ${pjname} (${repo}@${branch})"
+  echo "    creating ProwJob ${pjname} in ${PJOB_NAMESPACE} (${repo}@${branch})"
   if ! kubectl apply -f "${workdir}/${pjname}.yaml" >/dev/null 2>&1; then
     echo "      unable to create ProwJob (RBAC not granted?) - apply the RBAC"
-    echo "      in PingCAP-QE/ee-ops apps/gcp/prow/pre/rbac.yaml (Flux prow-pre) to enable this"    return 0
+    echo "      in PingCAP-QE/ee-ops apps/gcp/prow/pre/rbac.yaml (Flux prow-pre) to enable this"
+    return 0
   fi
 
   local ok=""
   local waited=0
   while (( waited < POD_START_TIMEOUT )); do
     local phase
-    phase="$(kubectl get pod "${pjname}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+    phase="$(kubectl -n "${POD_NAMESPACE}" get pod "${pjname}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
     if [[ -n "${phase}" && "${phase}" != "Pending" ]]; then
-      echo "      pod phase=${phase} -> image pulled & command started ✓"
+      echo "      pod phase=${phase} (${POD_NAMESPACE}) -> image pulled & command started ✓"
       ok=1
       break
     fi
@@ -263,9 +271,9 @@ create_prowjob() {
   done
   if [[ -z "${ok}" ]]; then
     fail "ProwJob ${pjname} pod stuck in Pending (image pull / scheduling); recent events:"
-    kubectl get events --field-selector "involvedObject.name=${pjname}" --sort-by=.lastTimestamp 2>/dev/null | tail -n 5 | sed 's/^/        /' || true
+    kubectl -n "${POD_NAMESPACE}" get events --field-selector "involvedObject.name=${pjname}" --sort-by=.lastTimestamp 2>/dev/null | tail -n 5 | sed 's/^/        /' || true
   fi
-  kubectl delete prowjob "${pjname}" --ignore-not-found >/dev/null 2>&1 || true
+  kubectl -n "${PJOB_NAMESPACE}" delete prowjob "${pjname}" --ignore-not-found >/dev/null 2>&1 || true
 }
 
 # --------------------------------------------------------------------- main
