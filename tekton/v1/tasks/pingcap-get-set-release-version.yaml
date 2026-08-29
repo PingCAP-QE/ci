@@ -58,7 +58,7 @@ spec:
         git branch --contains > /workspace/branches.txt
         cat /workspace/branches.txt
     - name: compute-version
-      image: denoland/deno:2.9.5
+      image: denoland/deno:2.9.6
       command:
         - deno
         - run
