@@ -27,46 +27,10 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?(pull-license-check)(?: .*?)?$"
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       spec:
-        # license-eye is a glibc-dynamically-linked binary; the utils image
-        # (which has oras/yq for the OCI download) is glibc-less, so download in
-        # an initContainer and run the check in a glibc-based container.
-        initContainers:
-          - name: download-license-eye
-            image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
-            command: [/bin/bash, -ce]
-            args:
-              - |
-                if command -v curl >/dev/null 2>&1; then
-                  curl -fsSL --retry 3 -o /tmp/download_pingcap_oci_artifact.sh \
-                    https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/scripts/artifacts/download_pingcap_oci_artifact.sh
-                else
-                  wget -qO /tmp/download_pingcap_oci_artifact.sh \
-                    https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/scripts/artifacts/download_pingcap_oci_artifact.sh
-                fi
-                export OCI_ARTIFACT_HOST="us-docker.pkg.dev/pingcap-testing-account/hub"
-                export OCI_ARTIFACT_HOST_COMMUNITY="us-docker.pkg.dev/pingcap-testing-account/hub"
-                cd /tmp
-                bash /tmp/download_pingcap_oci_artifact.sh --license-eye=v0.4.0
-                chmod +x license-eye
-                mkdir -p /opt/license-eye
-                mv license-eye /opt/license-eye/license-eye
-            volumeMounts:
-              - name: license-eye
-                mountPath: /opt/license-eye
         containers:
           - name: main
-            image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
-            command: [/bin/bash, -ce]
-            args:
-              - |
-                if [[ -f .github/licenserc.yml ]]; then
-                  /opt/license-eye/license-eye -c .github/licenserc.yml header check
-                else
-                  echo "skip license check"
-                fi
-            volumeMounts:
-              - name: license-eye
-                mountPath: /opt/license-eye
+            image: apache/skywalking-eyes:0.4.0
+            args: ["-c", ".github/licenserc.yml", "header", "check"]
             resources:
               requests:
                 cpu: "1"
@@ -74,6 +38,3 @@ presubmits:
               limits:
                 cpu: "1"
                 memory: 4Gi
-        volumes:
-          - name: license-eye
-            emptyDir: {}
