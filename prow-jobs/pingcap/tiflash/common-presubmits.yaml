@@ -22,7 +22,6 @@ presubmits:
         - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
         - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
       context: pull-license-check
-      optional: true
       rerun_command: "/test pull-license-check"
       trigger: "(?m)^/test (?:.*? )?(pull-license-check)(?: .*?)?$"
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
