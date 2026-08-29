@@ -107,6 +107,11 @@ pipeline {
                             }
                             dir('tidb-test') {
                                 unstash name: WORKSPACE_STASH_NAME
+                                sh label: 'copy tidb binaries', script: """
+                                    mkdir -p bin
+                                    cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                                    ls -alh bin/
+                                """
                                 sh label: "test_params=${TEST_PARAMS} ", script: """
                                     #!/usr/bin/env bash
                                     params_array=(\${TEST_PARAMS})
