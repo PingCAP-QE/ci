@@ -17,17 +17,18 @@ set -euo pipefail
 #   2. Dynamic check (real run, best-effort):
 #      - actually create a ProwJob (prowjobs.prow.k8s.io) on the prow cluster
 #        from the job's own pod spec, point it at the target repo's trunk, and
-#        wait until its pod leaves Pending (image pulled + command started),
-#        then delete the ProwJob. This validates the definition end-to-end.
+#        wait until the ProwJob reaches a terminal state (success / failure /
+#        aborted), then delete it. This validates the definition end-to-end:
+#        pod schedules, image pulls, the command actually runs to completion.
 #
 # The dynamic check needs RBAC on the prow cluster: create/get/watch/delete on
 # prowjobs + get/list/watch on pods. The required RBAC is managed by GitOps in
-# PingCAP-QE/ee-ops (apps/gcp/prow/pre/rbac.yaml, applied by Flux `prow-pre`) and
-# granted to the dedicated ServiceAccount `prow-job-validation` in the pod
-# namespace (prow-test-pods) that this job runs with. ProwJob CRs are created in
-# the prowjob namespace (apps) where plank watches them, while the spawned pods
-# run in the pod namespace (prow-test-pods). Without RBAC the script falls back
-# to static-only and reports the steps to enable the create.
+# PingCAP-QE/ee-ops (apps/gcp/prow/post/job-ns/rbac.yaml, applied by Flux
+# `prow-post`) and granted to the dedicated ServiceAccount `prow-job-validation`
+# in the pod namespace (prow-test-pods) that this job runs with. ProwJob CRs are
+# created in the prowjob namespace (apps) where plank watches them, while the
+# spawned pods run in the pod namespace (prow-test-pods). Without RBAC the
+# script falls back to static-only and reports the steps to enable the create.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -35,7 +36,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BASE_SHA="${PULL_BASE_SHA:-}"
 HEAD_SHA="${PULL_PULL_SHA:-HEAD}"
 MAX_CREATE_JOBS="${MAX_CREATE_JOBS:-3}"
-POD_START_TIMEOUT="${POD_START_TIMEOUT:-900}"
+# how long to wait for a created ProwJob to reach a terminal state
+# (jobs get a decoration timeout of 30m, so give this some slack)
+COMPLETION_TIMEOUT="${COMPLETION_TIMEOUT:-2400}"
 SKIP_CREATE="${SKIP_CREATE:-0}"
 
 # The prow cluster splits namespaces: ProwJob CRs live in the prowjob namespace
@@ -252,27 +255,38 @@ create_prowjob() {
   echo "    creating ProwJob ${pjname} in ${PJOB_NAMESPACE} (${repo}@${branch})"
   if ! kubectl apply -f "${workdir}/${pjname}.yaml" >/dev/null 2>&1; then
     echo "      unable to create ProwJob (RBAC not granted?) - apply the RBAC"
-    echo "      in PingCAP-QE/ee-ops apps/gcp/prow/pre/rbac.yaml (Flux prow-pre) to enable this"
+    echo "      in PingCAP-QE/ee-ops apps/gcp/prow/post/job-ns/rbac.yaml (Flux prow-post) to enable this"
     return 0
   fi
 
-  local ok=""
+  # wait for the ProwJob to reach a terminal state (success/failure/aborted),
+  # i.e. the spawned job pod actually ran to completion, not just started.
+  local state=""
   local waited=0
-  while (( waited < POD_START_TIMEOUT )); do
-    local phase
-    phase="$(kubectl -n "${POD_NAMESPACE}" get pod "${pjname}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
-    if [[ -n "${phase}" && "${phase}" != "Pending" ]]; then
-      echo "      pod phase=${phase} (${POD_NAMESPACE}) -> image pulled & command started ✓"
-      ok=1
-      break
-    fi
-    sleep 5
-    waited=$((waited + 5))
+  while (( waited < COMPLETION_TIMEOUT )); do
+    state="$(kubectl -n "${PJOB_NAMESPACE}" get prowjob "${pjname}" -o jsonpath='{.status.state}' 2>/dev/null || true)"
+    case "${state}" in
+      success|failure|aborted) break ;;
+    esac
+    sleep 15
+    waited=$((waited + 15))
   done
-  if [[ -z "${ok}" ]]; then
-    fail "ProwJob ${pjname} pod stuck in Pending (image pull / scheduling); recent events:"
-    kubectl -n "${POD_NAMESPACE}" get events --field-selector "involvedObject.name=${pjname}" --sort-by=.lastTimestamp 2>/dev/null | tail -n 5 | sed 's/^/        /' || true
-  fi
+
+  case "${state}" in
+    success)
+      echo "      ProwJob ${pjname} completed: success ✓"
+      ;;
+    failure)
+      fail "ProwJob ${pjname} completed with failure (job ran but its command/tests failed)"
+      ;;
+    aborted)
+      fail "ProwJob ${pjname} aborted (prow decoration timeout)"
+      ;;
+    *)
+      fail "ProwJob ${pjname} did not reach a terminal state within ${COMPLETION_TIMEOUT}s (state=${state:-unknown}); recent events:"
+      kubectl -n "${POD_NAMESPACE}" get events --field-selector "involvedObject.name=${pjname}" --sort-by=.lastTimestamp 2>/dev/null | tail -n 5 | sed 's/^/        /' || true
+      ;;
+  esac
   kubectl -n "${PJOB_NAMESPACE}" delete prowjob "${pjname}" --ignore-not-found >/dev/null 2>&1 || true
 }
 
