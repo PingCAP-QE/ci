@@ -1,0 +1,58 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+# `pull-license-check` is branch-agnostic: the same job (download license-eye,
+# run `header check`) applies to every tiflash branch, so it lives here once
+# instead of being duplicated per-branch presubmit file.
+presubmits:
+  pingcap/tiflash:
+    - name: pull-license-check
+      decorate: true
+      skip_submodules: true
+      decoration_config:
+        timeout: 30m
+      branches:
+        - ^master$
+        - ^feature/.+
+        - ^release-fts-[0-9]+$
+        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-9\.0-beta\.\d+$
+        - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
+        - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
+      context: pull-license-check
+      optional: true
+      rerun_command: "/test pull-license-check"
+      trigger: "(?m)^/test (?:.*? )?(pull-license-check)(?: .*?)?$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      spec:
+        containers:
+          - name: main
+            image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+            command: [/bin/bash, -ce]
+            args:
+              - |
+                if command -v curl >/dev/null 2>&1; then
+                  curl -fsSL --retry 3 -o /tmp/download_pingcap_oci_artifact.sh \
+                    https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/scripts/artifacts/download_pingcap_oci_artifact.sh
+                else
+                  wget -qO /tmp/download_pingcap_oci_artifact.sh \
+                    https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/scripts/artifacts/download_pingcap_oci_artifact.sh
+                fi
+                export OCI_ARTIFACT_HOST="us-docker.pkg.dev/pingcap-testing-account/hub"
+                export OCI_ARTIFACT_HOST_COMMUNITY="us-docker.pkg.dev/pingcap-testing-account/hub"
+                bash /tmp/download_pingcap_oci_artifact.sh --license-eye=v0.4.0
+                chmod +x license-eye
+                if [[ -f .github/licenserc.yml ]]; then
+                  ./license-eye -c .github/licenserc.yml header check
+                else
+                  echo "skip license check"
+                fi
+            resources:
+              requests:
+                cpu: "1"
+                memory: 2Gi
+              limits:
+                cpu: "1"
+                memory: 4Gi
