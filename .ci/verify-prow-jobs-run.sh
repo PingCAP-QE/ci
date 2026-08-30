@@ -170,7 +170,7 @@ static_check_job() {
   while read -r c; do
     local image cmd args0 has_req has_lim
     image="$(jq -r '.image // ""' <<<"${c}")"
-    cmd="$(jq -r '.command | join(" ") // ""' <<<"${c}")"
+    cmd="$(jq -r '(.command // []) | join(" ") // ""' <<<"${c}")"
     args0="$(jq -r '.args[0] // ""' <<<"${c}")"
     has_req="$(jq -r 'if (.resources.requests != null) then "1" else "0" end' <<<"${c}")"
     has_lim="$(jq -r 'if (.resources.limits != null) then "1" else "0" end' <<<"${c}")"
