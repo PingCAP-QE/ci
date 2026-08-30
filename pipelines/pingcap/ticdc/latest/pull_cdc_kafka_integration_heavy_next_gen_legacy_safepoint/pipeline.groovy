@@ -26,6 +26,7 @@ pipeline {
     agent none
     environment {
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
         NEXT_GEN = 1
         LEGACY_SAFEPOINT = 1
     }

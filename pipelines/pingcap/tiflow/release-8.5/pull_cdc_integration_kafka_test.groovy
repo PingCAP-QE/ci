@@ -25,6 +25,9 @@ pipeline {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
+    environment {
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
+    }
     stages {
         stage('Checkout & Prepare') {
             agent {

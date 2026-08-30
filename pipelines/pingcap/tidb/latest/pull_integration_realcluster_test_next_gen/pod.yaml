@@ -9,9 +9,6 @@ spec:
       securityContext:
         privileged: true
       tty: true
-      env:
-        - name: GOPROXY
-          value: "https://us-go.pkg.dev/pingcap-testing-account/go-proxy-remote|https://proxy.golang.org,direct"
       resources:
         requests:
           memory: 48Gi

@@ -26,6 +26,7 @@ pipeline {
     environment {
         // internal mirror is 'hub-zot.pingcap.net/mirrors/tidbx'
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
         NEXT_GEN = 1
     }
     options {

@@ -202,10 +202,10 @@ collect_flipped_jobs() {
 # Extract parameters from a build URL on the from jenkins; exits non-zero when
 # the build does not exist.
 get_params_from_build() {
-    local url="$1"
-    curl -fsS -g "${CURL_AUTH_FROM[@]}" "$url" | \
-        jq -c '[.actions[]?.parameters[]? | select(.name? != null) | {name, value: ((.value // "") | tostring)}]' | \
-        jq -r '.[] | @base64'
+    local url="$1" body
+    body="$(curl -fsS -g "${CURL_AUTH_FROM[@]}" "$url" 2>/dev/null || curl -fsS -g "$url" 2>/dev/null)" || return 1
+    jq -c '[.actions[]?.parameters[]? | select(.name? != null) | {name, value: ((.value // "") | tostring)}]' <<<"$body" | \
+        jq -r '.[] | @base64' || return 1
 }
 
 # Output base64-encoded JSON records {name,value} of the parameters used to

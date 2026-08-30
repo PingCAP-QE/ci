@@ -1,0 +1,40 @@
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+# `pull-license-check` is branch-agnostic: the same job (download license-eye,
+# run `header check`) applies to every tiflash branch, so it lives here once
+# instead of being duplicated per-branch presubmit file.
+presubmits:
+  pingcap/tiflash:
+    - name: pull-license-check
+      decorate: true
+      skip_submodules: true
+      decoration_config:
+        timeout: 30m
+      branches:
+        - ^master$
+        - ^feature/.+
+        - ^release-fts-[0-9]+$
+        - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-7\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-7\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-8\.1(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^release-9\.0-beta\.\d+$
+        - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
+        - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
+      context: pull-license-check
+      rerun_command: "/test pull-license-check"
+      trigger: "(?m)^/test (?:.*? )?(pull-license-check)(?: .*?)?$"
+      skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+      spec:
+        containers:
+          - name: main
+            image: apache/skywalking-eyes:0.4.0
+            command: ["/bin/license-eye"]
+            args: ["-c", ".github/licenserc.yml", "header", "check"]
+            resources:
+              requests:
+                cpu: "1"
+                memory: 2Gi
+              limits:
+                cpu: "1"
+                memory: 4Gi

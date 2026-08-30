@@ -16,7 +16,7 @@ presubmits:
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_light
       labels:
-        master: "0"
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light
@@ -26,6 +26,8 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-heavy
@@ -44,6 +46,8 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_kafka_integration_heavy
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-kafka-integration-heavy
@@ -54,7 +58,7 @@ presubmits:
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_pulsar_integration_light
       labels:
-        master: "0"
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-pulsar-integration-light
@@ -66,7 +70,7 @@ presubmits:
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_pulsar_integration_heavy
       labels:
-        master: "0"
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-pulsar-integration-heavy
@@ -77,6 +81,8 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_storage_integration_light
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-light
@@ -87,7 +93,7 @@ presubmits:
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_storage_integration_heavy
       labels:
-        master: "0"
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-heavy
@@ -97,6 +103,8 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_light_v7_5
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
       optional: true
@@ -107,6 +115,8 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_v7_5
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
       optional: true
@@ -124,7 +134,7 @@ presubmits:
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_light_v8_1
       labels:
-        master: "0"
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
       optional: true
@@ -135,6 +145,8 @@ presubmits:
 
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_v8_1
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: false
       optional: true

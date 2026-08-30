@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: ci-helper-for-pr
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.29.0"
+    tekton.dev/categories: GitHub
+    tekton.dev/tags: github,ci
+    tekton.dev/displayName: "ci helper for pull requests"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: CI helper for contribution pull requests
+  params:
+    - name: owner
+      description: repo owner
+      type: string
+    - name: repo
+      description: repo short name
+      type: string
+    - name: number
+      description: pull request number
+      type: string
+  steps:
+    - name: create-pull-request
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # install `gh` tool (release utils image ships `gh`; install if missing)
+        type -p gh >/dev/null || apk add --no-cache gh
+
+        gh auth login --with-token < $(workspaces.github.path)/token
+
+        # truct the pull request
+        echo "pull request url: https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
+        gh pr edit --add-label ok-to-test --remove-label needs-ok-to-test https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)
+        gh pr comment --body 'Now you can start all CI jobs with `/test all` in comment or query the triggers with `/test ?`' https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)
+  workspaces:
+    - name: github
+      description: Must includes a key `token`
