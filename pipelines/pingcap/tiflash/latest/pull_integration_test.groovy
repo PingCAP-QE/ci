@@ -20,7 +20,6 @@ pipeline {
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'ci-rwo')
             defaultContainer 'runner'
             retries 2
-            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
@@ -217,7 +216,6 @@ pipeline {
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'docker'
                         retries 2
-                        customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
                 }
                 when {
