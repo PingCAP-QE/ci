@@ -161,5 +161,30 @@ class TestProw {
                 'sh:rm -f \'/tmp/git-askpass-test\'',
             ], events)
         }
+
+        @Test
+        void shouldPreserveAskPassCreationFailureWithoutCleanup() {
+            def events = []
+            def failure = new RuntimeException('temporary directory is unavailable')
+            def script = loadProw(
+                sh: { Map args ->
+                    if (args.returnStdout) {
+                        throw failure
+                    }
+                    events << "sh:${args.script}".toString()
+                },
+            )
+
+            try {
+                script.withGitAskPass('github-bot-https') {
+                    fail('checkout should not run when askpass creation fails')
+                }
+                fail('askpass creation should fail')
+            } catch (RuntimeException actual) {
+                assertSame(failure, actual)
+            }
+
+            assertTrue('cleanup must not run without a temporary path', events.isEmpty())
+        }
     }
 }

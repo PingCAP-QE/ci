@@ -60,10 +60,11 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
  * because checkout cleanup and the pipeline cache operate on the workspace.
  */
 def withGitAskPass(String credentialsId, Closure body) {
-    final tmpAskPassScript = sh(script: 'mktemp "${TMPDIR:-/tmp}/git-askpass.XXXXXX"', returnStdout: true).trim()
-    final askPassScript = libraryResource 'scripts/git_askpass.sh'
+    def tmpAskPassScript
 
     try {
+        tmpAskPassScript = sh(script: 'mktemp "${TMPDIR:-/tmp}/git-askpass.XXXXXX"', returnStdout: true).trim()
+        final askPassScript = libraryResource 'scripts/git_askpass.sh'
         writeFile(file: tmpAskPassScript, text: askPassScript)
         sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
         withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
@@ -72,7 +73,9 @@ def withGitAskPass(String credentialsId, Closure body) {
             }
         }
     } finally {
-        sh label: 'Remove Git HTTP credential helper', script: "rm -f '${tmpAskPassScript}'"
+        if (tmpAskPassScript) {
+            sh label: 'Remove Git HTTP credential helper', script: "rm -f '${tmpAskPassScript}'"
+        }
     }
 }
 
