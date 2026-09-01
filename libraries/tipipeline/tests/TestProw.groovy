@@ -34,6 +34,13 @@ class TestProw {
         void shouldLoadProwSharedLibrary() {
             loadProw()
         }
+
+        @Test
+        void shouldProvideGitAskPassAsLibraryResource() {
+            assertTrue(
+                'Git askpass helper must be under the Jenkins library resources directory',
+                new File('libraries/tipipeline/resources/scripts/git_askpass.sh').isFile())
+        }
     }
 
     static class CacheKeys {
