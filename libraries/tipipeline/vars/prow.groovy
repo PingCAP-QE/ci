@@ -36,15 +36,7 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
 
     def checkoutWithHttpCredentials = {
         if (cdnEnabled && httpCredentialsId) {
-            withCredentials([
-                usernamePassword(
-                    credentialsId: httpCredentialsId,
-                    usernameVariable: 'GIT_CDN_USERNAME',
-                    passwordVariable: 'GIT_CDN_PASSWORD'
-                )
-            ]) {
-                withGitAskPass(checkout)
-            }
+            withGitAskPass(httpCredentialsId, checkout)
         } else {
             checkout()
         }
@@ -67,24 +59,15 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
  * after the server asks for credentials. The script is outside the workspace
  * because checkout cleanup and the pipeline cache operate on the workspace.
  */
-def withGitAskPass(Closure body) {
-    final askPassPath = sh(script: 'mktemp "${TMPDIR:-/tmp}/git-askpass.XXXXXX"', returnStdout: true).trim()
+def withGitAskPass(String credentialsId, Closure body) {
+    final tmpAskPassScript = sh(script: 'mktemp "${TMPDIR:-/tmp}/git-askpass.XXXXXX"', returnStdout: true).trim()
+    final askPassScript = libraryResource 'scripts/git_askpass.sh'
+
     try {
-        sh label: 'Prepare Git HTTP credential helper', script: """#!/usr/bin/env bash
-            set -e
-            cat > '${askPassPath}' <<'EOF'
-#!/bin/sh
-case \"\$1\" in
-  *Username*) printf '%s\\n' \"\$GIT_CDN_USERNAME\" ;;
-  *) printf '%s\\n' \"\$GIT_CDN_PASSWORD\" ;;
-esac
-EOF
-            chmod 700 '${askPassPath}'
-        """
-        withEnv([
-            "GIT_ASKPASS=${askPassPath}",
-            'GIT_TERMINAL_PROMPT=0'
-        ]) {
+        writeFile(file: tmpAskPassScript, text: askPassScript)
+        sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
+        withCredentials([usernamePassword(credentialsId: credentialsId,  usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
+            withEnv(["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']) {
             body()
         }
     } finally {
