@@ -70,6 +70,7 @@ def withGitAskPass(String credentialsId, Closure body) {
             withEnv(["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']) {
                 body()
             }
+        }
     } finally {
         sh label: 'Remove Git HTTP credential helper', script: "rm -f '${tmpAskPassScript}'"
     }
