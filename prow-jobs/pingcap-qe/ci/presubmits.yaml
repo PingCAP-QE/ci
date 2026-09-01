@@ -269,7 +269,7 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^libraries/.*\\.groovy$"
+      run_if_changed: "^(libraries/.*\\.(groovy|sh)|\\.ci/verify-jenkins-libraries\\.sh)$"
       branches:
         - ^main$
       spec:
@@ -279,17 +279,7 @@ presubmits:
             command: [sh, -ce]
             args:
               - |
-                # system global trusted libraries
-                for test_file in libraries/tisys/tests/Test*.groovy; do
-                  echo "Running ${test_file}"
-                  groovy "${test_file}"
-                done
-
-                # untrusted libraries
-                for test_file in libraries/tipipeline/tests/Test*.groovy; do
-                  echo "Running ${test_file}"
-                  groovy "${test_file}"
-                done
+                .ci/verify-jenkins-libraries.sh
 
             resources:
               limits:
