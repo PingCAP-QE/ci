@@ -169,7 +169,7 @@ build_inline_script_with_pod_yaml() {
     # Fallback b64 for the single-pod-template case (variable declared elsewhere or file missing).
     # Matches the previous behavior: substitute only POD_TEMPLATE_FILE on the first occurrence.
     local fallback_b64=""
-    if (( ${#pod_vars[@]} == 0 )); then
+    if (( ${#pod_vars[@]} == 0 && ${#pod_template_file} > 0 )); then
         fallback_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
     fi
 
@@ -237,24 +237,24 @@ prepare_script_for_replay() {
 
     local pod_template_file=""
     if ! pod_template_file="$(resolve_pod_template_file "$script_file")"; then
-        vlog "pod template not inferred for ${script_file}; keep yamlFile as-is"
-        return 0
-    fi
-    if [[ ! -f "$pod_template_file" ]]; then
-        vlog "pod template not found: ${pod_template_file}; keep yamlFile as-is"
-        return 0
+        pod_template_file=""
+        vlog "pod template not inferred from filename for ${script_file}; will rely on script-declared pod yaml"
+    elif [[ ! -f "$pod_template_file" ]]; then
+        pod_template_file=""
+        vlog "pod template not found: ${pod_template_file}; will rely on script-declared pod yaml"
     fi
 
     local temp_script
     temp_script="$(mktemp)"
-    if build_inline_script_with_pod_yaml "$script_file" "$pod_template_file" "$temp_script"; then
+    local rc=0
+    build_inline_script_with_pod_yaml "$script_file" "$pod_template_file" "$temp_script" || rc=$?
+    if [[ "$rc" == "0" ]]; then
         REPLAY_SCRIPT_EFFECTIVE="$temp_script"
         REPLAY_SCRIPT_TEMP="$temp_script"
         vlog "inline pod yaml for replay: ${script_file} + ${pod_template_file}"
         return 0
     fi
 
-    local rc=$?
     rm -f "$temp_script"
     if [[ "$rc" == "2" ]]; then
         vlog "no POD_TEMPLATE_FILE yamlFile usage in ${script_file}; keep script as-is"

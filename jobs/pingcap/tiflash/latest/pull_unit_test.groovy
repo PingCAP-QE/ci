@@ -14,7 +14,7 @@ pipelineJob('pingcap/tiflash/pull_unit_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflash/latest/pull_unit_test.groovy")
+            scriptPath("pipelines/pingcap/tiflash/latest/pull_unit_test/pipeline.groovy")
             scm {
                 git{
                     remote {

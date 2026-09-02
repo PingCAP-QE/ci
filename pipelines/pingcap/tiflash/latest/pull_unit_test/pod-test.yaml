@@ -14,7 +14,7 @@ spec:
       resources:
         limits:
           memory: "24Gi"
-          cpu: "6"
+          cpu: "12"
       volumeMounts:
         - mountPath: "/tmp-memfs"
           name: "tmp-memfs"
