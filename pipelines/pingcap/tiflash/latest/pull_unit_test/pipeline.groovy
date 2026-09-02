@@ -5,7 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit_test.yaml'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
 
