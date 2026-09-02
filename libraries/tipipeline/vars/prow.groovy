@@ -63,8 +63,15 @@ def withGitAskPass(String credentialsId, Closure body) {
     def tmpAskPassScript
 
     try {
-        tmpAskPassScript = sh(script: 'mktemp "${TMPDIR:-/tmp}/git-askpass.XXXXXX"', returnStdout: true).trim()
+        // Keep the askpass script inside the shared workspace volume but outside
+        // the Git worktree. Every caller clones into a workspace subdirectory via
+        // dir(), so the workspace root is never touched by git clean/checkout.
+        // Let writeFile create the file (it runs as the JNLP agent user); a file
+        // pre-created by an sh step would be owned by the container's root user
+        // and not writable by the agent, and a plain /tmp path would sit on a
+        // different filesystem than the container that runs Git.
         final askPassScript = libraryResource 'scripts/git_askpass.sh'
+        tmpAskPassScript = "${env.WORKSPACE}/git-askpass-${UUID.randomUUID().toString()}"
         writeFile(file: tmpAskPassScript, text: askPassScript)
         sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
         withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
