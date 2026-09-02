@@ -260,26 +260,38 @@ trigger_job_build() {
         tmpfiles+=("$vf" "${vf}.v")
     done <<< "$params_b64"
 
-    local endpoint="build"
+    # Parameterized jobs reject POST /build with HTTP 400; non-parameterized
+    # jobs reject POST /buildWithParameters. When we have parameters we must
+    # use buildWithParameters. When we have none we try build first and fall
+    # back to buildWithParameters (which applies the job's default parameter
+    # values) so jobs without build history are still triggered.
+    local -a endpoints=("build")
     if (( ${#args[@]} > 0 )); then
-        endpoint="buildWithParameters"
+        endpoints=("buildWithParameters")
+    else
+        endpoints=("build" "buildWithParameters")
     fi
 
-    local headers status loc
-    headers="$(mktemp)"
-    status="$(curl -sS "${CURL_AUTH_TO[@]}" "${CURL_HEADERS_TO[@]}" -o /dev/null -D "$headers" \
-        -w '%{http_code}' -X POST "${args[@]}" "${TO_JENKINS_URL}/${job_path}/${endpoint}" || true)"
-    loc="$(awk -F': ' 'tolower($1)=="location" {gsub("\r", "", $2); print $2; exit}' "$headers")"
-    rm -f "$headers"
+    local endpoint headers status loc
+    for endpoint in "${endpoints[@]}"; do
+        headers="$(mktemp)"
+        status="$(curl -sS "${CURL_AUTH_TO[@]}" "${CURL_HEADERS_TO[@]}" -o /dev/null -D "$headers" \
+            -w '%{http_code}' -X POST "${args[@]}" "${TO_JENKINS_URL}/${job_path}/${endpoint}" || true)"
+        loc="$(awk -F': ' 'tolower($1)=="location" {gsub("\r", "", $2); print $2; exit}' "$headers")"
+        rm -f "$headers"
+        if { [[ "$status" == "200" || "$status" == "201" ]]; } && [[ -n "$loc" ]]; then
+            local tf
+            for tf in "${tmpfiles[@]}"; do
+                rm -f "$tf"
+            done
+            printf '%s' "$(trim_trailing_slash "$loc")"
+            return 0
+        fi
+    done
     local tf
     for tf in "${tmpfiles[@]}"; do
         rm -f "$tf"
     done
-
-    if { [[ "$status" == "200" || "$status" == "201" ]]; } && [[ -n "$loc" ]]; then
-        printf '%s' "$(trim_trailing_slash "$loc")"
-        return 0
-    fi
     return 1
 }
 
