@@ -11,7 +11,7 @@ spec:
       tty: true
       resources:
         requests:
-          cpu: "2"
+          cpu: "4"
           memory: 32Gi
           ephemeral-storage: 20Gi
         limits:
