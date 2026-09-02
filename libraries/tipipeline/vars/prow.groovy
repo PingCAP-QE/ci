@@ -60,18 +60,17 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
  * because checkout cleanup and the pipeline cache operate on the workspace.
  */
 def withGitAskPass(String credentialsId, Closure body) {
-    def tmpAskPassScript
+    // Keep the askpass script inside the shared workspace volume but outside
+    // the Git worktree. Every caller clones into a workspace subdirectory via
+    // dir(), so the workspace root is never touched by git clean/checkout.
+    // Let writeFile create the file (it runs as the JNLP agent user); a file
+    // pre-created by an sh step would be owned by the container's root user
+    // and not writable by the agent, and a plain /tmp path would sit on a
+    // different filesystem than the container that runs Git.
+    final askPassScript = libraryResource 'scripts/git_askpass.sh'
+    final tmpAskPassScript = "${env.WORKSPACE}/git-askpass-${UUID.randomUUID().toString()}"
 
     try {
-        // Keep the askpass script inside the shared workspace volume but outside
-        // the Git worktree. Every caller clones into a workspace subdirectory via
-        // dir(), so the workspace root is never touched by git clean/checkout.
-        // Let writeFile create the file (it runs as the JNLP agent user); a file
-        // pre-created by an sh step would be owned by the container's root user
-        // and not writable by the agent, and a plain /tmp path would sit on a
-        // different filesystem than the container that runs Git.
-        final askPassScript = libraryResource 'scripts/git_askpass.sh'
-        tmpAskPassScript = "${env.WORKSPACE}/git-askpass-${UUID.randomUUID().toString()}"
         writeFile(file: tmpAskPassScript, text: askPassScript)
         sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
         withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
@@ -80,9 +79,7 @@ def withGitAskPass(String credentialsId, Closure body) {
             }
         }
     } finally {
-        if (tmpAskPassScript) {
-            sh label: 'Remove Git HTTP credential helper', script: "rm -f '${tmpAskPassScript}'"
-        }
+        sh label: 'Remove Git HTTP credential helper', script: "rm -f '${tmpAskPassScript}'"
     }
 }
 
