@@ -18,7 +18,6 @@ pipeline {
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'ci-rwo')
             defaultContainer 'runner'
             retries 2
-            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     options {
@@ -50,15 +49,15 @@ pipeline {
             steps {
                 script {
                     dir("tiflash") {
-                        sh label: "config ccache", script: """
-                            ccache -o cache_dir="/tmp/.ccache"
+                        sh label: "config ccache", script: '''
+                            ccache -o cache_dir="$WORKSPACE/.ccache"
                             ccache -o max_size=2G
                             ccache -o hash_dir=false
                             ccache -o compression=true
                             ccache -o compression_level=6
                             ccache -o read_only=false
                             ccache -z
-                        """
+                        '''
                     }
                 }
             }
