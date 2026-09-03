@@ -22,8 +22,13 @@ repositories:
         description: "Pattern for variables and function calls in Go logging"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
         # This pattern doesn't have excludes, so it applies to all files
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"           # Match go.mod at the repo root or in nested modules
 
-    # List of GitHub usernames who can approve error log changes for this repository
+    # List of GitHub usernames who can approve protected changes for this repository
     approvers:
       - "maintainer1"
       - "maintainer2"
@@ -47,6 +52,11 @@ repositories:
       - name: "error_variables"
         description: "Pattern for error variables in Rust error! macro"
         regex: '(?:^|\s)error!\s*(\?%?\w+(?:\s*,\s*[^)]*)?)'
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"
 
     approvers:
       - "rust-maintainer1"
@@ -71,5 +81,5 @@ settings:
 
   # Optional: A hint message printed when approval is required.
   # This can include pointers to where to update patterns and approvers.
-  # For example: "Edit configs/error-log-review/config.yaml under the corresponding repository to update patterns/approvers."
-  hint: "Update error log patterns/approvers at https://github.com/PingCAP-QE/ci/blob/main/configs/error-log-review/config.yaml"
+  # For example: "Edit configs/error-log-review/config.yaml under the corresponding repository to update review patterns/approvers."
+  hint: "Update review patterns/approvers at https://github.com/PingCAP-QE/ci/blob/main/configs/error-log-review/config.yaml"
