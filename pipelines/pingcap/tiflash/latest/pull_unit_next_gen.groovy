@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflash"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 final PARALLELISM = 12
 
 pipeline {

@@ -7,6 +7,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'tikv/tikv'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/release-9.0-beta/pod-pull_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 
 final EXTRA_NEXTEST_ARGS = "-j 8"
 

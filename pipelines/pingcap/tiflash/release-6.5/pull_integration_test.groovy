@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflash"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-6.5/pod-pull_build.yaml'
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-6.5/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 final TIFLASH_IT_BASE_IMAGE = 'ghcr.io/pingcap-qe/bases/tiflash-base:v1.9.1'
 final WORKSPACE_STASH_NAME = 'tiflash-release-6.5-it-workspace'
 final PARALLELISM = 16

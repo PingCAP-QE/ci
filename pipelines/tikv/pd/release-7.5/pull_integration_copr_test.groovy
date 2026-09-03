@@ -7,6 +7,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'tikv/pd'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/release-7.5/pod-pull_integration_copr_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 pipeline {

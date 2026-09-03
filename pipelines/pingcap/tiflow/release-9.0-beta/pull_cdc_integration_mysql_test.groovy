@@ -6,6 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0-beta/pod-pull_cdc_integration_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 
 pipeline {
     agent {

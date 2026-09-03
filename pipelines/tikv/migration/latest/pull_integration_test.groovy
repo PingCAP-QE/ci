@@ -8,6 +8,7 @@ final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 final COMPONENT_ARTIFACT_BASE_REF = REFS.base_ref == 'main' ? 'master' : REFS.base_ref
 final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', COMPONENT_ARTIFACT_BASE_REF, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', COMPONENT_ARTIFACT_BASE_REF, REFS.pulls[0].title, 'master')

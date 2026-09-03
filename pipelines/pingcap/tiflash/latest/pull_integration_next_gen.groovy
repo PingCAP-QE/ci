@@ -8,6 +8,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_build.yaml'
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")

@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-tools'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-tools/latest/pod-pull_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 
 pipeline {
     agent {

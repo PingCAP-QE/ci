@@ -9,6 +9,7 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.1/pod-pull_build.yaml'
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-8.1/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null

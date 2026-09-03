@@ -9,6 +9,7 @@ final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-8.1/pod-pull_dm_integration_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-8.1/pod-pull_dm_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
 final OCI_TAG_TIDB = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
 final OCI_TAG_TIKV = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')

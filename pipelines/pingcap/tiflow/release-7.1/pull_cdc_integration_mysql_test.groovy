@@ -7,6 +7,7 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.1/pod-pull_cdc_integration_mysql_test.yaml'
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/tiflow/release-7.1/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+prow.setPRDescription(REFS)
 final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
 final OCI_TAG_PD = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIDB = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
