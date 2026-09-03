@@ -8,13 +8,13 @@ final GIT_FULL_REPO_NAME = 'pingcap/tiflash'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-9.0-beta/pod-pull_unit-test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
 final PARALLELISM = 12
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean build_cache_ready = false
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

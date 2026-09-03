@@ -7,10 +7,10 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-7.1/pod-ghpr_integration_common_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

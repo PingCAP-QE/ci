@@ -6,7 +6,6 @@ final K8S_NAMESPACE = "jenkins-tikv"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/release-7.5/pod-pull_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
 
 final SRC_DIR = 'tikv-src'
 final TARGET_DIR = 'tikv-target'
@@ -16,6 +15,7 @@ final TEST_ARTIFACTS = 'test-artifacts.tar.gz'
 final TEST_BINARIES_ARCHIVE = 'archive-test-binaries.tar'
 final EXTRA_NEXTEST_ARGS = "-j 8"
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

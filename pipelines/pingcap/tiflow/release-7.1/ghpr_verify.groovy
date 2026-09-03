@@ -7,8 +7,8 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-7.1/pod-ghpr_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {

@@ -8,9 +8,9 @@ final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {

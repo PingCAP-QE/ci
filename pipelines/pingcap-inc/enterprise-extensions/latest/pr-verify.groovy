@@ -7,8 +7,8 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap-inc/enterprise-extensions'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/enterprise-extensions/latest/pod-pr-verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
