@@ -11,6 +11,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {

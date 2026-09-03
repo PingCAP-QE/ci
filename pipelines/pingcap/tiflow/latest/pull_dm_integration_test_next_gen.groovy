@@ -12,6 +12,7 @@ final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.compute
 final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

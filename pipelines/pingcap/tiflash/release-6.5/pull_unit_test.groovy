@@ -9,6 +9,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflash/release-6.5/pod-pull_unit-t
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

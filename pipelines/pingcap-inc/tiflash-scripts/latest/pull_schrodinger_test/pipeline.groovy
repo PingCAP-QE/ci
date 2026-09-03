@@ -5,8 +5,8 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/tiflash-scripts/latest/pull_schrodinger_test/pod.yaml'
 
-prow.setPRDescription(REFS)
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

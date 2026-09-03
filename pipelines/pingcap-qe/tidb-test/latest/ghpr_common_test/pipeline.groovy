@@ -13,6 +13,7 @@ final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {

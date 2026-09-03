@@ -12,6 +12,7 @@ final WORKSPACE_STASH_NAME = 'tiflash-release-6.5-it-workspace'
 final PARALLELISM = 16
 String tiflash_commit_hash = null
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
