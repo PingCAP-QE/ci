@@ -13,11 +13,9 @@ spec:
         requests:
           memory: 16Gi
           cpu: "4"
-          ephemeral-storage: 20Gi
         limits:
           memory: 32Gi
           cpu: "8"
-          ephemeral-storage: 120Gi
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
