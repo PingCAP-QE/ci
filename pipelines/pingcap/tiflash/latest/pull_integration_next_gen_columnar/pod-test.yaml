@@ -19,11 +19,9 @@ spec:
         requests:
           memory: 16Gi
           cpu: "4"
-          ephemeral-storage: 20Gi
         limits:
           memory: 32Gi
           cpu: "8"
-          ephemeral-storage: 150Gi
       volumeMounts:
         - mountPath: "/tmp"
           name: "tmp"
@@ -43,11 +41,9 @@ spec:
         requests:
           memory: 16Gi
           cpu: "4"
-          ephemeral-storage: 10Gi
         limits:
           memory: 32Gi
           cpu: "8"
-          ephemeral-storage: 50Gi
       tty: true
       volumeMounts:
         - mountPath: "/tmp"
