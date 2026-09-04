@@ -595,8 +595,8 @@ render_report() {
 init_defaults() {
     BASE_SHA=""
     HEAD_SHA=""
-    PARALLEL=10
-    MAX_JOBS=40
+    PARALLEL=20
+    MAX_JOBS=100
     WAIT_BUILD="false"
     TIMEOUT_SEC=7200
     POLL_INTERVAL_SEC=20
