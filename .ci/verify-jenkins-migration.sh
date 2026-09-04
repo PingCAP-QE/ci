@@ -372,10 +372,15 @@ wait_build_result() {
     done
 }
 
-# Known infra/network failure markers in a Jenkins console log (checkout/SSH
-# and bazel fetch errors). Jobs failing with these are infra flakes, not real
-# test failures.
-INFRA_FAIL_PATTERNS='Connection closed by|Error fetching remote repo|Could not read from remote repository|unexpected end of file|No valid crumb was included'
+# Known infra failure markers in a Jenkins console log. Jobs failing with these
+# are infra/environment flakes, not real test failures:
+#   - git checkout/transport (SSH/git-cdn, crumb, EOF)
+#   - pod scheduling / workspace volume (ephemeral PVC provisioning, no PV to
+#     bind, insufficient node cpu/memory, scheduler errors)
+#   - node disk pressure (add-index ingest "insufficient free disk space")
+#   - empty-parameter pipeline crash (readJSON on empty JOB_SPEC)
+#   - process killed by the prow entrypoint timeout
+INFRA_FAIL_PATTERNS='Connection closed by|Error fetching remote repo|Could not read from remote repository|unexpected end of file|No valid crumb was included|ephemeral volume controller to create the persistentvolumeclaim|available persistent volumes to bind|Insufficient cpu|Insufficient memory|insufficient free disk space|At least one of file or text needs to be provided to readJSON|Process did not finish before|ContainersNotReady|SchedulerError'
 
 # Classify a failed build as "infra" or "test" by grepping its console log.
 # Only the last 1MB of the console is fetched to bound the transfer size.
