@@ -19,6 +19,9 @@ triggers the same job on the to Jenkins, optionally waiting for completion.
 Parameters fall back to the most recent build (any result) when there is no
 successful build. Failed builds are classified as infra (checkout/SSH/bazel
 fetch errors, ABORTED) vs real test failures and reported separately.
+Jobs without any parameter provenance on the from Jenkins are skipped
+instead of being fired with empty parameters (which crashes prow-driven
+pipelines that require JOB_SPEC); use --source-build to verify them.
 Reports progress via a single PR comment.
 
 Usage:
@@ -397,8 +400,22 @@ verify_one() {
 
     local params_b64=""
     params_b64="$(get_last_success_params "$job_path")"
-    if [[ "$PARAMS_SOURCE" == "none" ]]; then
-        log "no build history on from jenkins for ${name}; triggering without parameters"
+    # Jobs without any parameter provenance (no lastSuccessfulBuild/lastBuild on
+    # the from Jenkins, or an unavailable --source-build) cannot be verified:
+    # these prow-driven jobs require a JOB_SPEC, and firing them with empty
+    # parameters makes the pipeline crash at startup (e.g. readJSON on an empty
+    # JOB_SPEC) and pollutes the results with fake "test" failures. Skip them
+    # and tell the operator how to provide usable parameters.
+    if [[ "$PARAMS_SOURCE" == "none" || "$PARAMS_SOURCE" == "source-build-unavailable" ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            log "dry-run: no parameter source (${PARAMS_SOURCE}) for ${name}; would be skipped"
+            REPO_LAST_RESULT="dry-run"
+            return 0
+        fi
+        log "no usable parameters for ${name} (source=${PARAMS_SOURCE}); skipping verification"
+        log "hint: pass --source-build <from-jenkins build url> carrying a typical/successful JOB_SPEC, or run '${name}' once on ${FROM_JENKINS_URL} so lastSuccessfulBuild exists, then re-run"
+        REPO_LAST_RESULT="skipped"
+        return 0
     fi
 
     if [[ "$DRY_RUN" == "true" ]]; then
