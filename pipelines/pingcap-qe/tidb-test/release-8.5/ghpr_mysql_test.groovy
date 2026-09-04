@@ -86,13 +86,15 @@ pipeline {
                                 unstash 'tidb-server'
                                 sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
                             }
-                            dir('tidb-test/mysql_test') {
+                            dir('tidb-test') {
                                 unstash 'mysql-test'
-                                sh label: "part ${PART}", script: """
-                                export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
-                                export TIDB_TEST_STORE_NAME="unistore"
-                                ./test.sh -backlist=1 -part=${PART}
-                                """
+                                dir('mysql_test') {
+                                    sh label: "part ${PART}", script: """
+                                    export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
+                                    export TIDB_TEST_STORE_NAME="unistore"
+                                    ./test.sh 1 ${PART}
+                                    """
+                                }
                             }
                         }
                         post{
