@@ -97,6 +97,7 @@ with the confirmed values.
    ```bash
    tkn task start zot-validate-repair-image \
      --namespace <namespace> --context <context> \
+     --use-param-defaults \
      --param target-image=<target-image> \
      --param source-image=<source-image> \
      --param bucket=<bucket> \
