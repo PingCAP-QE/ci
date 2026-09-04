@@ -102,7 +102,7 @@ pipeline {
                                         export CACHE_ENABLED=${CACHE_ENABLED}
                                         export TIKV_PATH="127.0.0.1:2379"
                                         export TIDB_TEST_STORE_NAME="tikv"
-                                        ./test.sh -blacklist=1 -part=${PART}
+                                        ./test.sh 1 ${PART}
                                     """
                                 }
                             }

@@ -98,7 +98,7 @@ pipeline {
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
                                     export CACHE_ENABLED=${CACHE_ENABLED}
                                     export TIDB_TEST_STORE_NAME="unistore"
-                                    ./test.sh -backlist=1 -part=${PART}
+                                    ./test.sh 1 ${PART}
                                     """
                                 }
                             }
