@@ -210,6 +210,21 @@ private String gitCdnHttpCredentialsId() {
     return isGitCdnEnabled() && id ? id : ''
 }
 
+// Rewrite a GitHub SSH/HTTPS URL to the in-cluster git-cdn HTTP URL when the
+// Jenkins instance routes GitHub through git-cdn. Non-GitHub URLs and CDN-disabled
+// instances are returned unchanged so the caller keeps its original transport.
+private String gitCdnRewriteUrl(String gitUrl) {
+    if (!isGitCdnEnabled()) {
+        return gitUrl
+    }
+    def matcher = (gitUrl =~ /^(?:git@github\.com:|https:\/\/github\.com\/|ssh:\/\/git@github\.com\/)([^\/\s]+)\/([^\/\s]+?)(\.git)?$/)
+    if (!matcher) {
+        return gitUrl
+    }
+    final cdnBase = env.GIT_CDN_URL?.trim() ?: 'http://git-cdn.cache.svc:8000'
+    return "${cdnBase}/${matcher[0][1]}/${matcher[0][2]}.git"
+}
+
 /*
  * Let Git try an anonymous HTTP request first and provide Jenkins' PAT only
  * after the server asks for credentials. Kept in sync with prow.withGitAskPass.
@@ -252,12 +267,13 @@ def checkout(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunk
         componentBranch = "origin/${componentBranch}/head"
     }
 
-    // When git-cdn is enabled GitHub URLs are rewritten to HTTP, so the SSH
-    // credential cannot authenticate there. Drop it from the SCM config and let
-    // withGitCdnAskPass answer the git-cdn 401 with the HTTP credential.
-    final scmCredentialsId = isGitCdnEnabled() ? '' : credentialsId
-    withGitCdnAskPass {
-        checkout(
+    // When git-cdn is enabled the agent rewrites GitHub URLs to HTTP where the
+    // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
+    // the git-cdn HTTP credential natively so the plugin manages basic auth.
+    // Non-CDN instances keep the original SSH URL and credential.
+    final cdnUrl = gitCdnRewriteUrl(gitUrl)
+    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
+    checkout(
             changelog: false,
             poll: true,
             scm: [
@@ -273,11 +289,10 @@ def checkout(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunk
                 userRemoteConfigs: [[
                     credentialsId: scmCredentialsId,
                     refspec: pluginSpec,
-                    url: gitUrl,
+                    url: cdnUrl,
                 ]]
             ]
         )
-    }
 }
 
 def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunkBranch="master", timeout=5) {
@@ -292,12 +307,13 @@ def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", tru
     println(gitUrl)
     println(pluginSpec)
 
-    // When git-cdn is enabled GitHub URLs are rewritten to HTTP, so the SSH
-    // credential cannot authenticate there. Drop it from the SCM config and let
-    // withGitCdnAskPass answer the git-cdn 401 with the HTTP credential.
-    final scmCredentialsId = isGitCdnEnabled() ? '' : credentialsId
-    withGitCdnAskPass {
-        checkout(
+    // When git-cdn is enabled the agent rewrites GitHub URLs to HTTP where the
+    // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
+    // the git-cdn HTTP credential natively so the plugin manages basic auth.
+    // Non-CDN instances keep the original SSH URL and credential.
+    final cdnUrl = gitCdnRewriteUrl(gitUrl)
+    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
+    checkout(
             changelog: false,
             poll: true,
             scm: [
@@ -313,11 +329,10 @@ def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", tru
                 userRemoteConfigs: [[
                     credentialsId: scmCredentialsId,
                     refspec: pluginSpec,
-                    url: gitUrl,
+                    url: cdnUrl,
                 ]]
             ]
         )
-    }
 }
 
 
@@ -380,12 +395,13 @@ def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeou
         println("branchOrCommit is sha1, fetch pr refs and use it as refSpec")
         refSpec += " +refs/pull/*/head:refs/remotes/origin/pr/*"
     }
-    // When git-cdn is enabled GitHub URLs are rewritten to HTTP, so the SSH
-    // credential cannot authenticate there. Drop it from the SCM config and let
-    // withGitCdnAskPass answer the git-cdn 401 with the HTTP credential.
-    final scmCredentialsId = isGitCdnEnabled() ? '' : credentialsId
-    withGitCdnAskPass {
-        checkout(
+    // When git-cdn is enabled the agent rewrites GitHub URLs to HTTP where the
+    // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
+    // the git-cdn HTTP credential natively so the plugin manages basic auth.
+    // Non-CDN instances keep the original SSH URL and credential.
+    final cdnUrl = gitCdnRewriteUrl(gitUrl)
+    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
+    checkout(
             changelog: false,
             poll: true,
             scm: [
@@ -401,11 +417,10 @@ def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeou
                 userRemoteConfigs: [[
                     credentialsId: scmCredentialsId,
                     refspec: refSpec,
-                    url: gitUrl,
+                    url: cdnUrl,
                 ]]
             ]
         )
-    }
 }
 
 def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentialsId) {

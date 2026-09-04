@@ -376,32 +376,55 @@ class TestComponent {
         }
 
         @Test
-        void shouldDropSshCredentialWhenCdnEnabledDuringScmCheckout() {
-            def events = []
+        void shouldRewriteGithubUrlAndUseHttpCredentialWhenCdnEnabled() {
             def scmArg = null
             def script = loadScriptWithBindings([
-                env: [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https', WORKSPACE: '/ws'],
-                libraryResource: { String path -> events << "resource:${path}".toString(); 'askpass helper' },
-                writeFile: { Map args -> events << 'write' },
-                sh: { Map args -> events << "sh:${args.label}".toString() },
-                usernamePassword: { Map args -> args },
-                withCredentials: { List creds, Closure body -> events << 'credentials'; body() },
-                withEnv: { List environment, Closure body -> events << 'env'; body() },
-                checkout: { Map args -> scmArg = args; events << 'checkout' },
+                env: [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https'],
+                checkout: { Map args -> scmArg = args },
             ])
 
             script.checkoutSingle('git@github.com:PingCAP-QE/tidb-test.git', 'master', 'master', 'github-sre-bot-ssh')
 
             assertNotNull(scmArg)
             def remote = scmArg.scm.userRemoteConfigs[0]
-            assertEquals('git@github.com:PingCAP-QE/tidb-test.git', remote.url)
-            assertEquals('SSH credential must not be used on git-cdn', '', remote.credentialsId)
-            assertTrue('askpass must be active during the SCM checkout',
-                events.indexOf('env') < events.indexOf('checkout'))
+            assertEquals('http://git-cdn.cache.svc:8000/PingCAP-QE/tidb-test.git', remote.url)
+            assertEquals('github-bot-https', remote.credentialsId)
         }
 
         @Test
-        void shouldKeepSshCredentialWhenCdnDisabled() {
+        void shouldRewriteGithubHttpsUrlWhenCdnEnabled() {
+            def scmArg = null
+            def script = loadScriptWithBindings([
+                env: [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https'],
+                checkout: { Map args -> scmArg = args },
+            ])
+
+            script.checkoutSingle('https://github.com/PingCAP-QE/tidb-test.git', 'master', 'master', 'github-sre-bot-ssh')
+
+            assertNotNull(scmArg)
+            def remote = scmArg.scm.userRemoteConfigs[0]
+            assertEquals('http://git-cdn.cache.svc:8000/PingCAP-QE/tidb-test.git', remote.url)
+            assertEquals('github-bot-https', remote.credentialsId)
+        }
+
+        @Test
+        void shouldRewriteUrlWithoutCredentialWhenNoHttpCredentialConfigured() {
+            def scmArg = null
+            def script = loadScriptWithBindings([
+                env: [GIT_CDN_ENABLED: 'true'],
+                checkout: { Map args -> scmArg = args },
+            ])
+
+            script.checkoutSingle('git@github.com:PingCAP-QE/tidb-test.git', 'master', 'master', 'github-sre-bot-ssh')
+
+            assertNotNull(scmArg)
+            def remote = scmArg.scm.userRemoteConfigs[0]
+            assertEquals('http://git-cdn.cache.svc:8000/PingCAP-QE/tidb-test.git', remote.url)
+            assertEquals('', remote.credentialsId)
+        }
+
+        @Test
+        void shouldKeepSshUrlAndCredentialWhenCdnDisabled() {
             def scmArg = null
             def script = loadScriptWithBindings([
                 env: [:],
@@ -411,7 +434,26 @@ class TestComponent {
             script.checkoutSingle('git@github.com:PingCAP-QE/tidb-test.git', 'master', 'master', 'github-sre-bot-ssh')
 
             assertNotNull(scmArg)
-            assertEquals('github-sre-bot-ssh', scmArg.scm.userRemoteConfigs[0].credentialsId)
+            def remote = scmArg.scm.userRemoteConfigs[0]
+            assertEquals('git@github.com:PingCAP-QE/tidb-test.git', remote.url)
+            assertEquals('github-sre-bot-ssh', remote.credentialsId)
+        }
+
+        @Test
+        void shouldNotRewriteNonGithubUrlEvenWhenCdnEnabled() {
+            def scmArg = null
+            def script = loadScriptWithBindings([
+                env: [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https'],
+                checkout: { Map args -> scmArg = args },
+            ])
+
+            script.checkoutSingle('git@gitlab.example.com:foo/bar.git', 'master', 'master', 'some-ssh-cred')
+
+            assertNotNull(scmArg)
+            def remote = scmArg.scm.userRemoteConfigs[0]
+            assertEquals('git@gitlab.example.com:foo/bar.git', remote.url)
+            assertEquals('some-ssh-cred', remote.credentialsId)
         }
     }
+
 }
