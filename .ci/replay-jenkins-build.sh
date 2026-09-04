@@ -186,7 +186,9 @@ build_inline_script_with_pod_yaml() {
 
     local found=0
     : > "$out_file"
-    local line out_line b64 prefix comment repl
+    local -a out_lines=()
+    local -a preludes=()
+    local line out_line b64 prefix comment repl pvar
     while IFS= read -r line; do
         out_line="$line"
         # Declarative form before ci-label migration (allow trailing inline comments).
@@ -197,7 +199,9 @@ build_inline_script_with_pod_yaml() {
                 b64="$fallback_b64"
             fi
             if [[ -n "$b64" ]]; then
-                out_line="${line/yamlFile ${var}/yaml new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')}"
+                pvar="_REPLAY_POD_${var}"
+                out_line="${line/yamlFile ${var}/yaml ${pvar}}"
+                preludes+=("final ${pvar} = new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')")
                 found=1
             fi
         # Declarative form after ci-label migration (allow trailing inline comments).
@@ -210,19 +214,38 @@ build_inline_script_with_pod_yaml() {
             if [[ -n "$b64" ]]; then
                 prefix="${BASH_REMATCH[1]}"
                 comment="${BASH_REMATCH[4]}"
-                repl="yaml new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')"
-                out_line="${prefix}${repl}"
+                pvar="_REPLAY_POD_${var}"
+                out_line="${prefix}yaml ${pvar}"
                 [[ -n "$comment" ]] && out_line+=" ${comment}"
                 found=1
             fi
         fi
-        printf '%s\n' "$out_line" >> "$out_file"
+        out_lines+=("$out_line")
     done < "$script_file"
 
     if (( found == 0 )); then
         rm -f "$out_file"
         return 2
     fi
+
+    # Insert prelude declarations before the first `pipeline {` line so the
+    # decoded pod yaml becomes a plain script variable instead of an inline
+    # method expression inside the declarative agent. The declarative pipeline
+    # sandbox rejects method calls (e.g. Base64/`'UTF-8'`) evaluated in the
+    # agent `yaml` field ("No such property: UTF"), while a top-level `final`
+    # assignment runs in the normal script context.
+    local -a final_lines=()
+    local line2 pl inserted=0
+    for line2 in "${out_lines[@]}"; do
+        if [[ "$inserted" == "0" && "$line2" =~ ^pipeline[[:space:]]*\{ ]]; then
+            for pl in "${preludes[@]}"; do
+                final_lines+=("$pl")
+            done
+            inserted=1
+        fi
+        final_lines+=("$line2")
+    done
+    printf '%s\n' "${final_lines[@]}" > "$out_file"
     return 0
 }
 
