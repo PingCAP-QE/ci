@@ -55,7 +55,6 @@ presubmits:
       decorate: true
       always_run: false
       optional: true
-      max_concurrency: 1
       trigger: "(?m)^/test (?:.*? )?pull-replay-jenkins-pipelines(?: .*?)?$"
       rerun_command: "/test pull-replay-jenkins-pipelines"
       run_if_changed: "^pipelines/.*\\.groovy$"

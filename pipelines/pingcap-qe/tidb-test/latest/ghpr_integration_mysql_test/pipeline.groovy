@@ -12,6 +12,7 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, RE
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     environment {

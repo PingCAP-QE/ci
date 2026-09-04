@@ -15,16 +15,12 @@ spec:
         requests:
           memory: 48Gi
           cpu: "24"
-          ephemeral-storage: 20Gi
         limits:
           memory: 64Gi
           cpu: "24"
-          ephemeral-storage: 200Gi
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
-        - mountPath: /share/.cache/bazel-repository-cache
-          name: bazel-repository-cache
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -47,8 +43,6 @@ spec:
               requests:
                 storage: 300Gi
             storageClassName: ci-rwo
-    - name: bazel-repository-cache
-      emptyDir: {}
     - name: bazel-rc
       configMap:
         name: bazel

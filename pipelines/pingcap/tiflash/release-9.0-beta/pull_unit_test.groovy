@@ -14,6 +14,7 @@ Boolean build_cache_ready = false
 Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

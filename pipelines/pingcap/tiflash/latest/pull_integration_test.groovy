@@ -12,6 +12,7 @@ final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-ro
 final WORKSPACE_STASH_NAME = 'tiflash-it-workspace'
 final PARALLELISM = 12
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

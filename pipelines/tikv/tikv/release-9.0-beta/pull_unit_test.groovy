@@ -10,6 +10,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final EXTRA_NEXTEST_ARGS = "-j 8"
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

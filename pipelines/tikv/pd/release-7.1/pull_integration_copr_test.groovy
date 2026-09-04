@@ -9,6 +9,7 @@ final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/release-7.1/pod-pull_integration_co
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
