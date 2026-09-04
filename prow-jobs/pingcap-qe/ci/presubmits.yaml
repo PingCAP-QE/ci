@@ -154,7 +154,8 @@ presubmits:
                   --base-sha "${PULL_BASE_SHA:-}" \
                   --head-sha "${PULL_PULL_SHA:-}" \
                   --wait \
-                  --parallel 10 \
+                  --parallel 50 \
+                  --max-jobs 100 \
                   --timeout 7200 \
                   --poll-interval 20 \
                   --retries 3 \
