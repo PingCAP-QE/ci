@@ -1,14 +1,13 @@
 ---
 name: zot-image-repair
-description: "Validate and repair a broken image on the hub-zot.pingcap.net zot registry by launching the zot-validate-repair-image Tekton task in the ksy-pingcap-cicd cluster. Use when a hub-zot image cannot be pulled or fails `crane validate` because layer blobs are missing or corrupt on the ee-zot KSY S3 backend. Do not run local repair against the zot backend."
+description: "Validate and repair a broken image on the hub-zot.pingcap.net zot registry by launching the zot-validate-repair-image Tekton task. Use when a hub-zot image cannot be pulled or fails `crane validate` because layer blobs are missing or corrupt on the zot KSY S3 backend. Confirm the target cluster context and namespace with the user before launching (the known deployment is ksy-pingcap-cicd/ee-cd, but never assume it). Do not run local repair against the zot backend."
 ---
 
 # Zot Image Repair
 
 Repair a broken image served by the `hub-zot.pingcap.net` zot registry. The
-registry stores blobs on a KSY S3 bucket (`ee-zot`) in the `ksy-pingcap-cicd`
-cluster. When a layer blob is missing or truncated on S3, pulls fail and
-`crane validate` reports errors such as:
+registry stores blobs on a KSY S3 bucket. When a layer blob is missing or
+truncated on S3, pulls fail and `crane validate` reports errors such as:
 
 ```text
 error verifying size; got 0, want 784874
@@ -16,65 +15,90 @@ error verifying size; got 0, want 784874
 
 Repair re-downloads the healthy blobs from an upstream source image and
 uploads them back to S3, without rewriting the manifest. The job runs as the
-`zot-validate-repair-image` Tekton task in namespace `ee-cd`, never on a
-local machine.
+`zot-validate-repair-image` Tekton task, never on a local machine.
 
 ## Scope
 
 - Operate on images served by `hub-zot.pingcap.net`.
-- Launch and follow `zot-validate-repair-image` TaskRuns in the `ee-cd`
-  namespace of the `ksy-pingcap-cicd` cluster.
+- Launch and follow `zot-validate-repair-image` TaskRuns in the target
+  cluster and namespace that the user chooses.
 - Source images and Tekton task/tool definitions live in `PingCAP-QE/ci`
   (`tekton/v1/tasks/zot-validate-repair-image.yaml` and
   `tools/validate-repair-zot-image.sh`).
 
 ## Prerequisites
 
-- `kubectl` with the `ksy-pingcap-cicd` context (current namespace `ee-cd`).
+- `kubectl` with at least one configured context that hosts the
+  `zot-validate-repair-image` Task.
 - `tkn` (Tekton CLI) installed.
-- The `zot-validate-repair-image` Task exists in `ee-cd`:
-  `tkn task list -n ee-cd --context ksy-pingcap-cicd`
-- The `ks3utilconfig` secret exists in `ee-cd`. It contains a single key
+- A `ks3utilconfig` secret in the chosen namespace. It contains a single key
   `.ks3utilconfig` with credentials for the KSY S3 bucket that backs zot.
 
-## Background
+## Resolve the environment first (always confirm with the user)
 
-- zot frontends `https://hub-zot.pingcap.net` (see the zot StatefulSet in the
-  `zot` namespace).
-- Its storage driver points at S3 bucket `ee-zot` on
-  `ks3-cn-beijing.ksyuncs.com` (check `kubectl get cm zot-config -n zot -o
-  yaml` if the bucket ever changes).
-- The mirror name on zot encodes the upstream registry, so
-  `hub-zot.pingcap.net/mirrors/<key>/<repo>` mirrors the OCI artifact repo
-  `us-docker.pkg.dev/pingcap-testing-account/<key>/<repo>`. Examples:
-  - `mirrors/hub/pingcap/tidb/images/tidb-server:v7.5.7` mirrors
-    `us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/tidb/images/tidb-server:v7.5.7`
-  - `mirrors/tidbx/...` mirrors `us-docker.pkg.dev/pingcap-testing-account/tidbx/...`
+Do not hardcode a cluster context or namespace. Before doing anything else:
+
+1. If the user already told you which cluster context and namespace to use,
+   verify them and proceed.
+2. Otherwise discover candidates and present them as choices to the user:
+
+   ```bash
+   # candidate cluster contexts
+   kubectl config get-contexts -o name
+
+   # contexts + namespaces that actually host the repair task
+   for ctx in $(kubectl config get-contexts -o name); do
+     echo "== $ctx =="
+     kubectl --context "$ctx" get task -A --no-headers 2>/dev/null \
+       | grep zot-validate-repair-image || true
+   done
+   ```
+
+3. For the chosen context, confirm the namespace and that the prerequisites
+   exist there:
+
+   ```bash
+   kubectl --context <context> -n <namespace> get task zot-validate-repair-image
+   kubectl --context <context> -n <namespace> get secret ks3utilconfig
+   ```
+
+4. Ask the user to confirm the context/namespace pair before launching
+   anything. Offer the discovered candidates as options; a known deployment
+   is `ksy-pingcap-cicd` / `ee-cd`, but only use it when the user confirms.
+
+Throughout the rest of this skill, replace `<context>` and `<namespace>`
+with the confirmed values.
 
 ## Workflow
 
 1. Confirm the broken image and record the exact `target-image` reference
    (with tag or digest) from the user or the failing pull.
-2. Derive the `source-image`. The safest source is the upstream repo that the
+2. Resolve the environment (cluster context + namespace) as described above.
+3. Derive the `source-image`. The safest source is the upstream repo that the
    mirror was copied from. Rewrite the reference:
    `hub-zot.pingcap.net/mirrors/<key>/<repo>:<tag>` →
    `us-docker.pkg.dev/pingcap-testing-account/<key>/<repo>:<tag>`.
    If the mapping is unclear, ask the user for the authoritative source image
    instead of guessing.
-3. Derive the repair parameters:
-   - `bucket`: `ee-zot` (S3 backend bucket from the zot config).
-   - `workspace ks3util-config`: mounted from the `ks3utilconfig` secret.
+4. Derive the repair parameters:
+   - `bucket`: the KSY S3 bucket that backs the zot registry. Derive it from
+     the zot registry config in the chosen cluster when reachable (the zot
+     StatefulSet usually lives in a `zot` namespace with a `zot-config`
+     ConfigMap holding `storage.storageDriver.bucket`); the known value is
+     `ee-zot`. Confirm with the user if you cannot locate it.
+   - `workspace ks3util-config`: mounted from the `ks3utilconfig` secret
+     (confirm the secret exists in the chosen namespace).
    - `config-file-path`: `.ks3utilconfig` (the default).
-4. Launch the repair as a Tekton TaskRun. All repair logic already lives in
+5. Launch the repair as a Tekton TaskRun. All repair logic already lives in
    the `zot-validate-repair-image` task; do not duplicate it in another
    script. Either start the task with `tkn`:
 
    ```bash
    tkn task start zot-validate-repair-image \
-     --namespace ee-cd --context ksy-pingcap-cicd \
-     --param target-image=hub-zot.pingcap.net/mirrors/hub/pingcap/tidb/images/tidb-server:v7.5.7 \
-     --param source-image=us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/tidb/images/tidb-server:v7.5.7 \
-     --param bucket=ee-zot \
+     --namespace <namespace> --context <context> \
+     --param target-image=<target-image> \
+     --param source-image=<source-image> \
+     --param bucket=<bucket> \
      --workspace name=ks3util-config,secret=ks3utilconfig \
      --showlog
    ```
@@ -82,22 +106,22 @@ local machine.
    Or apply a TaskRun manifest directly:
 
    ```bash
-   kubectl --context ksy-pingcap-cicd -n ee-cd create -f - <<'EOF'
+   kubectl --context <context> -n <namespace> create -f - <<'EOF'
    apiVersion: tekton.dev/v1
    kind: TaskRun
    metadata:
      generateName: zot-repair-
-     namespace: ee-cd
+     namespace: <namespace>
    spec:
      taskRef:
        name: zot-validate-repair-image
      params:
        - name: target-image
-         value: hub-zot.pingcap.net/mirrors/hub/pingcap/tidb/images/tidb-server:v7.5.7
+         value: <target-image>
        - name: source-image
-         value: us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/tidb/images/tidb-server:v7.5.7
+         value: <source-image>
        - name: bucket
-         value: ee-zot
+         value: <bucket>
        - name: config-file-path
          value: .ks3utilconfig
      workspaces:
@@ -107,29 +131,31 @@ local machine.
    EOF
    ```
 
-5. Follow the run until it finishes:
+6. Follow the run until it finishes:
 
    ```bash
-   tkn taskrun logs <taskrun-name> -n ee-cd --context ksy-pingcap-cicd --follow
-   tkn taskrun list -n ee-cd --context ksy-pingcap-cicd
+   tkn taskrun logs <taskrun-name> -n <namespace> --context <context> --follow
+   tkn taskrun list -n <namespace> --context <context>
    ```
 
    A successful run prints `Validation PASSED — image is intact.` and ends
    with status `Succeeded`. A run that fails to repair all blobs exits
    non-zero; re-run only after confirming the `source-image` is healthy.
 
-6. Confirm the fix externally if needed:
+7. Confirm the fix externally if needed:
 
    ```bash
-   crane validate --remote hub-zot.pingcap.net/mirrors/hub/pingcap/tidb/images/tidb-server:v7.5.7
+   crane validate --remote <target-image>
    ```
 
 ## Guardrails
 
+- Always confirm the cluster context and namespace with the user first.
+  Never silently assume `ksy-pingcap-cicd` or `ee-cd`.
 - Never repair against the zot backend from a local machine. The S3
-  credentials are cluster secrets (`ee-cd/ks3utilconfig`) and the repair must
-  run as the Tekton task.
-- Do not change the zot `Task`, the repair tool, or the `ee-zot` bucket for a
+  credentials are cluster secrets (e.g. `ee-cd/ks3utilconfig`) and the
+  repair must run as the Tekton task.
+- Do not change the zot `Task`, the repair tool, or the S3 bucket for a
   single repair. If the task or `tools/validate-repair-zot-image.sh` needs a
   bug fix, open a `PingCAP-QE/ci` PR first: the task downloads the tool from
   the repo `main` branch at runtime.
