@@ -46,10 +46,10 @@ Do not hardcode a cluster context or namespace. Before doing anything else:
    # candidate cluster contexts
    kubectl config get-contexts -o name
 
-   # contexts + namespaces that actually host the repair task
+   # contexts + namespaces that actually host the repair task (tkn)
    for ctx in $(kubectl config get-contexts -o name); do
      echo "== $ctx =="
-     kubectl --context "$ctx" get task -A --no-headers 2>/dev/null \
+     tkn task list -A --context "$ctx" --no-headers 2>/dev/null \
        | grep zot-validate-repair-image || true
    done
    ```
@@ -58,7 +58,8 @@ Do not hardcode a cluster context or namespace. Before doing anything else:
    exist there:
 
    ```bash
-   kubectl --context <context> -n <namespace> get task zot-validate-repair-image
+   tkn task list -n <namespace> --context <context> --no-headers \
+     | grep zot-validate-repair-image
    kubectl --context <context> -n <namespace> get secret ks3utilconfig
    ```
 
