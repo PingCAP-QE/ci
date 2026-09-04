@@ -11,7 +11,7 @@ presubmits:
     - name: tikv/tikv/release-7.5/pull_unit_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-unit-test
