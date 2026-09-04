@@ -90,10 +90,9 @@ with the confirmed values.
    - `workspace ks3util-config`: mounted from the `ks3utilconfig` secret
      (confirm the secret exists in the chosen namespace).
    - `config-file-path`: `.ks3utilconfig` (the default).
-5. Launch the repair as a Tekton TaskRun with `tkn` (the preferred way to
-   create TaskRuns). All repair logic already lives in the
-   `zot-validate-repair-image` task; do not duplicate it in another script
-   or in a hand-written TaskRun manifest:
+5. Start the TaskRun and track it to completion in one command. All repair
+   logic already lives in the `zot-validate-repair-image` task; do not
+   duplicate it in another script or in a hand-written TaskRun manifest:
 
    ```bash
    tkn task start zot-validate-repair-image \
@@ -105,22 +104,16 @@ with the confirmed values.
      --showlog
    ```
 
-   `--showlog` streams the logs right after the TaskRun starts. If you want
-   to preview the manifest before running, add `--dry-run --output yaml`.
+   `--showlog` creates the TaskRun and streams its logs until the run
+   finishes, so there is no separate follow-up step. A successful run prints
+   `Validation PASSED — image is intact.` and ends with status `Succeeded`.
+   The task re-validates the image itself, so no further local verification
+   is needed. A run that fails to repair all blobs exits non-zero; re-run
+   only after confirming the `source-image` is healthy.
 
-6. Follow the run until it finishes. When you launched without `--showlog`,
-   or need to re-check status later:
-
-   ```bash
-   tkn taskrun logs <taskrun-name> -n <namespace> --context <context> --follow
-   tkn taskrun list -n <namespace> --context <context>
-   ```
-
-   A successful run prints `Validation PASSED — image is intact.` and ends
-   with status `Succeeded`. The task re-validates the image itself, so no
-   further local verification is needed. A run that fails to repair all
-   blobs exits non-zero; re-run only after confirming the `source-image` is
-   healthy.
+   To preview the manifest without running it, add `--dry-run --output
+   yaml`. To re-check status later, use `tkn taskrun list -n <namespace>
+   --context <context>`.
 
 ## Guardrails
 
