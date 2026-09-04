@@ -1,11 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 final fullRepo = 'tidbcloud/cloud-storage-engine'
-final branchAlias = 'dedicated'
 final jobName = 'pull_integration_realcluster_test_next_gen'
 
-pipelineJob("${fullRepo}/${branchAlias}/${jobName}") {
-    description("Deprecated historical job. Use ${fullRepo}/${jobName} for new builds.")
-    disabled(true)
+pipelineJob("${fullRepo}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
