@@ -140,14 +140,10 @@ with the confirmed values.
    ```
 
    A successful run prints `Validation PASSED — image is intact.` and ends
-   with status `Succeeded`. A run that fails to repair all blobs exits
-   non-zero; re-run only after confirming the `source-image` is healthy.
-
-7. Confirm the fix externally if needed:
-
-   ```bash
-   crane validate --remote <target-image>
-   ```
+   with status `Succeeded`. The task re-validates the image itself, so no
+   further local verification is needed. A run that fails to repair all
+   blobs exits non-zero; re-run only after confirming the `source-image` is
+   healthy.
 
 ## Guardrails
 
