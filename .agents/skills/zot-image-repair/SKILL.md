@@ -65,22 +65,28 @@ local machine.
    - `bucket`: `ee-zot` (S3 backend bucket from the zot config).
    - `workspace ks3util-config`: mounted from the `ks3utilconfig` secret.
    - `config-file-path`: `.ks3utilconfig` (the default).
-4. Launch the TaskRun. Use the helper script:
+4. Launch the repair as a Tekton TaskRun. All repair logic already lives in
+   the `zot-validate-repair-image` task; do not duplicate it in another
+   script. Either start the task with `tkn`:
 
    ```bash
-   bash .agents/skills/zot-image-repair/scripts/repair_zot_image.sh \
-     --target-image hub-zot.pingcap.net/mirrors/hub/pingcap/tidb/images/tidb-server:v7.5.7 \
-     --source-image us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/tidb/images/tidb-server:v7.5.7
+   tkn task start zot-validate-repair-image \
+     --namespace ee-cd --context ksy-pingcap-cicd \
+     --param target-image=hub-zot.pingcap.net/mirrors/hub/pingcap/tidb/images/tidb-server:v7.5.7 \
+     --param source-image=us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/tidb/images/tidb-server:v7.5.7 \
+     --param bucket=ee-zot \
+     --workspace name=ks3util-config,secret=ks3utilconfig \
+     --showlog
    ```
 
-   Or apply this TaskRun directly:
+   Or apply a TaskRun manifest directly:
 
    ```bash
    kubectl --context ksy-pingcap-cicd -n ee-cd create -f - <<'EOF'
    apiVersion: tekton.dev/v1
    kind: TaskRun
    metadata:
-     name: zot-repair-<image-slug>
+     generateName: zot-repair-
      namespace: ee-cd
    spec:
      taskRef:
@@ -130,7 +136,8 @@ local machine.
 - The `source-image` must expose the same layer blobs as the target manifest.
   Prefer the upstream mirror source; when in doubt ask the user.
 - Repair only uploads blobs; it never rewrites tags or manifests.
-- Keep TaskRun names short DNS-1123 labels (lowercase letters, digits, `-`).
+- When naming a TaskRun explicitly (instead of `generateName`), keep it a
+  short DNS-1123 label (lowercase letters, digits, `-`).
 
 ## Read Next
 
