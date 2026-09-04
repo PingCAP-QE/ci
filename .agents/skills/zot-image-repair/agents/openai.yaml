@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zot Image Repair"
+  short_description: "Repair broken hub-zot registry images via Tekton task"
+  default_prompt: "Use $zot-image-repair to validate and repair a broken image on hub-zot.pingcap.net by launching the zot-validate-repair-image Tekton task in the ksy-pingcap-cicd/ee-cd cluster. Derive the source image from the mirror path, use bucket ee-zot with the ks3utilconfig secret workspace, follow the TaskRun with tkn, and never repair the zot S3 backend locally."
