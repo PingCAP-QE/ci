@@ -19,8 +19,7 @@
     "npm:@octokit/rest@^22.0.1": "22.0.1_@octokit+core@7.0.7",
     "npm:mysql2@*": "3.23.3_@types+node@26.1.2",
     "npm:mysql2@^3.11.5": "3.23.3_@types+node@26.1.2",
-    "npm:nodemailer@*": "6.10.1",
-    "npm:nodemailer@^6.9.16": "6.10.1"
+    "npm:nodemailer@9": "9.1.1"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -225,8 +224,8 @@
         "lru.min"
       ]
     },
-    "nodemailer@6.10.1": {
-      "integrity": "sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA=="
+    "nodemailer@9.1.1": {
+      "integrity": "sha512-izw9mVKFix6YSnC9eLgV6g1opl9DUlRio9ZNcq+Wu9Ujn2UwF+8Nl0B8nz22kEC+CTZCvinkxwJ0DeFbb6NwcQ=="
     },
     "safer-buffer@2.1.2": {
       "integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg=="
@@ -251,7 +250,7 @@
       "npm:@octokit/plugin-throttling@^11.0.5",
       "npm:@octokit/rest@^22.0.1",
       "npm:mysql2@^3.11.5",
-      "npm:nodemailer@^6.9.16"
+      "npm:nodemailer@9"
     ]
   }
 }

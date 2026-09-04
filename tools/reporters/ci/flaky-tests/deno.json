@@ -13,6 +13,6 @@
     "@octokit/plugin-throttling": "npm:@octokit/plugin-throttling@^11.0.5",
     "@octokit/plugin-retry": "npm:@octokit/plugin-retry@^8.1.1",
     "mysql2": "npm:mysql2@^3.11.5",
-    "nodemailer": "npm:nodemailer@^6.9.16"
+    "nodemailer": "npm:nodemailer@^9.0.0"
   }
 }
