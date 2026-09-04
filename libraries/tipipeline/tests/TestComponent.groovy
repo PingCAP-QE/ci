@@ -17,6 +17,13 @@ class TestComponent {
             new File("libraries/tipipeline/vars/component.groovy"))
     }
 
+    private static def loadScriptWithBindings(Map steps = [:]) {
+        def binding = new Binding()
+        steps.each { name, value -> binding.setVariable(name, value) }
+        new GroovyShell(binding).parse(
+            new File("libraries/tipipeline/vars/component.groovy"))
+    }
+
     // ============================================================
     // parseCIParamsFromPRTitle
     // ============================================================
@@ -300,6 +307,111 @@ class TestComponent {
             cases.each { branch ->
                 assertEquals("unchanged: ${branch}", branch, peerBranch(branch))
             }
+        }
+    }
+
+    // ============================================================
+    // Git CDN aware component checkouts (git-cdn askpass)
+    // ============================================================
+    static class GitCdnCheckout {
+        @Test
+        void shouldInstallHttpAskPassWhenCdnEnabled() {
+            def events = []
+            def script = loadScriptWithBindings([
+                env: [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https', WORKSPACE: '/ws'],
+                libraryResource: { String path ->
+                    events << "resource:${path}".toString()
+                    'askpass helper'
+                },
+                writeFile: { Map args -> events << "write:${args.file}".toString() },
+                sh: { Map args -> events << "sh:${args.label}".toString() },
+                usernamePassword: { Map args -> args },
+                withCredentials: { List creds, Closure body ->
+                    events << "credentials:${creds[0].credentialsId}".toString()
+                    body()
+                },
+                withEnv: { List environment, Closure body ->
+                    events << "env:${environment}".toString()
+                    body()
+                },
+            ])
+
+            script.withGitCdnAskPass { events << 'body' }
+
+            assertTrue(events.contains('resource:scripts/git_askpass.sh'))
+            assertTrue(events.contains('sh:Prepare Git HTTP credential helper'))
+            assertTrue(events.contains('credentials:github-bot-https'))
+            assertTrue('body must run while GIT_ASKPASS is active',
+                events.indexOf('credentials:github-bot-https') < events.indexOf('body'))
+            assertTrue('askpass script must be cleaned up',
+                events.contains('sh:Remove Git HTTP credential helper'))
+        }
+
+        @Test
+        void shouldSkipAskPassWhenCdnDisabled() {
+            def events = []
+            def script = loadScriptWithBindings([
+                env: [:],
+                writeFile: { Map args -> events << 'write' },
+                sh: { Map args -> events << 'sh' },
+                withCredentials: { List creds, Closure body -> events << 'credentials'; body() },
+                withEnv: { List environment, Closure body -> events << 'env'; body() },
+            ])
+
+            script.withGitCdnAskPass { events << 'body' }
+
+            assertEquals(['body'], events)
+        }
+
+        @Test
+        void shouldSkipAskPassWhenCdnEnabledWithoutHttpCredential() {
+            def events = []
+            def script = loadScriptWithBindings([
+                env: [GIT_CDN_ENABLED: 'true', WORKSPACE: '/ws'],
+            ])
+
+            script.withGitCdnAskPass { events << 'body' }
+
+            assertEquals(['body'], events)
+        }
+
+        @Test
+        void shouldDropSshCredentialWhenCdnEnabledDuringScmCheckout() {
+            def events = []
+            def scmArg = null
+            def script = loadScriptWithBindings([
+                env: [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https', WORKSPACE: '/ws'],
+                libraryResource: { String path -> events << "resource:${path}".toString(); 'askpass helper' },
+                writeFile: { Map args -> events << 'write' },
+                sh: { Map args -> events << "sh:${args.label}".toString() },
+                usernamePassword: { Map args -> args },
+                withCredentials: { List creds, Closure body -> events << 'credentials'; body() },
+                withEnv: { List environment, Closure body -> events << 'env'; body() },
+                checkout: { Map args -> scmArg = args; events << 'checkout' },
+            ])
+
+            script.checkoutSingle('git@github.com:PingCAP-QE/tidb-test.git', 'master', 'master', 'github-sre-bot-ssh')
+
+            assertNotNull(scmArg)
+            def remote = scmArg.scm.userRemoteConfigs[0]
+            assertEquals('git@github.com:PingCAP-QE/tidb-test.git', remote.url)
+            assertEquals('SSH credential must not be used on git-cdn', '', remote.credentialsId)
+            assertTrue('askpass must be active during the SCM checkout',
+                events.indexOf('env') < events.indexOf('checkout'))
+        }
+
+        @Test
+        void shouldKeepSshCredentialWhenCdnDisabled() {
+            def scmArg = null
+            def script = loadScriptWithBindings([
+                env: [:],
+                checkout: { Map args -> scmArg = args },
+            ])
+
+            script.checkoutSingle('git@github.com:PingCAP-QE/tidb-test.git', 'master', 'master', 'github-sre-bot-ssh')
+
+            assertNotNull(scmArg)
+            assertEquals('github-sre-bot-ssh', scmArg.scm.userRemoteConfigs[0].credentialsId)
         }
     }
 }

@@ -196,6 +196,52 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     return componentBranch
 }
 
+// Route GitHub checkouts through the in-cluster git-cdn when the Jenkins
+// instance enables it. git-cdn serves anonymous public requests first and
+// returns 401 for private repositories, so Git must be able to answer with the
+// github-bot-https credential after the URL is rewritten to git-cdn.
+// See prow.withGitAskPass and ee-ops docs/git-cdn-jenkins-auth.md.
+private Boolean isGitCdnEnabled() {
+    return env.GIT_CDN_ENABLED?.trim()?.toBoolean()
+}
+
+private String gitCdnHttpCredentialsId() {
+    def id = env.GIT_HTTP_CREDENTIALS_ID?.trim()
+    return isGitCdnEnabled() && id ? id : ''
+}
+
+/*
+ * Let Git try an anonymous HTTP request first and provide Jenkins' PAT only
+ * after the server asks for credentials. Kept in sync with prow.withGitAskPass.
+ */
+def withGitAskPass(String credentialsId, Closure body) {
+    final askPassScript = libraryResource 'scripts/git_askpass.sh'
+    final tmpAskPassScript = "${env.WORKSPACE}/git-askpass-${UUID.randomUUID().toString()}"
+
+    try {
+        writeFile(file: tmpAskPassScript, text: askPassScript)
+        sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
+        withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
+            withEnv(["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']) {
+                body()
+            }
+        }
+    } finally {
+        sh label: 'Remove Git HTTP credential helper', script: "rm -f '${tmpAskPassScript}'"
+    }
+}
+
+// Run a git checkout body with the git-cdn HTTP credential helper installed
+// when the Jenkins instance routes GitHub URLs through git-cdn.
+def withGitCdnAskPass(Closure body) {
+    final httpCredentialsId = gitCdnHttpCredentialsId()
+    if (httpCredentialsId) {
+        withGitAskPass(httpCredentialsId, body)
+    } else {
+        body()
+    }
+}
+
 // checkout component src from git repo.
 def checkout(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunkBranch="master", timeout=5) {
     def componentBranch = computeBranchFromPR(component, prTargetBranch, prTitle,  trunkBranch)
@@ -206,26 +252,32 @@ def checkout(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunk
         componentBranch = "origin/${componentBranch}/head"
     }
 
-    checkout(
-        changelog: false,
-        poll: true,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: componentBranch]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                credentialsId: credentialsId,
-                refspec: pluginSpec,
-                url: gitUrl,
-            ]]
-        ]
-    )
+    // When git-cdn is enabled GitHub URLs are rewritten to HTTP, so the SSH
+    // credential cannot authenticate there. Drop it from the SCM config and let
+    // withGitCdnAskPass answer the git-cdn 401 with the HTTP credential.
+    final scmCredentialsId = isGitCdnEnabled() ? '' : credentialsId
+    withGitCdnAskPass {
+        checkout(
+            changelog: false,
+            poll: true,
+            scm: [
+                $class: 'GitSCM',
+                branches: [[name: componentBranch]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [
+                    [$class: 'PruneStaleBranch'],
+                    [$class: 'CleanBeforeCheckout'],
+                    [$class: 'CloneOption', timeout: timeout],
+                ],
+                submoduleCfg: [],
+                userRemoteConfigs: [[
+                    credentialsId: scmCredentialsId,
+                    refspec: pluginSpec,
+                    url: gitUrl,
+                ]]
+            ]
+        )
+    }
 }
 
 def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunkBranch="master", timeout=5) {
@@ -240,26 +292,32 @@ def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", tru
     println(gitUrl)
     println(pluginSpec)
 
-    checkout(
-        changelog: false,
-        poll: true,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: componentBranch]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                credentialsId: credentialsId,
-                refspec: pluginSpec,
-                url: gitUrl,
-            ]]
-        ]
-    )
+    // When git-cdn is enabled GitHub URLs are rewritten to HTTP, so the SSH
+    // credential cannot authenticate there. Drop it from the SCM config and let
+    // withGitCdnAskPass answer the git-cdn 401 with the HTTP credential.
+    final scmCredentialsId = isGitCdnEnabled() ? '' : credentialsId
+    withGitCdnAskPass {
+        checkout(
+            changelog: false,
+            poll: true,
+            scm: [
+                $class: 'GitSCM',
+                branches: [[name: componentBranch]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [
+                    [$class: 'PruneStaleBranch'],
+                    [$class: 'CleanBeforeCheckout'],
+                    [$class: 'CloneOption', timeout: timeout],
+                ],
+                submoduleCfg: [],
+                userRemoteConfigs: [[
+                    credentialsId: scmCredentialsId,
+                    refspec: pluginSpec,
+                    url: gitUrl,
+                ]]
+            ]
+        )
+    }
 }
 
 
@@ -322,36 +380,43 @@ def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeou
         println("branchOrCommit is sha1, fetch pr refs and use it as refSpec")
         refSpec += " +refs/pull/*/head:refs/remotes/origin/pr/*"
     }
-    checkout(
-        changelog: false,
-        poll: true,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: branchOrCommit]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                credentialsId: credentialsId,
-                refspec: refSpec,
-                url: gitUrl,
-            ]]
-        ]
-    )
+    // When git-cdn is enabled GitHub URLs are rewritten to HTTP, so the SSH
+    // credential cannot authenticate there. Drop it from the SCM config and let
+    // withGitCdnAskPass answer the git-cdn 401 with the HTTP credential.
+    final scmCredentialsId = isGitCdnEnabled() ? '' : credentialsId
+    withGitCdnAskPass {
+        checkout(
+            changelog: false,
+            poll: true,
+            scm: [
+                $class: 'GitSCM',
+                branches: [[name: branchOrCommit]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [
+                    [$class: 'PruneStaleBranch'],
+                    [$class: 'CleanBeforeCheckout'],
+                    [$class: 'CloneOption', timeout: timeout],
+                ],
+                submoduleCfg: [],
+                userRemoteConfigs: [[
+                    credentialsId: scmCredentialsId,
+                    refspec: refSpec,
+                    url: gitUrl,
+                ]]
+            ]
+        )
+    }
 }
 
 def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentialsId) {
     // iterate over tidbTestRefs and checkout all pr with pre-merge
-    sshagent(credentials: [credentialsId]) {
-        sh label: 'Know hosts', script: """#!/usr/bin/env bash
-            [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-            ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
-        """
-        sh(label: 'checkout', script: """#!/usr/bin/env bash
+    withGitCdnAskPass {
+        sshagent(credentials: [credentialsId]) {
+            sh label: 'Know hosts', script: """#!/usr/bin/env bash
+                [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
+            """
+            sh(label: 'checkout', script: """#!/usr/bin/env bash
             set -e
             git --version
             git init
@@ -403,7 +468,8 @@ def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentials
 
             echo "✅ ~~~~~ All done. ~~~~~~"
             """
-        )
+            )
+        }
     }
 }
 
@@ -416,7 +482,8 @@ def checkoutWithMergeBase(gitUrl, component, prTargetBranch, prTitle, trunkBranc
     // componentBranch = release-6.2
     // componentBranch = master
     def componentBranch = computeBranchFromPR(component, prTargetBranch, prTitle, trunkBranch)
-    sh(label: 'checkout', script: """#!/usr/bin/env bash
+    withGitCdnAskPass {
+        sh(label: 'checkout', script: """#!/usr/bin/env bash
         set -e
         git --version
         git init
@@ -470,7 +537,8 @@ def checkoutWithMergeBase(gitUrl, component, prTargetBranch, prTitle, trunkBranc
         git status -s .
 
         echo "✅ ~~~~~ All done. ~~~~~~"
-    """)
+        """)
+    }
 }
 
 // fetch component artifact from artifactory(current http server)
