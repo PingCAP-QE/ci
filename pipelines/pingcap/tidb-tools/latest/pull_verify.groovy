@@ -8,6 +8,15 @@ final GIT_FULL_REPO_NAME = 'pingcap/tidb-tools'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-tools/latest/pod-pull_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+// Server/dumpling binaries are pulled from OCI artifact packages instead of the
+// (decommissioned) file server. Tags follow the tidb-tools PR base branch, and
+// PR titles may pin a peer component (e.g. "... | tidb=release-8.5") which
+// computeArtifactOciTagFromPR resolves per component.
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_DUMPLING = component.computeArtifactOciTagFromPR('dumpling', REFS.base_ref, REFS.pulls[0].title, 'master')
+
 prow.setPRDescription(REFS)
 pipeline {
     agent {
@@ -19,7 +28,7 @@ pipeline {
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://sunset-fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -66,14 +75,16 @@ pipeline {
         stage('Integration Test') {
             steps {
                 dir("tidb-tools") {
-                    script {
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin')
+                    container('utils') {
+                        dir('bin') {
+                            sh label: 'download tidb/tikv/pd/dumpling from OCI', script: """
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                --tidb=${OCI_TAG_TIDB} --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV} --dumpling=${OCI_TAG_DUMPLING}
+                            """
+                        }
                     }
                     sh label: "download enterprise-tools-nightly", script: """
-                        wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools-nightly-linux-amd64.tar.gz https://download.pingcap.com/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
+                        curl -fsSL --retry 3 -o tidb-enterprise-tools-nightly-linux-amd64.tar.gz https://download.pingcap.com/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
                         tar -xzf tidb-enterprise-tools-nightly-linux-amd64.tar.gz
                         mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader bin/
                         rm -r tidb-enterprise-tools-nightly-linux-amd64
