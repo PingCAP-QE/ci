@@ -90,9 +90,10 @@ with the confirmed values.
    - `workspace ks3util-config`: mounted from the `ks3utilconfig` secret
      (confirm the secret exists in the chosen namespace).
    - `config-file-path`: `.ks3utilconfig` (the default).
-5. Launch the repair as a Tekton TaskRun. All repair logic already lives in
-   the `zot-validate-repair-image` task; do not duplicate it in another
-   script. Either start the task with `tkn`:
+5. Launch the repair as a Tekton TaskRun with `tkn` (the preferred way to
+   create TaskRuns). All repair logic already lives in the
+   `zot-validate-repair-image` task; do not duplicate it in another script
+   or in a hand-written TaskRun manifest:
 
    ```bash
    tkn task start zot-validate-repair-image \
@@ -104,35 +105,11 @@ with the confirmed values.
      --showlog
    ```
 
-   Or apply a TaskRun manifest directly:
+   `--showlog` streams the logs right after the TaskRun starts. If you want
+   to preview the manifest before running, add `--dry-run --output yaml`.
 
-   ```bash
-   kubectl --context <context> -n <namespace> create -f - <<'EOF'
-   apiVersion: tekton.dev/v1
-   kind: TaskRun
-   metadata:
-     generateName: zot-repair-
-     namespace: <namespace>
-   spec:
-     taskRef:
-       name: zot-validate-repair-image
-     params:
-       - name: target-image
-         value: <target-image>
-       - name: source-image
-         value: <source-image>
-       - name: bucket
-         value: <bucket>
-       - name: config-file-path
-         value: .ks3utilconfig
-     workspaces:
-       - name: ks3util-config
-         secret:
-           secretName: ks3utilconfig
-   EOF
-   ```
-
-6. Follow the run until it finishes:
+6. Follow the run until it finishes. When you launched without `--showlog`,
+   or need to re-check status later:
 
    ```bash
    tkn taskrun logs <taskrun-name> -n <namespace> --context <context> --follow
@@ -159,8 +136,6 @@ with the confirmed values.
 - The `source-image` must expose the same layer blobs as the target manifest.
   Prefer the upstream mirror source; when in doubt ask the user.
 - Repair only uploads blobs; it never rewrites tags or manifests.
-- When naming a TaskRun explicitly (instead of `generateName`), keep it a
-  short DNS-1123 label (lowercase letters, digits, `-`).
 
 ## Read Next
 
