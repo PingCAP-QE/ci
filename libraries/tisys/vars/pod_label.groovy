@@ -4,7 +4,7 @@ def withCiLabels(String podTemplateFile, def refs) {
         podYaml = readTrusted(podTemplateFile)
     } catch (Exception e) {
         echo "[pod_label] ⚠️ failed to read pod template ${podTemplateFile}: ${e.message}"
-        return ''
+        throw e
     }
     if (podYaml == null || !podYaml.toString().trim()) {
         echo "[pod_label] ⚠️ empty pod template ${podTemplateFile}, skip label injection"
