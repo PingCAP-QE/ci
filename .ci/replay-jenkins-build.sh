@@ -216,6 +216,7 @@ build_inline_script_with_pod_yaml() {
                 comment="${BASH_REMATCH[4]}"
                 pvar="_REPLAY_POD_${var}"
                 out_line="${prefix}yaml ${pvar}"
+                preludes+=("final ${pvar} = new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')")
                 [[ -n "$comment" ]] && out_line+=" ${comment}"
                 found=1
             fi
