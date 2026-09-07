@@ -215,7 +215,7 @@ get_params_from_build() {
 # trigger a job on the to jenkins. Prefers the from jenkins last successful
 # build; falls back to the most recent build (any result) so jobs without a
 # successful build history are still verified. When no build exists at all,
-# returns empty (the job is triggered without parameters). Never skips.
+# returns empty and sets PARAMS_SOURCE=none; the caller decides whether to skip.
 get_last_success_params() {
     local job_path="$1" body url
     if [[ -n "$SOURCE_BUILD" ]]; then
@@ -403,21 +403,28 @@ verify_one() {
     job_path="$(job_name_to_path "$name")"
     log "verify ${name} (${source_file}) -> ${TO_JENKINS_URL}/${job_path}"
 
-    local params_b64=""
-    params_b64="$(get_last_success_params "$job_path")"
+    # Do not use command substitution here: it runs get_last_success_params in
+    # a subshell, which would discard the PARAMS_SOURCE it sets. Preserve both
+    # the source metadata and the parameter records so we can safely reject an
+    # empty parameter list.
+    local params_b64="" params_file
+    params_file="$(mktemp)"
+    get_last_success_params "$job_path" > "$params_file"
+    params_b64="$(<"$params_file")"
+    rm -f "$params_file"
     # Jobs without any parameter provenance (no lastSuccessfulBuild/lastBuild on
     # the from Jenkins, or an unavailable --source-build) cannot be verified:
     # these prow-driven jobs require a JOB_SPEC, and firing them with empty
     # parameters makes the pipeline crash at startup (e.g. readJSON on an empty
     # JOB_SPEC) and pollutes the results with fake "test" failures. Skip them
     # and tell the operator how to provide usable parameters.
-    if [[ "$PARAMS_SOURCE" == "none" || "$PARAMS_SOURCE" == "source-build-unavailable" ]]; then
+    if [[ "$PARAMS_SOURCE" == "none" || "$PARAMS_SOURCE" == "source-build-unavailable" || -z "$params_b64" ]]; then
         if [[ "$DRY_RUN" == "true" ]]; then
-            log "dry-run: no parameter source (${PARAMS_SOURCE}) for ${name}; would be skipped"
+            log "dry-run: no usable parameters (source=${PARAMS_SOURCE:-empty-parameters}) for ${name}; would be skipped"
             REPO_LAST_RESULT="dry-run"
             return 0
         fi
-        log "no usable parameters for ${name} (source=${PARAMS_SOURCE}); skipping verification"
+        log "no usable parameters for ${name} (source=${PARAMS_SOURCE:-empty-parameters}); skipping verification"
         log "hint: pass --source-build <from-jenkins build url> carrying a typical/successful JOB_SPEC, or run '${name}' once on ${FROM_JENKINS_URL} so lastSuccessfulBuild exists, then re-run"
         REPO_LAST_RESULT="skipped"
         return 0
