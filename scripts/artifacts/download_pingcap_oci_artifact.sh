@@ -228,7 +228,8 @@ function main() {
         echo "🚀 start download MinIO server and client"
         fetch_file_from_oci_artifact "$minio_oci_url" minio
         fetch_file_from_oci_artifact "$minio_oci_url" mc
-        chmod +x minio mc
+        # mktemp creates files as 0600; keep binaries readable by the jnlp container.
+        chmod a+rx minio mc
         echo "🎉 download MinIO server and client success"
     fi
     if [[ -n "$ETCDCTL" ]]; then
@@ -273,13 +274,13 @@ function main() {
     if [[ -n "$KES" ]]; then
         echo "🚀 start download kes"
         fetch_file_from_oci_artifact "$kes_oci_url" kes
-        chmod +x kes
+        chmod a+rx kes
         echo "🎉 download kes success"
     fi
     if [[ -n "$LICENSE_EYE" ]]; then
         echo "🚀 start download license-eye"
         fetch_file_from_oci_artifact "$license_eye_oci_url" '^license-eye$'
-        chmod +x license-eye
+        chmod a+rx license-eye
         echo "🎉 download license-eye success"
     fi
 
