@@ -9,7 +9,7 @@ presubmits:
     - name: pingcap/tidb/release-7.5/ghpr_build
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
@@ -42,7 +42,7 @@ presubmits:
     - name: pingcap/tidb/release-7.5/ghpr_mysql_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
