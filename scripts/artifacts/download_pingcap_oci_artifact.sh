@@ -5,17 +5,36 @@ set -eo pipefail
 function fetch_file_from_oci_artifact() {
     local oci_url="$1"
     local to_match_file="$2"
-    local repo="$(echo ${oci_url} | cut -d ':' -f 1)"
+    local repo
+    local manifest_file
+    repo="$(echo "${oci_url}" | cut -d ':' -f 1)"
+    manifest_file="$(mktemp .oci-manifest.XXXXXX)"
 
     # get the file blob digest.
-    oras manifest fetch ${oci_url} | yq --prettyPrint -oy ".layers | filter(.annotations[\"org.opencontainers.image.title\"] | test \"$to_match_file\") | .[0]" >blob.yaml
+    if ! oras manifest fetch "${oci_url}" | yq --prettyPrint -oy ".layers | filter(.annotations[\"org.opencontainers.image.title\"] | test \"$to_match_file\") | .[0]" >"${manifest_file}"; then
+        rm -f "${manifest_file}"
+        return 1
+    fi
 
     # download file
-    file="$(yq .annotations[\"org.opencontainers.image.title\"] blob.yaml)"
-    blob="$repo@$(yq .digest blob.yaml)"
+    local file
+    local blob
+    local temporary_file
+    file="$(yq .annotations[\"org.opencontainers.image.title\"] "${manifest_file}")"
+    blob="$repo@$(yq .digest "${manifest_file}")"
+    rm -f "${manifest_file}"
+    if [[ -z "${file}" || "${file}" == "null" || -z "${blob}" || "${blob}" == *"@null" ]]; then
+        echo "Error: no artifact layer matches '${to_match_file}' in ${oci_url}" >&2
+        return 1
+    fi
+
+    temporary_file="$(mktemp ".${file}.partial.XXXXXX")"
     echo "🔗 blob fetching url: ${blob}" >&2
-    oras blob fetch --output $file $blob
-    rm blob.yaml
+    if ! oras blob fetch --output "${temporary_file}" "${blob}"; then
+        rm -f "${temporary_file}"
+        return 1
+    fi
+    mv -f "${temporary_file}" "${file}"
     echo "$file"
 }
 
@@ -47,8 +66,11 @@ function download() {
     echo "📦 == artifact information ======="
     oras manifest fetch-config "$url"
     echo "================================🔚"
-    local tarball_file=$(fetch_file_from_oci_artifact $url "${to_match_file}")
-    mv -v "$tarball_file" "$file_path"
+    local tarball_file
+    if ! tarball_file="$(fetch_file_from_oci_artifact "${url}" "${to_match_file}")"; then
+        return 1
+    fi
+    mv -v "${tarball_file}" "${file_path}"
     echo "✅ Downloaded, saved in ${file_path}"
 }
 
@@ -58,14 +80,40 @@ function download_and_extract_with_path() {
     local file_path=$3
     local path_in_archive=$4
     if [[ -e "${path_in_archive}" ]]; then
-        echo "file ${path_in_archive} already exists, skip download"
-        return
+        if [[ ! -e "${file_path}" ]]; then
+            echo "file ${path_in_archive} already exists, skip download"
+            return
+        fi
+        echo "removing incomplete extraction ${path_in_archive} and stale archive ${file_path}"
+        rm -rf "${path_in_archive}"
+        rm -f "${file_path}"
+    elif [[ -e "${file_path}" ]]; then
+        # A successful invocation removes the archive. A remaining archive was
+        # interrupted before extraction completed, so it must not be reused.
+        echo "removing stale archive ${file_path}"
+        rm -f "${file_path}"
     fi
 
-    download "$url" "$to_match_file" "$file_path"
+    if ! download "$url" "$to_match_file" "$file_path"; then
+        rm -f "${file_path}"
+        return 1
+    fi
     echo "📂 extract ${path_in_archive} from ${file_path} ..."
-    tar -xzvf "${file_path}" "${path_in_archive}"
-    rm "${file_path}"
+    local extract_dir
+    extract_dir="$(mktemp -d .oci-extract.XXXXXX)"
+    if ! tar -xzvf "${file_path}" -C "${extract_dir}" "${path_in_archive}"; then
+        rm -rf "${extract_dir}" "${path_in_archive}"
+        rm -f "${file_path}"
+        return 1
+    fi
+    mkdir -p "$(dirname "${path_in_archive}")"
+    if ! mv "${extract_dir}/${path_in_archive}" "${path_in_archive}"; then
+        rm -rf "${extract_dir}" "${path_in_archive}"
+        rm -f "${file_path}"
+        return 1
+    fi
+    rm -rf "${extract_dir}"
+    rm -f "${file_path}"
     echo "✅ extracted ${path_in_archive} from ${file_path} ."
 }
 
