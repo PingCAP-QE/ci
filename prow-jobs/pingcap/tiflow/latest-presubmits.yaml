@@ -109,7 +109,7 @@ presubmits:
     - name: pingcap/tiflow/pull_cdc_integration_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
@@ -122,7 +122,7 @@ presubmits:
     - name: pingcap/tiflow/pull_cdc_integration_storage_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
@@ -135,7 +135,7 @@ presubmits:
     - name: pingcap/tiflow/pull_cdc_integration_pulsar_test
       agent: jenkins
       labels:
-        master: "0"
+        master: "1"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
