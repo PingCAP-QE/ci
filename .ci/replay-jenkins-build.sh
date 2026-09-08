@@ -188,7 +188,23 @@ build_inline_script_with_pod_yaml() {
     : > "$out_file"
     local -a out_lines=()
     local -a preludes=()
+    local -a prelude_vars=()
     local line out_line b64 prefix comment repl pvar
+
+    prelude_declared() {
+        local v="$1" i n="${#prelude_vars[@]}"
+        for (( i = 0; i < n; i++ )); do
+            [[ "${prelude_vars[$i]}" == "$v" ]] && return 0
+        done
+        return 1
+    }
+    append_prelude() {
+        local v="$1" b="$2"
+        if ! prelude_declared "$v"; then
+            prelude_vars+=("$v")
+            preludes+=("final ${v} = new String(java.util.Base64.decoder.decode(\"${b}\"), 'UTF-8')")
+        fi
+    }
     while IFS= read -r line; do
         out_line="$line"
         # Declarative form before ci-label migration (allow trailing inline comments).
@@ -201,7 +217,7 @@ build_inline_script_with_pod_yaml() {
             if [[ -n "$b64" ]]; then
                 pvar="_REPLAY_POD_${var}"
                 out_line="${line/yamlFile ${var}/yaml ${pvar}}"
-                preludes+=("final ${pvar} = new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')")
+                append_prelude "$pvar" "$b64"
                 found=1
             fi
         # Declarative form after ci-label migration (allow trailing inline comments).
@@ -216,7 +232,7 @@ build_inline_script_with_pod_yaml() {
                 comment="${BASH_REMATCH[4]}"
                 pvar="_REPLAY_POD_${var}"
                 out_line="${prefix}yaml ${pvar}"
-                preludes+=("final ${pvar} = new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')")
+                append_prelude "$pvar" "$b64"
                 [[ -n "$comment" ]] && out_line+=" ${comment}"
                 found=1
             fi
