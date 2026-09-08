@@ -93,7 +93,7 @@ presubmits:
     - <<: *jenkins_job
       name: pingcap/ticdc/pull_cdc_storage_integration_heavy
       labels:
-        master: "1"
+        master: "0"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-heavy
