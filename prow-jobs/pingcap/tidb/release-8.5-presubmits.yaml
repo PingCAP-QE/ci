@@ -11,7 +11,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_build
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
@@ -218,7 +218,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_integration_nodejs_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -231,7 +231,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_integration_python_orm_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
