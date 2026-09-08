@@ -74,7 +74,7 @@ presubmits:
       name: pingcap/tidb/pull_unit_test_ddlv1
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
@@ -108,7 +108,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_copr_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-integration-copr-test
@@ -152,7 +152,7 @@ presubmits:
       name: pingcap/tidb/pull_br_integration_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       context: pull-br-integration-test
       run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
