@@ -1,7 +1,7 @@
 module github.com/PingCAP-QE/ci/tools/gomod-sync
 
-go 1.25.0
+go 1.26.0
 
 toolchain go1.26.6
 
-require golang.org/x/mod v0.39.0
+require golang.org/x/mod v0.41.0
