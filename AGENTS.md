@@ -90,7 +90,7 @@ Follow the **Conventional Commits** specification for commit messages:
 
 Examples:
 - `ci(prow): add presubmit for tiflow lint`
-- `pipelines(tiflow): increase pipeline timeout`
+- `fix(tiflow): increase pipeline timeout`
 - `docs(agents): document Conventional Commits`
 - `test(libraries): add unit tests for parseCIParamsFromPRTitle`
 
