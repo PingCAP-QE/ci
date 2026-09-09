@@ -112,6 +112,14 @@ pipeline {
                                 unstash 'ws'
                                 sh "ls -l rev-${REFS.pulls[0].sha}" // sanity: restored from stash.
 
+                                sh label: 'prepare writable TiDB DDL temp dir', script: '''
+                                    # TiDB uses /tmp/tidb for DDL ingest and IMPORT INTO files.
+                                    # Keep it on the workspace volume before Bazel creates its sandbox.
+                                    tidb_tmp="${WORKSPACE}/tidb-tmp"
+                                    mkdir -p "${tidb_tmp}"
+                                    rm -rf /tmp/tidb
+                                    ln -s "${tidb_tmp}" /tmp/tidb
+                                '''
                                 sh 'chmod +x ../scripts/pingcap/tidb/*.sh'
                                 sh "${WORKSPACE}/scripts/pingcap/tidb/${SCRIPT_AND_ARGS}"
                             }
