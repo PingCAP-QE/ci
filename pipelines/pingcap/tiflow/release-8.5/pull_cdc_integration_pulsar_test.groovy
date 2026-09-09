@@ -19,11 +19,15 @@ final OCI_TAG_YCSB = 'v1.0.3'
 final OCI_TAG_SCHEMA_REGISTRY = 'latest'
 final WORKSPACE_STASH_NAME = 'tiflow-cdc-workspace'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
+    }
+    environment {
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     stages {
         stage('Checkout & Prepare') {

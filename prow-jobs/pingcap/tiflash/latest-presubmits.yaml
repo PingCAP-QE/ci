@@ -159,7 +159,7 @@ presubmits:
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       context: pull-unit-test
       decorate: false # need add this.
       name: pingcap/tiflash/pull_unit_test

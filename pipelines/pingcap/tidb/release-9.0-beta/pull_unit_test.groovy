@@ -7,8 +7,8 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-9.0-beta/pod-pull_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -64,7 +64,8 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     sh """
-                        sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
+                        mkdir -p $WORKSPACE/.cache
+                        sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=$WORKSPACE/.cache|g' Makefile.common
                         git diff .
                         git status
                     """

@@ -4,7 +4,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/release-6.5/ghpr_build
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md)$"
       context: ci/build
@@ -16,7 +16,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/release-6.5/ghpr_integration_mysql_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "mysql_test/.*"
       context: ci/integration-mysql-test
@@ -28,7 +28,7 @@ presubmits:
     - name: pingcap-qe/tidb-test/release-6.5/ghpr_mysql_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       run_if_changed: "mysql_test/.*"
       decorate: false # need add this.
       context: ci/mysql-test

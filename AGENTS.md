@@ -90,9 +90,18 @@ Follow the **Conventional Commits** specification for commit messages:
 
 Examples:
 - `ci(prow): add presubmit for tiflow lint`
-- `pipelines(tiflow): increase pipeline timeout`
+- `fix(tiflow): increase pipeline timeout`
 - `docs(agents): document Conventional Commits`
 - `test(libraries): add unit tests for parseCIParamsFromPRTitle`
+
+### GitHub PR Comments and Descriptions
+
+Be careful when writing `#NNN`-style references in GitHub PR titles, descriptions, or comments:
+
+- GitHub renders a bare `#NNN` (e.g. `#11`, `#5096`) as a cross-reference link to an issue/PR in the repo, which is usually wrong when the number refers to a Jenkins build number, a commit, a local sequence, or anything else that is not a GitHub issue/PR.
+- Use a full URL instead, or wrap the token in backticks/code (e.g. `ghpr_mysql_test #11` inside backticks renders literally) when a cross-reference is not intended.
+- When a reference to a GitHub issue/PR *is* intended, prefer the explicit form `<owner>/<repo>#NNN` (or a full URL) over a bare `#NNN` to avoid ambiguity across repos.
+- Review rendered text before posting: a wrong auto-link cannot be seen by readers as plain text.
 
 ## Common Tasks for Agents
 

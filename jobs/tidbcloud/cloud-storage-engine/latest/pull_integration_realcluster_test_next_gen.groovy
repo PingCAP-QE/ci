@@ -1,0 +1,37 @@
+// REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
+final fullRepo = 'tidbcloud/cloud-storage-engine'
+final jobName = 'pull_integration_realcluster_test_next_gen'
+
+pipelineJob("${fullRepo}/${jobName}") {
+    logRotator {
+        daysToKeep(30)
+    }
+    parameters {
+        // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
+        stringParam("BUILD_ID")
+        stringParam("PROW_JOB_ID")
+        stringParam("JOB_SPEC")
+    }
+
+    definition {
+        cpsScm {
+            lightweight(true)
+            scriptPath("pipelines/${fullRepo}/latest/${jobName}/pipeline.groovy")
+            scm {
+                git{
+                    remote {
+                        url('https://github.com/PingCAP-QE/ci.git')
+                    }
+                    branch('main')
+                    extensions {
+                        cloneOptions {
+                            depth(1)
+                            shallow(true)
+                            timeout(5)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

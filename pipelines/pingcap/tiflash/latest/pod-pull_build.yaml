@@ -16,7 +16,6 @@ spec:
         limits:
           memory: 48Gi
           cpu: "12"
-          ephemeral-storage: 150Gi
       volumeMounts:
         - mountPath: "/tmp"
           name: "tmp"

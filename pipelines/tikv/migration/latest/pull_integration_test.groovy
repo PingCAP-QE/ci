@@ -15,6 +15,7 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', COMPONENT_ARTIFAC
 final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -31,6 +32,7 @@ pipeline {
         // tikv-server: hub-zot.pingcap.net/mirrors/hub/tikv/tikv/package:<tag>_linux_amd64
         // pd-server:   hub-zot.pingcap.net/mirrors/hub/tikv/pd/package:<tag>_linux_amd64
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 65, unit: 'MINUTES')

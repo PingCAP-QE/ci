@@ -8,6 +8,7 @@ final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0-beta/pod-pull_verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

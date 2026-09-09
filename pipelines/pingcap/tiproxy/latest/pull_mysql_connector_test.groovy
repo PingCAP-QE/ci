@@ -8,6 +8,7 @@ final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-pull_mysql_connector_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

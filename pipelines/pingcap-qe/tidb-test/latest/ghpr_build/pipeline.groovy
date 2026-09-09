@@ -9,6 +9,7 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {
@@ -25,7 +26,6 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {

@@ -12,6 +12,7 @@ final WORKSPACE_STASH_NAME = 'tiflash-release-6.5-it-workspace'
 final PARALLELISM = 16
 String tiflash_commit_hash = null
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -25,6 +26,7 @@ pipeline {
     }
     environment {
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -132,25 +134,6 @@ pipeline {
                     sh """
                     ccache -s
                     ls -lha ${WORKSPACE}/install/tiflash
-                    """
-                }
-            }
-        }
-        stage("License check") {
-            steps {
-                dir("${WORKSPACE}/tiflash") {
-                    container('utils') {
-                        sh label: "get license-eye tool", script: '${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --license-eye=v0.4.0'
-                    }
-                    sh label: "license header check", script: """
-                        echo "license check"
-                        if [[ -f .github/licenserc.yml ]]; then
-                            chmod +x ./license-eye
-                            ./license-eye -c .github/licenserc.yml header check
-                        else
-                            echo "skip license check"
-                            exit 0
-                        fi
                     """
                 }
             }

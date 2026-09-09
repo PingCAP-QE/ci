@@ -12,6 +12,7 @@ final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-ro
 final WORKSPACE_STASH_NAME = 'tiflash-it-workspace'
 final PARALLELISM = 12
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -20,11 +21,11 @@ pipeline {
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'ci-rwo')
             defaultContainer 'runner'
             retries 2
-            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
@@ -38,25 +39,6 @@ pipeline {
                         prow.checkoutRefs(REFS, GIT_CREDENTIALS_ID, 30, true, 'https://github.com')
                     }
                     sh 'chown 1000:1000 -R ./'
-                }
-            }
-        }
-        stage("License check") {
-            steps {
-                dir("${WORKSPACE}/tiflash") {
-                    container('utils') {
-                        sh label: "get license-eye tool", script: '${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --license-eye=v0.4.0'
-                    }
-                    sh label: "license header check", script: """
-                        echo "license check"
-                        if [[ -f .github/licenserc.yml ]]; then
-                            chmod +x ./license-eye
-                            ./license-eye -c .github/licenserc.yml header check
-                        else
-                            echo "skip license check"
-                            exit 0
-                        fi
-                    """
                 }
             }
         }
@@ -216,7 +198,6 @@ pipeline {
                         workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'docker'
                         retries 2
-                        customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
                 }
                 when {

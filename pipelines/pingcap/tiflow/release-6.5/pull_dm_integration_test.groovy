@@ -18,11 +18,15 @@ final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 final WORKSPACE_STASH_NAME = 'tiflow-dm-workspace'
 def skipRemainingStages = false
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
+    }
+    environment {
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     stages {
         stage('Check Diff & Prepare') {

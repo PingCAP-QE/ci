@@ -169,7 +169,7 @@ build_inline_script_with_pod_yaml() {
     # Fallback b64 for the single-pod-template case (variable declared elsewhere or file missing).
     # Matches the previous behavior: substitute only POD_TEMPLATE_FILE on the first occurrence.
     local fallback_b64=""
-    if (( ${#pod_vars[@]} == 0 )); then
+    if (( ${#pod_vars[@]} == 0 && ${#pod_template_file} > 0 )); then
         fallback_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
     fi
 
@@ -186,7 +186,25 @@ build_inline_script_with_pod_yaml() {
 
     local found=0
     : > "$out_file"
-    local line out_line b64 prefix comment repl
+    local -a out_lines=()
+    local -a preludes=()
+    local -a prelude_vars=()
+    local line out_line b64 prefix comment repl pvar
+
+    prelude_declared() {
+        local v="$1" i n="${#prelude_vars[@]}"
+        for (( i = 0; i < n; i++ )); do
+            [[ "${prelude_vars[$i]}" == "$v" ]] && return 0
+        done
+        return 1
+    }
+    append_prelude() {
+        local v="$1" b="$2"
+        if ! prelude_declared "$v"; then
+            prelude_vars+=("$v")
+            preludes+=("final ${v} = new String(java.util.Base64.decoder.decode(\"${b}\"), 'UTF-8')")
+        fi
+    }
     while IFS= read -r line; do
         out_line="$line"
         # Declarative form before ci-label migration (allow trailing inline comments).
@@ -197,7 +215,9 @@ build_inline_script_with_pod_yaml() {
                 b64="$fallback_b64"
             fi
             if [[ -n "$b64" ]]; then
-                out_line="${line/yamlFile ${var}/yaml new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')}"
+                pvar="_REPLAY_POD_${var}"
+                out_line="${line/yamlFile ${var}/yaml ${pvar}}"
+                append_prelude "$pvar" "$b64"
                 found=1
             fi
         # Declarative form after ci-label migration (allow trailing inline comments).
@@ -210,19 +230,39 @@ build_inline_script_with_pod_yaml() {
             if [[ -n "$b64" ]]; then
                 prefix="${BASH_REMATCH[1]}"
                 comment="${BASH_REMATCH[4]}"
-                repl="yaml new String(java.util.Base64.decoder.decode(\"${b64}\"), 'UTF-8')"
-                out_line="${prefix}${repl}"
+                pvar="_REPLAY_POD_${var}"
+                out_line="${prefix}yaml ${pvar}"
+                append_prelude "$pvar" "$b64"
                 [[ -n "$comment" ]] && out_line+=" ${comment}"
                 found=1
             fi
         fi
-        printf '%s\n' "$out_line" >> "$out_file"
+        out_lines+=("$out_line")
     done < "$script_file"
 
     if (( found == 0 )); then
         rm -f "$out_file"
         return 2
     fi
+
+    # Insert prelude declarations before the first `pipeline {` line so the
+    # decoded pod yaml becomes a plain script variable instead of an inline
+    # method expression inside the declarative agent. The declarative pipeline
+    # sandbox rejects method calls (e.g. Base64/`'UTF-8'`) evaluated in the
+    # agent `yaml` field ("No such property: UTF"), while a top-level `final`
+    # assignment runs in the normal script context.
+    local -a final_lines=()
+    local line2 pl inserted=0
+    for line2 in "${out_lines[@]}"; do
+        if [[ "$inserted" == "0" && "$line2" =~ ^pipeline[[:space:]]*\{ ]]; then
+            for pl in "${preludes[@]}"; do
+                final_lines+=("$pl")
+            done
+            inserted=1
+        fi
+        final_lines+=("$line2")
+    done
+    printf '%s\n' "${final_lines[@]}" > "$out_file"
     return 0
 }
 
@@ -237,24 +277,24 @@ prepare_script_for_replay() {
 
     local pod_template_file=""
     if ! pod_template_file="$(resolve_pod_template_file "$script_file")"; then
-        vlog "pod template not inferred for ${script_file}; keep yamlFile as-is"
-        return 0
-    fi
-    if [[ ! -f "$pod_template_file" ]]; then
-        vlog "pod template not found: ${pod_template_file}; keep yamlFile as-is"
-        return 0
+        pod_template_file=""
+        vlog "pod template not inferred from filename for ${script_file}; will rely on script-declared pod yaml"
+    elif [[ ! -f "$pod_template_file" ]]; then
+        pod_template_file=""
+        vlog "pod template not found: ${pod_template_file}; will rely on script-declared pod yaml"
     fi
 
     local temp_script
     temp_script="$(mktemp)"
-    if build_inline_script_with_pod_yaml "$script_file" "$pod_template_file" "$temp_script"; then
+    local rc=0
+    build_inline_script_with_pod_yaml "$script_file" "$pod_template_file" "$temp_script" || rc=$?
+    if [[ "$rc" == "0" ]]; then
         REPLAY_SCRIPT_EFFECTIVE="$temp_script"
         REPLAY_SCRIPT_TEMP="$temp_script"
         vlog "inline pod yaml for replay: ${script_file} + ${pod_template_file}"
         return 0
     fi
 
-    local rc=$?
     rm -f "$temp_script"
     if [[ "$rc" == "2" ]]; then
         vlog "no POD_TEMPLATE_FILE yamlFile usage in ${script_file}; keep script as-is"

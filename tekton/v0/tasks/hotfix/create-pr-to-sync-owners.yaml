@@ -22,7 +22,7 @@ spec:
       type: string
   steps:
     - name: clone-community-repo
-      image: bitnami/git:2.43.0
+      image: alpine/git:v2.52.0
       workingDir: /workspace
       script: |
         git clone https://github.com/pingcap/community.git --branch master

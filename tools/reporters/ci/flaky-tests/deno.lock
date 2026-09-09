@@ -3,15 +3,24 @@
   "specifiers": {
     "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/cli@*": "1.0.32",
+    "jsr:@std/cli@^1.0.32": "1.0.32",
+    "jsr:@std/fmt@^1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "jsr:@std/internal@^1.0.14": "1.0.14",
     "jsr:@std/path@*": "1.1.6",
+    "jsr:@std/path@^1.1.6": "1.1.6",
     "jsr:@std/yaml@*": "1.2.0",
+    "jsr:@std/yaml@^1.2.0": "1.2.0",
     "npm:@octokit/plugin-retry@*": "8.1.1_@octokit+core@7.0.7",
+    "npm:@octokit/plugin-retry@^8.1.1": "8.1.1_@octokit+core@7.0.7",
     "npm:@octokit/plugin-throttling@*": "11.0.5_@octokit+core@7.0.7",
+    "npm:@octokit/plugin-throttling@^11.0.5": "11.0.5_@octokit+core@7.0.7",
     "npm:@octokit/rest@*": "22.0.1_@octokit+core@7.0.7",
+    "npm:@octokit/rest@^22.0.1": "22.0.1_@octokit+core@7.0.7",
     "npm:mysql2@*": "3.23.3_@types+node@26.1.2",
-    "npm:nodemailer@*": "9.0.5"
+    "npm:mysql2@^3.11.5": "3.23.3_@types+node@26.1.2",
+    "npm:nodemailer@*": "6.10.1",
+    "npm:nodemailer@^6.9.16": "6.10.1"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -21,7 +30,14 @@
       ]
     },
     "@std/cli@1.0.32": {
-      "integrity": "188b3a100d6202d64e3f5bd3d799c7fa4f6d77f92cc65eb7f641c1fa0aa92a66"
+      "integrity": "188b3a100d6202d64e3f5bd3d799c7fa4f6d77f92cc65eb7f641c1fa0aa92a66",
+      "dependencies": [
+        "jsr:@std/fmt",
+        "jsr:@std/internal@^1.0.14"
+      ]
+    },
+    "@std/fmt@1.0.10": {
+      "integrity": "90dfba288802ac6de82fb31d0917eb9e4450b9925b954d5e51fc29ac07419db5"
     },
     "@std/internal@1.0.14": {
       "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
@@ -209,8 +225,8 @@
         "lru.min"
       ]
     },
-    "nodemailer@9.0.5": {
-      "integrity": "sha512-wvjiKvjczmsN7U/8006JOdXubgBk2XFAbioDMbT+sM7cPs0QrhJTa6KBRX7P5REGGkDcLUz/EarWidb8G8C1jQ=="
+    "nodemailer@6.10.1": {
+      "integrity": "sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA=="
     },
     "safer-buffer@2.1.2": {
       "integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg=="

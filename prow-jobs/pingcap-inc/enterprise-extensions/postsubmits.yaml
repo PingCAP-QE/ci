@@ -9,12 +9,12 @@ postsubmits:
       max_concurrency: 1
       branches:
         - master
-        - ^release-7[.][5-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
+        - ^release-7[.][1-9](\.\d+)?(-\d+)?(-v[\.\d]+)?$
         - ^release-[8-9][.][0-9]+(-beta[.][0-9]+)(-\d+)?(-v[\.\d]+)?$
       spec:
         containers:
           - name: main
-            image: denoland/deno:2.9.5
+            image: denoland/deno:2.9.6
             command:
               - deno
               - run
@@ -29,49 +29,6 @@ postsubmits:
               - --base_ref=$(PULL_BASE_REF)
               - --sub_ref=$(PULL_BASE_REF)
               - --path=pkg/extension/enterprise # new path
-              - --add_labels=lgtm
-              - --add_labels=skip-issue-check
-            env:
-              - name: GITHUB_API_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    key: token
-                    name: github-token
-            resources:
-              limits:
-                cpu: "1"
-                memory: 1Gi
-              requests:
-                cpu: "1"
-                memory: 1Gi
-    - name: push-update-submodule-in-tidb-le-release-7.4
-      decorate: true
-      decoration_config:
-        skip_cloning: true
-      skip_report: true
-      max_concurrency: 1
-      branches:
-        - ^release-7\.[1-4](\.\d+)?(-\d+)?(-v[\.\d]+)?$
-      spec:
-        containers:
-          - name: main
-            image: denoland/deno:2.9.5
-            command:
-              [
-                deno,
-                run,
-                --allow-all,
-                https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/update-submodule.ts,
-              ]
-            args:
-              - --github_private_token=$(GITHUB_API_TOKEN)
-              - --owner=pingcap
-              - --repository=tidb
-              - --sub_owner=$(REPO_OWNER)
-              - --sub_repository=$(REPO_NAME)
-              - --base_ref=$(PULL_BASE_REF)
-              - --sub_ref=$(PULL_BASE_REF)
-              - --path=extension/enterprise # old path
               - --add_labels=lgtm
               - --add_labels=skip-issue-check
             env:

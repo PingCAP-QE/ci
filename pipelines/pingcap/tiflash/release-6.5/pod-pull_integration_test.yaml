@@ -23,11 +23,9 @@ spec:
         limits:
           memory: "32Gi"
           cpu: "8"
-          ephemeral-storage: 150Gi
         requests:
           memory: "16Gi"
           cpu: "4"
-          ephemeral-storage: 20Gi
       securityContext:
         privileged: true
       tty: false
@@ -51,11 +49,9 @@ spec:
         requests:
           memory: "16Gi"
           cpu: "4"
-          ephemeral-storage: 10Gi
         limits:
           memory: "32Gi"
           cpu: "8"
-          ephemeral-storage: 50Gi
       tty: true
       volumeMounts:
         - mountPath: "/tmp"

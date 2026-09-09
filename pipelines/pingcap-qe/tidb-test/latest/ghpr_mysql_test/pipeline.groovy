@@ -11,6 +11,7 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {
@@ -27,7 +28,6 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {

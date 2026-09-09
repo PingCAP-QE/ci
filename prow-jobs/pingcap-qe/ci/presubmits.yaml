@@ -27,12 +27,34 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
+    - name: pull-verify-prow-jobs-run
+      labels: *labels
+      decorate: true
+      optional: true
+      run_if_changed: "^prow-jobs/.*\\.ya?ml$"
+      max_concurrency: 1
+      timeout: 4h
+      branches:
+        - ^main$
+      spec:
+        serviceAccountName: prow-job-validation
+        containers:
+          - name: main
+            image: wbitt/network-multitool
+            command: [bash, -ceo, pipefail]
+            args:
+              - |
+                apk add --no-cache bash git jq yq-go kubectl
+                bash .ci/verify-prow-jobs-run.sh
+            resources:
+              limits:
+                memory: 512Mi
+                cpu: 500m
     - name: pull-replay-jenkins-pipelines
       labels: *labels
       decorate: true
       always_run: false
       optional: true
-      max_concurrency: 1
       trigger: "(?m)^/test (?:.*? )?pull-replay-jenkins-pipelines(?: .*?)?$"
       rerun_command: "/test pull-replay-jenkins-pipelines"
       run_if_changed: "^pipelines/.*\\.groovy$"
@@ -132,7 +154,8 @@ presubmits:
                   --base-sha "${PULL_BASE_SHA:-}" \
                   --head-sha "${PULL_PULL_SHA:-}" \
                   --wait \
-                  --parallel 10 \
+                  --parallel 50 \
+                  --max-jobs 100 \
                   --timeout 7200 \
                   --poll-interval 20 \
                   --retries 3 \
@@ -252,7 +275,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: groovy:4.0.32-jdk17
+            image: groovy:4.0.33-jdk17
             command: [sh, -ce]
             args:
               - |
@@ -375,7 +398,7 @@ presubmits:
                 memory: 256Mi
                 cpu: 200m
           - name: verify-kustomization
-            image: mikefarah/yq:4.53.4
+            image: mikefarah/yq:4.53.6
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
             command: [sh, -c]

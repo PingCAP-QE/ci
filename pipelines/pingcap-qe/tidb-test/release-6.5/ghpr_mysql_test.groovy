@@ -8,6 +8,7 @@ final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap-qe/tidb-test/release-6.5/pod-ghpr_mysql_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -97,7 +98,7 @@ pipeline {
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
                                     export CACHE_ENABLED=${CACHE_ENABLED}
                                     export TIDB_TEST_STORE_NAME="unistore"
-                                    ./test.sh -backlist=1 -part=${PART}
+                                    ./test.sh 1 ${PART}
                                     """
                                 }
                             }

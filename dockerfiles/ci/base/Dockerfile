@@ -101,7 +101,7 @@ RUN ARCH=$([ "$(arch)" = "x86_64" ] && echo linux || echo linux_arm64); \
     chmod +x /usr/local/bin/codecovcli
 
 # oras tool
-COPY --from=ghcr.io/oras-project/oras:v1.3.3 /bin/oras /usr/local/bin/oras
+COPY --from=ghcr.io/oras-project/oras:v1.3.4 /bin/oras /usr/local/bin/oras
 
 # gh-ost
 # linux amd64 only

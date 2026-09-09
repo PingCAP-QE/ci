@@ -73,22 +73,19 @@ spec:
         - input: "$(steps.generate.results.generated)"
           operator: in
           values: ["true"]
-      image: gcr.io/go-containerregistry/crane/debug:latest
-      env:
-        - name: PATH
-          value: /:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/busybox
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       computeResources:
         requests:
           cpu: 50m
           memory: 128Mi
       script: |
-        #!/busybox/sh
+        #!/bin/sh
         set -e
 
         script="/workspace/delivery.sh"
         tries=0
         max_retries=$(params.retries)
-        until /busybox/sh $script; do
+        until /bin/sh $script; do
           tries=$((tries + 1))
           if [ $tries -ge $max_retries ]; then
             echo "Script '$script' failed after $max_retries attempts."
@@ -98,7 +95,7 @@ spec:
           sleep 10
         done
     - name: post-notify
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in

@@ -14,6 +14,7 @@ final OCI_TAG_SYNC_DIFF_INSPECTOR = 'v7.5.7'
 final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 def skipRemainingStages = false
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
@@ -27,6 +28,9 @@ pipeline {
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
+    }
+    environment {
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     stages {
         stage('Check diff files') {
