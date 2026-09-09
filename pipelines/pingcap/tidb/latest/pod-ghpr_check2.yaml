@@ -38,10 +38,13 @@ spec:
                 chown -R 1000:1000 "${tidb_tmp}"
                 chmod 0775 "${tidb_tmp}"
 
-                # The image pre-creates /tmp/tidb, so an existence guard skips redirection.
-                # It is a disposable TiDB temp directory before any test step starts.
+                # The image pre-creates /tmp/tidb. Replace it before test steps start, then
+                # bind-mount the writable workspace directory so Bazel does not resolve a symlink
+                # to a path it mounts read-only in its test sandbox.
                 rm -rf /tmp/tidb
-                ln -s "${tidb_tmp}" /tmp/tidb
+                mkdir -p /tmp/tidb
+                mount --bind "${tidb_tmp}" /tmp/tidb
+                mount -o remount,bind,rw /tmp/tidb
 
                 # ConfigMap-mounted scripts are not executable; keep the shell invocation.
                 /bin/sh /data/bazel-prepare-in-container.sh
