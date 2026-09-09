@@ -89,7 +89,7 @@ pipeline {
                         )
                     }
                 }
-                agent{
+                agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
@@ -103,7 +103,7 @@ pipeline {
                     expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) }
                 }
                 stages {
-                    stage('Test')  {
+                    stage('Test') {
                         environment {
                             CODECOV_TOKEN = credentials('codecov-token-tidb')
                         }

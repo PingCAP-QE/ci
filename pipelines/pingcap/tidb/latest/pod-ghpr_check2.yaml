@@ -29,7 +29,22 @@ spec:
           exec:
             command:
               - /bin/sh
-              - /data/bazel-prepare-in-container.sh
+              - -ec
+              - |
+                # TiDB writes DDL ingest and IMPORT INTO files under /tmp/tidb by default.
+                # postStart runs as root, but Jenkins executes CI steps as UID/GID 1000.
+                tidb_tmp=/home/jenkins/agent/tidb-tmp
+                mkdir -p "${tidb_tmp}"
+                chown -R 1000:1000 "${tidb_tmp}"
+                chmod 0775 "${tidb_tmp}"
+
+                # The image pre-creates /tmp/tidb, so an existence guard skips redirection.
+                # It is a disposable TiDB temp directory before any test step starts.
+                rm -rf /tmp/tidb
+                ln -s "${tidb_tmp}" /tmp/tidb
+
+                # ConfigMap-mounted scripts are not executable; keep the shell invocation.
+                /bin/sh /data/bazel-prepare-in-container.sh
     - name: utils
       image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
