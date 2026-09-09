@@ -11,7 +11,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_build
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/build
@@ -44,7 +44,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_mysql_test
       agent: jenkins
       labels:
-        master: "1" # run on GCP
+        master: "0" # run on GCP
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/mysql-test
@@ -102,7 +102,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_integration_ddl_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -115,7 +115,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_mysql_client_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -129,7 +129,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_integration_mysql_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -179,7 +179,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_common_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -218,7 +218,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_integration_nodejs_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -231,7 +231,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_integration_python_orm_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true

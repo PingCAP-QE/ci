@@ -30,7 +30,6 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb-test") {
                     script {
