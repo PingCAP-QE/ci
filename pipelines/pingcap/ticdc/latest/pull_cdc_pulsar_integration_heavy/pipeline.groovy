@@ -1,11 +1,9 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final BRANCH_ALIAS = 'latest'
-final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
-final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
+final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/latest/pull_cdc_pulsar_integration_heavy/pod-test.yaml'
+final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/latest/pull_cdc_pulsar_integration_heavy/pod-build.yaml'
 final WORKSPACE_STASH_NAME = 'ticdc-workspace'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
@@ -94,7 +92,7 @@ pipeline {
                         values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
-                agent{
+                agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)

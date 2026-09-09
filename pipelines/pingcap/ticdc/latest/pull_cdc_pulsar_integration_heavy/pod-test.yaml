@@ -11,6 +11,20 @@ spec:
         limits:
           memory: 24Gi
           cpu: "6"
+      volumeMounts:
+        - name: test-tmp
+          mountPath: /tmp
+  volumes:
+    - name: test-tmp
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: ci-rwo
+            resources:
+              requests:
+                storage: 100Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
