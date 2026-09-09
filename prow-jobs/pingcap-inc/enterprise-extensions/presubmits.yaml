@@ -3,7 +3,7 @@ presubmits:
     - name: pingcap-inc/enterprise-extensions/pr-verify
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: true
       context: pr-verify

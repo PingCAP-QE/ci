@@ -1,6 +1,8 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap/tiflash/pull_unit_next_gen') {
+final fullRepo = 'tidbcloud/cloud-storage-engine'
+final jobName = 'pull_integration_realcluster_test_next_gen'
+
+pipelineJob("${fullRepo}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
@@ -14,7 +16,7 @@ pipelineJob('pingcap/tiflash/pull_unit_next_gen') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflash/latest/pull_unit_next_gen/pipeline.groovy")
+            scriptPath("pipelines/${fullRepo}/latest/${jobName}/pipeline.groovy")
             scm {
                 git{
                     remote {
