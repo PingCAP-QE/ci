@@ -19,6 +19,10 @@ spec:
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
+        # TiDB writes DDL ingest sort files under /tmp/tidb by default. Jenkins injects
+        # this writable 150Gi workspace volume through workspaceVolume in the Pipeline.
+        - mountPath: /tmp/tidb
+          name: workspace-volume
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -27,18 +31,10 @@ spec:
       lifecycle:
         postStart:
           exec:
+            # ConfigMap-mounted scripts do not have executable mode; invoke through sh.
             command:
               - /bin/sh
-              - -ec
-              - |
-                # TiDB writes DDL ingest sort files to /tmp/tidb/tmp_ddl-{port} by default.
-                # Keep them on the 150Gi Jenkins workspace volume instead of pod-local /tmp.
-                if [ ! -e /tmp/tidb ]; then
-                  mkdir -p /home/jenkins/agent/tidb-tmp
-                  ln -s /home/jenkins/agent/tidb-tmp /tmp/tidb
-                fi
-                # The ConfigMap-mounted script is not executable; preserve the original shell invocation.
-                /bin/sh /data/bazel-prepare-in-container.sh
+              - /data/bazel-prepare-in-container.sh
     - name: utils
       image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
