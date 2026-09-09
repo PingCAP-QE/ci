@@ -29,16 +29,7 @@ spec:
           exec:
             command:
               - /bin/sh
-              - -ec
-              - |
-                # TiDB writes DDL ingest sort files to /tmp/tidb/tmp_ddl-{port} by default.
-                # Keep them on the 150Gi Jenkins workspace volume instead of pod-local /tmp.
-                if [ ! -e /tmp/tidb ]; then
-                  mkdir -p /home/jenkins/agent/tidb-tmp
-                  ln -s /home/jenkins/agent/tidb-tmp /tmp/tidb
-                fi
-                # The ConfigMap-mounted script is not executable; preserve the original shell invocation.
-                /bin/sh /data/bazel-prepare-in-container.sh
+              - /data/bazel-prepare-in-container.sh
     - name: utils
       image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
