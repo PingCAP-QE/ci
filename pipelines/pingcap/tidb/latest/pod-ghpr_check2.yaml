@@ -19,8 +19,6 @@ spec:
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
           name: bazel-out-merged
-        - mountPath: /tmp/tidb
-          name: workspace-volume
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -31,7 +29,13 @@ spec:
           exec:
             command:
               - /bin/sh
-              - /data/bazel-prepare-in-container.sh
+              - -ec
+              - |
+                if [ ! -e /tmp/tidb ]; then
+                  mkdir -p /home/jenkins/agent/tidb-tmp
+                  ln -s /home/jenkins/agent/tidb-tmp /tmp/tidb
+                fi
+                /bin/sh /data/bazel-prepare-in-container.sh
     - name: utils
       image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
