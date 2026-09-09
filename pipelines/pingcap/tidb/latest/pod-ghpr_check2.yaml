@@ -8,6 +8,18 @@ spec:
       image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
       securityContext:
         privileged: true
+        # postStart must replace the image-owned /tmp/tidb mount point. The image
+        # defaults to UID 1000, so start as root for that lifecycle preparation.
+        runAsUser: 0
+        runAsGroup: 0
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          # Do not let Jenkins connect until postStart has finished the privileged setup.
+          while [ ! -f /tmp/tidb-poststart-ready ]; do sleep 1; done
+          # Keep the container's long-running command at the image's normal identity.
+          exec su -s /bin/bash jenkins
       tty: true
       resources:
         requests:
@@ -32,7 +44,7 @@ spec:
               - -ec
               - |
                 # TiDB writes DDL ingest and IMPORT INTO files under /tmp/tidb by default.
-                # postStart runs as root, but Jenkins executes CI steps as UID/GID 1000.
+                # postStart runs as root; keep the target owned by the Jenkins UID/GID 1000.
                 tidb_tmp=/home/jenkins/agent/tidb-tmp
                 mkdir -p "${tidb_tmp}"
                 chown -R 1000:1000 "${tidb_tmp}"
@@ -43,11 +55,15 @@ spec:
                 # to a path it mounts read-only in its test sandbox.
                 rm -rf /tmp/tidb
                 mkdir -p /tmp/tidb
-                mount --bind "${tidb_tmp}" /tmp/tidb
+                mount -o bind "${tidb_tmp}" /tmp/tidb
                 mount -o remount,bind,rw /tmp/tidb
 
                 # ConfigMap-mounted scripts are not executable; keep the shell invocation.
-                /bin/sh /data/bazel-prepare-in-container.sh
+                # This script prepares files in /home/jenkins, so retain their usual ownership.
+                su -s /bin/sh jenkins -c 'cd /home/jenkins && /bin/sh /data/bazel-prepare-in-container.sh'
+
+                # Unblock the main process only after all privileged setup has succeeded.
+                touch /tmp/tidb-poststart-ready
     - name: utils
       image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
