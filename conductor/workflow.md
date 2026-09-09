@@ -6,7 +6,7 @@
 2. **The Tech Stack is Deliberate:** Changes to the tech stack must be documented in `tech-stack.md` *before* implementation
 3. **Test-Driven Development:** Write unit tests before implementing functionality
 4. **High Code Coverage:** Aim for >80% code coverage for all modules
-5. **User Experience First:** Every decision should prioritize user experience
+5. **Reliability & Clarity First:** Every decision should keep product CI reliable and keep job/pipeline configs clear and reviewable for the CI owners and product developers who consume them
 6. **Non-Interactive & CI-Aware:** Prefer non-interactive commands. Use `CI=true` for watch-mode tools (tests, linters) to ensure single execution.
 
 ## Task Workflow
@@ -17,6 +17,8 @@ All tasks follow a strict lifecycle:
 - Test code coverage target: >80%
 - Commit frequency: **per phase** (code is committed once at the end of each phase, not after every task)
 - Task/phase summaries: recorded as **Git notes** attached to the phase checkpoint commit
+
+**Where unit tests apply:** TDD and coverage targets apply to *code modules* (Go tools under `tools/`, Deno/TypeScript scripts, Groovy shared-library functions). Config-only changes (`.yaml` Prow/Tekton, Groovy Job DSL / pipelines) have no unit tests; they are verified with the repo's validation scripts and by triggering/replaying the affected job in staging.
 
 ### Standard Task Workflow
 
@@ -37,11 +39,13 @@ All tasks follow a strict lifecycle:
    - With the safety of passing tests, refactor the implementation code and the test code to improve clarity, remove duplication, and enhance performance without changing the external behavior.
    - Rerun tests to ensure they still pass after refactoring.
 
-6. **Verify Coverage:** Run coverage reports using the project's chosen tools. For example, in a Python project, this might look like:
+6. **Verify Coverage:** Run coverage reports for changed *code modules* only. Examples:
    ```bash
-   pytest --cov=app --cov-report=html
+   cd tools/<tool> && go test ./... -cover                 # Go tools
+   deno test                                               # Deno tools (non-watch; deno.json "test" task uses --watch)
+   groovy libraries/tipipeline/tests/TestComponent.groovy  # shared library functions
    ```
-   Target: >80% coverage for new code. The specific tools and commands will vary by language and framework.
+   Target: >80% coverage for new code in code modules. Config-only changes skip this step.
 
 7. **Document Deviations:** If implementation differs from tech stack:
    - **STOP** implementation
@@ -77,7 +81,7 @@ All tasks follow a strict lifecycle:
 
 3.  **Execute Automated Tests with Proactive Debugging:**
     -   Before execution, you **must** announce the exact shell command you will use to run the tests.
-    -   **Example Announcement:** "I will now run the automated test suite to verify the phase. **Command:** `CI=true npm test`"
+    -   **Example Announcement:** "I will now run the automated test suite to verify the phase. **Command:** `CI=true go test ./...`"
     -   Execute the announced command.
     -   If tests fail, you **must** inform the user and begin debugging. You may attempt to propose a fix a **maximum of two times**. If the tests still fail after your second proposed fix, you **must stop**, report the persistent failure, and ask the user for guidance.
 
@@ -86,24 +90,24 @@ All tasks follow a strict lifecycle:
     -   You **must** generate a step-by-step plan that walks the user through the verification process, including any necessary commands and specific, expected outcomes.
     -   The plan you present to the user **must** follow this format:
 
-        **For a Frontend Change:**
+        **For a CI Job/Pipeline Config Change:**
+        ```
+        The automated checks have passed. For manual verification, please follow these steps:
+
+        **Manual Verification Steps:**
+        1.  **Validate the syntax by running:** `.ci/verify-jenkins-pipelines.sh`
+        2.  **Trigger the affected job in staging** (or replay the Jenkins job for the target branch).
+        3.  **Confirm that the job completes as expected** on prow.tidb.net/jenkins and, if it is a presubmit, that it reports the correct status on the PR.
+        ```
+
+        **For a Tooling Code Change (Go/Deno/Groovy):**
         ```
         The automated tests have passed. For manual verification, please follow these steps:
 
         **Manual Verification Steps:**
-        1.  **Start the development server with the command:** `npm run dev`
-        2.  **Open your browser to:** `http://localhost:3000`
-        3.  **Confirm that you see:** The new user profile page, with the user's name and email displayed correctly.
-        ```
-
-        **For a Backend Change:**
-        ```
-        The automated tests have passed. For manual verification, please follow these steps:
-
-        **Manual Verification Steps:**
-        1.  **Ensure the server is running.**
-        2.  **Execute the following command in your terminal:** `curl -X POST http://localhost:8080/api/v1/users -d '{"name": "test"}'`
-        3.  **Confirm that you receive:** A JSON response with a status of `201 Created`.
+        1.  **Run the tool's test suite:** `cd tools/<tool> && go test ./...` (or `deno task test`).
+        2.  **Execute the tool against a sample input** to confirm the expected output.
+        3.  **Confirm that the result matches** the acceptance criteria in `plan.md`.
         ```
 
 5.  **Await Explicit User Feedback:**
@@ -133,61 +137,66 @@ All tasks follow a strict lifecycle:
 
 Before marking any task complete, verify:
 
-- [ ] All tests pass
-- [ ] Code coverage meets requirements (>80%)
+- [ ] All tests/validation scripts pass
+- [ ] Code coverage meets requirements (>80%) for changed code modules
 - [ ] Code follows project's code style guidelines (as defined in `code_styleguides/`)
-- [ ] All public functions/methods are documented (e.g., docstrings, JSDoc, GoDoc)
-- [ ] Type safety is enforced (e.g., type hints, TypeScript types, Go types)
+- [ ] All public functions/methods are documented (e.g., GoDoc, JSDoc)
+- [ ] Type safety is enforced (e.g., Go types, TypeScript types)
 - [ ] No linting or static analysis errors (using the project's configured tools)
-- [ ] Works correctly on mobile (if applicable)
+- [ ] Config changes validated by the repo verification scripts (`.ci/verify-jenkins-pipelines.sh`, prow/Tekton kustomization updates)
 - [ ] Documentation updated if needed
-- [ ] No security vulnerabilities introduced
+- [ ] No security vulnerabilities introduced (no secrets committed; gitleaks clean)
 
 ## Development Commands
 
-**AI AGENT INSTRUCTION: This section should be adapted to the project's specific language, framework, and build tools.**
-
 ### Setup
 ```bash
-# Example: Commands to set up the development environment (e.g., install dependencies, configure database)
-# e.g., for a Node.js project: npm install
-# e.g., for a Go project: go mod tidy
+# No global build step; each area is self-contained.
+# Go tools have their own module (run per tool):
+cd tools/<tool> && go mod tidy
+# Groovy shared-library tests need Groovy installed (macOS): brew install groovy
 ```
 
 ### Daily Development
 ```bash
-# Example: Commands for common daily tasks (e.g., start dev server, run tests, lint, format)
-# e.g., for a Node.js project: npm run dev, npm test, npm run lint
-# e.g., for a Go project: go run main.go, go test ./..., go fmt ./...
+# Go tools
+cd tools/<tool> && go build && go test ./...
+# Deno/TypeScript tooling (scripts/, tools/reporters/...)
+deno test               # non-watch; the deno.json "test" task runs `--watch` for local dev
+deno check <script>.ts
+# Groovy shared-library functions
+groovy libraries/tipipeline/tests/TestComponent.groovy
+groovy libraries/tisys/tests/TestMatrixCache.groovy
+# Jenkins pipeline syntax verification
+.ci/verify-jenkins-pipelines.sh
 ```
 
 ### Before Committing
 ```bash
-# Example: Commands to run all pre-commit checks (e.g., format, lint, type check, run tests)
-# e.g., for a Node.js project: npm run check
-# e.g., for a Go project: make check (if a Makefile exists)
+pre-commit run --all-files                # eof-fixer + trailing-whitespace + gitleaks
+# After editing prow-jobs or tekton YAML, regenerate kustomizations:
+.ci/update-prow-job-kustomization.sh
+.ci/update-tekton-kustomizations.sh
+# After editing Jenkins pipelines:
+.ci/verify-jenkins-pipelines.sh
 ```
 
 ## Testing Requirements
 
 ### Unit Testing
-- Every module must have corresponding tests.
-- Use appropriate test setup/teardown mechanisms (e.g., fixtures, beforeEach/afterEach).
-- Mock external dependencies.
+- Every code module must have corresponding tests: Go tools (`tools/*`), Deno/TypeScript tooling, and Groovy shared-library functions.
+- Follow the naming/style used by existing tests in the same area (e.g., `libraries/tipipeline/tests/`, table-driven Groovy tests).
+- Mock external dependencies (GitHub API, Jenkins, network).
 - Test both success and failure cases.
 
-### Integration Testing
-- Test complete user flows
-- Verify database transactions
-- Test authentication and authorization
-- Check form submissions
+### Integration / Config Validation
+- Jenkins pipeline syntax is validated by `.ci/verify-jenkins-pipelines.sh`.
+- Prow/Tekton YAML is validated by regenerating kustomizations (`.ci/update-prow-job-kustomization.sh`, `.ci/update-tekton-kustomizations.sh`) and reviewing rendered manifests.
+- Job/pipeline behavior is verified by triggering or replaying the affected job in staging before promotion (see `docs/contributing.md`).
+- Shared-library functions that call Jenkins APIs are exercised via the library test harness.
 
-### Mobile Testing
-- Test on actual iPhone when possible
-- Use Safari developer tools
-- Test touch interactions
-- Verify responsive layouts
-- Check performance on 3G/4G
+### Not Applicable
+This project has no user-facing UI, so mobile/browser testing does not apply.
 
 ## Code Review Process
 
@@ -195,9 +204,9 @@ Before marking any task complete, verify:
 Before requesting review:
 
 1. **Functionality**
-   - Feature works as specified
-   - Edge cases handled
-   - Error messages are user-friendly
+   - Change does what the track's `plan.md` specifies
+   - Edge cases handled (branch/org variations, missing params)
+   - Failure output is actionable for the developer who triggered the job
 
 2. **Code Quality**
    - Follows style guide
@@ -206,26 +215,23 @@ Before requesting review:
    - Appropriate comments
 
 3. **Testing**
-   - Unit tests comprehensive
-   - Integration tests pass
-   - Coverage adequate (>80%)
+   - Unit tests comprehensive (code modules)
+   - Config validated with repo verification scripts
+   - Coverage adequate (>80%) for changed code modules
 
 4. **Security**
-   - No hardcoded secrets
-   - Input validation present
-   - SQL injection prevented
-   - XSS protection in place
+   - No hardcoded secrets (gitleaks clean; credentials from Prow/Jenkins)
+   - No sensitive values logged or exposed in build output
+   - No unsafe execution of untrusted input in pipeline scripts
 
 5. **Performance**
-   - Database queries optimized
-   - Images optimized
-   - Caching implemented where needed
+   - Pipeline timeouts, retries and resource requests are deliberate
+   - No redundant stages or unnecessary waits
 
-6. **Mobile Experience**
-   - Touch targets adequate (44x44px)
-   - Text readable without zooming
-   - Performance acceptable on mobile
-   - Interactions feel native
+6. **Config Integrity**
+   - Naming follows `<org>/<repo>/<branch>` and job-type conventions
+   - All three layers are consistent: Prow trigger, Jenkins Job DSL, pipeline script
+   - Generated manifests (kustomization) are in sync
 
 ## Commit Guidelines
 
@@ -247,37 +253,40 @@ Before requesting review:
 - `test`: Adding missing tests
 - `chore`: Maintenance tasks
 
+**Note:** In this repository, use a project-area scope (e.g. `prow-jobs`, `jobs`, `pipelines`, `tekton`, `libraries`, `tools`, `scripts`, `docs`, `conductor`). Reserve the `ci` type for `.github`/`.ci` changes only (the repo itself manages CI, so `ci(type)` is not used for job/pipeline edits).
+
 ### Examples
 ```bash
-git commit -m "feat(auth): Add remember me functionality"
-git commit -m "fix(posts): Correct excerpt generation for short posts"
-git commit -m "test(comments): Add tests for emoji reaction limits"
-git commit -m "style(mobile): Improve button touch targets"
+git commit -m "fix(pipelines): increase pipeline timeout"
+git commit -m "chore(prow-jobs): bump image tags for latest jobs"
+git commit -m "docs(conductor): adapt workflow for CI repo"
+git commit -m "test(libraries): add unit tests for parseCIParamsFromPRTitle"
+git commit -m "style(jobs): reformat job DSL file"
 ```
 
 ## Definition of Done
 
 A task is complete when:
 
-1. All code implemented to specification
-2. Unit tests written and passing
-3. Code coverage meets project requirements
-4. Documentation complete (if applicable)
-5. Code passes all configured linting and static analysis checks
-6. Works beautifully on mobile (if applicable)
+1. Change implemented to specification (`plan.md`)
+2. Unit tests written and passing (for code modules)
+3. Code coverage meets project requirements (>80% for changed code modules)
+4. Config changes validated by the repo verification scripts
+5. Code passes all configured linting and static analysis checks (pre-commit)
+6. Documentation updated if needed
 7. Implementation notes added to `plan.md`
 8. Changes committed with proper message
-9. Git note with task summary attached to the commit
+9. Git note with task summary attached to the phase checkpoint commit
 
 ## Emergency Procedures
 
-### Critical Bug in Production
-1. Create hotfix branch from main
-2. Write failing test for bug
-3. Implement minimal fix
-4. Test thoroughly including mobile
-5. Deploy immediately
-6. Document in plan.md
+### Broken Production Job / Pipeline Config
+1. Open a revert or hotfix PR targeting `main`
+2. If the change touches a code module, write a failing test that reproduces the issue
+3. Apply the minimal fix to the job/pipeline config
+4. Verify by replaying/triggering the affected job in staging
+5. Promote to production and monitor the affected jobs
+6. Document in `plan.md`
 
 ### Data Loss
 1. Stop all write operations
@@ -293,30 +302,29 @@ A task is complete when:
 4. Notify affected users (if any)
 5. Document and update security procedures
 
-## Deployment Workflow
+## Promotion Workflow
 
-### Pre-Deployment Checklist
-- [ ] All tests passing
-- [ ] Coverage >80%
-- [ ] No linting errors
-- [ ] Mobile testing complete
-- [ ] Environment variables configured
-- [ ] Database migrations ready
-- [ ] Backup created
+### Pre-Promotion Checklist
+- [ ] All tests / validation scripts pass
+- [ ] Coverage >80% for changed code modules
+- [ ] No linting errors (pre-commit clean)
+- [ ] Config change validated in staging (job triggered/replayed)
+- [ ] OWNERS / SIG approval obtained
+- [ ] Environment variables / credentials referenced correctly
+- [ ] Generated manifests regenerated and in sync
 
-### Deployment Steps
+### Promotion Steps
 1. Merge feature branch to main
-2. Tag release with version
-3. Push to deployment service
-4. Run database migrations
-5. Verify deployment
-6. Test critical paths
-7. Monitor for errors
+2. Verify generated manifests are committed and in sync
+3. Promote the change from staging to production per `docs/contributing.md`
+4. Monitor triggered jobs on prow.tidb.net / jenkins
+5. Test critical paths (presubmits on affected repos/branches)
+6. Watch for regressions
 
-### Post-Deployment
-1. Monitor analytics
-2. Check error logs
-3. Gather user feedback
+### Post-Promotion
+1. Monitor job health and green rate
+2. Check error logs on affected jobs
+3. Gather feedback from CI owners
 4. Plan next iteration
 
 ## Continuous Improvement
