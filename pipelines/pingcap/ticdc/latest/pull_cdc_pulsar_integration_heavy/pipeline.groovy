@@ -1,9 +1,11 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
+final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/latest/pull_cdc_pulsar_integration_heavy/pod-test.yaml'
-final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/latest/pull_cdc_pulsar_integration_heavy/pod-build.yaml'
+final BRANCH_ALIAS = 'latest'
+final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
+final POD_TEMPLATE_FILE_BUILD = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml"
 final WORKSPACE_STASH_NAME = 'ticdc-workspace'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
