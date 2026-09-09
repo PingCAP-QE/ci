@@ -10,6 +10,7 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/release-9.0-beta/pod-pull_dm
 final REFS = readJSON(text: params.JOB_SPEC).refs
 def skipRemainingStages = false
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

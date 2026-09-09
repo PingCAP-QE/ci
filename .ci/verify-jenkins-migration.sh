@@ -19,6 +19,9 @@ triggers the same job on the to Jenkins, optionally waiting for completion.
 Parameters fall back to the most recent build (any result) when there is no
 successful build. Failed builds are classified as infra (checkout/SSH/bazel
 fetch errors, ABORTED) vs real test failures and reported separately.
+Jobs without any parameter provenance on the from Jenkins are skipped
+instead of being fired with empty parameters (which crashes prow-driven
+pipelines that require JOB_SPEC); use --source-build to verify them.
 Reports progress via a single PR comment.
 
 Usage:
@@ -212,7 +215,7 @@ get_params_from_build() {
 # trigger a job on the to jenkins. Prefers the from jenkins last successful
 # build; falls back to the most recent build (any result) so jobs without a
 # successful build history are still verified. When no build exists at all,
-# returns empty (the job is triggered without parameters). Never skips.
+# returns empty and sets PARAMS_SOURCE=none; the caller decides whether to skip.
 get_last_success_params() {
     local job_path="$1" body url
     if [[ -n "$SOURCE_BUILD" ]]; then
@@ -260,26 +263,38 @@ trigger_job_build() {
         tmpfiles+=("$vf" "${vf}.v")
     done <<< "$params_b64"
 
-    local endpoint="build"
+    # Parameterized jobs reject POST /build with HTTP 400; non-parameterized
+    # jobs reject POST /buildWithParameters. When we have parameters we must
+    # use buildWithParameters. When we have none we try build first and fall
+    # back to buildWithParameters (which applies the job's default parameter
+    # values) so jobs without build history are still triggered.
+    local -a endpoints=("build")
     if (( ${#args[@]} > 0 )); then
-        endpoint="buildWithParameters"
+        endpoints=("buildWithParameters")
+    else
+        endpoints=("build" "buildWithParameters")
     fi
 
-    local headers status loc
-    headers="$(mktemp)"
-    status="$(curl -sS "${CURL_AUTH_TO[@]}" "${CURL_HEADERS_TO[@]}" -o /dev/null -D "$headers" \
-        -w '%{http_code}' -X POST "${args[@]}" "${TO_JENKINS_URL}/${job_path}/${endpoint}" || true)"
-    loc="$(awk -F': ' 'tolower($1)=="location" {gsub("\r", "", $2); print $2; exit}' "$headers")"
-    rm -f "$headers"
+    local endpoint headers status loc
+    for endpoint in "${endpoints[@]}"; do
+        headers="$(mktemp)"
+        status="$(curl -sS "${CURL_AUTH_TO[@]}" "${CURL_HEADERS_TO[@]}" -o /dev/null -D "$headers" \
+            -w '%{http_code}' -X POST "${args[@]}" "${TO_JENKINS_URL}/${job_path}/${endpoint}" || true)"
+        loc="$(awk -F': ' 'tolower($1)=="location" {gsub("\r", "", $2); print $2; exit}' "$headers")"
+        rm -f "$headers"
+        if { [[ "$status" == "200" || "$status" == "201" ]]; } && [[ -n "$loc" ]]; then
+            local tf
+            for tf in "${tmpfiles[@]}"; do
+                rm -f "$tf"
+            done
+            printf '%s' "$(trim_trailing_slash "$loc")"
+            return 0
+        fi
+    done
     local tf
     for tf in "${tmpfiles[@]}"; do
         rm -f "$tf"
     done
-
-    if { [[ "$status" == "200" || "$status" == "201" ]]; } && [[ -n "$loc" ]]; then
-        printf '%s' "$(trim_trailing_slash "$loc")"
-        return 0
-    fi
     return 1
 }
 
@@ -357,10 +372,15 @@ wait_build_result() {
     done
 }
 
-# Known infra/network failure markers in a Jenkins console log (checkout/SSH
-# and bazel fetch errors). Jobs failing with these are infra flakes, not real
-# test failures.
-INFRA_FAIL_PATTERNS='Connection closed by|Error fetching remote repo|Could not read from remote repository|unexpected end of file|No valid crumb was included'
+# Known infra failure markers in a Jenkins console log. Jobs failing with these
+# are infra/environment flakes, not real test failures:
+#   - git checkout/transport (SSH/git-cdn, crumb, EOF)
+#   - pod scheduling / workspace volume (ephemeral PVC provisioning, no PV to
+#     bind, insufficient node cpu/memory, scheduler errors)
+#   - node disk pressure (add-index ingest "insufficient free disk space")
+#   - empty-parameter pipeline crash (readJSON on empty JOB_SPEC)
+#   - process killed by the prow entrypoint timeout
+INFRA_FAIL_PATTERNS='Connection closed by|Error fetching remote repo|Could not read from remote repository|unexpected end of file|No valid crumb was included|ephemeral volume controller to create the persistentvolumeclaim|available persistent volumes to bind|Insufficient cpu|Insufficient memory|insufficient free disk space|At least one of file or text needs to be provided to readJSON|Process did not finish before|ContainersNotReady|SchedulerError'
 
 # Classify a failed build as "infra" or "test" by grepping its console log.
 # Only the last 1MB of the console is fetched to bound the transfer size.
@@ -383,10 +403,31 @@ verify_one() {
     job_path="$(job_name_to_path "$name")"
     log "verify ${name} (${source_file}) -> ${TO_JENKINS_URL}/${job_path}"
 
-    local params_b64=""
-    params_b64="$(get_last_success_params "$job_path")"
-    if [[ "$PARAMS_SOURCE" == "none" ]]; then
-        log "no build history on from jenkins for ${name}; triggering without parameters"
+    # Do not use command substitution here: it runs get_last_success_params in
+    # a subshell, which would discard the PARAMS_SOURCE it sets. Preserve both
+    # the source metadata and the parameter records so we can safely reject an
+    # empty parameter list.
+    local params_b64="" params_file
+    params_file="$(mktemp)"
+    get_last_success_params "$job_path" > "$params_file"
+    params_b64="$(<"$params_file")"
+    rm -f "$params_file"
+    # Jobs without any parameter provenance (no lastSuccessfulBuild/lastBuild on
+    # the from Jenkins, or an unavailable --source-build) cannot be verified:
+    # these prow-driven jobs require a JOB_SPEC, and firing them with empty
+    # parameters makes the pipeline crash at startup (e.g. readJSON on an empty
+    # JOB_SPEC) and pollutes the results with fake "test" failures. Skip them
+    # and tell the operator how to provide usable parameters.
+    if [[ "$PARAMS_SOURCE" == "none" || "$PARAMS_SOURCE" == "source-build-unavailable" || -z "$params_b64" ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            log "dry-run: no usable parameters (source=${PARAMS_SOURCE:-empty-parameters}) for ${name}; would be skipped"
+            REPO_LAST_RESULT="dry-run"
+            return 0
+        fi
+        log "no usable parameters for ${name} (source=${PARAMS_SOURCE:-empty-parameters}); skipping verification"
+        log "hint: pass --source-build <from-jenkins build url> carrying a typical/successful JOB_SPEC, or run '${name}' once on ${FROM_JENKINS_URL} so lastSuccessfulBuild exists, then re-run"
+        REPO_LAST_RESULT="skipped"
+        return 0
     fi
 
     if [[ "$DRY_RUN" == "true" ]]; then

@@ -15,6 +15,7 @@ final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', COMPONENT_ARTIFAC
 final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

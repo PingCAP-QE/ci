@@ -12,20 +12,14 @@ spec:
       tty: true
       # Notice: not set the resources limit, because limit will make unit test failed
       resources:
-        requests:
+        limits:
           memory: "24Gi"
-          cpu: "6"
-          ephemeral-storage: 20Gi
+          cpu: "12"
       volumeMounts:
-        - mountPath: "/tmp"
-          name: "tmp"
-          readOnly: false
         - mountPath: "/tmp-memfs"
           name: "tmp-memfs"
           readOnly: false
   volumes:
-    - name: "tmp"
-      emptyDir: {}
     - name: "tmp-memfs"
       emptyDir:
         medium: Memory

@@ -18,6 +18,7 @@ final OCI_TAG_ETCD = 'v3.5.15'
 final OCI_TAG_YCSB = 'v1.0.3'
 final WORKSPACE_STASH_NAME = 'tiflow-cdc-workspace'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {

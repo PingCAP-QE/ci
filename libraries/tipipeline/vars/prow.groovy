@@ -16,10 +16,70 @@ def checkoutRefsWithCache(refs, timeout = 5, credentialsId = '', withSubmodule =
 }
 
 def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, gitBaseUrl = 'https://github.com') {
-    if (credentialsId?.trim()) {
-        checkoutPrivateRefs(refs, credentialsId, timeout, withSubmodule, gitBaseUrl)
+    final explicitCredentialsId = credentialsId?.trim()
+    final sshCredentialsId = explicitCredentialsId ?: (
+        withSubmodule ? env.GIT_SSH_CREDENTIALS_ID?.trim() : ''
+    )
+    final cdnEnabled = env.GIT_CDN_ENABLED?.trim()?.toBoolean()
+    final httpCredentialsId = env.GIT_HTTP_CREDENTIALS_ID?.trim()
+
+    // Keep the existing URL selection: an explicit credential means that the
+    // main repository uses SSH. TKE can rewrite that URL to the CDN, while
+    // GCP continues to use the SSH agent directly.
+    def checkout = {
+        if (explicitCredentialsId) {
+            checkoutPrivateRefs(refs, explicitCredentialsId, timeout, withSubmodule, gitBaseUrl)
+        } else {
+            checkoutPublicRefs(refs, timeout, withSubmodule, gitBaseUrl)
+        }
+    }
+
+    def checkoutWithHttpCredentials = {
+        if (cdnEnabled && httpCredentialsId) {
+            withGitAskPass(httpCredentialsId, checkout)
+        } else {
+            checkout()
+        }
+    }
+
+    // A job that only passes an empty credentialsId can still have private
+    // SSH submodules. Use the cluster-provided default SSH credential for
+    // the checkout scope without changing the public HTTPS main URL.
+    if (sshCredentialsId && !explicitCredentialsId) {
+        sshagent(credentials: [sshCredentialsId]) {
+            checkoutWithHttpCredentials()
+        }
     } else {
-        checkoutPublicRefs(refs, timeout, withSubmodule, gitBaseUrl)
+        checkoutWithHttpCredentials()
+    }
+}
+
+/*
+ * Let Git try an anonymous HTTP request first and provide Jenkins' PAT only
+ * after the server asks for credentials. The script is outside the workspace
+ * because checkout cleanup and the pipeline cache operate on the workspace.
+ */
+def withGitAskPass(String credentialsId, Closure body) {
+    // Keep the askpass script inside the shared workspace volume but outside
+    // the Git worktree. Every caller clones into a workspace subdirectory via
+    // dir(), so the workspace root is never touched by git clean/checkout.
+    // Let writeFile create the file (it runs as the JNLP agent user); a file
+    // pre-created by an sh step would be owned by the container's root user
+    // and not writable by the agent, and a plain /tmp path would sit on a
+    // different filesystem than the container that runs Git.
+    final askPassScript = libraryResource 'scripts/git_askpass.sh'
+    final tmpAskPassScript = "${env.WORKSPACE}/git-askpass-${UUID.randomUUID().toString()}"
+
+    try {
+        writeFile(file: tmpAskPassScript, text: askPassScript)
+        sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
+        withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
+            withEnv(["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']) {
+                body()
+            }
+        }
+    } finally {
+        sh label: 'Remove Git HTTP credential helper', script: "rm -f '${tmpAskPassScript}'"
     }
 }
 
@@ -57,10 +117,15 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, withSubmodule = false,
 
     final remoteUrl = "${gitBaseUrl}:${refs.org}/${refs.repo}.git"
     sshagent(credentials: [credentialsId]) {
-        sh label: 'Know hosts', script: """
-            [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-            ssh-keyscan -t rsa,ecdsa,ed25519 ${knownHost} >> ~/.ssh/known_hosts
-        """
+        // GitHub SSH URLs are rewritten to the CDN in TKE, so avoid an
+        // unnecessary GitHub network call there. Keep host-key setup for
+        // direct SSH and non-GitHub SSH hosts.
+        if (!env.GIT_CDN_ENABLED?.trim()?.toBoolean() || knownHost != 'github.com') {
+            sh label: 'Know hosts', script: """
+                [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                ssh-keyscan -t rsa,ecdsa,ed25519 ${knownHost} >> ~/.ssh/known_hosts
+            """
+        }
         _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
     }
 }

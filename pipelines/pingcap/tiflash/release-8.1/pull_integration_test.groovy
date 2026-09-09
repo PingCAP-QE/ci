@@ -14,6 +14,7 @@ Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
 String tiflash_commit_hash = null
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {

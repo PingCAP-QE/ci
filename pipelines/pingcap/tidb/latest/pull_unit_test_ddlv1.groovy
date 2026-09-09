@@ -36,7 +36,7 @@ pipeline {
             environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
-                    script { bazel.prepareWorkspace(repositoryCache: '/share/.cache/bazel-repository-cache', ensureTmpDir: true) }
+                    script { bazel.prepareWorkspace(ensureTmpDir: true) }
 
                     sh '''#!/usr/bin/env bash
                         set -euxo pipefail
