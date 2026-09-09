@@ -135,7 +135,6 @@ pipeline {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         environment {
                             TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
-                            TICDC_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
                         }
                         steps {
                             dir(REFS.repo) {
