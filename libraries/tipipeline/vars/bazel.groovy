@@ -67,7 +67,7 @@ def stripPattern(List<String> urls) {
 // opts:
 //   cloud:            override cloud env name (default: CI_CLOUD_ENV or 'gcp')
 //   stripUrls:        override stale URLs to remove (default: envConfig)
-//   patchCheckTarget: patch Makefile "check:" target (default: true)
+//   patchCheckTarget: patch Makefile "check:"/"bazel_coverage_test:" targets (default: true)
 //   remoteCache:      null, [mode: 'disable'] or [mode: 'set', url: '...'] (default: envConfig)
 //   repositoryCache:  null, '/path' or [path: '/path', guard: true|false] (default: envConfig)
 //   tmpDir:           bazel output root / repository cache parent (default:
