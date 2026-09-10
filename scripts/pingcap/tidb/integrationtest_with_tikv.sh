@@ -38,14 +38,16 @@ EOF
     wait_for_http "http://${pd_addr2}/pd/api/v1/health" "PD-2" || return 1
     wait_for_http "http://${pd_addr3}/pd/api/v1/health" "PD-3" || return 1
 
-    bin/tikv-server --pd=${pd_addr1} -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f tikv1.log &
-    bin/tikv-server --pd=${pd_addr2} -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f tikv2.log &
-    bin/tikv-server --pd=${pd_addr3} -s tikv3 --addr=0.0.0.0:20180 --advertise-addr=127.0.0.1:20180 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f tikv3.log &
+    # Each TiKV must bind a distinct status-addr: the TiKV default is
+    # 127.0.0.1:20180, which collides with the third instance's --addr.
+    bin/tikv-server --pd=${pd_addr1} -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --status-addr=127.0.0.1:20165 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f tikv1.log &
+    bin/tikv-server --pd=${pd_addr2} -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --status-addr=127.0.0.1:20175 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f tikv2.log &
+    bin/tikv-server --pd=${pd_addr3} -s tikv3 --addr=0.0.0.0:20180 --advertise-addr=127.0.0.1:20180 --status-addr=127.0.0.1:20185 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f tikv3.log &
 
     if [ -d "cmd/explaintest" ]; then
         chmod +x cmd/explaintest/run-tests.sh
 
-        export TIDB_SERVER_PATH="$(pwd)/bin/explain_test_tidb-server"
+        export TIDB_SERVER_PATH="$(pwd)/bin/integration_test_tidb-server"
         export TIKV_PATH="${pd_addr1}"
         export TIDB_TEST_STORE_NAME="tikv"
         pushd cmd/explaintest &&

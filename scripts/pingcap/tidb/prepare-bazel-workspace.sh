@@ -8,7 +8,8 @@
 #   BAZEL_STRIP_URLS             sed -E alternation of legacy cache/mirror
 #                                URLs to remove from WORKSPACE/DEPS.bzl
 #   BAZEL_PATCH_CHECK_TARGET     "true" to drop check-bazel-prepare from the
-#                                Makefile "check:" target (default: true)
+#                                Makefile "check:" and "bazel_coverage_test:"
+#                                targets (default: true)
 #   BAZEL_TMP_DIR                bazel output root and repository cache
 #                                parent (default: ${WORKSPACE}/.cache/bazel)
 #   BAZEL_ENSURE_TMP_DIR         "true" to create the bazel tmp dir
@@ -88,9 +89,11 @@ for f in WORKSPACE DEPS.bzl; do
     "${SED_I[@]}" -E "/${BAZEL_STRIP_URLS}/d" "$f"
 done
 
-# Avoid "check" targets re-writing legacy cache settings during replay validation.
+# Avoid "check"/"bazel_coverage_test" targets running check-bazel-prepare:
+# it re-writes legacy cache settings and is incompatible with the stripped
+# WORKSPACE/DEPS.bzl on this environment (and can break on new Bazel defaults).
 if [ "${BAZEL_PATCH_CHECK_TARGET:-true}" = "true" ]; then
-    "${SED_I[@]}" 's/^check: check-bazel-prepare /check: /' Makefile || true
+    "${SED_I[@]}" -E 's/^(check|bazel_coverage_test): check-bazel-prepare /\1: /' Makefile || true
 fi
 
 # Remote cache handling in .bazelrc.

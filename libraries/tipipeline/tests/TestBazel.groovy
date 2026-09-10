@@ -262,6 +262,15 @@ class TestBazel {
         }
 
         @Test
+        void shouldAlsoPatchBazelCoverageTestTarget() {
+            makefile.text = 'check: check-bazel-prepare all\n' +
+                'bazel_coverage_test: check-bazel-prepare failpoint-enable bazel_ci_prepare\n'
+            runScript([BAZEL_STRIP_URLS: stripPattern()])
+            assert makefile.text == 'check: all\nbazel_coverage_test: failpoint-enable bazel_ci_prepare\n' :
+                "Makefile should drop check-bazel-prepare from check and bazel_coverage_test, got: ${makefile.text}"
+        }
+
+        @Test
         void shouldSkipMakefilePatchWhenDisabled() {
             runScript([BAZEL_STRIP_URLS: stripPattern(), BAZEL_PATCH_CHECK_TARGET: 'false'])
             assert makefile.text == 'check: check-bazel-prepare all\n' : 'Makefile should be untouched'
