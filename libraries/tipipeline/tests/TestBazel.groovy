@@ -114,6 +114,7 @@ class TestBazel {
             assert env.BAZEL_STRIP_URLS == 'bazel-cache[.]pingcap[.]net:8080|ats[.]apps[.]svc|cache[.]hawkingrei[.]com|mirror[.]bazel[.]build' :
                 "unexpected strip urls: ${env.BAZEL_STRIP_URLS}"
             assert env.BAZEL_PATCH_CHECK_TARGET == 'true' : 'should patch check target by default'
+            assert env.BAZEL_TMP_DIR == '' : 'should resolve tmp dir from WORKSPACE by default'
             assert env.BAZEL_ENSURE_TMP_DIR == 'false' : 'should not create tmp dir by default'
             assert env.BAZEL_REPOSITORY_CACHE_PATH == '' : 'should not switch repository cache by default'
             assert env.BAZEL_REPOSITORY_CACHE_GUARD == '' : 'guard should be empty without a path'
@@ -188,6 +189,12 @@ class TestBazel {
             def env = workspaceEnv([cloud: 'gcp', ensureTmpDir: true])
             assert env.BAZEL_ENSURE_TMP_DIR == 'true'
         }
+
+        @Test
+        void shouldPassExplicitTmpDir() {
+            def env = workspaceEnv([cloud: 'gcp', tmpDir: '/workspace/.cache/bazel'])
+            assert env.BAZEL_TMP_DIR == '/workspace/.cache/bazel' : "unexpected tmp dir: ${env.BAZEL_TMP_DIR}"
+        }
     }
 
     // ============================================================
@@ -227,8 +234,11 @@ class TestBazel {
         private String runScript(Map<String, String> env) {
             def builder = new ProcessBuilder('bash', RESOURCE.absolutePath)
             builder.directory(workDir)
-            builder.environment().putAll(env)
+            // Keep the environment deterministic: these variables are normally
+            // injected by Jenkins and would otherwise leak into the fixtures.
             builder.environment().remove('BAZEL_GUARDED')
+            builder.environment().remove('WORKSPACE')
+            builder.environment().putAll(env)
             def proc = builder.start()
             def out = proc.inputStream.text
             def err = proc.errorStream.text
@@ -274,6 +284,7 @@ class TestBazel {
                 mf.text = 'check: check-bazel-prepare all\n'
                 def builder = new ProcessBuilder('bash', RESOURCE.absolutePath)
                 builder.directory(dir)
+                builder.environment().remove('WORKSPACE')
                 builder.environment().putAll([BAZEL_STRIP_URLS: stripPattern(), BAZEL_GUARDED: 'true'])
                 def proc = builder.start()
                 def exit = proc.waitFor()
@@ -295,6 +306,7 @@ class TestBazel {
                 new File(dir, 'Makefile').text = 'check: check-bazel-prepare all\n'
                 def builder = new ProcessBuilder('bash', RESOURCE.absolutePath)
                 builder.directory(dir)
+                builder.environment().remove('WORKSPACE')
                 builder.environment().putAll([BAZEL_STRIP_URLS: stripPattern(), BAZEL_GUARDED: 'true'])
                 def proc = builder.start()
                 def exit = proc.waitFor()
@@ -371,6 +383,41 @@ class TestBazel {
             def tmpDir = new File(workDir, 'tmp-dir')
             runScript([BAZEL_STRIP_URLS: stripPattern(), BAZEL_ENSURE_TMP_DIR: 'true', BAZEL_TMP_DIR: tmpDir.absolutePath])
             assert tmpDir.isDirectory() : 'tmp dir should be created'
+        }
+
+        @Test
+        void shouldRedirectBazelDirsToWorkspaceVolume() {
+            def makefileCommon = new File(workDir, 'Makefile.common')
+            makefileCommon.text = 'BAZEL_GLOBAL_CONFIG := --output_user_root=/home/jenkins/.tidb/tmp\n' +
+                'BAZEL_CMD_CONFIG := --config=ci --repository_cache=/home/jenkins/.tidb/tmp\n'
+            runScript([BAZEL_STRIP_URLS: stripPattern(), WORKSPACE: workDir.absolutePath])
+            def content = makefileCommon.text
+            assert content.contains("--output_user_root=${workDir.absolutePath}/.cache/bazel") :
+                "output root should move to the workspace volume, got: ${content}"
+            assert content.contains("repository_cache=${workDir.absolutePath}/.cache/bazel/repository_cache") :
+                "repository cache should move to the workspace volume, got: ${content}"
+            assert !content.contains('/home/jenkins/.tidb/tmp') :
+                "node-local .tidb dir should not be referenced, got: ${content}"
+        }
+
+        @Test
+        void shouldPreferExplicitTmpDirOverWorkspace() {
+            def makefileCommon = new File(workDir, 'Makefile.common')
+            makefileCommon.text = 'BAZEL_GLOBAL_CONFIG := --output_user_root=/home/jenkins/.tidb/tmp\n'
+            def tmpDir = new File(workDir, 'explicit-tmp')
+            runScript([BAZEL_STRIP_URLS: stripPattern(), BAZEL_TMP_DIR: tmpDir.absolutePath,
+                       WORKSPACE: workDir.absolutePath])
+            assert makefileCommon.text.contains("--output_user_root=${tmpDir.absolutePath}") :
+                "explicit BAZEL_TMP_DIR should win over WORKSPACE, got: ${makefileCommon.text}"
+        }
+
+        @Test
+        void shouldRedirectBazelDirsWhenStripUrlsEmpty() {
+            def makefileCommon = new File(workDir, 'Makefile.common')
+            makefileCommon.text = 'BAZEL_GLOBAL_CONFIG := --output_user_root=/home/jenkins/.tidb/tmp\n'
+            runScript([BAZEL_STRIP_URLS: '', WORKSPACE: workDir.absolutePath])
+            assert makefileCommon.text.contains("--output_user_root=${workDir.absolutePath}/.cache/bazel") :
+                "tmp redirect should not depend on strip urls, got: ${makefileCommon.text}"
         }
     }
 }

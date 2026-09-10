@@ -41,7 +41,16 @@ Runs the workspace preparation script. Options:
 | `patchCheckTarget` | `true` | Patch the Makefile `check:` target to drop `check-bazel-prepare` |
 | `remoteCache` | from `envConfig` | `null`, `[mode: 'disable']` or `[mode: 'set', url: '...']` |
 | `repositoryCache` | from `envConfig` | `null`, `'/path'` or `[path: '/path', guard: true|false]` |
-| `ensureTmpDir` | `false` | Create the bazel tmp dir (default `/home/jenkins/.tidb/tmp`) |
+| `tmpDir` | `${WORKSPACE}/.cache/bazel` | Bazel output root and repository cache parent |
+| `ensureTmpDir` | `false` | Create the default bazel tmp dir when no `tmpDir`/`WORKSPACE` is set |
+
+The script always rewrites `--output_user_root=/home/jenkins/.tidb/tmp` and
+`repository_cache=/home/jenkins/.tidb/tmp` in `Makefile.common`/`Makefile` to
+`tmpDir` (or `${WORKSPACE}/.cache/bazel`). This keeps bazel's output root and
+repository cache on the large mounted workspace volume instead of the
+node-local `/home/jenkins/.tidb` disk, which bazel builds easily exhaust. A
+`repositoryCache` with `guard: true` still takes precedence for the repository
+cache when the shared path is writable.
 
 `remoteCache: [mode: 'disable']` removes `try-import /data/bazel` from
 `.bazelrc` and appends `--noremote_accept_cached` / `--noremote_upload_local_results`

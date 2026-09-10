@@ -70,11 +70,14 @@ def stripPattern(List<String> urls) {
 //   patchCheckTarget: patch Makefile "check:" target (default: true)
 //   remoteCache:      null, [mode: 'disable'] or [mode: 'set', url: '...'] (default: envConfig)
 //   repositoryCache:  null, '/path' or [path: '/path', guard: true|false] (default: envConfig)
+//   tmpDir:           bazel output root / repository cache parent (default:
+//                     ${WORKSPACE}/.cache/bazel, resolved by the script)
 //   ensureTmpDir:     create the bazel tmp dir (default: false)
 def workspaceEnv(Map opts = [:]) {
     def cfg = envConfig(opts.cloud)
     def stripUrls = opts.containsKey('stripUrls') ? opts.stripUrls : cfg.stripUrls
     def patchCheckTarget = opts.containsKey('patchCheckTarget') ? opts.patchCheckTarget : true
+    def tmpDir = opts.containsKey('tmpDir') ? opts.tmpDir : null
     def ensureTmpDir = opts.containsKey('ensureTmpDir') ? opts.ensureTmpDir : false
     def repositoryCache = opts.containsKey('repositoryCache') ? opts.repositoryCache : (cfg.repositoryCachePath ? [path: cfg.repositoryCachePath, guard: true] : null)
     if (repositoryCache instanceof String) {
@@ -92,6 +95,7 @@ def workspaceEnv(Map opts = [:]) {
     return [
         'BAZEL_STRIP_URLS': stripUrls ? stripPattern(stripUrls) : '',
         'BAZEL_PATCH_CHECK_TARGET': patchCheckTarget ? 'true' : 'false',
+        'BAZEL_TMP_DIR': tmpDir ?: '',
         'BAZEL_ENSURE_TMP_DIR': ensureTmpDir ? 'true' : 'false',
         'BAZEL_REPOSITORY_CACHE_PATH': repositoryCache ? repositoryCache.path : '',
         'BAZEL_REPOSITORY_CACHE_GUARD': repositoryCache ? ((repositoryCache.containsKey('guard') ? repositoryCache.guard : true) ? 'true' : 'false') : '',
