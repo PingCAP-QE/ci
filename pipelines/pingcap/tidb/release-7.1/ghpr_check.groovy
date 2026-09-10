@@ -49,7 +49,7 @@ pipeline {
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
                 dir(REFS.repo) {
-                    sh script: 'make gogenerate check integrationtest'
+                    sh script: 'make gogenerate check explaintest'
                 }
             }
             post {
