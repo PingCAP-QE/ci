@@ -11,6 +11,7 @@ spec:
       ref: { name: cel }
       params:
         - name: filter
+          # Exclude the calendar-semver tags from v26 onwards (v26.x, v27.x, ...).
           value: >-
             body.repository.full_name in [
             'pingcap/monitoring',
@@ -20,7 +21,7 @@ spec:
             'pingcap/tiflow',
             ]
             &&
-            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta)([.][0-9]+.*)?)?$')
+            body.ref.matches('^v[0-9][.][0-9]+[.][0-9]+(-(alpha|beta)([.][0-9]+.*)?)?$')
   bindings:
     - ref: github-tag-create
   template:
