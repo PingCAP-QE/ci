@@ -31,4 +31,4 @@ spec:
         - name: publisher-url
           value: $(params.publisher-url)
         - name: stages
-          value: "dev prod"
+          value: "prod dev"
