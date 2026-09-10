@@ -9,10 +9,11 @@
 #                                URLs to remove from WORKSPACE/DEPS.bzl
 #   BAZEL_PATCH_CHECK_TARGET     "true" to drop check-bazel-prepare from the
 #                                Makefile "check:" target (default: true)
+#   BAZEL_TMP_DIR                bazel output root and repository cache
+#                                parent (default: ${WORKSPACE}/.cache/bazel)
 #   BAZEL_ENSURE_TMP_DIR         "true" to create the bazel tmp dir
-#   BAZEL_TMP_DIR                bazel tmp dir (default: /home/jenkins/.tidb/tmp)
-#   BAZEL_REPOSITORY_CACHE_PATH  shared repository cache dir, empty to keep
-#                                the default path (default: empty)
+#   BAZEL_REPOSITORY_CACHE_PATH  shared repository cache dir, empty to use
+#                                ${BAZEL_TMP_DIR}/repository_cache
 #   BAZEL_REPOSITORY_CACHE_GUARD "true" to only use the shared cache when it
 #                                is writable (default: true)
 #   BAZEL_REMOTE_CACHE_MODE      "disable" to turn remote cache off in
@@ -29,6 +30,46 @@ if sed --version >/dev/null 2>&1; then
     SED_I=(sed -i)
 else
     SED_I=(sed -i '')
+fi
+
+# Redirect bazel's output root and repository cache off the node-local
+# /home/jenkins/.tidb disk, which bazel builds can exhaust quickly. Prefer an
+# explicit BAZEL_TMP_DIR, then the large mounted Jenkins workspace volume.
+BAZEL_OUTPUT_ROOT="${BAZEL_TMP_DIR:-}"
+if [ -z "${BAZEL_OUTPUT_ROOT}" ] && [ -n "${WORKSPACE:-}" ]; then
+    BAZEL_OUTPUT_ROOT="${WORKSPACE}/.cache/bazel"
+fi
+
+if [ -n "${BAZEL_OUTPUT_ROOT}" ]; then
+    mkdir -p "${BAZEL_OUTPUT_ROOT}"
+    for f in Makefile.common Makefile; do
+        [ -f "$f" ] || continue
+        "${SED_I[@]}" "s|--output_user_root=/home/jenkins/.tidb/tmp|--output_user_root=${BAZEL_OUTPUT_ROOT}|g" "$f"
+    done
+elif [ "${BAZEL_ENSURE_TMP_DIR:-false}" = "true" ]; then
+    mkdir -p /home/jenkins/.tidb/tmp
+fi
+
+# Resolve the repository cache: an opt-in shared cache first, otherwise a
+# workspace-local directory so the node disk is not filled.
+BAZEL_REPO_CACHE="${BAZEL_REPOSITORY_CACHE_PATH:-}"
+if [ -n "${BAZEL_REPO_CACHE}" ] && [ "${BAZEL_REPOSITORY_CACHE_GUARD:-true}" = "true" ]; then
+    if [ -d "${BAZEL_REPO_CACHE}" ] && mkdir -p "${BAZEL_REPO_CACHE}/content_addressable/sha256" 2>/dev/null; then
+        echo "using shared bazel repository cache: ${BAZEL_REPO_CACHE}"
+    else
+        echo "shared bazel repository cache unavailable or not writable, falling back"
+        BAZEL_REPO_CACHE=""
+    fi
+fi
+if [ -z "${BAZEL_REPO_CACHE}" ] && [ -n "${BAZEL_OUTPUT_ROOT}" ]; then
+    BAZEL_REPO_CACHE="${BAZEL_OUTPUT_ROOT}/repository_cache"
+    mkdir -p "${BAZEL_REPO_CACHE}"
+fi
+if [ -n "${BAZEL_REPO_CACHE}" ]; then
+    for f in Makefile.common Makefile; do
+        [ -f "$f" ] || continue
+        "${SED_I[@]}" "s|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=${BAZEL_REPO_CACHE}|g" "$f"
+    done
 fi
 
 if [ -z "${BAZEL_STRIP_URLS:-}" ]; then
@@ -50,24 +91,6 @@ done
 # Avoid "check" targets re-writing legacy cache settings during replay validation.
 if [ "${BAZEL_PATCH_CHECK_TARGET:-true}" = "true" ]; then
     "${SED_I[@]}" 's/^check: check-bazel-prepare /check: /' Makefile || true
-fi
-
-if [ "${BAZEL_ENSURE_TMP_DIR:-false}" = "true" ]; then
-    mkdir -p "${BAZEL_TMP_DIR:-/home/jenkins/.tidb/tmp}"
-fi
-
-# Prefer shared local repository cache when writable, fallback to default path.
-if [ -n "${BAZEL_REPOSITORY_CACHE_PATH:-}" ]; then
-    if [ "${BAZEL_REPOSITORY_CACHE_GUARD:-true}" = "true" ]; then
-        if [ -d "${BAZEL_REPOSITORY_CACHE_PATH}" ] && mkdir -p "${BAZEL_REPOSITORY_CACHE_PATH}/content_addressable/sha256" 2>/dev/null; then
-            "${SED_I[@]}" "s|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=${BAZEL_REPOSITORY_CACHE_PATH}|g" Makefile.common
-            echo "using shared bazel repository cache: ${BAZEL_REPOSITORY_CACHE_PATH}"
-        else
-            echo "shared bazel repository cache unavailable or not writable, keep repository_cache=/home/jenkins/.tidb/tmp"
-        fi
-    else
-        "${SED_I[@]}" "s|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=${BAZEL_REPOSITORY_CACHE_PATH}|g" Makefile.common
-    fi
 fi
 
 # Remote cache handling in .bazelrc.
