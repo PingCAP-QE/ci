@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: download-sqllogic
-      image: "us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c"
+      image: "ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c"
       command:
         - /bin/sh
         - -c
