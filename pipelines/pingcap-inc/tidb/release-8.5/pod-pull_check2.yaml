@@ -14,8 +14,8 @@ spec:
           memory: 32Gi
           cpu: "8"
       volumeMounts:
-        - mountPath: /home/jenkins/.tidb
-          name: bazel-out-merged
+        - mountPath: /tmp
+          name: tmp
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -38,8 +38,16 @@ spec:
           cpu: "1"
           memory: 4Gi
   volumes:
-    - name: bazel-out-merged
-      emptyDir: {}
+    - name: tmp
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 100Gi
+            storageClassName: ci-rwo
     - name: bazel-rc
       configMap:
         name: bazel
