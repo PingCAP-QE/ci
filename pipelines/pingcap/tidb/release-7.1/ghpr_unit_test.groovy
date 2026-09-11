@@ -43,15 +43,11 @@ pipeline {
             environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
-                    sh """
-                        git diff .
-                        git status
-                    """
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
                         ./build/jenkins_unit_test.sh 2>&1 | tee bazel-test.log
-                        '''
+                    '''
                 }
             }
             post {
