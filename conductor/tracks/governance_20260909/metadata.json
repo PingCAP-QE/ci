@@ -1,0 +1,8 @@
+{
+  "track_id": "governance_20260909",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-09-09T09:03:11Z",
+  "updated_at": "2026-09-09T09:03:11Z",
+  "description": "Establish Conductor-based CI/CD governance for the PingCAP-QE/ci monorepo"
+}

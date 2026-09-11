@@ -35,7 +35,6 @@ pipeline {
                     defaultContainer 'golang'
                 }
             }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {

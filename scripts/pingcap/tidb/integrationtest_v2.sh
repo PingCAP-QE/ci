@@ -1,5 +1,22 @@
 #! /usr/bin/env bash
 
+function wait_for_http() {
+    local url="$1"
+    local name="$2"
+
+    for attempt in $(seq 1 30); do
+        if curl -fsS --max-time 2 "${url}" >/dev/null 2>&1; then
+            echo "${name} is ready"
+            return 0
+        fi
+        echo "Waiting for ${name}... (attempt ${attempt}/30)"
+        sleep 1
+    done
+
+    echo "${name} did not become ready: ${url}" >&2
+    return 1
+}
+
 function main() {
     # Disable pipelined pessimistic lock temporarily until tikv#11649 is resolved
     cat <<EOF > tikv.toml
@@ -17,6 +34,10 @@ EOF
     bin/pd-server --name=pd1 --data-dir=pd1 --client-urls=http://${pd_addr1} --peer-urls=http://${pd_peer_addr1} --force-new-cluster &> pd1.log &
     bin/pd-server --name=pd2 --data-dir=pd2 --client-urls=http://${pd_addr2} --peer-urls=http://${pd_peer_addr2} --force-new-cluster &> pd2.log &
     bin/pd-server --name=pd3 --data-dir=pd3 --client-urls=http://${pd_addr3} --peer-urls=http://${pd_peer_addr3} --force-new-cluster &> pd3.log &
+    wait_for_http "http://${pd_addr1}/pd/api/v1/health" "PD-1" || return 1
+    wait_for_http "http://${pd_addr2}/pd/api/v1/health" "PD-2" || return 1
+    wait_for_http "http://${pd_addr3}/pd/api/v1/health" "PD-3" || return 1
+
     bin/tikv-server --pd=${pd_addr1} -s tikv1 --addr=0.0.0.0:20160 --advertise-addr=127.0.0.1:20160 --advertise-status-addr=127.0.0.1:20165 -C tikv.toml -f tikv1.log &
     bin/tikv-server --pd=${pd_addr2} -s tikv2 --addr=0.0.0.0:20170 --advertise-addr=127.0.0.1:20170 --advertise-status-addr=127.0.0.1:20175 -C tikv.toml -f tikv2.log &
     bin/tikv-server --pd=${pd_addr3} -s tikv3 --addr=0.0.0.0:20180 --advertise-addr=127.0.0.1:20180 --advertise-status-addr=127.0.0.1:20185 -C tikv.toml -f tikv3.log &

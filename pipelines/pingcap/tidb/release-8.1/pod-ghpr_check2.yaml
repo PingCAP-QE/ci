@@ -11,10 +11,10 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 12Gi
+          memory: 24Gi
           cpu: "3"
         limits:
-          memory: 12Gi
+          memory: 24Gi
           cpu: "3"
       volumeMounts:
         - mountPath: /home/jenkins/.tidb
@@ -31,7 +31,7 @@ spec:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
     - name: utils
-      image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
