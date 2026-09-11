@@ -11,7 +11,7 @@ spec:
       params:
         - name: filter
           value: >-
-            body.images.exists(img, img.contains('nextgen') || img.contains('next-gen'))
+            body.images.exists(img, img.contains('nextgen') || img.contains('next-gen') || img.contains('tidbx'))
 
   bindings:
     # - { name: ce-context, value: $(extensions.ce-context) }
@@ -20,7 +20,7 @@ spec:
     spec:
       params:
         - name: data
-      resourceTemplates:
+      resourcetemplates:
         - apiVersion: tekton.dev/v1
           kind: TaskRun
           metadata:
@@ -29,9 +29,7 @@ spec:
             params:
               - name: src
                 value: $(tt.params.data)
+              - name: publisher-url
+                value: "http://publisher.publisher.svc"
             taskRef:
               name: pingcap-notify-to-deliver-images-to-cloud-tidbx
-            workspaces:
-              - name: notify-config
-                secret:
-                  secretName: image-delivery-notify-config-tidbx

@@ -13,51 +13,28 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
-                            }
+                    retry(2) {
+                        script {
+                            component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                         }
                     }
                 }
@@ -65,20 +42,19 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     container("golang") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'prepare tidb-test', script: """
-                            touch ws-${BUILD_TAG}
-                            cd sqllogic_test && ./build.sh
-                            cp ${WORKSPACE}/tidb/bin/tidb-server ./
-                            chmod +x tidb-server && ./tidb-server -V
-                        """
-                    }
+                    sh label: 'prepare tidb-test', script: """
+                        touch ws-${BUILD_TAG}
+                        cd sqllogic_test && ./build.sh
+                        cp ${WORKSPACE}/tidb/bin/tidb-server ./
+                        chmod +x tidb-server && ./tidb-server -V
+                    """
+                    stash name: 'tidb-test', includes: 'sqllogic_test/**'
                 }
             }
         }
@@ -101,41 +77,46 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
+                        retries 2
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) }
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh label: "print version", script: """
-                                        ls -alh sqllogic_test/
-                                        ./sqllogic_test/tidb-server -V
-                                    """
-                                    container("golang") {
-                                        sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
-                                            cd sqllogic_test/
-                                            env
-                                            ulimit -n
-                                            sed -i '3i\\set -x' test.sh
+                                unstash 'tidb-test'
+                                sh label: "print version", script: """
+                                    ls -alh sqllogic_test/
+                                    ./sqllogic_test/tidb-server -V
+                                """
+                                container("golang") {
+                                    sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
+                                        cd sqllogic_test/
+                                        env
+                                        ulimit -n
+                                        sed -i '3i\\set -x' test.sh
 
-                                            path_array=(${TEST_PATH_STRING})
-                                            for path in \${path_array[@]}; do
-                                                echo "test path: \${path}"
-                                                export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
-                                                export TIDB_PARALLELISM=8
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
-                                                export CACHE_ENABLED="${CACHE_ENABLED}"
-                                                ./test.sh
-                                            done
-                                        """
-                                    }
+                                        path_array=(${TEST_PATH_STRING})
+                                        for path in \${path_array[@]}; do
+                                            echo "test path: \${path}"
+                                            export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
+                                            export TIDB_PARALLELISM=8
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
+                                            export CACHE_ENABLED="${CACHE_ENABLED}"
+                                            ./test.sh
+                                        done
+                                    """
                                 }
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }
@@ -157,41 +138,46 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) }
+                }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./sqllogic_test", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh label: "print version", script: """
-                                        ls -alh sqllogic_test/
-                                        ./sqllogic_test/tidb-server -V
-                                    """
-                                    container("golang") {
-                                        sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
-                                            cd sqllogic_test/
-                                            env
-                                            ulimit -n
-                                            sed -i '3i\\set -x' test.sh
+                                unstash 'tidb-test'
+                                sh label: "print version", script: """
+                                    ls -alh sqllogic_test/
+                                    ./sqllogic_test/tidb-server -V
+                                """
+                                container("golang") {
+                                    sh label: "test_path: ${TEST_PATH_STRING}, cache_enabled:${CACHE_ENABLED}", script: """#!/usr/bin/env bash
+                                        cd sqllogic_test/
+                                        env
+                                        ulimit -n
+                                        sed -i '3i\\set -x' test.sh
 
-                                            path_array=(${TEST_PATH_STRING})
-                                            for path in \${path_array[@]}; do
-                                                echo "test path: \${path}"
-                                                export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
-                                                export TIDB_PARALLELISM=8
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
-                                                export CACHE_ENABLED="${CACHE_ENABLED}"
-                                                ./test.sh
-                                            done
-                                        """
-                                    }
+                                        path_array=(${TEST_PATH_STRING})
+                                        for path in \${path_array[@]}; do
+                                            echo "test path: \${path}"
+                                            export SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}"
+                                            export TIDB_PARALLELISM=8
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/sqllogic_test/tidb-server"
+                                            export CACHE_ENABLED="${CACHE_ENABLED}"
+                                            ./test.sh
+                                        done
+                                    """
                                 }
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [cache_enabled: env.CACHE_ENABLED, test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }

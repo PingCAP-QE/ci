@@ -8,39 +8,25 @@ final GIT_FULL_REPO_NAME = 'PingCAP-QE/tidb-test'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-pull_mysql_connector_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
+
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -71,9 +57,16 @@ pipeline {
                 }
                 dir('tidb-test') {
                         sh "touch ws-${BUILD_TAG}"
+                        dir("bin") {
+                            container("utils") {
+                                retry(2) {
+                                    sh label: 'download binary', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --tidb=master
+                                    """
+                                }
+                            }
+                        }
                         sh label: 'prepare thirdparty binary', script: """
-                        chmod +x download_binary.sh
-                        ./download_binary.sh --tidb=master
                         cp ../tiproxy/bin/* bin/
                         ls -alh bin/
                         ./bin/tidb-server -V

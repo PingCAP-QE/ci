@@ -6,49 +6,35 @@ final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_syncdiff_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_DUMPLING = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'runner'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        script {
-                            retry(2) {
-                                prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }
@@ -56,28 +42,39 @@ pipeline {
         stage('Integration Test') {
             steps {
                 dir(REFS.repo) {
-                    script {
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'dumpling', REFS.base_ref, REFS.pulls[0].title, 'centos7/dumpling.tar.gz', 'bin')
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin')
+                    container("utils") {
+                        dir("bin") {
+                            retry(2) {
+                                sh label: "download third-party binaries", script: """
+                                    "${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh" \
+                                        --tidb=${OCI_TAG_TIDB} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --pd=${OCI_TAG_PD} \
+                                        --dumpling=${OCI_TAG_DUMPLING}
+                                """
+                            }
+                            sh label: "ensure importer tools", script: """
+                                if [ ! -x importer ]; then
+                                    wget --no-verbose -t 3 \
+                                        -O tidb-enterprise-tools-nightly-linux-amd64.tar.gz \
+                                        https://download.pingcap.com/tidb-enterprise-tools-nightly-linux-amd64.tar.gz
+                                    tar -xzf tidb-enterprise-tools-nightly-linux-amd64.tar.gz \
+                                        tidb-enterprise-tools-nightly-linux-amd64/bin/loader \
+                                        tidb-enterprise-tools-nightly-linux-amd64/bin/importer
+                                    mv tidb-enterprise-tools-nightly-linux-amd64/bin/loader ./
+                                    mv tidb-enterprise-tools-nightly-linux-amd64/bin/importer ./
+                                    rm -rf tidb-enterprise-tools-nightly-linux-amd64 tidb-enterprise-tools-nightly-linux-amd64.tar.gz
+                                fi
+                            """
+                        }
                     }
-                    sh label: "download enterprise-tools", script: """
-                        # The current internal cache is from the address http://download.pingcap.org/tidb-enterprise-tools-latest-linux-amd64.tar.gz, and this content has stopped updating.
-                        wget --no-verbose --retry-connrefused --waitretry=1 -t 3 -O tidb-enterprise-tools.tar.gz ${FILE_SERVER_URL}/download/ci-artifacts/tiflow/linux-amd64/v20220531/tidb-enterprise-tools.tar.gz
-                        tar -xzf tidb-enterprise-tools.tar.gz
-                        mv tidb-enterprise-tools/bin/loader bin/
-                        mv tidb-enterprise-tools/bin/importer bin/
-                        rm -r tidb-enterprise-tools
-                    """
                     sh label: "check", script: """
                         which bin/tikv-server
                         which bin/pd-server
                         which bin/tidb-server
-                        which bin/dumpling
                         which bin/importer
+                        which bin/dumpling
                         ls -alh ./bin/
-                        chmod +x bin/*
                         ./bin/dumpling --version
                         ./bin/tikv-server -V
                         ./bin/pd-server -V

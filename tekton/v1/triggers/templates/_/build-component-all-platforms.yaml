@@ -18,13 +18,12 @@ spec:
       description: build target profile
       default: release
     - name: registry
-      default: hub.pingcap.net
     - name: timeout
       description: pipeline run timeout
       default: 2h
     - name: source-ws-size
       description: workspace size for source.
-      default: 10Gi
+      default: 20Gi
     - name: builder-resources-memory
       default: 16Gi
     - name: builder-resources-cpu
@@ -33,6 +32,18 @@ spec:
       description: cloud event context.
       default: "{}"
     - name: force-builder-image
+      default: ""
+    - name: boskos-server-url
+      default: "http://boskos"
+    - name: publisher-url
+    - name: git-instead-of
+      description: |
+        Configure Git to use the `insteadOf` feature to speed up cloning.
+        You can specify multiple `insteadOf` configurations separated by commas.
+        For example: insteadof1 => new1, insteadof2 => new2
+      default: ""
+    - name: external-git-ref
+      description: Explicit enterprise-plugin ref. When non-empty, skips resolution.
       default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1
@@ -71,6 +82,12 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
+          - name: git-instead-of
+            value: $(tt.params.git-instead-of)
+          - name: external-git-ref
+            value: $(tt.params.external-git-ref)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -78,14 +95,15 @@ spec:
         taskRunSpecs:
           - pipelineTaskName: checkout
             serviceAccountName: github-bot
-          - pipelineTaskName: checkout-ext
-            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
             serviceAccountName: image-releaser
             stepSpecs:
               - name: build
                 computeResources:
                   requests:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
+                  limits:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
@@ -104,9 +122,6 @@ spec:
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
-          # - name: git-basic-auth # fetch with git-cdn.
-          #   secret:
-          #     secretName: git-credentials-basic
           # - name: cargo-home
           #   persistentVolumeClaim:
           #     claimName: cargo-home
@@ -149,6 +164,12 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
+          - name: git-instead-of
+            value: $(tt.params.git-instead-of)
+          - name: external-git-ref
+            value: $(tt.params.external-git-ref)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -156,14 +177,15 @@ spec:
         taskRunSpecs:
           - pipelineTaskName: checkout
             serviceAccountName: github-bot
-          - pipelineTaskName: checkout-ext
-            serviceAccountName: github-bot
           - pipelineTaskName: build-binaries
             serviceAccountName: image-releaser
             stepSpecs:
               - name: build
                 computeResources:
                   requests:
+                    memory: $(tt.params.builder-resources-memory)
+                    cpu: $(tt.params.builder-resources-cpu)
+                  limits:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
           - pipelineTaskName: build-images
@@ -182,9 +204,6 @@ spec:
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
-          # - name: git-basic-auth # fetch with git-cdn.
-          #   secret:
-          #     secretName: git-credentials-basic
           # - name: cargo-home
           #   persistentVolumeClaim:
           #     claimName: cargo-home
@@ -228,9 +247,20 @@ spec:
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
           - name: boskos-server-url
-            value: http://boskos.apps.svc
+            value: $(tt.params.boskos-server-url)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
+          - name: git-instead-of
+            value: $(tt.params.git-instead-of)
+          - name: external-git-ref
+            value: $(tt.params.external-git-ref)
         timeouts:
           pipeline: $(tt.params.timeout)
+        taskRunSpecs:
+          - pipelineTaskName: checkout
+            serviceAccountName: github-bot
+          - pipelineTaskName: build-binaries
+            serviceAccountName: image-releaser
         workspaces:
           - name: source
             volumeClaimTemplate:
@@ -241,9 +271,6 @@ spec:
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
-          # - name: git-basic-auth # fetch with git-cdn.
-          #   secret:
-          #     secretName: git-credentials-basic
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials
@@ -284,9 +311,20 @@ spec:
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
           - name: boskos-server-url
-            value: http://boskos.apps.svc
+            value: $(tt.params.boskos-server-url)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
+          - name: git-instead-of
+            value: $(tt.params.git-instead-of)
+          - name: external-git-ref
+            value: $(tt.params.external-git-ref)
         timeouts:
           pipeline: $(tt.params.timeout)
+        taskRunSpecs:
+          - pipelineTaskName: checkout
+            serviceAccountName: github-bot
+          - pipelineTaskName: build-binaries
+            serviceAccountName: image-releaser
         workspaces:
           - name: source
             volumeClaimTemplate:
@@ -297,9 +335,6 @@ spec:
                 resources:
                   requests:
                     storage: $(tt.params.source-ws-size)
-          # - name: git-basic-auth # fetch with git-cdn.
-          #   secret:
-          #     secretName: git-credentials-basic
           - name: mac-ssh-credentials
             secret:
               secretName: mac-ssh-credentials

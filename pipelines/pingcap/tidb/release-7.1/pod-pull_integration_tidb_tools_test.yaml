@@ -5,34 +5,17 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: hub.pingcap.net/jenkins/centos7_golang-1.20:latest
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
-      env:
-        - name: GOPATH
-          value: /go
       resources:
+        requests:
+          memory: 8Gi
+          cpu: "2"
         limits:
           memory: 8Gi
           cpu: "4"
-    - name: golang121
-      image: hub.pingcap.net/jenkins/centos7_golang-1.21:latest
-      tty: true
-      env:
-        - name: GOPATH
-          value: /go
-      resources:
-        limits:
-          memory: 8Gi
-          cpu: "4"
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
     - name: mysql
-      image: hub.pingcap.net/jenkins/mysql:5.7
+      image: "docker.io/library/mysql:5.7"
       tty: true
       args: ["--server-id=1", "--log-bin", "--binlog-format=ROW"]
       env:
@@ -42,6 +25,16 @@ spec:
         limits:
           memory: 2Gi
           cpu: "1"
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      tty: true
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+        limits:
+          cpu: "1"
+          memory: 4Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

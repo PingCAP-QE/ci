@@ -5,18 +5,53 @@ set -eo pipefail
 function fetch_file_from_oci_artifact() {
     local oci_url="$1"
     local to_match_file="$2"
-    local repo="$(echo ${oci_url} | cut -d ':' -f 1)"
+    local repo
+    local manifest_file
+    repo="$(echo "${oci_url}" | cut -d ':' -f 1)"
+    manifest_file="$(mktemp .oci-manifest.XXXXXX)"
 
     # get the file blob digest.
-    oras manifest fetch ${oci_url} | yq --prettyPrint -oy ".layers | filter(.annotations[\"org.opencontainers.image.title\"] | test \"$to_match_file\") | .[0]" >blob.yaml
+    if ! oras manifest fetch "${oci_url}" | yq --prettyPrint -oy ".layers | filter(.annotations[\"org.opencontainers.image.title\"] | test \"$to_match_file\") | .[0]" >"${manifest_file}"; then
+        rm -f "${manifest_file}"
+        return 1
+    fi
 
     # download file
-    file="$(yq .annotations[\"org.opencontainers.image.title\"] blob.yaml)"
-    blob="$repo@$(yq .digest blob.yaml)"
+    local file
+    local blob
+    local temporary_file
+    file="$(yq .annotations[\"org.opencontainers.image.title\"] "${manifest_file}")"
+    blob="$repo@$(yq .digest "${manifest_file}")"
+    rm -f "${manifest_file}"
+    if [[ -z "${file}" || "${file}" == "null" || -z "${blob}" || "${blob}" == *"@null" ]]; then
+        echo "Error: no artifact layer matches '${to_match_file}' in ${oci_url}" >&2
+        return 1
+    fi
+
+    temporary_file="$(mktemp ".${file}.partial.XXXXXX")"
     echo "🔗 blob fetching url: ${blob}" >&2
-    oras blob fetch --output $file $blob
-    rm blob.yaml
+    if ! oras blob fetch --output "${temporary_file}" "${blob}"; then
+        rm -f "${temporary_file}"
+        return 1
+    fi
+    mv -f "${temporary_file}" "${file}"
     echo "$file"
+}
+
+function compute_oci_arch_suffix() {
+    local arch="$(uname -m)"
+    case "$arch" in
+        x86_64)
+            echo "amd64"
+            ;;
+        aarch64 | arm64)
+            echo "arm64"
+            ;;
+        *)
+            echo "Unsupported architecture: $arch"
+            exit 1
+            ;;
+    esac
 }
 
 function download() {
@@ -31,8 +66,11 @@ function download() {
     echo "📦 == artifact information ======="
     oras manifest fetch-config "$url"
     echo "================================🔚"
-    local tarball_file=$(fetch_file_from_oci_artifact $url "${to_match_file}")
-    mv -v "$tarball_file" "$file_path"
+    local tarball_file
+    if ! tarball_file="$(fetch_file_from_oci_artifact "${url}" "${to_match_file}")"; then
+        return 1
+    fi
+    mv -v "${tarball_file}" "${file_path}"
     echo "✅ Downloaded, saved in ${file_path}"
 }
 
@@ -42,35 +80,67 @@ function download_and_extract_with_path() {
     local file_path=$3
     local path_in_archive=$4
     if [[ -e "${path_in_archive}" ]]; then
-        echo "file ${path_in_archive} already exists, skip download"
-        return
+        if [[ ! -e "${file_path}" ]]; then
+            echo "file ${path_in_archive} already exists, skip download"
+            return
+        fi
+        echo "removing incomplete extraction ${path_in_archive} and stale archive ${file_path}"
+        rm -rf "${path_in_archive}"
+        rm -f "${file_path}"
+    elif [[ -e "${file_path}" ]]; then
+        # A successful invocation removes the archive. A remaining archive was
+        # interrupted before extraction completed, so it must not be reused.
+        echo "removing stale archive ${file_path}"
+        rm -f "${file_path}"
     fi
 
-    download "$url" "$to_match_file" "$file_path"
-
-    tar -zxvf "$file_path" --strip-components=0 -C $(dirname "$file_path")
-
+    if ! download "$url" "$to_match_file" "$file_path"; then
+        rm -f "${file_path}"
+        return 1
+    fi
     echo "📂 extract ${path_in_archive} from ${file_path} ..."
-    tar -xzvf "${file_path}" "${path_in_archive}"
-    rm "${file_path}"
+    local extract_dir
+    extract_dir="$(mktemp -d .oci-extract.XXXXXX)"
+    if ! tar -xzvf "${file_path}" -C "${extract_dir}" "${path_in_archive}"; then
+        rm -rf "${extract_dir}" "${path_in_archive}"
+        rm -f "${file_path}"
+        return 1
+    fi
+    mkdir -p "$(dirname "${path_in_archive}")"
+    if ! mv "${extract_dir}/${path_in_archive}" "${path_in_archive}"; then
+        rm -rf "${extract_dir}" "${path_in_archive}"
+        rm -f "${file_path}"
+        return 1
+    fi
+    rm -rf "${extract_dir}"
+    rm -f "${file_path}"
     echo "✅ extracted ${path_in_archive} from ${file_path} ."
+}
+
+function prepare_tiflash_layout() {
+    local extracted_dir="tiflash"
+    local normalized_dir="tiflash_dir"
+    local normalized_binary="${normalized_dir}/tiflash"
+
+    if [[ -d "${extracted_dir}" && ! -L "${extracted_dir}" ]]; then
+        rm -rf "${normalized_dir}"
+        mv -v "${extracted_dir}" "${normalized_dir}"
+    fi
+
+    if [[ ! -f "${normalized_binary}" ]]; then
+        echo "Error: expected TiFlash binary at ${normalized_binary}" >&2
+        exit 1
+    fi
+
+    chmod -R +x "${normalized_dir}"
+    rm -rf "${extracted_dir}"
+    ln -sfn "${normalized_binary}" "${extracted_dir}"
+    echo "✅ prepared TiFlash binary symlink layout: ${extracted_dir} -> ${normalized_binary}"
 }
 
 function compute_tag_platform_suffix() {
     local os="$(uname | tr '[:upper:]' '[:lower:]')"
-    local arch="$(uname -m)"
-    case "$arch" in
-        x86_64)
-            arch="amd64"
-            ;;
-        aarch64 | arm64)
-            arch="arm64"
-            ;;
-        *)
-            echo "Unsupported architecture: $arch"
-            exit 1
-            ;;
-    esac
+    local arch="$(compute_oci_arch_suffix)"
     echo "${os}_${arch}"
 }
 
@@ -84,6 +154,12 @@ function main() {
         chmod +x tidb-server
         echo "🎉 download TiDB server success"
     fi
+    if [[ -n "$DUMPLING" ]]; then
+        echo "🚀 start download Dumpling"
+        download_and_extract_with_path "$dumpling_oci_url" '^dumpling-v.+.tar.gz$' dumpling.tar.gz dumpling
+        chmod +x dumpling
+        echo "🎉 download Dumpling success"
+    fi
     if [[ -n "$TIKV" ]]; then
         echo "🚀 start download TiKV server"
         download_and_extract_with_path "$tikv_oci_url" '^tikv-v.+.tar.gz$' tikv.tar.gz tikv-server
@@ -95,6 +171,15 @@ function main() {
         download_and_extract_with_path "$tikv_worker_oci_url" '^tikv-worker-v.+.tar.gz$' tikv.tar.gz tikv-worker
         chmod +x tikv-worker
         echo "🎉 download TiKV worker success"
+    fi
+
+    if [[ -n "$TIKV_CTL" ]]; then
+        echo "🚀 start download tikv-ctl"
+        # tikv-ctl is provided in a separate tarball like "tikv-ctl-<version>-<os>-<arch>.tar.gz"
+        # extract the `tikv-ctl` binary from that tarball
+        download_and_extract_with_path "$tikv_ctl_oci_url" '^tikv-ctl-.+.tar.gz$' tikv-ctl.tar.gz tikv-ctl
+        chmod +x tikv-ctl
+        echo "🎉 download tikv-ctl success"
     fi
     if [[ -n "$PD" ]]; then
         echo "🚀 start download PD server"
@@ -111,9 +196,15 @@ function main() {
     if [[ -n "$TIFLASH" ]]; then
         echo "🚀 start download TiFlash"
         download_and_extract_with_path "$tiflash_oci_url" '^tiflash-v.+.tar.gz$' tiflash.tar.gz tiflash
-        chmod +x tiflash/tiflash
+        prepare_tiflash_layout
         ls -alh tiflash
         echo "🎉 download TiFlash success"
+    fi
+    if [[ -n "$TIPROXY" ]]; then
+        echo "🚀 start download TiProxy"
+        download_and_extract_with_path "$tiproxy_oci_url" '^tiproxy-v.+.tar.gz$' tiproxy.tar.gz tiproxy
+        chmod +x tiproxy
+        echo "🎉 download TiProxy success"
     fi
     if [[ -n "$TICDC" ]]; then
         echo "🚀 start download TiCDC"
@@ -127,12 +218,97 @@ function main() {
         chmod +x cdc
         echo "🎉 download TiCDC(new) success"
     fi
+    if [[ -n "$TICI" ]]; then
+        echo "🚀 start download TiCI"
+        download_and_extract_with_path "$tici_oci_url" '^tici-v.+.tar.gz$' tici.tar.gz tici-server
+        chmod +x tici-server
+        echo "🎉 download TiCI success"
+    fi
     if [[ -n "$MINIO" ]]; then
         echo "🚀 start download MinIO server and client"
         fetch_file_from_oci_artifact "$minio_oci_url" minio
         fetch_file_from_oci_artifact "$minio_oci_url" mc
-        chmod +x minio mc
+        # mktemp creates files as 0600; keep binaries readable by the jnlp container.
+        chmod a+rx minio mc
         echo "🎉 download MinIO server and client success"
+    fi
+    if [[ -n "$ETCDCTL" ]]; then
+        echo "🚀 start download etcdctl"
+        download "$etcd_oci_url" '^etcd-v.+.tar.gz$' etcd.tar.gz
+        tar -zxf etcd.tar.gz
+        mv etcd-*/etcdctl ./
+        chmod +x etcdctl
+        rm -rf etcd.tar.gz etcd-*
+        echo "🎉 download etcdctl success"
+    fi
+    if [[ -n "$YCSB" ]]; then
+        echo "🚀 start download go-ycsb"
+        download_and_extract_with_path "$ycsb_oci_url" '^go-ycsb-.+.tar.gz$' go-ycsb.tar.gz go-ycsb
+        chmod +x go-ycsb
+        echo "🎉 download go-ycsb success"
+    fi
+    if [[ -n "$SCHEMA_REGISTRY" ]]; then
+        echo "🚀 start download schema-registry"
+        download "$schema_registry_oci_url" '^schema-registry.*.tar.gz$' schema-registry.tar.gz
+        tar -zxf schema-registry.tar.gz --strip-components=1
+        rm schema-registry.tar.gz
+        chmod +x bin/*
+        echo "🎉 download schema-registry success"
+    fi
+    if [[ -n "$SYNC_DIFF_INSPECTOR" ]]; then
+        echo "🚀 start download sync-diff-inspector"
+        if [[ "${SYNC_DIFF_INSPECTOR}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            download_and_extract_with_path "$sync_diff_inspector_oci_url" '^tidb-tools-v.+.tar.gz$' sync-diff-inspector.tar.gz sync_diff_inspector
+        else
+            download_and_extract_with_path "$sync_diff_inspector_oci_url" '^sync-diff-inspector-v.+.tar.gz$' sync-diff-inspector.tar.gz sync_diff_inspector
+        fi
+        chmod +x sync_diff_inspector
+        echo "🎉 download sync-diff-inspector success"
+    fi
+    if [[ -n "$FAKE_GCS_SERVER" ]]; then
+        echo "🚀 start download fake-gcs-server"
+        download_and_extract_with_path "$fake_gcs_server_oci_url" '^fake-gcs-server_.+.tar.gz$' fake-gcs-server.tar.gz fake-gcs-server
+        chmod +x fake-gcs-server
+        echo "🎉 download fake-gcs-server success"
+    fi
+    if [[ -n "$KES" ]]; then
+        echo "🚀 start download kes"
+        fetch_file_from_oci_artifact "$kes_oci_url" kes
+        chmod a+rx kes
+        echo "🎉 download kes success"
+    fi
+    if [[ -n "$LICENSE_EYE" ]]; then
+        echo "🚀 start download license-eye"
+        fetch_file_from_oci_artifact "$license_eye_oci_url" '^license-eye$'
+        chmod a+rx license-eye
+        echo "🎉 download license-eye success"
+    fi
+
+    if [[ -n "$BRV408" ]]; then
+        echo "🚀 start download br v4.0.8"
+        # determine os and arch used by the tiup mirror naming
+        os="$(uname | tr '[:upper:]' '[:lower:]')"
+        arch="$(compute_oci_arch_suffix)"
+
+        tarball="br-v4.0.8-${os}-${arch}.tar.gz"
+        url="https://tiup-mirrors.pingcap.com/${tarball}"
+        echo "Downloading ${url}"
+        tmpdir="$(mktemp -d)"
+        trap 'rm -rf -- "$tmpdir"' EXIT
+
+        curl -fSL "${url}" -o "${tmpdir}/${tarball}"
+        echo "Extracting br from ${tarball} ..."
+        tar -zxf "${tmpdir}/${tarball}" -C "${tmpdir}"
+
+        # find the binary named 'br' inside the extracted tree
+        found="$(find "${tmpdir}" -type f -name br | head -n 1 || true)"
+        if [[ -z "${found}" ]]; then
+            echo "Error: br binary not found inside ${tarball}" >&2
+            exit 1
+        fi
+        chmod +x "${found}"
+        mv -v "${found}" brv4.0.8
+        echo "🎉 download br v4.0.8 success"
     fi
 }
 
@@ -141,6 +317,10 @@ function parse_cli_args() {
     case $i in
         -tidb=*|--tidb=*)
         TIDB="${i#*=}"
+        shift # past argument=value
+        ;;
+        -dumpling=*|--dumpling=*)
+        DUMPLING="${i#*=}"
         shift # past argument=value
         ;;
         -pd=*|--pd=*)
@@ -159,8 +339,16 @@ function parse_cli_args() {
         TIKV_WORKER="${i#*=}"
         shift # past argument=value
         ;;
+        -tikv-ctl=*|--tikv-ctl=*)
+        TIKV_CTL="${i#*=}"
+        shift # past argument=value
+        ;;
         -tiflash=*|--tiflash=*)
         TIFLASH="${i#*=}"
+        shift # past argument=value
+        ;;
+        -tiproxy=*|--tiproxy=*)
+        TIPROXY="${i#*=}"
         shift # past argument=value
         ;;
         -ticdc=*|--ticdc=*)
@@ -171,9 +359,45 @@ function parse_cli_args() {
         TICDC_NEW="${i#*=}"
         shift # past argument=value
         ;;
+        -tici=*|--tici=*)
+        TICI="${i#*=}"
+        shift # past argument=value
+        ;;
         -minio=*|--minio=*)
         MINIO="${i#*=}"
         shift # past argument=value
+        ;;
+        -etcdctl=*|--etcdctl=*)
+        ETCDCTL="${i#*=}"
+        shift # past argument=value
+        ;;
+        -ycsb=*|--ycsb=*)
+        YCSB="${i#*=}"
+        shift # past argument=value
+        ;;
+        -schema-registry=*|--schema-registry=*)
+        SCHEMA_REGISTRY="${i#*=}"
+        shift # past argument=value
+        ;;
+        -sync-diff-inspector=*|--sync-diff-inspector=*)
+        SYNC_DIFF_INSPECTOR="${i#*=}"
+        shift # past argument=value
+        ;;
+        -fake-gcs-server=*|--fake-gcs-server=*)
+        FAKE_GCS_SERVER="${i#*=}"
+        shift # past argument=value
+        ;;
+        -kes=*|--kes=*)
+        KES="${i#*=}"
+        shift # past argument=value
+        ;;
+        -license-eye=*|--license-eye=*)
+        LICENSE_EYE="${i#*=}"
+        shift # past argument=value
+        ;;
+        -brv408|--brv408)
+        BRV408=YES
+        shift # past argument (no value)
         ;;
         --default)
         DEFAULT=YES
@@ -189,14 +413,26 @@ function parse_cli_args() {
     done
 
     [[ -n "${TIDB}" ]]          && echo "TIDB        = ${TIDB}"
+    [[ -n "${DUMPLING}" ]]      && echo "DUMPLING    = ${DUMPLING}"
     [[ -n "${TIKV}" ]]          && echo "TIKV        = ${TIKV}"
     [[ -n "${TIKV_WORKER}" ]]   && echo "TIKV_WORKER = ${TIKV_WORKER}"
+    [[ -n "${TIKV_CTL}" ]]      && echo "TIKV_CTL    = ${TIKV_CTL}"
     [[ -n "${PD}" ]]            && echo "PD          = ${PD}"
     [[ -n "${PD_CTL}" ]]        && echo "PD_CTL      = ${PD_CTL}"
     [[ -n "${TIFLASH}" ]]       && echo "TIFLASH     = ${TIFLASH}"
+    [[ -n "${TIPROXY}" ]]       && echo "TIPROXY     = ${TIPROXY}"
     [[ -n "${TICDC}" ]]         && echo "TICDC       = ${TICDC}"
     [[ -n "${TICDC_NEW}" ]]     && echo "TICDC_NEW   = ${TICDC_NEW}"
+    [[ -n "${TICI}" ]]          && echo "TICI        = ${TICI}"
     [[ -n "${MINIO}" ]]         && echo "MINIO       = ${MINIO}"
+    [[ -n "${ETCDCTL}" ]]       && echo "ETCDCTL     = ${ETCDCTL}"
+    [[ -n "${YCSB}" ]]          && echo "YCSB        = ${YCSB}"
+    [[ -n "${SCHEMA_REGISTRY}" ]] && echo "SCHEMA_REGISTRY = ${SCHEMA_REGISTRY}"
+    [[ -n "${SYNC_DIFF_INSPECTOR}" ]] && echo "SYNC_DIFF_INSPECTOR = ${SYNC_DIFF_INSPECTOR}"
+    [[ -n "${FAKE_GCS_SERVER}" ]] && echo "FAKE_GCS_SERVER = ${FAKE_GCS_SERVER}"
+    [[ -n "${KES}" ]] && echo "KES = ${KES}"
+    [[ -n "${LICENSE_EYE}" ]] && echo "LICENSE_EYE = ${LICENSE_EYE}"
+    [[ -n "${BRV408}" ]] && echo "BRV408      = ${BRV408}"
 
     if [[ -n $1 ]]; then
         echo "Last line of file specified as non-opt/last argument:"
@@ -205,17 +441,61 @@ function parse_cli_args() {
 
     # get the tag suffix by current runtime os and arch, it will be "[linux|darwin]_[amd64|arm64]" format.
     local tag_suffix=$(compute_tag_platform_suffix)
+    registry_host="${OCI_ARTIFACT_HOST:-us-docker.pkg.dev/pingcap-testing-account/hub}"
+    registry_host_community="${OCI_ARTIFACT_HOST_COMMUNITY:-us-docker.pkg.dev/pingcap-testing-account/hub}"
+    # dev registry for pre-built binaries
+    registry_host_dev="${OCI_ARTIFACT_HOST_DEV:-us-docker.pkg.dev/pingcap-testing-account/dev}"
 
-    registry_host="${OCI_ARTIFACT_HOST:-hub.pingcap.net}"
-    tidb_oci_url="${registry_host}/pingcap/tidb/package:${TIDB}_${tag_suffix}"
-    tiflash_oci_url="${registry_host}/pingcap/tiflash/package:${TIFLASH}_${tag_suffix}"
-    tikv_oci_url="${registry_host}/tikv/tikv/package:${TIKV}_${tag_suffix}"
-    tikv_worker_oci_url="${registry_host}/tikv/tikv/package:${TIKV_WORKER}_${tag_suffix}"
-    pd_oci_url="${registry_host}/tikv/pd/package:${PD}_${tag_suffix}"
-    pd_ctl_oci_url="${registry_host}/tikv/pd/package:${PD_CTL}_${tag_suffix}"
-    ticdc_oci_url="${registry_host}/pingcap/tiflow/package:${TICDC}_${tag_suffix}"
-    ticdc_new_oci_url="${registry_host}/pingcap/ticdc/package:${TICDC_NEW}_${tag_suffix}"
-    minio_oci_url="${registry_host}/pingcap/third-party/minio:${MINIO}_${tag_suffix}"
+    # Build OCI URL from registry, image path, and tag value.
+    # If the tag value starts with "@", it is a pre-built binary marker:
+    #   - Strip the "@" prefix to get the raw tag
+    #   - Strip any trailing "_<os>_<arch>" suffix (e.g., _linux_amd64) if present
+    #   - Use the dev registry instead of the hub registry
+    #   - Do NOT append any suffix (the tag is already the complete OCI tag)
+    function build_oci_url() {
+        local registry="$1"
+        local image_path="$2"
+        local tag_value="$3"
+        local tag_suffix="$4"
+        if [[ "${tag_value}" == @* ]]; then
+            local real_tag="${tag_value#@}"
+            # Strip "_<os>_<arch>" suffix if present
+            real_tag="${real_tag%_${tag_suffix}}_${tag_suffix}"
+            echo "${registry_host_dev}/${image_path}:${real_tag}"
+        else
+            # Strip "_<os>_<arch>" suffix if present
+            real_tag="${tag_value%_${tag_suffix}}_${tag_suffix}"
+            echo "${registry}/${image_path}:${real_tag}"
+        fi
+    }
+
+    tidb_oci_url="$(build_oci_url "${registry_host}" "pingcap/tidb/package" "${TIDB}" "${tag_suffix}")"
+    dumpling_oci_url="$(build_oci_url "${registry_host}" "pingcap/tidb/package" "${DUMPLING}" "${tag_suffix}")"
+    tiflash_oci_url="$(build_oci_url "${registry_host}" "pingcap/tiflash/package" "${TIFLASH}" "${tag_suffix}")"
+    tikv_oci_url="$(build_oci_url "${registry_host}" "tikv/tikv/package" "${TIKV}" "${tag_suffix}")"
+    tikv_worker_oci_url="$(build_oci_url "${registry_host}" "tikv/tikv/package" "${TIKV_WORKER}" "${tag_suffix}")"
+    tikv_ctl_oci_url="$(build_oci_url "${registry_host}" "tikv/tikv/package" "${TIKV_CTL}" "${tag_suffix}")"
+    pd_oci_url="$(build_oci_url "${registry_host}" "tikv/pd/package" "${PD}" "${tag_suffix}")"
+    pd_ctl_oci_url="$(build_oci_url "${registry_host}" "tikv/pd/package" "${PD_CTL}" "${tag_suffix}")"
+    ticdc_oci_url="$(build_oci_url "${registry_host}" "pingcap/tiflow/package" "${TICDC}" "${tag_suffix}")"
+    ticdc_new_oci_url="$(build_oci_url "${registry_host}" "pingcap/ticdc/package" "${TICDC_NEW}" "${tag_suffix}")"
+    tici_oci_url="$(build_oci_url "${registry_host}" "pingcap/tici/package" "${TICI}" "${tag_suffix}")"
+    tiproxy_oci_url="$(build_oci_url "${registry_host}" "pingcap/tiproxy/package" "${TIPROXY}" "${tag_suffix}")"
+    # sync-diff-inspector: semver tags come from tidb-tools, non-semver (e.g. master) from tiflow
+    if [[ "${SYNC_DIFF_INSPECTOR}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        sync_diff_inspector_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/tidb-tools/package" "${SYNC_DIFF_INSPECTOR}" "${tag_suffix}")"
+    else
+        sync_diff_inspector_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/tiflow/package" "${SYNC_DIFF_INSPECTOR}" "${tag_suffix}")"
+    fi
+
+    # third party or public test tools.
+    minio_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/minio" "${MINIO}" "${tag_suffix}")"
+    etcd_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/etcd" "${ETCDCTL}" "${tag_suffix}")"
+    ycsb_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/go-ycsb/package" "${YCSB}" "${tag_suffix}")"
+    schema_registry_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/schema-registry" "${SCHEMA_REGISTRY}" "${tag_suffix}")"
+    fake_gcs_server_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/fake-gcs-server" "${FAKE_GCS_SERVER}" "${tag_suffix}")"
+    kes_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/kes" "${KES}" "${tag_suffix}")"
+    license_eye_oci_url="$(build_oci_url "${registry_host_community}" "pingcap/third-party/license-eye" "${LICENSE_EYE}" "${tag_suffix}")"
 }
 
 function check_tools() {

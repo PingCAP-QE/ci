@@ -59,13 +59,17 @@ function gather_results() {
             pingcap/tidb-binlog/package
         )
     fi
-    # if VERSION is greater then v9.0.0, then we:
+    # if VERSION is greater then v8.5.6, then we:
     # - add sync-diff-inspector to the tiup pkgs
-    # - add oci repo for new cdc
-    if [[ "$(printf '%s\n' "v9.0.0" "$VERSION" | sort -V | head -n1)" == "v9.0.0" ]]; then
+    if [[ "$(printf '%s\n' "v8.5.6" "$VERSION" | sort -V | head -n1)" == "v8.5.6" ]]; then
         tiup_pkgs+=(
             sync-diff-inspector
         )
+    fi
+
+    # if VERSION is greater then 8.5.4, then we:
+    # - add oci repo for new cdc
+    if [[ "$(printf '%s\n' "v8.5.4" "$VERSION" | sort -V | head -n1)" == "v8.5.4" ]]; then
         source_oci_pkg_repos+=(
             pingcap/ticdc/package
         )
@@ -126,7 +130,7 @@ function main() {
 
     check_version="$1"
     check_mirror="$2"
-    oci_registry="${3:-hub.pingcap.net}"
+    oci_registry="${3:-us-docker.pkg.dev/pingcap-testing-account/hub}"
     fail_fast="${4:-false}"
 
     tiup mirror set $check_mirror

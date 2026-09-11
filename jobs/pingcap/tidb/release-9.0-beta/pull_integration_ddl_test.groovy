@@ -8,10 +8,6 @@ pipelineJob('pingcap/tidb/release-9.0-beta/pull_integration_ddl_test') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC", "", "Prow job spec struct data")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb")
-    }
 
     definition {
         cpsScm {

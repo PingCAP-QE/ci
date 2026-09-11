@@ -10,6 +10,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/e2e-test
@@ -19,6 +21,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/common-test
@@ -26,17 +30,10 @@ postsubmits:
       skip_report: false
 
     - <<: *brancher
-      name: pingcap/tidb/merged_integration_common_test
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: ci/integration-common-test
-      max_concurrency: 1
-      skip_report: true # TODO: change to false after failed test is fixed.
-
-    - <<: *brancher
       name: pingcap/tidb/merged_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: ci/integration-jdbc-test
       skip_if_only_changed: *skip_if_only_changed
@@ -46,6 +43,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-mysql-test
@@ -55,6 +54,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/sqllogic-test
@@ -64,6 +65,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-copr-test
@@ -73,6 +76,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/unit-test
@@ -82,6 +87,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_unit_test_ddlv1
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: wip/unit-test-ddlv1 # TODO: change to ci/ after test.
@@ -91,6 +98,8 @@ postsubmits:
     - <<: *brancher
       name: pingcap/tidb/merged_integration_python_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: ci/integration-python-orm-test
@@ -98,26 +107,10 @@ postsubmits:
       skip_report: false
 
     - <<: *brancher
-      name: pingcap/tidb/merged_integration_nodejs_test
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: ci/integration-nodejs-test
-      max_concurrency: 1
-      skip_report: true
-
-    - <<: *brancher
-      name: pingcap/tidb/merged_integration_br_test
-      agent: jenkins
-      decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
-      context: wip/integration-br-test
-      max_concurrency: 1
-      skip_report: true
-
-    - <<: *brancher
       name: pingcap/tidb/merged_integration_lightning_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: wip/integration-lightning-test
@@ -125,10 +118,25 @@ postsubmits:
       skip_report: true
 
     - <<: *brancher
-      name: pingcap/tidb/merged_tiflash_integration_test
-      agent: jenkins
-      decorate: false # need add this.
+      name: merged-tidb-build
+      cluster: default
+      decorate: true
       skip_if_only_changed: *skip_if_only_changed
-      context: wip/tiflash-integration-test
       max_concurrency: 1
-      skip_report: true
+      skip_submodules: true
+      spec:
+        containers:
+          - name: build
+            image: ghcr.io/pingcap-qe/cd/builders/tidb:v2025.12.7-14-g6fd6d9d-go1.25
+            imagePullPolicy: Always
+            command: [bash, -c]
+            args:
+              - |
+                make server build_tools build_dumpling
+            resources:
+              requests:
+                cpu: "6"
+                memory: 24Gi
+              limits:
+                cpu: "6"
+                memory: 24Gi

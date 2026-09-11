@@ -8,16 +8,15 @@ final GIT_FULL_REPO_NAME = 'tikv/pd'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/pd/release-9.0-beta/pod-ghpr_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            retries 2
             defaultContainer 'golang'
         }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 15, unit: 'MINUTES')
@@ -25,23 +24,6 @@ pipeline {
         skipDefaultCheckout()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {

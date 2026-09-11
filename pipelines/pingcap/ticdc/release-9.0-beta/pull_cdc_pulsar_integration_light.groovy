@@ -10,11 +10,13 @@ final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc
 final POD_TEMPLATE_FILE_BUILD = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc_integration_build.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE_BUILD
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE_BUILD, REFS)
+            retries 2
             defaultContainer 'golang'
         }
     }
@@ -26,23 +28,6 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
@@ -50,7 +35,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -97,12 +82,11 @@ pipeline {
                             ./bin/cdc version
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'ticdc', includes: '**/*'
                 }
             }
         }
@@ -112,38 +96,47 @@ pipeline {
                 axes {
                     axis {
                         name 'TEST_GROUP'
-                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08', 'G09',
-                            'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('ticdc') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/ticdc") {
-                                    sh label: "${TEST_GROUP}", script: """
-                                        ./tests/integration_tests/run_light_it_in_ci.sh pulsar ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'ticdc'
+                                sh label: "${TEST_GROUP}", script: """
+                                    ./tests/integration_tests/run_light_it_in_ci.sh pulsar ${TEST_GROUP}
+                                """
                             }
                         }
                         post {
                             failure {
                                 sh label: "collect logs", script: """
                                     ls /tmp/tidb_cdc_test/
-                                    tar --warning=no-file-changed  -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
-                                    ls -alh  log-${TEST_GROUP}.tar.gz
+                                    log_files=\$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
+                                    if [ -n "\${log_files}" ]; then
+                                        tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \${log_files}
+                                        ls -alh log-${TEST_GROUP}.tar.gz
+                                    else
+                                        echo "No log files found under /tmp/tidb_cdc_test/, skip tar"
+                                    fi
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

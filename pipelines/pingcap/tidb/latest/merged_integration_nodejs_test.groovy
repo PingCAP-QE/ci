@@ -12,41 +12,20 @@ pipeline {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            retries 2
             defaultContainer 'nodejs'
         }
     }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
     options {
         timeout(time: 75, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                container(name: 'nodejs') {
-                    sh label: 'Debug info', script: """
-                        printenv
-                        echo "-------------------------"
-                        echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                    """
-                }
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-test") {
@@ -62,7 +41,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
@@ -77,12 +56,11 @@ pipeline {
                             """
                         }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
-                            touch ws-${BUILD_TAG}
-                        """
-                    }
+                    sh label: 'cache tidb-test', script: """
+                        cp -r ../tidb/bin/tidb-server bin/ && chmod +x bin/*
+                        touch ws-${BUILD_TAG}
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -98,31 +76,35 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                         defaultContainer 'nodejs'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_dir: env.TEST_DIR]) }
                 }
                 stages {
                     stage("Test") {
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                        chown -R 1000:1000 bin/
-                                        ls -alh bin/
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tidb-server -V
-                                    """
-                                    sh label: "${TEST_DIR} ", script: """#!/usr/bin/env bash
-                                        export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
-                                        export TIDB_TEST_STORE_NAME="tikv"
-                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                        export TIKV_PATH="127.0.0.1:2379"
+                                unstash 'tidb-test'
+                                sh """
+                                    chown -R 1000:1000 bin/
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
+                                """
+                                sh label: "${TEST_DIR} ", script: """#!/usr/bin/env bash
+                                    export TIDB_SERVER_PATH="\$(pwd)/bin/tidb-server"
+                                    export TIDB_TEST_STORE_NAME="tikv"
+                                    echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                    bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                    export TIKV_PATH="127.0.0.1:2379"
 
-                                        cd \${TEST_DIR} && chmod +x *.sh && ./test.sh
-                                    """
-                                }
+                                    cd \${TEST_DIR} && chmod +x *.sh && ./test.sh
+                                """
                             }
                         }
                         post{
@@ -131,6 +113,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_dir: env.TEST_DIR]) } }
                         }
                     }
                 }

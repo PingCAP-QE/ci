@@ -34,6 +34,7 @@ We use folder struct to store CI jobs for repos: `<ORG>/<REPO>`
   - [`release-6.5` branch](./pingccap/tidb/ci-jobs-v6.5.md)
 - [`pingcap/tiflash`](https://github.com/pingcap/tiflow) repo. 🚧
 - [`pingcap/tiflow`](https://github.com/pingcap/tiflow) repo. 🚧
+- [`pingcap/ticdc`](https://github.com/pingcap/ticdc) repo. 🚧
 - [`tikv/pd`](https://github.com/tikv/pd) repo
   - [`master` branch](./tikv/pd/ci-jobs-latest.md)
   - [`release-6.5` branch](./tikv/pd/ci-jbos-v6.5.md)

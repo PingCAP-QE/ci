@@ -4,17 +4,12 @@ global_definitions:
 presubmits:
   tikv/raft-engine:
     - name: rust-nightly
-      cluster: gcp-prow-ksyun
       decorate: true
       # max_concurrency: 1
       skip_if_only_changed: "(\\.(md)|OWNERS|OWNERS_ALIASES)$"
       branches:
         - ^master$
       spec:
-        volumes:
-          - name: cargo-cache
-            persistentVolumeClaim:
-              claimName: cargo-home-linux-amd64
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -26,9 +21,13 @@ presubmits:
                     - amd64
         containers:
           - name: rust
-            image: rust:1.85.0
+            image: rust:1.85.1
             command: ["/bin/sh", "-c"]
             env:
+              # Raft-engine lacks Cargo.lock, so we pin a nightly toolchain version here.
+              # This must be updated periodically to keep CI passing without forcing TiKV toolchain update.
+              - name: RUST_NIGHTLY
+                value: "nightly-2026-01-30"
               - name: RUST_BACKTRACE
                 value: "1"
               # - name: CARGO_HOME
@@ -38,8 +37,8 @@ presubmits:
                 set -ex
                 apt-get update; apt-get install -y cmake
                 rustup show
-                rustup toolchain install nightly-2025-04-03
-                rustup default nightly-2025-04-03
+                rustup toolchain install $RUST_NIGHTLY
+                rustup default $RUST_NIGHTLY
                 rustup component add rustfmt clippy rust-src
                 cargo install grcov
                 make format && git diff --exit-code
@@ -54,17 +53,12 @@ presubmits:
             #     mountPath: /cargo-cache
 
     - name: rust-stable
-      cluster: gcp-prow-ksyun
       decorate: true
       max_concurrency: 1
       always_run: false
       branches:
         - ^master$
       spec:
-        volumes:
-          - name: cargo-cache
-            persistentVolumeClaim:
-              claimName: cargo-home-linux-amd64
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -76,7 +70,7 @@ presubmits:
                     - amd64
         containers:
           - name: rust
-            image: rust:1.85.0
+            image: rust:1.85.1
             command: ["/bin/sh", "-c"]
             env:
               - name: WITH_STABLE_TOOLCHAIN

@@ -28,7 +28,7 @@ Deno.test("compute", () => {
       description:
         "history style - create new release branch but no new commit after alpha tag",
       gitVer: "v8.5.0-alpha",
-      branches: ["master", "release-8.5"],
+      branches: ["* (HEAD detached at ae18096e02)", "master", "release-8.5"],
       expect: {
         version: "v8.5.0-pre",
         newBuildTag: "v8.5.0",
@@ -38,7 +38,7 @@ Deno.test("compute", () => {
       description:
         "history style - create new release branch with new commits after alpha tag",
       gitVer: "v8.5.0-alpha-2-g1234567",
-      branches: ["master", "release-8.5"],
+      branches: ["* (HEAD detached at ae18096e02)", " master", " release-8.5"],
       expect: {
         version: "v8.5.0-pre",
         newBuildTag: "v8.5.0",
@@ -57,8 +57,7 @@ Deno.test("compute", () => {
       gitVer: "v8.5.4-release.1",
       branches: ["release-8.5"],
       expect: {
-        version: "v8.5.4-pre", // will publish packages/images with v8.5.4-pre version.
-        newBuildTag: "v8.5.4", // `cdc version` will show v8.5.4 for version value.
+        version: "v8.5.4-release.1",
       },
     },
     {
@@ -67,8 +66,7 @@ Deno.test("compute", () => {
       gitVer: "v8.5.4-release.1",
       branches: ["master", "release-8.5"],
       expect: {
-        version: "v8.5.4-pre",
-        newBuildTag: "v8.5.4",
+        version: "v8.5.4-release.1",
       },
     },
     {
@@ -113,6 +111,68 @@ Deno.test("compute", () => {
       branches: ["master"],
       expect: {
         version: "v8.5.4-nextgen.202510.0-1-g1234567",
+      },
+    },
+    {
+      description:
+        "new style - nextgen GA tag with patch sequence starting at zero",
+      gitVer: "v26.3.0",
+      branches: ["release-nextgen-20260301"],
+      expect: {
+        version: "v26.3.0",
+      },
+    },
+    {
+      description:
+        "new style - commits after nextgen GA tag with zero patch stay unchanged on release branch",
+      gitVer: "v26.3.0-2-g1234567",
+      branches: ["release-nextgen-20260301"],
+      expect: {
+        version: "v26.3.0-2-g1234567",
+      },
+    },
+    {
+      description: "new style - nextgen GA tag on release branch",
+      gitVer: "v26.3.1",
+      branches: ["release-nextgen-20260301"],
+      expect: {
+        version: "v26.3.1",
+      },
+    },
+    {
+      description:
+        "new style - nextgen GA tag on release branch and master branch",
+      gitVer: "v26.3.1",
+      branches: ["master", "release-nextgen-20260301"],
+      expect: {
+        version: "v26.3.1",
+      },
+    },
+    {
+      description:
+        "new style - has new commits after nextgen GA tag on release branch, we will do nothing for it",
+      gitVer: "v26.3.1-2-g1234567",
+      branches: ["release-nextgen-20260301"],
+      expect: {
+        version: "v26.3.1-2-g1234567",
+      },
+    },
+    {
+      description:
+        "new style - nextgen GA tag on version+date nextgen release branch",
+      gitVer: "v26.3.0",
+      branches: ["release-nextgen-26.3.0-20260817"],
+      expect: {
+        version: "v26.3.0",
+      },
+    },
+    {
+      description:
+        "new style - has new commits after nextgen GA tag on version+date nextgen release branch, we will do nothing for it",
+      gitVer: "v26.3.0-2-g1234567",
+      branches: ["release-nextgen-26.3.0-20260817"],
+      expect: {
+        version: "v26.3.0-2-g1234567",
       },
     },
     {
@@ -306,6 +366,14 @@ Deno.test("compute", () => {
       },
     },
     {
+      description: "history style - feature release branch with hotfix tag",
+      gitVer: "v8.5.1-20250101-fecba32",
+      branches: ["feature/release-8.5-xxx"],
+      expect: {
+        version: "v8.5.1-20250101-fecba32",
+      },
+    },
+    {
       description: "feature branch - beta prerelease",
       gitVer: "v9.0.0-beta.1.pre-151-gb4c8f4dc8",
       branches: ["feature/fts"],
@@ -315,12 +383,45 @@ Deno.test("compute", () => {
       },
     },
     {
+      description: "feature branch - with '_' char",
+      gitVer: "v9.0.0-beta.1.pre-151-gb4c8f4dc8",
+      branches: ["feature/xxx_yyy"],
+      expect: {
+        version: "v9.0.0-feature.xxx-yyy",
+        newBuildTag: "v9.0.0-feature.xxx-yyy",
+      },
+    },
+    {
       description: "feature branch - alpha prerelease",
       gitVer: "v8.5.0-alpha-2-g1234567",
       branches: ["feature/fts"],
       expect: {
         version: "v8.5.0-feature.fts",
         newBuildTag: "v8.5.0-feature.fts",
+      },
+    },
+    {
+      description: "ticdc hotfix branch",
+      gitVer: "v8.5.5-release.3-2-ge8080",
+      branches: ["release-8.5.5-release.3-20260109"],
+      expect: {
+        version: "v8.5.5-release.3-2-ge8080",
+      },
+    },
+    {
+      description: "ticdc hotfix branch",
+      gitVer: "v8.5.5-release.3-hotfix-0101-2-ge80aedfd",
+      branches: ["release-8.5.5-release.3-20260109"],
+      expect: {
+        version: "v8.5.5-release.3-hotfix-0101-2-ge80aedfd",
+      },
+    },
+    {
+      description: "ticdc hotfix branch",
+      gitVer: "v8.5.5-release.3-20260109-abcdef1",
+      branches: ["release-8.5.5-release.3-20260109"],
+      expect: {
+        version: "v8.5.5-release.3-20260109-abcdef1",
       },
     },
   ];

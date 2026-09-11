@@ -10,6 +10,8 @@ presubmits:
   pingcap/tiflash:
     - name: pingcap/tiflash/release-9.0-beta/pull_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-unit-test
@@ -21,6 +23,8 @@ presubmits:
 
     - name: pingcap/tiflash/release-9.0-beta/pull_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-test

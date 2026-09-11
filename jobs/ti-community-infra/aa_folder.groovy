@@ -8,14 +8,17 @@ folder('ti-community-infra') {
                     retriever {
                         modernSCM {
                             scm {
-                                github {
-                                    configuredByUrl(true)
-                                    // Specify the HTTPS URL of the GitHub Organization / User Account and repository.
-                                    repositoryUrl('https://github.com/PingCAP-QE/ci')
-
-                                    // useless but required.
-                                    repoOwner('PingCAP-QE')
-                                    repository('ci')
+                                git {
+                                    remote('https://github.com/PingCAP-QE/ci')
+                                    extensions {
+                                        cloneOption {
+                                            depth(1)
+                                            shallow(true)
+                                            noTags(true)
+                                            reference('/var/lib/scm-git/ci')
+                                            timeout(5)
+                                        }
+                                    }
                                 }
                             }
                             // A relative path from the root of the SCM to the root of the library.
@@ -36,7 +39,7 @@ folder('ti-community-infra') {
                     // If checked, scripts will automatically have access to this library without needing to request it via @Library.
                     implicit(false)
                     // If checked, any changes in the library will be included in the changesets of a build, and changing the library would cause new builds to run for Pipelines that include this library.
-                    includeInChangesets(true)
+                    includeInChangesets(false)
                 }
             }
         }

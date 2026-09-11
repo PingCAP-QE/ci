@@ -1,0 +1,77 @@
+// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
+// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+@Library('tipipeline') _
+
+final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_FULL_REPO_NAME = 'pingcap-inc/tidb'
+final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/tidb/release-8.5/pod-pull_unit_test.yaml'
+final REFS = readJSON(text: params.JOB_SPEC).refs
+
+prow.setPRDescription(REFS)
+pipeline {
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
+            defaultContainer 'golang'
+        }
+    }
+    options {
+        timeout(time: 90, unit: 'MINUTES')
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                dir(REFS.repo) {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                        script {
+                            retry(2) {
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Prepare bazel workspace') {
+            steps {
+                dir(REFS.repo) {
+                    script { bazel.prepareWorkspace() }
+                }
+            }
+        }
+
+        stage('Replay workarounds (temporary)') {
+            steps {
+                dir(REFS.repo) {
+                    sh '''#!/usr/bin/env bash
+                    set -euxo pipefail
+                    # Replay-only timeout hotfix: raise ci shard timeout to avoid 150s timeout flakes.
+                    if [ -f .bazelrc ]; then
+                      echo 'test:ci --test_timeout=600,900,1800,3600' >> .bazelrc
+                    fi
+                    grep -n 'test:ci --test_timeout=' .bazelrc | tail -n 3 || true
+                    '''
+                }
+            }
+        }
+        stage('Test') {
+            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
+            steps {
+                dir(REFS.repo) {
+                    sh """
+                        git diff .
+                        git status
+                    """
+                    sh '''#! /usr/bin/env bash
+                        set -o pipefail
+                        make bazel_coverage_test_ddlargsv1
+                    '''
+                }
+            }
+        }
+    }
+}

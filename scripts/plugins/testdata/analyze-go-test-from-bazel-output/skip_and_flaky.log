@@ -1,0 +1,15 @@
+==================== Test output for //pkg:mixed_case (shard 1 of 2):
+=== RUN   TestSkipOnly
+--- SKIP: TestSkipOnly (0.00s)
+=== RUN   TestFlaky
+--- FAIL: TestFlaky (0.01s)
+==================== ========================================================= ====================
+==================== Test output for //pkg:mixed_case (shard 2 of 2):
+=== RUN   TestSkipOnly
+--- SKIP: TestSkipOnly (0.00s)
+=== RUN   TestFlaky
+--- PASS: TestFlaky (0.00s)
+==================== ========================================================= ====================
+FLAKY: /home/jenkins/.cache/bazel/out/execroot/__main__/bazel-out/k8-fastbuild/bin//pkg:mixed_case
+  /home/jenkins/.cache/bazel/out/execroot/__main__/bazel-out/k8-fastbuild/bin//pkg:mixed_case/shard_1_of_2/test_attempts/attempt_1.log
+  /home/jenkins/.cache/bazel/out/execroot/__main__/bazel-out/k8-fastbuild/bin//pkg:mixed_case/shard_2_of_2/test_attempts/attempt_1.log

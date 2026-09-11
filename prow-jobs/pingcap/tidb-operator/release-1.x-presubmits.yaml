@@ -1,0 +1,934 @@
+global_definitions:
+  branches: &branches
+    - ^release-1[.][0-9]+$
+    - ^release-1[.]x$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|OWNERS|OWNERS_ALIASES)$"
+  affinity: &affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+  decoration_config: &decoration_config
+    timeout: 3h
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/tidb-operator:
+    - name: pull-e2e-kind-tidbcluster
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      always_run: false
+      optional: true
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "ci-rwo"
+                  resources:
+                    requests:
+                      storage: 300Gi
+          - name: modules
+            hostPath:
+              path: /lib/modules # kind needs /lib/modules and cgroups from the host
+              type: Directory
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup # DinD requires cgroup for resource limit management.
+              type: Directory
+          - name: kubeconfig
+            emptyDir: {}
+          - name: kind-data
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: "56Gi"
+                cpu: "16"
+              limits:
+                memory: "56Gi"
+                cpu: "16"
+        containers:
+          - name: e2e-runner
+            image: ubuntu:22.04
+            command: ["bash", "-ce"]
+            args:
+              - |
+                set -ex
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='TiDBCluster' --skip='\[TiDBCluster:\sBasic\]' --nodes=4 \
+                  --kind-cp-mem=2G --kind-cp-cpu=4096 --kind-wk-mem=16G --kind-wk-cpu=98304
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tidb-operator
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /data
+                subPath: data
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: 1Gi
+                cpu: "0.5"
+              limits:
+                memory: 8Gi
+                cpu: "2"
+
+    - name: pull-e2e-kind-dmcluster
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      always_run: false
+      optional: true
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "ci-rwo"
+                  resources:
+                    requests:
+                      storage: 300Gi
+          - name: modules
+            hostPath:
+              path: /lib/modules
+              type: Directory
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup
+              type: Directory
+          - name: kubeconfig
+            emptyDir: {}
+          - name: kind-data
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: "16Gi"
+                cpu: "4"
+              limits:
+                memory: "16Gi"
+                cpu: "4"
+        containers:
+          - name: e2e-runner
+            image: ubuntu:22.04
+            command: ["bash", "-ce"]
+            args:
+              - |
+                set -ex
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='DMCluster' --nodes=2 \
+                  --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tidb-operator
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /data
+                subPath: data
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: 16Gi
+                cpu: "4"
+              limits:
+                memory: 16Gi
+                cpu: "4"
+
+    - name: pull-e2e-kind-basic
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      always_run: false
+      optional: true
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "ci-rwo"
+                  resources:
+                    requests:
+                      storage: 300Gi
+          - name: modules
+            hostPath:
+              path: /lib/modules
+              type: Directory
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup
+              type: Directory
+          - name: kubeconfig
+            emptyDir: {}
+          - name: kind-data
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: "16Gi"
+                cpu: "4"
+              limits:
+                memory: "16Gi"
+                cpu: "4"
+        containers:
+          - name: e2e-runner
+            image: ubuntu:22.04
+            command: ["bash", "-ce"]
+            args:
+              - |
+                set -ex
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='\[TiDBCluster:\sBasic\]' --nodes=2 \
+                  --extra-args='--install-dm-mysql=false' \
+                  --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tidb-operator
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /data
+                subPath: data
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: 16Gi
+                cpu: "4"
+              limits:
+                memory: 16Gi
+                cpu: "4"
+
+    - name: pull-e2e-kind-br
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      always_run: false
+      optional: true
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "ci-rwo"
+                  resources:
+                    requests:
+                      storage: 300Gi
+          - name: modules
+            hostPath:
+              path: /lib/modules
+              type: Directory
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup
+              type: Directory
+          - name: kubeconfig
+            emptyDir: {}
+          - name: kind-data
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: "16Gi"
+                cpu: "16"
+              limits:
+                memory: "16Gi"
+                cpu: "16"
+        containers:
+          - name: e2e-runner
+            image: ubuntu:22.04
+            command: ["bash", "-ce"]
+            args:
+              - |
+                set -ex
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='Backup\sand\sRestore' --nodes=2 \
+                  --kind-cp-mem=2G --kind-cp-cpu=1024 --kind-wk-mem=10G --kind-wk-cpu=49152
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tidb-operator
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /data
+                subPath: data
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: 8Gi
+                cpu: "2"
+              limits:
+                memory: 8Gi
+                cpu: "2"
+
+    - name: pull-e2e-kind-across-kubernetes
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      always_run: false
+      optional: true
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "ci-rwo"
+                  resources:
+                    requests:
+                      storage: 300Gi
+          - name: modules
+            hostPath:
+              path: /lib/modules
+              type: Directory
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup
+              type: Directory
+          - name: kubeconfig
+            emptyDir: {}
+          - name: kind-data
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: "48Gi"
+                cpu: "12"
+              limits:
+                memory: "48Gi"
+                cpu: "12"
+        containers:
+          - name: e2e-runner
+            image: ubuntu:22.04
+            command: ["bash", "-ce"]
+            args:
+              - |
+                set -ex
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='\[Across\sKubernetes\]' --nodes=1 \
+                  --extra-args='--install-dm-mysql=false' \
+                  --kind-cp-mem=4G --kind-cp-cpu=8192 --kind-wk-mem=12G --kind-wk-cpu=8192
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tidb-operator
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /data
+                subPath: data
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: 12Gi
+                cpu: "3"
+              limits:
+                memory: 12Gi
+                cpu: "3"
+
+    - name: pull-e2e-kind-scale-simultaneously
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      always_run: false
+      optional: true
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "ci-rwo"
+                  resources:
+                    requests:
+                      storage: 300Gi
+          - name: modules
+            hostPath:
+              path: /lib/modules
+              type: Directory
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup
+              type: Directory
+          - name: kubeconfig
+            emptyDir: {}
+          - name: kind-data
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: "16Gi"
+                cpu: "4"
+              limits:
+                memory: "16Gi"
+                cpu: "4"
+        containers:
+          - name: e2e-runner
+            image: ubuntu:22.04
+            command: ["bash", "-ce"]
+            args:
+              - |
+                set -ex
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='Scale\sin\ssimultaneously' --nodes=1 \
+                  --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tidb-operator
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /data
+                subPath: data
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: 16Gi
+                cpu: "4"
+              limits:
+                memory: 16Gi
+                cpu: "4"
+
+    - name: pull-e2e-kind-serial
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      always_run: false
+      optional: true
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "ci-rwo"
+                  resources:
+                    requests:
+                      storage: 300Gi
+          - name: modules
+            hostPath:
+              path: /lib/modules
+              type: Directory
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup
+              type: Directory
+          - name: kubeconfig
+            emptyDir: {}
+          - name: kind-data
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: "16Gi"
+                cpu: "12"
+              limits:
+                memory: "16Gi"
+                cpu: "12"
+        containers:
+          - name: e2e-runner
+            image: ubuntu:22.04
+            command: ["bash", "-ce"]
+            args:
+              - |
+                set -ex
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='\[Serial\]' --nodes=1 --delete-namespace \
+                  --extra-args='--install-operator=false' \
+                  --kind-cp-mem=2G --kind-cp-cpu=2048 --kind-wk-mem=8G --kind-wk-cpu=16384
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tidb-operator
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /data
+                subPath: data
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: 1Gi
+                cpu: "0.5"
+              limits:
+                memory: 8Gi
+                cpu: "2"
+
+    - name: pull-e2e-kind-tngm
+      decorate: true
+      decoration_config: *decoration_config
+      skip_if_only_changed: *skip_if_only_changed
+      branches: *branches
+      always_run: false
+      optional: true
+      spec:
+        affinity: *affinity
+        volumes:
+          - name: docker-sock-dir
+            emptyDir: {}
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "ci-rwo"
+                  resources:
+                    requests:
+                      storage: 300Gi
+          - name: modules
+            hostPath:
+              path: /lib/modules
+              type: Directory
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup
+              type: Directory
+          - name: kubeconfig
+            emptyDir: {}
+          - name: kind-data
+            emptyDir: {}
+        initContainers:
+          - name: dind-daemon
+            image: docker:28.1-dind
+            restartPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - "dockerd-entrypoint.sh --cgroup-parent /kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod$(echo ${POD_UID} | tr - _).slice"
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: ""
+              - name: POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /var/lib/docker
+                subPath: docker
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: "16Gi"
+                cpu: "4"
+              limits:
+                memory: "16Gi"
+                cpu: "4"
+        containers:
+          - name: e2e-runner
+            image: ubuntu:22.04
+            command: ["bash", "-ce"]
+            args:
+              - |
+                set -ex
+                [ -f hack/run-e2e-kind.sh ] || { echo "hack/run-e2e-kind.sh not found"; exit 1; }
+                exec bash ./hack/run-e2e-kind.sh --focus='TiDBNGMonitoring' --nodes=1 \
+                  --kind-cp-mem=8G --kind-cp-cpu=4096 --kind-wk-mem=8G --kind-wk-cpu=4096
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: codecov-tokens
+                    key: pingcap-tidb-operator
+            volumeMounts:
+              - name: docker-sock-dir
+                mountPath: /var/run
+              - name: data
+                mountPath: /data
+                subPath: data
+              - name: modules
+                mountPath: /lib/modules
+                readOnly: true
+              - name: cgroup
+                mountPath: /sys/fs/cgroup
+              - name: kubeconfig
+                mountPath: /kubeconfig
+              - name: kind-data
+                mountPath: /kind-data
+            resources:
+              requests:
+                memory: 16Gi
+                cpu: "4"
+              limits:
+                memory: 16Gi
+                cpu: "4"

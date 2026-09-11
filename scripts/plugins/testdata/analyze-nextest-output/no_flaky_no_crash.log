@@ -1,0 +1,7 @@
+────────────  Nextest run ID 00000000-0000-0000-0000-000000000008 with nextest profile: default
+    Starting 3 tests across 1 binary (0 skipped)
+       PASS [   0.001s] fixture::basic test_pass
+       FAIL [   0.003s] fixture::basic test_fail_no_panic
+       PASS [   0.002s] fixture::basic test_pass_2
+────────────
+  Summary [   0.006s] 3 tests run: 2 passed, 0 skipped, 1 failed

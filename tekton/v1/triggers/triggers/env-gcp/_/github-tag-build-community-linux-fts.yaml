@@ -1,0 +1,90 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-tag-build-community-linux-fts
+  labels:
+    type: github-tag-create
+    profile: community
+spec:
+  interceptors:
+    - name: filter on repo and branch
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in [
+            'pingcap/tidb',
+            'pingcap/tiflash',
+            'tikv/tikv',
+            ]
+            &&
+            body.ref.matches('^v8[.]5[.]6+-20260228-[a-f0-9]+$')
+
+        - name: overlays
+          value:
+            - key: timeout
+              expression: >-
+                {
+                'pingcap/monitoring': '30m',
+                'pingcap/ng-monitoring': '30m',
+                'pingcap/ticdc': '30m',
+                'pingcap/tidb': '45m',
+                'pingcap/tidb-dashboard': '40m',
+                'pingcap/tiflash': '2h',
+                'pingcap/tiflow': '40m',
+                'tikv/pd': '40m',
+                'tikv/tikv': '2h',
+                }[body.repository.full_name]
+            - key: source-ws-size
+              expression: >-
+                {
+                'pingcap/monitoring': '20Gi',
+                'pingcap/ng-monitoring': '20Gi',
+                'pingcap/ticdc': '50Gi',
+                'pingcap/tidb': '50Gi',
+                'pingcap/tidb-dashboard': '20Gi',
+                'pingcap/tiflash': '100Gi',
+                'pingcap/tiflow': '50Gi',
+                'tikv/pd': '50Gi',
+                'tikv/tikv': '100Gi',
+                }[body.repository.full_name]
+            - key: builder-resources-cpu
+              expression: >-
+                {
+                'pingcap/monitoring': '2',
+                'pingcap/ng-monitoring': '2',
+                'pingcap/ticdc': '4',
+                'pingcap/tidb': '6',
+                'pingcap/tidb-dashboard': '2',
+                'pingcap/tiflash': '12',
+                'pingcap/tiflow': '6',
+                'tikv/pd': '6',
+                'tikv/tikv': '12',
+                }[body.repository.full_name]
+            - key: builder-resources-memory
+              expression: >-
+                {
+                'pingcap/monitoring': '4Gi',
+                'pingcap/ng-monitoring': '4Gi',
+                'pingcap/ticdc': '16Gi',
+                'pingcap/tidb': '24Gi',
+                'pingcap/tidb-dashboard': '4Gi',
+                'pingcap/tiflash': '48Gi',
+                'pingcap/tiflow': '24Gi',
+                'tikv/pd': '24Gi',
+                'tikv/tikv': '56Gi',
+                }[body.repository.full_name]
+  bindings:
+    - ref: github-tag-create
+    - ref: gcp-classic-build-params
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: release }
+    - { name: timeout, value: $(extensions.timeout) }
+    - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - name: builder-resources-cpu
+      value: $(extensions.builder-resources-cpu)
+    - name: builder-resources-memory
+      value: $(extensions.builder-resources-memory)
+
+  template:
+    ref: build-component-linux

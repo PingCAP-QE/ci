@@ -12,37 +12,33 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         GITHUB_TOKEN = credentials('github-bot-token')
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
-        // parallelsAlwaysFailFast()
+        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.base_sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "${REFS.base_ref}", "", GIT_CREDENTIALS_ID)
-                            }
+                    retry(2) {
+                        script {
+                            component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', "${REFS.base_ref}", "", GIT_CREDENTIALS_ID)
                         }
                     }
                 }
@@ -50,7 +46,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
@@ -65,12 +61,11 @@ pipeline {
                             """
                         }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/
-                            touch ws-${BUILD_TAG}
-                        """
-                    }
+                    sh label: 'cache tidb-test', script: """
+                        cp -r ../tidb/bin/tidb-server bin/
+                        touch ws-${BUILD_TAG}
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -89,23 +84,27 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'java'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_dir: env.TEST_DIR, test_cmd: env.TEST_CMD]) }
+                }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    container("java") {
-                                        sh 'chmod +x bin/* && ls -alh bin/'
-                                        sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """#!/usr/bin/env bash
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                            cd ${TEST_DIR} && ${TEST_CMD}
-                                        """
-                                    }
+                                unstash 'tidb-test'
+                                container("java") {
+                                    sh 'chmod +x bin/* && ls -alh bin/'
+                                    sh label: "test_dir=${TEST_DIR} ${TEST_CMD}", script: """#!/usr/bin/env bash
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                        cd ${TEST_DIR} && ${TEST_CMD}
+                                    """
                                 }
                             }
                         }
@@ -115,6 +114,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_dir: env.TEST_DIR, test_cmd: env.TEST_CMD]) } }
                         }
                     }
                 }

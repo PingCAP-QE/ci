@@ -3,9 +3,23 @@ kind: Pod
 spec:
   securityContext:
     fsGroup: 1000
+  initContainers:
+    - name: download-sqllogic
+      image: "ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c"
+      command:
+        - /bin/sh
+        - -c
+        - |
+          cd /git && \
+          oras pull us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/case-data/sqllogic:v20241212 && \
+          tar xzf sqllogictest_v20241212.tar.gz && \
+          rm sqllogictest_v20241212.tar.gz
+      volumeMounts:
+        - name: test-data
+          mountPath: /git
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
       resources:
         requests:
@@ -14,13 +28,12 @@ spec:
         limits:
           memory: 16Gi
           cpu: "6"
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
+      volumeMounts:
+        - name: test-data
+          mountPath: /git
+  volumes:
+    - name: test-data
+      emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -30,7 +43,3 @@ spec:
                 operator: In
                 values:
                   - amd64
-              - key: ci-nvme-high-performance
-                operator: In
-                values:
-                  - "true"

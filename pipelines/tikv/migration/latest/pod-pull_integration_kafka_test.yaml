@@ -9,11 +9,11 @@ spec:
       imagePullPolicy: IfNotPresent
       resources:
         requests:
-          cpu: 200m
-          memory: 4Gi
+          cpu: 500m
+          memory: 2Gi
         limits:
-          cpu: 2000m
-          memory: 4Gi
+          cpu: "1"
+          memory: 2Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -40,38 +40,41 @@ spec:
           value: zk
       resources:
         requests:
-          cpu: 200m
-          memory: 4Gi
+          cpu: 500m
+          memory: 2Gi
         limits:
-          cpu: 2000m
-          memory: 4Gi
+          cpu: "1"
+          memory: 2Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
     - args:
         - cat
-      image: hub.pingcap.net/jenkins/golang-tini:1.21
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25
       imagePullPolicy: Always
       name: golang
       resources:
         requests:
-          cpu: "2"
-          memory: 12Gi
-        limits:
           cpu: "4"
+          memory: 16Gi
+        limits:
+          cpu: "6"
           memory: 16Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
-        limits:
-          memory: 128Mi
+        requests:
+          memory: 256Mi
           cpu: 100m
+        limits:
+          cpu: "1"
+          memory: 1Gi
   volumes:
     - emptyDir: {}
       name: volume-0

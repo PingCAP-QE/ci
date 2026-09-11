@@ -9,27 +9,26 @@ spec:
       name: zookeeper
       resources:
         requests:
-          cpu: 200m
-          memory: 4Gi
+          cpu: 500m
+          memory: 2Gi
         limits:
-          cpu: 2000m
+          cpu: 1000m
           memory: 4Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - args:
-        - cat
-      image: hub.pingcap.net/wulifu/golang-tini:1.20.2
+    - image: ghcr.io/pingcap-qe/ci/jenkins:centos7-go1.21
       imagePullPolicy: Always
       name: golang
+      command: [/tini, --, /bin/bash]
       resources:
         requests:
-          cpu: "2"
-          memory: 12Gi
-        limits:
-          cpu: "4"
+          cpu: 4000m
           memory: 16Gi
+        limits:
+          cpu: 8000m
+          memory: 24Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -62,17 +61,17 @@ spec:
         - name: KAFKA_SSL_TRUSTSTORE_LOCATION
           value: /tmp/kafka.server.truststore.jks
         - name: RACK_COMMAND
-          value: curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks -o /tmp/kafka.server.keystore.jks && curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks -o /tmp/kafka.server.truststore.jks
+          value: curl -sfL https://cdn.jsdelivr.net/gh/pingcap/tiflow@6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks -o /tmp/kafka.server.keystore.jks && curl -sfL https://cdn.jsdelivr.net/gh/pingcap/tiflow@6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks -o /tmp/kafka.server.truststore.jks
       image: wurstmeister/kafka:2.12-2.4.1
       imagePullPolicy: IfNotPresent
       name: kafka
       resources:
         requests:
-          cpu: 200m
-          memory: 4Gi
+          cpu: 1500m
+          memory: 6Gi
         limits:
-          cpu: 2000m
-          memory: 4Gi
+          cpu: 3000m
+          memory: 8Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -99,25 +98,48 @@ spec:
       resources:
         requests:
           cpu: 200m
-          memory: 4Gi
+          memory: 2Gi
       tty: true
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
+    - name: mysql
+      image: quay.io/debezium/example-mysql:2.4
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ""
+        - name: MYSQL_USER
+          value: mysqluser
+        - name: MYSQL_PASSWORD
+          value: mysqlpw
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "yes"
+        - name: MYSQL_TCP_PORT
+          value: "3310"
       resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
+        requests:
+          cpu: 200m
+          memory: 1Gi
+    - name: connect
+      image: quay.io/debezium/connect:2.4
+      env:
+        - name: BOOTSTRAP_SERVERS
+          value: "127.0.0.1:9092"
+        - name: GROUP_ID
+          value: "1"
+        - name: CONFIG_STORAGE_TOPIC
+          value: "my_connect_configs"
+        - name: OFFSET_STORAGE_TOPIC
+          value: "my_connect_offsets"
+        - name: STATUS_STORAGE_TOPIC
+          value: "my_connect_statuses"
+        - name: LANG
+          value: "C.UTF-8"
       resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+        requests:
+          cpu: 200m
+          memory: 1Gi
   volumes:
     - emptyDir: {}
       name: volume-0

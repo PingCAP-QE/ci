@@ -8,11 +8,13 @@ final GIT_FULL_REPO_NAME = 'pingcap-inc/enterprise-extensions'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/enterprise-extensions/latest/pod-pr-verify.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            retries 2
             defaultContainer 'golang'
         }
     }
@@ -20,23 +22,6 @@ pipeline {
         timeout(time: 90, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 dir('tidb') {
@@ -56,7 +41,7 @@ pipeline {
                 dir('tidb/pkg/extension/enterprise') {
                     retry(2) {
                         script {
-                            prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
+                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 5)
                             sh """
                             git rev-parse --show-toplevel
                             git status -s .

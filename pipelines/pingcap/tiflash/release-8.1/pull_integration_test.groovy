@@ -14,67 +14,38 @@ Boolean proxy_cache_ready = false
 String proxy_commit_hash = null
 String tiflash_commit_hash = null
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
-            retries 5
+            retries 2
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
                     script {
-                        container("util") {
-                            withCredentials(
-                                [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                            ) {
-                                sh "rm -rf ./*"
-                                sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
-                                sh """
-                                ls -alh
-                                chown 1000:1000 src-tiflash.tar.gz
-                                tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
-                                ls -alh
-                                """
-                            }
-                        }
                         sh """
                         git config --global --add safe.directory "*"
                         git version
                         git status
                         """
                         retry(2) {
-                            prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
+                            prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
                             dir("contrib/tiflash-proxy") {
@@ -257,24 +228,6 @@ pipeline {
                 }
             }
         }
-        stage("License check") {
-            steps {
-                dir("${WORKSPACE}/tiflash") {
-                    // TODO: add license-eye to docker image
-                    sh label: "license header check", script: """
-                        echo "license check"
-                        if [[ -f .github/licenserc.yml ]]; then
-                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
-                            chmod +x license-eye
-                            ./license-eye -c .github/licenserc.yml header check
-                        else
-                            echo "skip license check"
-                            exit 0
-                        fi
-                    """
-                }
-            }
-        }
 
         stage("Post Build") {
             parallel {
@@ -353,9 +306,13 @@ pipeline {
                         namespace K8S_NAMESPACE
                         yamlFile POD_INTEGRATIONTEST_TEMPLATE_FILE
                         defaultContainer 'docker'
-                        retries 5
+                        retries 2
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_path: env.TEST_PATH]) }
                 }
                 stages {
                     stage("Test") {
@@ -370,9 +327,9 @@ pipeline {
                                         echo "path: ${pwd()}"
                                         sh "docker ps -a && docker version"
                                         script {
-                                            def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
-                                            def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
-                                            def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
+                                            def pdBranch = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
+                                            def tikvBranch = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
+                                            def tidbBranch = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-8.1')
                                             sh label: "run integration tests", script: """
                                             PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
                                             """
@@ -401,6 +358,7 @@ pipeline {
                                     }
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_path: env.TEST_PATH]) } }
                         }
                     }
                 }

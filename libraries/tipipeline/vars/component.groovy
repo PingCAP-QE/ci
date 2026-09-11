@@ -1,3 +1,114 @@
+// Parse all CI params from PR title.
+//
+// Supported inputs:
+//   "feat: xxx | tidb=pr/123 pd=@v8.5.0"
+//   "feat: xxx | tidb=pr/123"
+//   "feat: xxx (#12467)| tidb=pr/123"
+//   "feat: xxx (#12467) | tidb=pr/123 pd=@v8.5.0"
+//   "feat: xxx | tidb=pr/123 (#12456) | tidb=pr/456 pd=@v8.5.0"  → match the last: tidb=pr/456 pd=@v8.5.0
+//
+// Rejected (cherry-pick suffix after the pipe — params are inherited, ignored):
+//   "feat: xxx | tidb=pr/123 pd=@v8.5.0 (#1235)"
+//   "feat: xxx | tidb=pr/123 (#12456)"
+//
+// Returns a map of component -> value pairs.
+def parseCIParamsFromPRTitle(String prTitle) {
+    def params = [:]
+    // Use lastIndexOf to take the segment after the LAST '|'.
+    // This handles cases like:
+    //   "feat: xxx | tidb=pr/123 (#12456) | tidb=pr/456 pd=@v8.5.0"
+    // where only the part after the second pipe is the actual CI params.
+    def pipeIdx = prTitle.lastIndexOf('|')
+    if (pipeIdx < 0) {
+        return params
+    }
+    // Take everything after the last '|'
+    def afterPipe = prTitle.substring(pipeIdx + 1)
+    // If the segment after '|' ends with a PR number suffix like "(#12345)",
+    // the params are likely inherited from a cherry-pick — skip them entirely.
+    if (afterPipe =~ /\(#\d+\)\s*$/) {
+        return params
+    }
+    // Match all "key=val" patterns in the segment after '|'
+    def paramReg = /\b([a-zA-Z][a-zA-Z0-9_-]*)\s*=\s*([^\s]+)/
+    def matcher = (afterPipe =~ paramReg)
+    matcher.each { match ->
+        params[match[1]] = match[2]
+    }
+    return params
+}
+
+// Validate pre-built component params in PR title and target branch.
+// prTargetBranch is checked to REJECT pre-built mode on standard core branches
+// (main/master/release-X.Y/release-nextgen-YYYYMM/release-nextgen-YYYYMMDD/release-nextgen-X.Y.Z-YYYYMMDD).
+// This prevents workaround usage that could bypass standard CI and cause quality issues.
+// Returns a list of error messages; empty list means no errors.
+def validatePreBuiltComponentParams(String prTitle, String prTargetBranch) {
+    // Supported components for pre-built binary download
+    final List<String> supportedComponents = ['tidb', 'tikv', 'pd', 'tiflash', 'ticdc', 'tiflow', 'tiproxy']
+    // Standard core branch patterns where pre-built mode is REJECTED
+    final String deniedBranchReg = /^(main|master|release-\d+\.\d+(-beta\.\d+)?|release-nextgen-(\d{6,8}|\d+\.\d+\.\d+-\d{8}))$/
+
+    def errors = []
+    def params = parseCIParamsFromPRTitle(prTitle)
+    def hasPreBuilt = false
+
+    params.each { component, value ->
+        if (value.startsWith('@')) {
+            hasPreBuilt = true
+            if (!supportedComponents.contains(component)) {
+                errors.add("Error: component '${component}' does not support pre-built binary download. " +
+                    "Supported components are: ${supportedComponents.join(', ')}. " +
+                    "Please remove '${component}=${value}' from the PR title or use a supported component.")
+            }
+        }
+    }
+
+    if (hasPreBuilt && (prTargetBranch =~ deniedBranchReg)) {
+        errors.add("Error: pre-built binary download is not allowed on branch '${prTargetBranch}'. " +
+            "This feature is restricted to non-standard branches (feature/hotfix/dev branches) to avoid " +
+            "bypassing the standard CI build pipeline on core branches and risking quality issues. " +
+            "Please remove the pre-built parameters from the PR title or retarget this PR to a non-core branch.")
+    }
+
+    return errors
+}
+
+def computeArtifactNextGenOciTagFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
+    def ret = computeArtifactOciTagFromPR(component, prTargetBranch, prTitle, trunkBranch)
+    return ret.contains("nextgen") ? ret : "${ret}-nextgen"
+}
+
+def computeArtifactOciTagFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
+    // Validate pre-built component params before computing the tag.
+    // This ensures unsupported component keys or core-branch usage are rejected early.
+    def errors = validatePreBuiltComponentParams(prTitle, prTargetBranch)
+    if (!errors.isEmpty()) {
+        throw new Exception(errors.join('\n'))
+    }
+
+    def branchName = computeBranchFromPR(component, prTargetBranch, prTitle, trunkBranch)
+    return branchName.replaceAll('/', '-')
+}
+
+// Compute the peer-component source branch for a nextgen release branch.
+// Nextgen patch branches (release-nextgen-YY.M.N-YYYYMMDD) are hotfix-like branches where
+// peer components are not built with the same branch name, so peer binaries/code should be
+// fetched from the corresponding monthly release-nextgen branch instead:
+//   - release-nextgen-25.10-YYYYMMDD  -> release-nextgen-20251011 (special case)
+//   - release-nextgen-26.Y.Z-YYYYMMDD -> release-nextgen-20260Y (e.g. release-nextgen-26.3.9-20260817 -> release-nextgen-202603)
+// Other release-nextgen-* branches are returned unchanged.
+def computeNextgenPeerBranch(String branch) {
+    if (branch ==~ /^release-nextgen-25\.10-\d{8}$/) {
+        return 'release-nextgen-20251011'
+    }
+    def matcher = (branch =~ /^release-nextgen-(2[6-9])\.(\d+)\.\d+-\d{8}$/)
+    if (matcher) {
+        return String.format('release-nextgen-20%s%02d', matcher[0][1], Integer.parseInt(matcher[0][2]))
+    }
+    return branch
+}
+
 // compute component branch from pr info.
 def computeBranchFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     // pr title xxx | dep1=release-x.y
@@ -8,8 +119,6 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     if (prTitle =~ cherryPickTitleReg) {
         println("The CI params in title seem to be inherited from the master PR. To set CI params, add them as a suffix to the title after the PR number (e.g., 'Fix: ... (#123) | component=value').")
     }
-
-    final componentParamReg = /\b${component}\s*=\s*([^\s\\]+)(\s|\\|$)/
 
     // - release-6.2
     // - release-9.0-beta.1, it's new style for beta release.
@@ -26,6 +135,12 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     // - feature_release-8.1.1-abcdefg
     final historyReleaseFeatureBranchReg = /^feature[\/_]release\-((\d+\.\d+)\.\d+)-.+/
 
+    // - release-nextgen-202603
+    // - release-nextgen-20260301
+    // - release-nextgen-25.10-20251123
+    // - release-nextgen-26.3.9-20260817
+    final nextgenReleaseBranchReg = /^release-nextgen-(\d{6,8}|(\d+\.\d+|\d+\.\d+\.\d+)-\d{8})$/
+
     // - feature/abcd
     // - feature_abcd
     final featureBranchReg = /^feature[\/_].*/
@@ -34,16 +149,19 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     final componentsSupportPatchReleaseBranch = ['tidb-test', 'plugin']
 
     def componentBranch = prTargetBranch
-    if (prTitle =~ componentParamReg && !(prTitle =~ cherryPickTitleReg)) {
-        // example PR tiltes:
-        // - feat: add new feature | tidb=pr/123
-        // - feat: add new faeture | tidb=release-8.1
-        // - feat: add new faeture | tidb=<tidb-repo-commit-sha1>
-        componentBranch = (prTitle =~ componentParamReg)[0][1]
+    def ciParams = parseCIParamsFromPRTitle(prTitle)
+    if (ciParams.containsKey(component)) {
+         componentBranch = ciParams[component]
     } else if (prTargetBranch =~ releaseBranchReg ) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ releaseBranchReg)[0][1]) // => release-X.Y or release-X.Y-beta.M
     } else if (prTargetBranch =~ wipReleaseFeatureBranchReg ) {
-        componentBranch = String.format('release-%s', (prTargetBranch =~ wipReleaseFeatureBranchReg)[0][1]) // => release-X.Y
+        // Special handling for feature/materialized_view branch，use the same feature branch for all components
+        // If the feature/materialized_view is no longer in use, clean up this logic
+        if (prTargetBranch == 'feature/release-8.5-materialized-view' && component != "ticdc") {
+            componentBranch = prTargetBranch
+        } else {
+            componentBranch = String.format('release-%s', (prTargetBranch =~ wipReleaseFeatureBranchReg)[0][1]) // => release-X.Y
+        }
     } else if (prTargetBranch =~ oldHotfixBranchReg) {
         componentBranch = String.format('release-%s', (prTargetBranch =~ oldHotfixBranchReg)[0][1]) // => release-X.Y
     } else if (prTargetBranch =~ newHotfixBranchReg) {
@@ -53,16 +171,90 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
             componentBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][2]) // => release-X.Y
         }
     } else if (prTargetBranch =~ historyReleaseFeatureBranchReg) {
+        // Special Branches:
+        if (prTargetBranch == 'feature/release-8.5.5-active-active') {
+            if (component == "tidb" || component == "ticdc") {
+                return prTargetBranch
+            }
+            if (component == "tidb-test") {
+                return 'release-8.5-20260121-v8.5.5'
+            }
+        }
+
         if (componentsSupportPatchReleaseBranch.contains(component)) {
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][1]) // => release-X.Y.Z
         } else {
             componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][2]) // => release-X.Y
         }
+    } else if (prTargetBranch =~ nextgenReleaseBranchReg) {
+        // peer components are fetched from the monthly release-nextgen branch.
+        componentBranch = computeNextgenPeerBranch(prTargetBranch)
     } else if (prTargetBranch =~ featureBranchReg) {
         componentBranch = trunkBranch
     }
 
     return componentBranch
+}
+
+// Route GitHub checkouts through the in-cluster git-cdn when the Jenkins
+// instance enables it. git-cdn serves anonymous public requests first and
+// returns 401 for private repositories, so Git must be able to answer with the
+// github-bot-https credential after the URL is rewritten to git-cdn.
+// See prow.withGitAskPass and ee-ops docs/git-cdn-jenkins-auth.md.
+private Boolean isGitCdnEnabled() {
+    return env.GIT_CDN_ENABLED?.trim()?.toBoolean()
+}
+
+private String gitCdnHttpCredentialsId() {
+    def id = env.GIT_HTTP_CREDENTIALS_ID?.trim()
+    return isGitCdnEnabled() && id ? id : ''
+}
+
+// Rewrite a GitHub SSH/HTTPS URL to the in-cluster git-cdn HTTP URL when the
+// Jenkins instance routes GitHub through git-cdn. Non-GitHub URLs and CDN-disabled
+// instances are returned unchanged so the caller keeps its original transport.
+private String gitCdnRewriteUrl(String gitUrl) {
+    if (!isGitCdnEnabled()) {
+        return gitUrl
+    }
+    def matcher = (gitUrl =~ /^(?:git@github\.com:|https:\/\/github\.com\/|ssh:\/\/git@github\.com\/)([^\/\s]+)\/([^\/\s]+?)(\.git)?$/)
+    if (!matcher) {
+        return gitUrl
+    }
+    final cdnBase = env.GIT_CDN_URL?.trim() ?: 'http://git-cdn.cache.svc:8000'
+    return "${cdnBase}/${matcher[0][1]}/${matcher[0][2]}.git"
+}
+
+/*
+ * Let Git try an anonymous HTTP request first and provide Jenkins' PAT only
+ * after the server asks for credentials. Kept in sync with prow.withGitAskPass.
+ */
+def withGitAskPass(String credentialsId, Closure body) {
+    final askPassScript = libraryResource 'scripts/git_askpass.sh'
+    final tmpAskPassScript = "${env.WORKSPACE}/git-askpass-${UUID.randomUUID().toString()}"
+
+    try {
+        writeFile(file: tmpAskPassScript, text: askPassScript)
+        sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
+        withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
+            withEnv(["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']) {
+                body()
+            }
+        }
+    } finally {
+        sh label: 'Remove Git HTTP credential helper', script: "rm -f '${tmpAskPassScript}'"
+    }
+}
+
+// Run a git checkout body with the git-cdn HTTP credential helper installed
+// when the Jenkins instance routes GitHub URLs through git-cdn.
+def withGitCdnAskPass(Closure body) {
+    final httpCredentialsId = gitCdnHttpCredentialsId()
+    if (httpCredentialsId) {
+        withGitAskPass(httpCredentialsId, body)
+    } else {
+        body()
+    }
 }
 
 // checkout component src from git repo.
@@ -75,26 +267,32 @@ def checkout(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunk
         componentBranch = "origin/${componentBranch}/head"
     }
 
+    // When git-cdn is enabled the agent rewrites GitHub URLs to HTTP where the
+    // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
+    // the git-cdn HTTP credential natively so the plugin manages basic auth.
+    // Non-CDN instances keep the original SSH URL and credential.
+    final cdnUrl = gitCdnRewriteUrl(gitUrl)
+    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
     checkout(
-        changelog: false,
-        poll: true,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: componentBranch]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                credentialsId: credentialsId,
-                refspec: pluginSpec,
-                url: gitUrl,
-            ]]
-        ]
-    )
+            changelog: false,
+            poll: true,
+            scm: [
+                $class: 'GitSCM',
+                branches: [[name: componentBranch]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [
+                    [$class: 'PruneStaleBranch'],
+                    [$class: 'CleanBeforeCheckout'],
+                    [$class: 'CloneOption', timeout: timeout],
+                ],
+                submoduleCfg: [],
+                userRemoteConfigs: [[
+                    credentialsId: scmCredentialsId,
+                    refspec: pluginSpec,
+                    url: cdnUrl,
+                ]]
+            ]
+        )
 }
 
 def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunkBranch="master", timeout=5) {
@@ -109,26 +307,32 @@ def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", tru
     println(gitUrl)
     println(pluginSpec)
 
+    // When git-cdn is enabled the agent rewrites GitHub URLs to HTTP where the
+    // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
+    // the git-cdn HTTP credential natively so the plugin manages basic auth.
+    // Non-CDN instances keep the original SSH URL and credential.
+    final cdnUrl = gitCdnRewriteUrl(gitUrl)
+    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
     checkout(
-        changelog: false,
-        poll: true,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: componentBranch]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                credentialsId: credentialsId,
-                refspec: pluginSpec,
-                url: gitUrl,
-            ]]
-        ]
-    )
+            changelog: false,
+            poll: true,
+            scm: [
+                $class: 'GitSCM',
+                branches: [[name: componentBranch]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [
+                    [$class: 'PruneStaleBranch'],
+                    [$class: 'CleanBeforeCheckout'],
+                    [$class: 'CloneOption', timeout: timeout],
+                ],
+                submoduleCfg: [],
+                userRemoteConfigs: [[
+                    credentialsId: scmCredentialsId,
+                    refspec: pluginSpec,
+                    url: cdnUrl,
+                ]]
+            ]
+        )
 }
 
 
@@ -191,36 +395,43 @@ def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeou
         println("branchOrCommit is sha1, fetch pr refs and use it as refSpec")
         refSpec += " +refs/pull/*/head:refs/remotes/origin/pr/*"
     }
+    // When git-cdn is enabled the agent rewrites GitHub URLs to HTTP where the
+    // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
+    // the git-cdn HTTP credential natively so the plugin manages basic auth.
+    // Non-CDN instances keep the original SSH URL and credential.
+    final cdnUrl = gitCdnRewriteUrl(gitUrl)
+    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
     checkout(
-        changelog: false,
-        poll: true,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: branchOrCommit]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'PruneStaleBranch'],
-                [$class: 'CleanBeforeCheckout'],
-                [$class: 'CloneOption', timeout: timeout],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                credentialsId: credentialsId,
-                refspec: refSpec,
-                url: gitUrl,
-            ]]
-        ]
-    )
+            changelog: false,
+            poll: true,
+            scm: [
+                $class: 'GitSCM',
+                branches: [[name: branchOrCommit]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [
+                    [$class: 'PruneStaleBranch'],
+                    [$class: 'CleanBeforeCheckout'],
+                    [$class: 'CloneOption', timeout: timeout],
+                ],
+                submoduleCfg: [],
+                userRemoteConfigs: [[
+                    credentialsId: scmCredentialsId,
+                    refspec: refSpec,
+                    url: cdnUrl,
+                ]]
+            ]
+        )
 }
 
 def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentialsId) {
     // iterate over tidbTestRefs and checkout all pr with pre-merge
-    sshagent(credentials: [credentialsId]) {
-        sh label: 'Know hosts', script: """#!/usr/bin/env bash
-            [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-            ssh-keyscan -t rsa,dsa github.com >> ~/.ssh/known_hosts
-        """
-        sh(label: 'checkout', script: """#!/usr/bin/env bash
+    withGitCdnAskPass {
+        sshagent(credentials: [credentialsId]) {
+            sh label: 'Know hosts', script: """#!/usr/bin/env bash
+                [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
+            """
+            sh(label: 'checkout', script: """#!/usr/bin/env bash
             set -e
             git --version
             git init
@@ -272,7 +483,8 @@ def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentials
 
             echo "✅ ~~~~~ All done. ~~~~~~"
             """
-        )
+            )
+        }
     }
 }
 
@@ -285,7 +497,8 @@ def checkoutWithMergeBase(gitUrl, component, prTargetBranch, prTitle, trunkBranc
     // componentBranch = release-6.2
     // componentBranch = master
     def componentBranch = computeBranchFromPR(component, prTargetBranch, prTitle, trunkBranch)
-    sh(label: 'checkout', script: """#!/usr/bin/env bash
+    withGitCdnAskPass {
+        sh(label: 'checkout', script: """#!/usr/bin/env bash
         set -e
         git --version
         git init
@@ -339,7 +552,8 @@ def checkoutWithMergeBase(gitUrl, component, prTargetBranch, prTitle, trunkBranc
         git status -s .
 
         echo "✅ ~~~~~ All done. ~~~~~~"
-    """)
+        """)
+    }
 }
 
 // fetch component artifact from artifactory(current http server)

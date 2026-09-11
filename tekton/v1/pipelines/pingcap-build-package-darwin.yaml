@@ -16,6 +16,13 @@ spec:
     - name: git-revision
       default: master
       type: string
+    - name: git-instead-of
+      description: |
+        Configure Git to use the `insteadOf` feature to speed up cloning.
+        You can specify multiple `insteadOf` configurations separated by commas.
+        For example: insteadof1 => new1, insteadof2 => new2
+      type: string
+      default: ""
     - name: component
       type: string
       description: |
@@ -41,7 +48,6 @@ spec:
       default: "true"
     - name: registry
       description: the base OCI registry server for store artifacts, it can be set with prefix repo path.
-      default: "hub.pingcap.net"
     - name: force-builder-image
       description: >
         The builder image to use for building binaries by force, if empty.
@@ -50,7 +56,15 @@ spec:
       default: ""
     - name: boskos-server-url
       description: The URL of the running boskos server
-      default: http://boskos.apps.svc
+      default: http://boskos
+    - name: publisher-url
+      description: The URL of the running publisher server
+    - name: external-git-ref
+      description: >-
+        Explicit enterprise-plugin ref. When non-empty, the git-clone task
+        skips resolution and checks out this ref directly.
+      type: string
+      default: ""
   results:
     - name: pushed-binaries
       description: pushed binaries.
@@ -67,7 +81,7 @@ spec:
     - name: checkout
       retries: 2
       taskRef:
-        name: git-clone
+        name: pingcap-git-clone
       params:
         - name: url
           value: $(params.git-url)
@@ -79,33 +93,23 @@ spec:
           value: $(params.git-refspec)
         - name: subdirectory
           value: $(params.component)
-      workspaces:
-        - name: output
-          workspace: source
-    - name: checkout-ext
-      runAfter:
-        - checkout
-      taskRef:
-        name: pingcap-git-clone-ext
-      params:
-        - name: master-git-url
-          value: $(params.git-url)
-        - name: master-git-ref
+        - name: gitInsteadOf
+          value: $(params.git-instead-of)
+        - name: git-ref
           value: $(params.git-ref)
-        - name: depth
-          value: "0"
-        - name: refspec
-          value: +refs/heads/*:refs/heads/*
-        - name: master-directory
-          value: $(params.component)
+        - name: fetch-external
+          value: "true"
+        - name: external-git-ref
+          value: $(params.external-git-ref)
       workspaces:
         - name: output
           workspace: source
     - name: get-release-ver
+      retries: 2
       runAfter:
         - checkout
       taskRef:
-        name: pingcap-get-set-release-version-v2
+        name: pingcap-get-set-release-version
       params:
         - name: git-ref
           value: $(params.git-ref)
@@ -116,6 +120,7 @@ spec:
           workspace: source
           subPath: $(params.component)
     - name: get-binaries-builder
+      retries: 2
       taskRef:
         name: pingcap-get-builder-image
       params:
@@ -132,8 +137,7 @@ spec:
         - name: force-builder-image
           value: "$(params.force-builder-image)"
     - name: build-binaries
-      runAfter:
-        - checkout-ext
+      retries: 2
       taskRef:
         name: pingcap-build-binaries-darwin
       params:
@@ -147,6 +151,8 @@ spec:
           value: "$(params.component)"
         - name: version
           value: "$(tasks.get-release-ver.results.version)"
+        - name: git-url
+          value: "$(params.git-url)"
         - name: git-ref
           value: "$(tasks.get-release-ver.results.build-ref)"
         - name: git-sha
@@ -176,3 +182,30 @@ spec:
       params:
         - name: message
           value: "'{}'"
+    - name: deliver-binaries
+      retries: 2
+      when:
+        - input: $(tasks.build-binaries.results.pushed)
+          operator: notin
+          values: ["{}", '"{}"']
+      taskRef:
+        name: pingcap-deliver-binaries
+      runAfter:
+        - build-binaries
+      params:
+        - name: src-type
+          value: oci-info
+        - name: src
+          value: $(tasks.build-binaries.results.pushed)
+        - name: publisher-url
+          value: "$(params.publisher-url)"
+    - name: deliver-images
+      when:
+        - input: "$(params.push)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        name: echo
+      params:
+        - name: message
+          value: "skip for darwin"

@@ -61,6 +61,17 @@ export interface CliConfig {
   // Behavior
   dryRun: boolean;
   verbose: boolean;
+
+  // GitHub issue integration
+  githubToken?: string;
+  issueCreate: boolean;
+  issueReopen: boolean;
+  issueComment: boolean;
+  issueMutationLimit: number;
+  issueDryRun: boolean;
+  issueRepoOverride?: string;
+  issueLabels: string[];
+  issueSubscribeTextPath?: string;
 }
 
 /**
@@ -114,6 +125,7 @@ export interface OwnerEntry {
 export type OwnerResolutionLevel =
   | "case"
   | "suite"
+  | "parent-suite" // Parent suite prefix match (e.g., "pkg" for "pkg/executor")
   | "repo-branch"
   | "repo"
   | "none";
@@ -145,6 +157,14 @@ export interface CaseAgg {
   owner: string;
   latestBuildUrl?: string;
   latestReportTime?: Date;
+  /**
+   * Latest build (report_time/build_url) where flaky > 0 for this case.
+   * Used for GitHub issue reopen evidence.
+   */
+  latestFlakyBuildUrl?: string;
+  latestFlakyFoundAt?: Date;
+  previousWeekFlakyCount?: number;
+  issue?: GithubIssueInfo;
 }
 
 /**
@@ -188,6 +208,34 @@ export interface ReportData {
   bySuite: SuiteAgg[];
   byCase: CaseAgg[];
   topFlakyCases: CaseAgg[];
+  issueMeta?: IssueMeta;
+}
+
+export type GithubIssueStatus =
+  | "open"
+  | "new"
+  | "reopened"
+  | "closed"
+  | "missing"
+  | "disabled"
+  | "error";
+
+export interface GithubIssueInfo {
+  repo: string;
+  number?: number;
+  url?: string;
+  state?: "open" | "closed";
+  status: GithubIssueStatus;
+  dryRun?: boolean;
+  note?: string;
+}
+
+export interface IssueMeta {
+  subscriptionText: string;
+  repoOverride?: string;
+  titleIncludesRepo?: boolean;
+  enabled?: boolean;
+  dryRun?: boolean;
 }
 
 /* --------------------------------- Constants -------------------------------- */

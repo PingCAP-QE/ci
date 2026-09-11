@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1beta1
+kind: StepAction
+metadata:
+  name: request-kernel-image-sync
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: delivery
+    tekton.dev/tags: images,delivery,cloud,tidbx
+    tekton.dev/displayName: "Request kernel image sync"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: Request kernel image sync to cloud regions via publisher
+  params:
+    - name: src
+      description: images list
+    - name: publisher-url
+      type: string
+      description: publisher url
+      default: "http://publisher.publisher.svc"
+    - name: stages
+      type: string
+      description: target stage(s) (dev or prod or "prod dev")
+      default: "dev"
+  env:
+    - name: IMAGES_SRC
+      value: $(params.src)
+    - name: PUBLISHER_URL
+      value: $(params.publisher-url)
+    - name: TARGET_STAGES
+      value: $(params.stages)
+  image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+  script: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    printf '%s\n' "$IMAGES_SRC" > /workspace/images.yaml
+
+    images_json=$(yq -o=json '.images // []' /workspace/images.yaml)
+    if [ "$images_json" = "[]" ]; then
+      echo "⚠️ No images to sync, skipping."
+      exit 0
+    fi
+
+    for stage in $TARGET_STAGES; do
+      echo "🚀 Requesting kernel image sync for stage $stage ..."
+      body_file=$(mktemp)
+      jq -n --arg stage "$stage" --argjson images "$images_json" \
+        '{ stage: $stage, images: $images }' > "$body_file"
+      curl --fail -X POST -H "Content-Type: application/json" -d "@$body_file" \
+        "$PUBLISHER_URL/tidbcloud/sync-kernel-images"
+      rm -f "$body_file"
+    done
+
+    echo "🎉 Kernel image sync requests sent!"

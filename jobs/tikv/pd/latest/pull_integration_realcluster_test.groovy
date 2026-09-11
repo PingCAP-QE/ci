@@ -12,7 +12,6 @@ pipelineJob('tikv/pd/pull_integration_realcluster_test') {
     }
     properties {
         buildFailureAnalyzer(false)
-        githubProjectUrl("https://github.com/tikv/pd")
     }
 
     definition {

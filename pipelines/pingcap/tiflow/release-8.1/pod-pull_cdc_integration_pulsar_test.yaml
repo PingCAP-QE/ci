@@ -5,22 +5,15 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:pulsar-test"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21"
       tty: true
       resources:
         requests:
-          memory: 16Gi
-          cpu: "8"
+          memory: 24Gi
+          cpu: 6000m
         limits:
-          memory: 16Gi
-          cpu: "8"
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
+          memory: 32Gi
+          cpu: 8000m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

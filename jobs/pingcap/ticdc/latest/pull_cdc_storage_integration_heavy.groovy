@@ -10,14 +10,11 @@ pipelineJob('pingcap/ticdc/pull_cdc_storage_integration_heavy') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        githubProjectUrl("https://github.com/pingcap/ticdc")
-    }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/ticdc/latest/pull_cdc_storage_integration_heavy.groovy")
+            scriptPath("pipelines/pingcap/ticdc/latest/pull_cdc_storage_integration_heavy/pipeline.groovy")
             scm {
                 git{
                     remote {

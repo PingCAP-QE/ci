@@ -1,0 +1,14 @@
+────────────  Nextest run ID 00000000-0000-0000-0000-000000000002 with nextest profile: default
+    Starting 3 tests across 1 binary (0 skipped)
+       PASS [   0.001s] fixture::basic test_pass
+       TRY 1 FAIL [   0.003s] fixture::basic test_flaky_mod_2
+     stdout ---
+        captured stdout line
+     stderr ---
+        thread 'test_flaky_mod_2' panicked at src/basic.rs:42:9:
+        assertion failed
+       TRY 2 PASS [   0.002s] fixture::basic test_flaky_mod_2
+       PASS [   0.001s] fixture::basic test_pass_2
+────────────
+  Summary [   0.008s] 3 tests run: 3 passed (1 flaky), 0 skipped, 0 failed
+     FLAKY 2/3 [   0.002s] fixture::basic test_flaky_mod_2

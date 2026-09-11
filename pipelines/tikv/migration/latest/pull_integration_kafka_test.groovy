@@ -8,41 +8,37 @@ final GIT_FULL_REPO_NAME = 'tikv/migration'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/migration/latest/pod-pull_integration_kafka_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final COMPONENT_ARTIFACT_BASE_REF = REFS.base_ref == 'main' ? 'master' : REFS.base_ref
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', COMPONENT_ARTIFACT_BASE_REF, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', COMPONENT_ARTIFACT_BASE_REF, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', COMPONENT_ARTIFACT_BASE_REF, REFS.pulls[0].title, 'master')
+final OCI_TAG_ETCD = 'v3.5.15'
+final OCI_TAG_YCSB = 'v1.0.3'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        // OCI artifact registry: hub-zot.pingcap.net/mirrors/hub
+        // tidb-server: hub-zot.pingcap.net/mirrors/hub/pingcap/tidb/package:<tag>_linux_amd64
+        // tikv-server: hub-zot.pingcap.net/mirrors/hub/tikv/tikv/package:<tag>_linux_amd64
+        // pd-server:   hub-zot.pingcap.net/mirrors/hub/tikv/pd/package:<tag>_linux_amd64
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 65, unit: 'MINUTES')
         parallelsAlwaysFailFast()
-        skipDefaultCheckout()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -65,16 +61,31 @@ pipeline {
         stage('Prepare') {
             steps {
                 dir('migration') {
-                    cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
-                        container("golang") {
-                            sh label: 'integration test prepare', script: """#!/usr/bin/env bash
-                            cd cdc/
-                            make prepare_test_binaries
-                            make check_third_party_binary
-                            make integration_test_build
-                            """
-                        }
+                    container("utils") {
+                        sh label: 'download test binaries via OCI', script: """
+                            mkdir -p ./cdc/scripts/bin
+                            cd ./cdc/scripts/bin
+                            ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                --tidb=${OCI_TAG_TIDB} \
+                                --tikv=${OCI_TAG_TIKV} \
+                                --pd=${OCI_TAG_PD} \
+                                --pd-ctl=${OCI_TAG_PD} \
+                                --etcdctl=${OCI_TAG_ETCD} \
+                                --ycsb=${OCI_TAG_YCSB}
+                            chmod +x tidb-server tikv-server pd-server pd-ctl etcdctl go-ycsb
+                            cd ../../
+                            touch prepare_test_binaries
+                            ls -alh
+                        """
                     }
+                    container("golang") {
+                        sh label: 'integration test prepare', script: """#!/usr/bin/env bash
+                        cd cdc/
+                        make check_third_party_binary
+                        make integration_test_build
+                        """
+                    }
+                    stash name: 'tikvcdc', includes: 'cdc/**'
                 }
             }
         }
@@ -89,34 +100,39 @@ pipeline {
                 agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
                         options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir('migration') {
-                               cache(path: "./cdc", includes: '**/*', key: "ws/${BUILD_TAG}/tikvcdc") {
-                                    sh "printenv"
-                                    container("kafka") {
-                                        timeout(time: 6, unit: 'MINUTES') {
-                                            sh label: "Waiting for kafka ready", script: """
-                                                echo "Waiting for zookeeper to be ready..."
-                                                while ! nc -z localhost 2181; do sleep 10; done
-                                                echo "Waiting for kafka to be ready..."
-                                                while ! nc -z localhost 9092; do sleep 10; done
-                                                echo "Waiting for kafka-broker to be ready..."
-                                                while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
-                                            """
-                                        }
+                               unstash 'tikvcdc'
+                                sh "printenv"
+                                container("kafka") {
+                                    timeout(time: 6, unit: 'MINUTES') {
+                                        sh label: "Waiting for kafka ready", script: """
+                                            echo "Waiting for zookeeper to be ready..."
+                                            while ! nc -z localhost 2181; do sleep 10; done
+                                            echo "Waiting for kafka to be ready..."
+                                            while ! nc -z localhost 9092; do sleep 10; done
+                                            echo "Waiting for kafka-broker to be ready..."
+                                            while ! echo dump | nc localhost 2181 | grep brokers | awk '{\$1=\$1;print}' | grep -F -w "/brokers/ids/1"; do sleep 10; done
+                                        """
                                     }
-                                    sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
-                                        cd cdc/
-                                        ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
-                                    """
-                               }
+                                }
+                                sh label: "TEST_GROUP ${TEST_GROUP}",script: """#!/usr/bin/env bash
+                                    cd cdc/
+                                    ./tests/integration_tests/run_group.sh kafka ${TEST_GROUP}
+                                """
                             }
                         }
                         post {
@@ -128,6 +144,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

@@ -8,43 +8,26 @@ final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
+final TIDB_BIN_STASH_NAME = 'tidb-bin'
 
+prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-    }
+    agent none
     options {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            // options { }  Valid option types: [cache, catchError, checkoutToSubdirectory, podTemplate, retry, script, skipDefaultCheckout, timeout, waitUntil, warnError, withChecks, withContext, withCredentials, withEnv, wrap, ws]
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
+                    defaultContainer 'golang'
                 }
             }
-        }
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
@@ -56,27 +39,17 @@ pipeline {
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
-            }
-        }
-        stage('Prepare') {
-            steps {
                 dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                        sh label: 'tidb-server', script: 'make'
-                    }
+                    sh label: 'tidb-server', script: 'make'
+                    stash name: 'tidb-server', includes: 'bin/**'
+                    stash includes: 'bin/**', name: TIDB_BIN_STASH_NAME
                 }
                 dir('tidb-test') {
-                    cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }
         }
@@ -92,19 +65,24 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART]) }
                 }
                 stages {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-server") {
-                                    sh label: 'tidb-server', script: 'ls bin/tidb-server && chmod +x bin/tidb-server && ./bin/tidb-server -V'
-                                }
+                                unstash name: TIDB_BIN_STASH_NAME
                             }
-                            dir('tidb-test/mysql_test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
+                            dir('tidb-test') {
+                                unstash name: WORKSPACE_STASH_NAME
+                                dir('mysql_test') {
                                     sh label: "part ${PART}", script: """
                                     export TIDB_SERVER_PATH=${WORKSPACE}/tidb/bin/tidb-server
                                     export TIDB_TEST_STORE_NAME="unistore"
@@ -120,6 +98,7 @@ pipeline {
                             unsuccessful {
                                 archiveArtifacts artifacts: "tidb-test/mysql_test/mysql-test.out", fingerprint: true, allowEmptyArchive: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [part: env.PART]) } }
                         }
                     }
                 }

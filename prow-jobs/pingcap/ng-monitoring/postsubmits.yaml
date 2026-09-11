@@ -12,12 +12,12 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:2.2.2
+            image: denoland/deno:2.9.6
             command:
               - deno
               - run
               - --allow-all
-              - https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts
+              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/update-submodule.ts
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap
@@ -54,12 +54,12 @@ postsubmits:
       spec:
         containers:
           - name: main
-            image: denoland/deno:2.2.2
+            image: denoland/deno:2.9.6
             command:
               - deno
               - run
               - --allow-all
-              - https://github.com/PingCAP-QE/ci/raw/main/scripts/plugins/update-submodule.ts
+              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/update-submodule.ts
             args:
               - --github_private_token=$(GITHUB_API_TOKEN)
               - --owner=pingcap

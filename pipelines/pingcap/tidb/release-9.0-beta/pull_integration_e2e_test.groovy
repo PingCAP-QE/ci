@@ -6,63 +6,68 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-9.0-beta/pod-pull_integration_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TICDC = (REFS.base_ref == "feature/materialized_view" ? "release-8.5" : component.computeArtifactOciTagFromPR('ticdc', REFS.base_ref, REFS.pulls[0].title, 'master'))
 
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
+        stage('Checkout') {
             steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
+                    }
                 }
             }
         }
-        stage('Checkout') {
+        stage('Prepare bazel workspace') {
             steps {
-                dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
-                    }
+                dir(REFS.repo) {
+                    script { bazel.prepareWorkspace() }
                 }
             }
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir('tidb/tests/integrationtest2/third_bin') {
                     script {
-                        def otherComponentBranch = component.computeBranchFromPR('other', REFS.base_ref, REFS.pulls[0].title, 'master')
                         retry(3) {
-                            sh label: 'download binary', script: """
-                                cd tests/integrationtest2 && ./download_integration_test_binaries.sh ${otherComponentBranch}
-                                ls -alh third_bin/
-                                ./third_bin/tikv-server -V
-                                ./third_bin/pd-server -V
-                                ./third_bin/tiflash --version
-                                ./third_bin/cdc version
-                            """
+                            container('utils') {
+                                sh label: 'download binary', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --pd=${OCI_TAG_PD} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --tiflash=${OCI_TAG_TIFLASH} \
+                                        --ticdc-new=${OCI_TAG_TICDC}
+                                """
+                            }
+                            sh label: 'verify binaries', script: '''
+                                ls -alh .
+                                ./tikv-server -V
+                                ./pd-server -V
+                                ./tiflash --version
+                                ./cdc version
+                            '''
                         }
                     }
                 }
@@ -71,10 +76,8 @@ pipeline {
         stage('Tests') {
             options { timeout(time: 45, unit: 'MINUTES') }
             steps {
-                dir('tidb') {
-                    sh label: 'test', script: """
-                        cd tests/integrationtest2 && ./run-tests.sh
-                    """
+                dir('tidb/tests/integrationtest2') {
+                    sh label: 'test', script: './run-tests.sh'
                 }
             }
             post{

@@ -39,6 +39,7 @@ spec:
         supports: 'release' or 'failpoint'.
     - name: git-ref
     - name: git-sha
+    - name: git-url
     - name: builder-image
       default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
     - name: release-dir
@@ -47,7 +48,6 @@ spec:
       type: string
       default: "false"
     - name: registry
-      default: hub.pingcap.net
   steps:
     - name: generate
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
@@ -80,7 +80,6 @@ spec:
 
         if [ -f "$out_script" ]; then
           echo -n "true" > $(step.results.generated.path)
-          sed -i 's/fetch_file_from_oci_artifact hub.pingcap.net/fetch_file_from_oci_artifact hub-mig.pingcap.net/g' "$out_script"
           cat "$out_script"
         else
           echo -n "false" > $(step.results.generated.path)
@@ -97,12 +96,13 @@ spec:
       env:
         - name: CARGO_NET_GIT_FETCH_WITH_CLI
           value: "true"
+        - name: GIT_SSH_COMMAND
+          value: "ssh -o StrictHostKeyChecking=no"
         # - name: RUSTUP_DIST_SERVER
         #   value: https://rsproxy.cn
         # - name: RUSTUP_UPDATE_ROOT
         #   value: https://rsproxy.cn/rustup
         # - name: GOPROXY
-        #   value: "http://goproxy.apps.svc,direct"
         # - name: CARGO_HOME
         #   value: /workspace/.cargo
         # - name: NPM_CONFIG_REGISTRY
@@ -119,6 +119,9 @@ spec:
           operator: in
           values: ["true"]
       workingDir: $(workspaces.source.path)/$(params.component)
+      env:
+        - name: GIT_URL
+          value: $(params.git-url)
       script: |
         script="/workspace/build-package-artifacts.sh"
 

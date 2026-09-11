@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   initContainers:
     - name: init-mysql-config
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25"
       command:
         - sh
         - -c
@@ -17,10 +17,9 @@ spec:
           name: "mysql-config-volume"
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/rocky8_golang-1.23:tini"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25"
+      command: [tini, --, bash]
       tty: true
-      args:
-        - cat
       resources:
         requests:
           memory: 12Gi
@@ -32,8 +31,18 @@ spec:
         - mountPath: "/home/jenkins/.my.cnf"
           name: "mysql-config-volume"
           subPath: ".my.cnf"
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      tty: true
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+        limits:
+          cpu: "1"
+          memory: 4Gi
     - name: mysql1
-      image: "hub.pingcap.net/jenkins/mysql:5.7"
+      image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
         limits:
@@ -51,7 +60,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: "registry-mirror.pingcap.net/library/mysql:8.0.21"
+      image: "docker.io/library/mysql:8.0.21"
       tty: true
       resources:
         limits:
@@ -70,20 +79,23 @@ spec:
         - "--gtid-mode=ON"
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+    - name: mariadb1
+      image: "docker.io/library/mariadb:11.3"
       tty: true
       resources:
         limits:
-          memory: 128Mi
-          cpu: 100m
-    - name: report
-      image: hub.pingcap.net/jenkins/python3-requests:latest
-      tty: true
-      resources:
-        limits:
-          memory: 256Mi
-          cpu: 100m
+          memory: 2Gi
+          cpu: "1"
+      env:
+        - name: MARIADB_ROOT_PASSWORD
+          value: "123456"
+        - name: MYSQL_TCP_PORT
+          value: "3308"
+      args:
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--server-id=1"
+        - "--lower_case_table_names=0"
   volumes:
     - name: mysql-config-volume
       emptyDir: {}

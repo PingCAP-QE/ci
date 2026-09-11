@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prow Image Bump (Keep Variant)"
+  short_description: "Bump Prow job images, keep tag variants"
+  default_prompt: "Use $prow-image-bump-keep-variant to bump Prow job container images while preserving tag variants."

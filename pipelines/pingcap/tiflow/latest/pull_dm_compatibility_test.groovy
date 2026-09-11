@@ -5,45 +5,34 @@
 
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_compatibility_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 def skipRemainingStages = false
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} -c golang -- bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
         stage('Check diff files') {
             steps {
                 container("golang") {
@@ -67,32 +56,23 @@ pipeline {
         }
         stage('Checkout') {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }
         }
         stage("prepare") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 35, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
+                dir(REFS.repo) {
                     script {
-                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
                         retry(2) {
                             sh label: "build previous", script: """
                                 echo "build binary for previous version"
-                                git fetch origin ${REFS.base_ref}:local
-                                git checkout local
-                                git rev-parse HEAD
+                                git checkout ${REFS.base_sha}
                                 make dm_integration_test_build
                                 mv bin/dm-master.test bin/dm-master.test.previous
                                 mv bin/dm-worker.test bin/dm-worker.test.previous
@@ -107,11 +87,36 @@ pipeline {
                                 mv bin/dm-worker.test bin/dm-worker.test.current
                                 ls -alh ./bin/
                             """
-                            sh label: "download third_party", script: """
-                                export TIDB_BRANCH=${tidbBranch}
-                                pwd && ls -alh dm/tests/
-                                cd dm/tests && ./download-compatibility-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                                cd - && cp -r dm/tests/bin/* ./bin
+                            sh label: "prepare third_party dir", script: "mkdir -p ./bin"
+                            container("utils") {
+                                dir("bin") {
+                                    sh label: "download third_party from OCI", script: """
+                                        script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        \$script \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR} \
+                                            --minio=${OCI_TAG_MINIO}
+                                    """
+                                }
+                            }
+                            sh label: "download extra non-OCI tools", script: """
+                                cd ./bin
+                                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    -O tidb-enterprise-tools-latest-linux-amd64.tar.gz \
+                                    https://download.pingcap.com/tidb-enterprise-tools-latest-linux-amd64.tar.gz
+                                tar -xzf tidb-enterprise-tools-latest-linux-amd64.tar.gz \
+                                    tidb-enterprise-tools-latest-linux-amd64/bin/mydumper
+                                mv tidb-enterprise-tools-latest-linux-amd64/bin/mydumper ./
+                                rm -rf tidb-enterprise-tools-latest-linux-amd64 tidb-enterprise-tools-latest-linux-amd64.tar.gz
+
+                                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    -O gh-ost.tar.gz \
+                                    https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz
+                                tar -xzf gh-ost.tar.gz
+                                rm -f gh-ost.tar.gz
+                                [ -f ./mydumper ] && chmod +x ./mydumper
+                                [ -f ./gh-ost ] && chmod +x ./gh-ost
+                                cd -
                                 ls -alh ./bin
                                 ./bin/tidb-server -V
                                 ./bin/mydumper -V
@@ -123,16 +128,13 @@ pipeline {
         }
         stage("Test") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir('tiflow') {
-                        timeout(time: 10, unit: 'MINUTES') {
-                            sh label: "wait mysql ready", script: """
-                                pwd && ls -alh
-                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                            """
-                        }
+                dir(REFS.repo) {
+                        sh label: "wait mysql ready", script: """
+                            pwd && ls -alh
+                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                        """
                         sh label: "test", script: """
                             export MYSQL_HOST1=127.0.0.1
                             export MYSQL_PORT1=3306

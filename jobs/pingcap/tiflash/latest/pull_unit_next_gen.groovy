@@ -10,15 +10,11 @@ pipelineJob('pingcap/tiflash/pull_unit_next_gen') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tiflash")
-    }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap/tiflash/latest/pull_unit_next_gen.groovy")
+            scriptPath("pipelines/pingcap/tiflash/latest/pull_unit_next_gen/pipeline.groovy")
             scm {
                 git{
                     remote {

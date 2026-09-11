@@ -8,11 +8,17 @@ Welcome to the guides section of our CI repository. This directory contains docu
 
 - [CI](./CI.md) - Comprehensive guide to PingCAP's CI system, including how to locate pipelines for specific repositories, modify and test pipelines, and the workflow for deploying changes from staging to production environments
 - [Docker Build](./docker-build.md) - Instructions for building Docker images for PingCAP components from source code, with references to Dockerfile locations for different repositories
+- [Bazel Workspace Preparation](./bazel-workspace-preparation.md) - How to use the shared bazel workspace helpers (`bazel.prepareWorkspace()`), the `CI_CLOUD_ENV`/`envConfig` multi-cloud cache configuration, and how to onboard a new cloud
 - [Tekton Trigger CEL](./tekton/trigger-CEL.md) - Guide for writing safe, maintainable Common Expression Language (CEL) expressions in Tekton Trigger interceptors (filters and overlays), including regex patterns, JSON parsing, extraction, and validation best practices
+- [Prow Pod Timeouts](./prow-pod-timeouts.md) - Guide to Prow's pod lifecycle timeouts (`pod_pending_timeout` and friends), how to override them per job via `decoration_config`, and how to diagnose slow-clone "Pod pending timeout" failures
 
 ### Development Workflow
 
 - [Cherry-Pick Pull Request](./cherry-pick-pull-request.md) - How to cherry-pick changes from one pull request to another branch using our helper script, with step-by-step instructions and conflict resolution guidance
+
+### Testing
+
+- [Testing Library Code](./testing-library-code.md) - How to write and run unit tests for Jenkins shared library functions (pure functions) locally using Groovy and JUnit 4, with table-driven test style
 
 ### Reference
 

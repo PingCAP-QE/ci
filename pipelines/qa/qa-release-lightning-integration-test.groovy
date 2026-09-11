@@ -6,37 +6,28 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_lightning_integration_test.yaml'
+final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
+final OCI_TAG_KES = 'v0.14.0'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            retries 2
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -51,19 +42,6 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir("third_party_download") {
-                    retry(2) {
-                        sh label: "download third_party", script: """
-                            chmod +x ../tidb/lightning/tests/*.sh
-                            ${WORKSPACE}/tidb/lightning/tests/download_integration_test_binaries.sh ${params.RELEASE_BRANCH}
-                            mkdir -p bin && mv third_bin/* bin/
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tiflash --version
-                        """
-                    }
-                }
                 dir('tidb') {
                     sh label: "check all tests added to group", script: """#!/usr/bin/env bash
                         chmod +x lightning/tests/*.sh
@@ -77,12 +55,31 @@ pipeline {
                         ls -alh ./bin
                         ./bin/tidb-server -V
                     """
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: "download third_party", script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --pd=${params.RELEASE_TAG} \
+                                        --tikv=${params.RELEASE_TAG} \
+                                        --tiflash=${params.RELEASE_TAG} \
+                                        --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                        --kes=${OCI_TAG_KES} \
+                                        --minio=${OCI_TAG_MINIO}
+                                """
+                            }
+                        }
+                        sh """
+                            ls -alh .
+                            ./pd-server -V
+                            ./tikv-server -V
+                            ./tiflash --version
                         """
                     }
+                    sh label: "prepare", script: """
+                        ls -alh ./bin
+                    """
+                    stash name: 'lightning-test', includes: '**/*'
                 }
             }
         }
@@ -99,18 +96,22 @@ pipeline {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
                         yamlFile POD_TEMPLATE_FILE
+                        retries 2
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
                         steps {
                             dir('tidb') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/lightning-test") {
-                                    sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
-                                        chmod +x lightning/tests/*.sh
-                                        ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
-                                    """
-                                }
+                                unstash 'lightning-test'
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    chmod +x lightning/tests/*.sh
+                                    ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
+                                """
                             }
                         }
                         post{
@@ -122,6 +123,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

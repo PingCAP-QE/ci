@@ -229,7 +229,7 @@ async function main(
     version,
     branch,
     github_token,
-    oci_registry = "hub.pingcap.net",
+    oci_registry = Deno.env.get("OCI_REGISTRY") || "hub.pingcap.net",
     save_to = "results.yaml",
   }: CliParams,
 ) {
@@ -270,18 +270,18 @@ async function main(
   await Deno.writeTextFile(save_to, yaml.stringify(totalResults));
 
   if (totalFailedPkgs["community"].length > 0) {
-    throw new Error(
-      `some community images check failed: ${
-        totalFailedPkgs["community"].join(", ")
-      }`,
+    console.error(
+      "❌ some community images check failed:",
+      totalFailedPkgs["community"].join(", "),
     );
+    Deno.exit(1);
   }
   if (totalFailedPkgs["enterprise"].length > 0) {
-    throw new Error(
-      `some enterprise images check failed: ${
-        totalFailedPkgs["enterprise"].join(", ")
-      }`,
+    console.error(
+      "❌ some enterprise images check failed:",
+      totalFailedPkgs["enterprise"].join(", "),
     );
+    Deno.exit(1);
   }
 
   console.info("🏅🏅🏅 check success!");

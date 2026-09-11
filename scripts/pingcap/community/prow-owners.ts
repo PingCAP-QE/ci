@@ -153,8 +153,8 @@ function sameObjects(a: object, b: object) {
   return orderJSONStringify(a) === orderJSONStringify(b);
 }
 
-function orderJSONStringify(owners: object) {
-  const sortedArray = Object.entries(owners).sort(([keyA], [keyB]) =>
+function orderJSONStringify(owners?: object) {
+  const sortedArray = Object.entries(owners ?? {}).sort(([keyA], [keyB]) =>
     keyA.localeCompare(keyB)
   );
   const sortedDictionary = Object.fromEntries(sortedArray);

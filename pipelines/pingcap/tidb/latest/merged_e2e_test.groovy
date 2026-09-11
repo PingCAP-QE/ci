@@ -6,17 +6,20 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-merged_e2e_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_CREDENTIALS_ID = ''
 
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -24,19 +27,14 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
         }
         stage('Tests') {
-            options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir('tidb/tests/graceshutdown') {
                     sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'

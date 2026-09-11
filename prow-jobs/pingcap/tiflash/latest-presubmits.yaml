@@ -4,15 +4,162 @@ global_definitions:
     branches:
       - ^master$
       - ^feature/.+
+      - ^release-fts-[0-9]+$
     skip_branches: # skip feature branches based on released version.
       - ^feature/release-\d+\.\d+(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  sanitizer_script: &sanitizer_script |
+    set -euo pipefail
+
+    if ! command -v ccache >/dev/null 2>&1; then
+      yum install -y ccache
+    fi
+
+    sanitizer="${SANITIZER:-}"
+    if [[ "${sanitizer}" != "ASan" && "${sanitizer}" != "TSan" ]]; then
+      echo "unsupported sanitizer: ${sanitizer}" >&2
+      exit 1
+    fi
+
+    run_with_sanitizer_runtime() {
+      "$@"
+    }
+    if [[ "${sanitizer}" == "TSan" ]] && ! command -v setarch >/dev/null 2>&1; then
+      echo "setarch is required for TSan runtime on this job" >&2
+      exit 1
+    fi
+    if [[ "${sanitizer}" == "TSan" ]] && command -v setarch >/dev/null 2>&1; then
+      arch_name="$(uname -m)"
+      run_with_sanitizer_runtime() {
+        setarch "${arch_name}" -R "$@"
+      }
+    fi
+
+    build_jobs="20"
+    test_workers="16"
+    if [[ "${sanitizer}" == "TSan" ]]; then
+      test_workers="10"
+    fi
+
+    repo_root="$(pwd)"
+
+    export RUSTUP_HOME="${repo_root}/.rustup-${sanitizer}"
+    export CARGO_HOME="${repo_root}/.cargo-${sanitizer}"
+    unset RUSTUP_TOOLCHAIN
+
+    rm -rf "${repo_root}/.ccache" "${repo_root}/build-${sanitizer}" "${RUSTUP_HOME}" "${CARGO_HOME}"
+    mkdir -p "${repo_root}/build-${sanitizer}" "${RUSTUP_HOME}" "${CARGO_HOME}"
+
+    echo "RUSTUP_HOME=${RUSTUP_HOME}"
+    echo "CARGO_HOME=${CARGO_HOME}"
+    echo "rustup active toolchain before install:"
+    rustup show active-toolchain || true
+    for attempt in 1 2 3; do
+      if rustup toolchain install; then
+        break
+      fi
+      if [[ "${attempt}" == "3" ]]; then
+        echo "failed to install rust toolchain after ${attempt} attempts" >&2
+        exit 1
+      fi
+      rm -rf "${RUSTUP_HOME}/tmp" "${RUSTUP_HOME}/downloads"
+      sleep "$((attempt * 10))"
+    done
+    rustup show
+    rustup which cargo
+    cargo --version
+
+    ccache -o cache_dir="$(realpath "${repo_root}/.ccache")" || true
+    ccache -o max_size=2G || true
+    ccache -o limit_multiple=0.99 || true
+    ccache -o hash_dir=false || true
+    ccache -o compression=true || true
+    ccache -o compression_level=6 || true
+    ccache -z || true
+
+    (
+      cd "${repo_root}/build-${sanitizer}"
+      cmake "${repo_root}" \
+        -DCMAKE_CXX_COMPILER=clang++ \
+        -DCMAKE_C_COMPILER=clang \
+        -DENABLE_TESTS=ON \
+        -DCMAKE_BUILD_TYPE="${sanitizer}" \
+        -DUSE_CCACHE=ON \
+        -DRUN_HAVE_STD_REGEX=0 \
+        -DCMAKE_PREFIX_PATH=/usr/local \
+        -DUSE_GM_SSL=0 \
+        -GNinja
+      run_with_sanitizer_runtime ninja -j"${build_jobs}" gtests_dbms gtests_libcommon gtests_libdaemon
+    )
+
+    rm -rf /tests /tiflash
+    ln -s "${repo_root}/tests" /tests
+    mkdir -p /tiflash
+    cp "${repo_root}/build-${sanitizer}/dbms/gtests_dbms" /tiflash
+    cp "${repo_root}/build-${sanitizer}/libs/libcommon/src/tests/gtests_libcommon" /tiflash
+    cp "${repo_root}/build-${sanitizer}/libs/libdaemon/src/tests/gtests_libdaemon" /tiflash
+
+    source /tests/docker/util.sh
+    show_env
+    UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0 \
+    LSAN_OPTIONS=suppressions=/tests/sanitize/asan.suppression \
+    TSAN_OPTIONS="suppressions=/tests/sanitize/tsan.suppression" \
+    ENV_VARS_PATH=/tests/docker/_env.sh \
+    NPROC="${test_workers}" \
+    run_with_sanitizer_runtime /tests/run-gtest.sh
+  pull_sanitizer_affinity: &pull_sanitizer_affinity
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+  pull_sanitizer_container: &pull_sanitizer_container
+    name: run-sanitizer
+    image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
+    imagePullPolicy: Always
+    command: [/bin/bash, -ce]
+    args:
+      - *sanitizer_script
+    resources:
+      requests:
+        cpu: "24"
+        memory: 64Gi
+      limits:
+        cpu: "24"
+        memory: 64Gi
+  pull_sanitizer_decoration_config: &pull_sanitizer_decoration_config
+    timeout: 3h
+    pod_pending_timeout: 20m
+    ssh_key_secrets:
+      - github-ssh-secret
+    ssh_host_fingerprints:
+      - github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+      - github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+      - github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+  pull_sanitizer_job: &pull_sanitizer_job
+    <<: *brancher
+    decorate: true
+    clone_uri: git@github.com:pingcap/tiflash.git
+    decoration_config: *pull_sanitizer_decoration_config
+    skip_submodules: false
+    always_run: false
+    optional: true
+    skip_if_only_changed: *skip_if_only_changed
+    spec:
+      containers:
+        - <<: *pull_sanitizer_container
+      affinity: *pull_sanitizer_affinity
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/tiflash:
     - <<: *brancher
       agent: jenkins
+      labels:
+        master: "0"
       context: pull-unit-test
       decorate: false # need add this.
       name: pingcap/tiflash/pull_unit_test
@@ -24,6 +171,8 @@ presubmits:
 
     - <<: *brancher
       agent: jenkins
+      labels:
+        master: "0"
       context: pull-integration-test
       decorate: false # need add this.
       name: pingcap/tiflash/pull_integration_test
@@ -33,9 +182,36 @@ presubmits:
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-integration-test)(?: .*?)?$"
 
+    - <<: *pull_sanitizer_job
+      name: pull-sanitizer-asan
+      trigger: "(?m)^/test (?:.*? )?(pull-sanitizer-asan)(?: .*?)?$"
+      rerun_command: "/test pull-sanitizer-asan"
+      spec:
+        affinity: *pull_sanitizer_affinity
+        containers:
+          - <<: *pull_sanitizer_container
+            env:
+              - name: SANITIZER
+                value: ASan
+
+    - <<: *pull_sanitizer_job
+      name: pull-sanitizer-tsan
+      trigger: "(?m)^/test (?:.*? )?(pull-sanitizer-tsan)(?: .*?)?$"
+      rerun_command: "/test pull-sanitizer-tsan"
+      spec:
+        affinity: *pull_sanitizer_affinity
+        containers:
+          - <<: *pull_sanitizer_container
+            env:
+              - name: SANITIZER
+                value: TSan
+            securityContext:
+              privileged: true
+
     - name: pull-error-log-review
       branches:
         - ^master$
+        - ^release-fts-[0-9]+$
       decorate: true
       decoration_config:
         timeout: 20m
@@ -56,8 +232,8 @@ presubmits:
                   echo "JOB_TYPE is batch, skipping error log review check"
                   exit 0
                 fi
-                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
-                go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
+                wget -O /tmp/config.yaml https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/configs/error-log-review/config.yaml
+                GOPROXY=direct go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
                   -config /tmp/config.yaml \
                   -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
             env:

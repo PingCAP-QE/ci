@@ -12,32 +12,20 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
+
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -67,19 +55,26 @@ pipeline {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch ws-${BUILD_TAG}"
-                        sh label: 'prepare thirdparty binary', script: """
-                        chmod +x download_binary.sh
-                        ./download_binary.sh --tidb=master --pd=master --tikv=master
-                        cp ../tiproxy/bin/tiproxy ./bin/
-                        ls -alh bin/
-                        ./bin/tidb-server -V
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tiproxy --version
-                        """
+                    sh "touch ws-${BUILD_TAG}"
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: 'download binary', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                    --tidb=master --pd=master --tikv=master
+                                """
+                            }
+                        }
                     }
+                    sh label: 'prepare thirdparty binary', script: """
+                    cp ../tiproxy/bin/tiproxy ./bin/
+                    ls -alh bin/
+                    ./bin/tidb-server -V
+                    ./bin/pd-server -V
+                    ./bin/tikv-server -V
+                    ./bin/tiproxy --version
+                    """
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -94,21 +89,26 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'python'
-                        yamlFile POD_TEMPLATE_FILE
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_cmds: env.TEST_CMDS]) }
                 }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh label: "test_cmds=${TEST_CMDS} ", script: """
-                                        #!/usr/bin/env bash
-                                        ${TEST_CMDS}
-                                    """
-                                }
+                                unstash 'ws'
+                                sh label: "test_cmds=${TEST_CMDS} ", script: """
+                                    #!/usr/bin/env bash
+                                    ${TEST_CMDS}
+                                """
                             }
                         }
                         post{
@@ -117,6 +117,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_cmds: env.TEST_CMDS]) } }
                         }
                     }
                 }

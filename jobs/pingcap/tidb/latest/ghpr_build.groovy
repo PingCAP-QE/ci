@@ -4,6 +4,7 @@ final branchAlias = 'latest' // For trunk and latest release branches.
 final jobName = 'ghpr_build'
 
 pipelineJob("${fullRepo}/${jobName}") {
+    description("Build tidb artifacts (${fullRepo}/${jobName})")
     logRotator {
         daysToKeep(30)
     }
@@ -12,10 +13,6 @@ pipelineJob("${fullRepo}/${jobName}") {
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
-    }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/${fullRepo}")
     }
 
     definition {

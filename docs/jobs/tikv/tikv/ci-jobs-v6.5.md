@@ -11,7 +11,7 @@ Current they will be refactored soon:
 
 | Job name                                                      | Description                  | Trigger comment in PR | CI script                                                | Can be run locally by contributors | Core Instructions to run locally                       | Runner resouce requirement |
 | ------------------------------------------------------------- | ---------------------------- | --------------------- | -------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------ | -------------------------- |
-| [tikv_ghpr_test](/jenkins/jobs/ci/tikv/tikv/ghpr_test.groovy) | lint check and build binary. | `/test build`         | [link](/jenkins/pipelines/ci/tikv/tikv_ghpr_test.groovy) | yes                                | `FAIL_POINT=1=1 make test_with_nextest -j <cpu-cores>` | 8 core cpu, 16GB memory    |
+| tikv_ghpr_test                                                | lint check and build binary. | `/test build`         | N/A                                                      | yes                                | `FAIL_POINT=1=1 make test_with_nextest -j <cpu-cores>` | 8 core cpu, 16GB memory    |
 
 More will be added.
 

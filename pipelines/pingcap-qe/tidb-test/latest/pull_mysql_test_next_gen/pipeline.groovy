@@ -9,28 +9,32 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "cloud-engine-nextgen")
+final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
 
 prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
         NEXT_GEN = '1'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
     }
     options {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
+                    defaultContainer 'golang'
+                }
+            }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
@@ -42,18 +46,10 @@ pipeline {
                     }
                 }
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
-            }
-        }
-        stage('Prepare') {
-            steps {
                 dir('tidb') {
                     sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                 }
@@ -69,10 +65,7 @@ pipeline {
                             sh "cp ${WORKSPACE}/tidb/bin/* ./"
                         }
                     }
-                    // Cache for next test stages.
-                    cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: 'touch ws-${BUILD_TAG}'
-                    }
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }
         }
@@ -91,22 +84,22 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART, store: env.STORE]) }
                 }
                 stages {
                     stage('Test') {
                         steps {
                             dir(REFS.repo) {
-                                // restore the cache saved by previous stage.
-                                cache(path: './', includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    // if cache missed, it will fail(should not miss).
-                                    sh 'ls mysql_test && chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
-                                }
-
-                                // run the test.
-                                // TODO: use a script for next-gen, consider merging the script.
+                                unstash name: WORKSPACE_STASH_NAME
+                                sh 'ls mysql_test && chmod +x bin/{tidb-server,pd-server,tikv-server,tikv-worker}'
                                 sh label: "store=${STORE} part=${PART}", script: """#!/usr/bin/env bash
                                     if [ "$STORE" == "tikv" ]; then
                                         echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
@@ -126,6 +119,7 @@ pipeline {
                             unsuccessful {
                                 archiveArtifacts(artifacts: 'tidb-test/mysql_test/mysql-test.out*', allowEmptyArchive: true)
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [part: env.PART, store: env.STORE]) } }
                         }
                     }
                 }

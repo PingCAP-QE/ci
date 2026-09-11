@@ -1,9 +1,0 @@
-FROM hub.pingcap.net/tiflash/centos:7.9.2009-aarch64
-USER root
-WORKDIR /root/
-ENV HOME /root/
-ENV TZ Asia/Shanghai
-ENV LD_LIBRARY_PATH /tiflash
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-COPY tiflash /tiflash
-ENTRYPOINT ["/tiflash/tiflash", "server"]

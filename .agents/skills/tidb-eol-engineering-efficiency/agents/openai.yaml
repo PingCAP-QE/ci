@@ -1,0 +1,4 @@
+interface:
+  display_name: "TiDB EOL Engineering Efficiency"
+  short_description: "Retire TiDB EOL versions across EE repos"
+  default_prompt: "Use $tidb-eol-engineering-efficiency to retire one TiDB product minor version across PingCAP-QE/ci and ti-community-infra/configs."

@@ -7,37 +7,21 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.5/pod-pull_tiflash_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
             defaultContainer 'golang'
         }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
@@ -45,7 +29,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -83,13 +67,13 @@ pipeline {
                     }
                     dir("build-docker-image") {
                         sh label: 'generate dockerfile', script: """
-                        curl -o tidb.Dockerfile https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/dockerfiles/products/tidb/tidb.Dockerfile
+                        curl -o tidb.Dockerfile https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/dockerfiles/products/tidb/tidb.Dockerfile
                         cat tidb.Dockerfile
                         cp ../tidb/bin/tidb-server tidb-server
                         ./tidb-server -V
                         """
                         sh label: 'build tmp tidb image', script: """
-                        docker build -t hub.pingcap.net/qa/tidb:${REFS.base_ref} -f tidb.Dockerfile .
+                        docker build -t us-docker.pkg.dev/pingcap-testing-account/hub/pingcap/tidb/images/tidb-server:${REFS.base_ref} -f tidb.Dockerfile .
                         """
                     }
                     dir("tiflash/tests/docker") {

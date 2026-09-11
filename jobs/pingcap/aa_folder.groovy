@@ -32,7 +32,7 @@ folder('pingcap') {
                     cachingConfiguration {
                         // Determines the amount of time until the cache is refreshed.
                         // 0 means disable auto refresh
-                        refreshTimeMinutes(0)
+                        refreshTimeMinutes(60)
                         // Space separated list of versions to exclude from caching via substring search using .contains() method.
                         excludedVersionsStr('feature/ fix/ bugfix/')
                         //Space separated list of versions to include to allow caching via substring search using .contains() method. Ex: "release/ master".
@@ -43,7 +43,7 @@ folder('pingcap') {
                     // If checked, scripts will automatically have access to this library without needing to request it via @Library.
                     implicit(false)
                     // If checked, any changes in the library will be included in the changesets of a build, and changing the library would cause new builds to run for Pipelines that include this library.
-                    includeInChangesets(true)
+                    includeInChangesets(false)
                 }
             }
         }

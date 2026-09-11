@@ -1,0 +1,66 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-push-build-enterprise
+  labels:
+    type: github-branch-push
+    profile: enterprise
+spec:
+  interceptors:
+    - name: filter on repo and branch
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in [
+            'pingcap/tidb',
+            'pingcap/tiflash',
+            'tikv/pd',
+            'tikv/tikv',
+            ]
+            &&
+            body.ref.matches('^refs/heads/(main|master|release-[6-9][.][0-9]+(-beta[.][0-9]+)?)$')
+        - name: overlays
+          value:
+            - key: resource-config
+              expression: >-
+                {
+                  'pingcap/tidb': {
+                    'timeout': '1h',
+                    'sourceWsSize': '50Gi',
+                    'cpu': '6',
+                    'memory': '24Gi',
+                  },
+                  'pingcap/tiflash': {
+                    'timeout': '3h',
+                    'sourceWsSize': '100Gi',
+                    'cpu': '12',
+                    'memory': '48Gi',
+                  },
+                  'tikv/pd': {
+                    'timeout': '40m',
+                    'sourceWsSize': '50Gi',
+                    'cpu': '6',
+                    'memory': '24Gi',
+                  },
+                  'tikv/tikv': {
+                    'timeout': '2h30m',
+                    'sourceWsSize': '100Gi',
+                    'cpu': '12',
+                    'memory': '56Gi',
+                  },
+                }[body.repository.full_name]
+  bindings:
+    - ref: github-branch-push
+    - ref: gcp-classic-build-params
+    - name: builder-resources-cpu
+      value: $(extensions.resource-config.cpu)
+    - name: builder-resources-memory
+      value: $(extensions.resource-config.memory)
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: enterprise }
+    - { name: timeout, value: $(extensions.resource-config.timeout) }
+    - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
+
+  template:
+    ref: build-component-linux

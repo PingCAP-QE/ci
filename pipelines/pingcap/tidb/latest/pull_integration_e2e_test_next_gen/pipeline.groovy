@@ -10,23 +10,26 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
-final OCI_TAG_TICDC = "master-next-gen"
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
+final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "cloud-engine-nextgen")
+final OCI_TAG_TICDC = "master-nextgen"
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -35,13 +38,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                git.setSshKey(GIT_CREDENTIALS_ID)
-                                prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
                     }
                 }
             }
@@ -63,9 +61,6 @@ pipeline {
                         """
                     }
                     sh '''
-                        mv tiflash tiflash_dir
-                        ln -s `pwd`/tiflash_dir/tiflash tiflash
-
                         ./tikv-server -V
                         ./tikv-worker -V
                         ./pd-server -V

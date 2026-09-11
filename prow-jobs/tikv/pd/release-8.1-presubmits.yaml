@@ -41,6 +41,8 @@ presubmits:
 
     - name: tikv/pd/release-8.1/pull_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: pull-integration-copr-test

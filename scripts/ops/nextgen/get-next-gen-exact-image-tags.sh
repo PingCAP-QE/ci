@@ -3,20 +3,16 @@
 set -uo pipefail
 
 check_tools() {
-    # Check if jq is installed
-    if ! command -v jq &> /dev/null; then
-        echo "jq is not installed. Please install jq before running this script."
-        exit 1
-    fi
-
-    # Check if crane is installed
-    if ! command -v crane &> /dev/null; then
-        echo "crane is not installed. Please install crane before running this script."
-        exit 1
-    fi
+    # Check if all required CLI tools are installed before touching registries.
+    for tool in jq crane gcloud; do
+        if ! command -v $tool &> /dev/null; then
+            echo "$tool is not installed. Please install $tool before running this script."
+            exit 1
+        fi
+    done
 }
 
-# get the last exact images for next-gen components.
+# get the last exact images for TiDB X components.
 fetch_next_gen_exact_tags() {
     local repo="$1"
     local tag="$2"
@@ -29,84 +25,91 @@ fetch_next_gen_exact_tags() {
         commit_img_tag="$(crane ls $repo | grep -E "\-${short_commit_sha}[0-9a-f]*" | grep -E "\bnext(-)?gen\b" | head -1)"
     fi
     if [[ -z $commit_img_tag ]]; then
-        echo "  📦 $repo:$tag"
+        echo "    📦 $repo:$tag"
     elif crane digest $repo:$commit_img_tag > /dev/null; then
-        echo "  📦 $repo:$tag"
-        echo "    👉 $repo:$commit_img_tag"
+        echo "    📦 $repo:$tag"
+        echo "      👉 $repo:$commit_img_tag"
     else
-        echo "  🤷 Image $repo:$commit_img_tag not found"
+        echo "    🤷 Image $repo:$commit_img_tag not found"
         exit 1
     fi
 }
 
 fetch_all() {
+    registry="${GCR_REPO:-us.gcr.io}"
+    common_release_branch="release-nextgen-202603"
+    # Authenticate against both registries because tiproxy trunk still resolves from gcr.io
+    # while the other TiDB X artifacts are stored under us.gcr.io.
+    gcloud auth print-access-token | crane auth login -u oauth2accesstoken --password-stdin "$registry"
+
     # pingcap/ticdc repo
     echo "🚀 Fetch images built from pingcap/ticdc..."
     trunk_branch=master
-    release_branch=release-nextgen-20251011
-    img_repo="gcr.io/pingcap-public/dbaas/ticdc"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
+    release_branch=$common_release_branch
+    img_repo="${registry}/pingcap-public/tidbx/ticdc"
+    echo "  💿 $img_repo"
+    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-nextgen"
     fetch_next_gen_exact_tags $img_repo "${release_branch}"
 
     # pingcap/tidb repo
     echo "🚀 Fetch images built from pingcap/tidb..."
     trunk_branch=master
-    release_branch=release-nextgen-20251011
-    img_repo="gcr.io/pingcap-public/dbaas/tidb"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
+    release_branch=$common_release_branch
+    img_repo="${registry}/pingcap-public/tidbx/tidb"
+    echo "  💿 $img_repo"
+    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-nextgen"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
-    img_repo="gcr.io/pingcap-public/dbaas/br"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
+    img_repo="${registry}/pingcap-public/tidbx/br"
+    echo "  💿 $img_repo"
+    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-nextgen"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
-    img_repo="gcr.io/pingcap-public/dbaas/tidb-lightning"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
+    img_repo="${registry}/pingcap-public/tidbx/tidb-lightning"
+    echo "  💿 $img_repo"
+    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-nextgen"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
-    img_repo="gcr.io/pingcap-public/dbaas/dumpling"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
+    img_repo="${registry}/pingcap-public/tidbx/dumpling"
+    echo "  💿 $img_repo"
+    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-nextgen"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
     # pingcap/tiflash repo
     echo "🚀 Fetch images built from pingcap/tiflash..."
     trunk_branch=master
-    release_branch=release-nextgen-20251011
-    img_repo="gcr.io/pingcap-public/dbaas/tiflash"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
+    release_branch=$common_release_branch
+    img_repo="${registry}/pingcap-public/tidbx/tiflash"
+    echo "  💿 $img_repo"
+    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-nextgen"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
     # pingcap/tiproxy repo
     echo "🚀 Fetch images built from pingcap/tiproxy..."
     trunk_branch=main
-    release_branch=release-nextgen-20251023
-    img_repo="gcr.io/pingcap-public/dbaas/tiproxy"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "$trunk_branch"
-    fetch_next_gen_exact_tags $img_repo $release_branch
+    release_branch=release-nextgen-202603
+    dbaas_repo="${GCR_DBAAS_REPO:-gcr.io/pingcap-public/dbaas}"
+    echo "  💿 ${dbaas_repo}/tiproxy"
+    fetch_next_gen_exact_tags "${dbaas_repo}/tiproxy" "$trunk_branch"
+    echo "  💿 us.gcr.io/pingcap-public/tidbx/tiproxy"
+    fetch_next_gen_exact_tags "us.gcr.io/pingcap-public/tidbx/tiproxy" $release_branch
 
     # tidbcloud/cloud-storage-engine repo
     echo "🚀 Fetch images built from tidbcloud/cloud-storage-engine..."
-    trunk_branch=dedicated
-    release_branch=release-nextgen-20251011
-    img_repo=gcr.io/pingcap-public/dbaas/tikv
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-next-gen"
+    trunk_branch=cloud-engine
+    release_branch=$common_release_branch
+    img_repo="${registry}/pingcap-public/tidbx/tikv"
+    echo "  💿 $img_repo"
+    fetch_next_gen_exact_tags $img_repo "${trunk_branch}-nextgen"
     fetch_next_gen_exact_tags $img_repo $release_branch
 
     # tikv/pd repo
     echo "🚀 Fetch images built from tikv/pd..."
     trunk_branch=master
-    release_branch=release-nextgen-20251011
-    img_repo="gcr.io/pingcap-public/dbaas/pd"
-    echo "💿 $img_repo"
-    fetch_next_gen_exact_tags "$img_repo" "${trunk_branch}-next-gen"
+    release_branch=$common_release_branch
+    img_repo="${registry}/pingcap-public/tidbx/pd"
+    echo "  💿 $img_repo"
+    fetch_next_gen_exact_tags "$img_repo" "${trunk_branch}-nextgen"
     fetch_next_gen_exact_tags "$img_repo" "$release_branch"
 
     echo "🎉🎉🎉 All gotten"

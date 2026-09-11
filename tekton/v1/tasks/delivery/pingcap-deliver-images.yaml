@@ -22,10 +22,10 @@ spec:
         - images-info # yaml/json content that stored images information return by image build task
     - name: delivery-config-url
       description: URL of the delivery configuration file
-      default: https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/packages/delivery.yaml
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
     - name: generator-script-url
       description: URL of the generator script
-      default: https://raw.githubusercontent.com/PingCAP-QE/artifacts/main/packages/scripts/gen-delivery-image-commands.ts
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
     - name: retries
       description: Number of retries for image delivery step
       default: "3"
@@ -73,20 +73,19 @@ spec:
         - input: "$(steps.generate.results.generated)"
           operator: in
           values: ["true"]
-      image: gcr.io/go-containerregistry/crane/debug:latest
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       computeResources:
         requests:
           cpu: 50m
           memory: 128Mi
       script: |
-        #!/busybox/sh
+        #!/bin/sh
         set -e
 
         script="/workspace/delivery.sh"
-        chmod +x $script
         tries=0
         max_retries=$(params.retries)
-        until $script; do
+        until /bin/sh $script; do
           tries=$((tries + 1))
           if [ $tries -ge $max_retries ]; then
             echo "Script '$script' failed after $max_retries attempts."
@@ -96,7 +95,7 @@ spec:
           sleep 10
         done
     - name: post-notify
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in

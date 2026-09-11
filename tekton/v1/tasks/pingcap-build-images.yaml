@@ -39,13 +39,13 @@ spec:
         supports: 'release' or 'failpoint'.
     - name: git-ref
     - name: git-sha
+    - name: git-url
     - name: release-dir
       default: build
     - name: build
       default: "false"
       description: Does it need to build the binaries before packing the images?
     - name: registry
-      default: hub.pingcap.net
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
   steps:
@@ -97,6 +97,8 @@ spec:
           value: /kaniko/executor
         - name: CREDS_DIR
           value: /tekton/creds-secrets
+        - name: GIT_URL
+          value: $(params.git-url)
       computeResources:
         requests:
           cpu: "4"

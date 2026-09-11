@@ -3,8 +3,9 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
-      - ^release-nextgen-\d+$
+      - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
       - ^feature/next-gen.*$
+      - ^feature/tidb-zero.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
@@ -12,6 +13,8 @@ presubmits:
   pingcap/tiflash:
     - <<: *brancher
       agent: jenkins
+      labels:
+        master: "1"
       context: pull-unit-next-gen
       decorate: false # need add this.
       name: pingcap/tiflash/pull_unit_next_gen
@@ -23,6 +26,8 @@ presubmits:
 
     - <<: *brancher
       agent: jenkins
+      labels:
+        master: "1"
       context: pull-integration-next-gen
       decorate: false # need add this.
       name: pingcap/tiflash/pull_integration_next_gen
@@ -31,3 +36,21 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       skip_report: false
       trigger: "(?m)^/test (?:.*? )?(pull-integration-next-gen)(?: .*?)?$"
+
+    - agent: jenkins
+      branches:
+        - ^master$
+        - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
+      # 2025 next-gen release branches do not support the columnar pipeline.
+      skip_branches:
+        - ^release-nextgen-2025\d+$
+      labels:
+        master: "1"
+      context: pull-integration-next-gen-columnar
+      decorate: false # need add this.
+      name: pingcap/tiflash/pull_integration_next_gen_columnar
+      optional: false
+      rerun_command: "/test pull-integration-next-gen-columnar"
+      skip_if_only_changed: *skip_if_only_changed
+      skip_report: false
+      trigger: "(?m)^/test (?:.*? )?(pull-integration-next-gen-columnar)(?: .*?)?$"

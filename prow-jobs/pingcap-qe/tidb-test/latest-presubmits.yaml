@@ -3,6 +3,8 @@ presubmits:
   PingCAP-QE/tidb-test:
     - name: pingcap-qe/tidb-test/ghpr_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.md)$"
       context: ci/build
@@ -14,6 +16,8 @@ presubmits:
         - ^release-nextgen-.*$ # for next-gen release branches to verify the scripts.
     - name: pingcap-qe/tidb-test/ghpr_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "(jdbc8_test|jdbc_test)/.*"
       context: ci/common-test
@@ -24,6 +28,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/ghpr_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "(jdbc8_test|mybatis_test|jooq_test|tidb_jdbc_test)/.*"
       context: ci/integration-jdbc-test
@@ -34,6 +40,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/ghpr_integration_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "randgen-test/.*"
       context: ci/integration-common-test
@@ -44,6 +52,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/ghpr_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "mysql_test/.*"
       context: ci/integration-mysql-test
@@ -54,6 +64,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/ghpr_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       run_if_changed: "mysql_test/.*"
       decorate: false # need add this.
       context: ci/mysql-test
@@ -64,6 +76,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/ghpr_integration_nodejs_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: ci/integration-nodejs-test
@@ -74,6 +88,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/ghpr_integration_python_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       context: ci/integration-python-orm-test
@@ -84,6 +100,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/pull_tiproxy_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -95,6 +113,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/pull_tiproxy_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -106,6 +126,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/pull_tiproxy_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -117,6 +139,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/pull_tiproxy_ruby_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -128,6 +152,8 @@ presubmits:
         - ^master$
     - name: pingcap-qe/tidb-test/pull_tiproxy_mysql_connector_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true

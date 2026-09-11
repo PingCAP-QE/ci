@@ -17,12 +17,14 @@ spec:
           server: staging
       spec:
         taskRef:
-          name: publish-tiup-from-oci-artifact-v2
+          name: publish-tiup-from-oci-artifact
         params:
           - name: artifact-url
             value: "$(tt.params.image_url)"
           - name: publisher-url
-            value: http://publisher-staging-mirror.apps.svc
+            value: https://publisher.pingcap.net
+          - name: tiup_mirror
+            value: staging
     - apiVersion: tekton.dev/v1beta1
       kind: TaskRun
       metadata:
@@ -31,13 +33,15 @@ spec:
           server: prod
       spec:
         taskRef:
-          name: publish-tiup-from-oci-artifact-v2
+          name: publish-tiup-from-oci-artifact
         timeout: 1h
         params:
           - name: artifact-url
             value: "$(tt.params.image_url)"
           - name: publisher-url
-            value: http://publisher-prod-mirror.apps.svc
+            value: https://publisher.pingcap.net
+          - name: tiup_mirror
+            value: prod
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
@@ -58,9 +62,11 @@ spec:
           server: staging
       spec:
         taskRef:
-          name: publish-tiup-from-oci-artifact-v2
+          name: publish-tiup-from-oci-artifact
         params:
           - name: artifact-url
             value: "$(tt.params.image_url)"
           - name: publisher-url
-            value: http://publisher-staging-mirror.apps.svc
+            value: https://publisher.pingcap.net
+          - name: tiup_mirror
+            value: staging

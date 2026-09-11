@@ -54,7 +54,7 @@ flowchart TD
 
 3. **Test your changes**:
    - After your PR is merged, the seed job (automatically triggered by Prow) will deploy it to the staging CI server
-   - Test the pipeline in the staging environment at https://do.pingcap.net/jenkins-beta/
+   - Test the pipeline in the staging environment at https://prow.tidb.net/jenkins-staging/
    - Navigate to the corresponding job in the staging environment
    - Trigger a test run manually to verify your changes work as expected
 
@@ -62,3 +62,88 @@ flowchart TD
    - Once testing is successful, create a new PR that moves the code from `/staging` to the top-level directories
    - Include links to your successful test jobs in the PR comments
    - After review and approval, your changes will be merged to production
+
+## Pre-PR Verification for Jenkins Pipeline Changes
+
+When your PR modifies files under `pipelines/**/*.groovy`, run both static validation and replay tests before requesting review.
+
+### 1. Static Groovy/Jenkinsfile Validation
+
+Run Jenkins pipeline model validation for all Groovy pipelines:
+
+```bash
+JENKINS_URL=https://prow.tidb.net/jenkins .ci/verify-jenkins-pipelines.sh
+```
+
+This checks syntax/model validity through Jenkins API and is the fastest baseline check.
+
+### 2. Real Replay Test for One Pipeline
+
+Replay one historical build with your local pipeline script content:
+
+```bash
+JENKINS_USER="<jenkins-user>" \
+JENKINS_TOKEN="<jenkins-token>" \
+.ci/replay-jenkins-build.sh \
+  --script-file pipelines/pingcap/tidb/release-8.5/pull_integration_e2e_test.groovy \
+  --jenkins-url https://prow.tidb.net/jenkins \
+  --selector lastSuccessfulBuild \
+  --verbose
+```
+
+Default behavior:
+- Waits until queue assignment is finished and prints the new replay build URL.
+- Does not wait for final build result unless `--wait` is provided.
+
+### 3. Replay All Changed Pipelines in Current Workspace
+
+Use `--auto-changed` to replay all changed `pipelines/*.groovy` files from git diff:
+
+```bash
+JENKINS_USER="<jenkins-user>" \
+JENKINS_TOKEN="<jenkins-token>" \
+.ci/replay-jenkins-build.sh \
+  --auto-changed \
+  --jenkins-url https://prow.tidb.net/jenkins \
+  --selector lastSuccessfulBuild \
+  --max-replays 20 \
+  --verbose
+```
+
+Notes:
+- If `--base-sha/--head-sha` are not provided, the script uses `origin/main..HEAD` (or `HEAD~1..HEAD` fallback).
+- If `${job}/lastSuccessfulBuild` returns `404`, the script logs `skip replay (no historical build)` and continues with the next job.
+- At the end, the script prints summary counts, for example:
+  - `replay summary: submitted=3, skipped=2, failed=0`
+
+### 4. PR-Level Automation in Prow
+
+This repository has two related presubmit jobs for pipeline changes:
+
+- `pull-verify-jenkins-pipelines`
+  - Validates Jenkins pipeline syntax/model.
+  - Triggered by pipeline file changes.
+- `pull-verify-k8s-pod-yaml`
+  - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests.
+  - When in-cluster Kubernetes API access is available, injects a test `metadata.name` and also runs both `kubectl --dry-run=client --validate=strict` and `kubectl --dry-run=server --validate=strict`.
+  - Triggered by `pipelines/**/*.yaml` changes.
+- `pull-verify-secret-scan`
+  - Triggered only when changed files are in the Jenkins credentials-risk surface:
+    `pipelines/**`, `jobs/**`, `libraries/**`, `prow-jobs/**` (`*.groovy|*.yml|*.yaml`).
+  - Uses pinned scanner image digest and explicit timeout for predictable operations.
+  - Runs two fail-fast checks:
+    - Jenkins credential policy check (`bash .ci/verify-jenkins-credential-policy.sh`) to block obvious insecure patterns such as secret-like literal assignments, secret value echo, and secret-like env vars with direct `value:` in Prow YAML.
+    - Incremental gitleaks check (`.ci/verify-secret-scan.sh`) on `${PULL_BASE_SHA}..${PULL_PULL_SHA}` instead of whole-repo scan.
+  - Supports explicit exemptions via `.ci/security-policy-allowlist.txt`:
+    - format: `<rule><TAB><path-regex>`
+    - supported rules: `hardcoded_literal`, `secret_echo`, `secret_env_plain_value`
+    - exemptions should be narrow and path-scoped to avoid broad bypasses.
+- `pull-test-security-policy-scripts`
+  - Runs regression tests for `.ci/verify-jenkins-credential-policy.sh` with both positive and negative fixtures.
+  - Includes allowlist regression fixtures (allowlisted vs non-allowlisted secret echo).
+  - Triggered when `.ci/verify-jenkins-credential-policy.sh`, `.ci/test-verify-jenkins-credential-policy.sh`, or `.ci/security-policy-allowlist.txt` changes.
+- `pull-replay-jenkins-pipelines`
+  - Optional replay validation using `--auto-changed`.
+  - Trigger manually in PR comments:
+    - `/test pull-replay-jenkins-pipelines`
+  - Replays against `https://prow.tidb.net/jenkins`.

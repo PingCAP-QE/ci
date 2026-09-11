@@ -3,10 +3,13 @@ presubmits:
   PingCAP-QE/tidb-test:
     - name: pingcap-qe/tidb-test/pull_integration_jdbc_test_next_gen
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false
       optional: true
       branches:
         - ^master$
+        - ^feature/tidb-zero.*
       run_if_changed: "(jdbc8_test|mybatis_test|jooq_test|tidb_jdbc_test)/.*"
       context: non-block/pull-integration-jdbc-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-jdbc-test-next-gen(?: .*?)?$"
@@ -14,6 +17,8 @@ presubmits:
 
     - name: pingcap-qe/tidb-test/pull_mysql_test_next_gen
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false
       optional: true
       run_if_changed: "mysql_test/.*"
@@ -22,3 +27,4 @@ presubmits:
       rerun_command: "/test pull-integration-mysql-test-next-gen"
       branches:
         - ^master$
+        - ^feature/tidb-zero.*

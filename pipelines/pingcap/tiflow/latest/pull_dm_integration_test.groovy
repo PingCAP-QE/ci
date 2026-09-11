@@ -4,108 +4,79 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiflow/latest/pod-pull_dm_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-def skipRemainingStages = false
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_SYNC_DIFF_INSPECTOR = 'master'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} -c golang -- bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        prow.setPRDescription(REFS)
-                    }
-                }
-            }
-        }
-        stage('Check diff files') {
-            steps {
-                container("golang") {
-                    script {
-                        def pr_diff_files = component.getPrDiffFiles(GIT_FULL_REPO_NAME, REFS.pulls[0].number, GIT_CREDENTIALS_ID2)
-                        def pattern = /(^dm\/|^pkg\/|^sync_diff_inspector\/|^go\.mod).*$/
-                        println "pr_diff_files: ${pr_diff_files}"
-                        // if any diff files start with dm/ or pkg/ or file go.mod, run the dm integration test
-                        // besides, any changes in sync_diff_inspector also need to run test
-                        def matched = component.patternMatchAnyFile(pattern, pr_diff_files)
-                        if (matched) {
-                            println "matched, some diff files full path start with dm/, sync_diff_inspector/ or pkg/ or go.mod, run the dm integration test"
-                        } else {
-                            println "not matched, all files full path not start with dm/, sync_diff_inspector/ or pkg/ or go.mod, current pr not releate to dm, so skip the dm integration test"
-                            currentBuild.result = 'SUCCESS'
-                            skipRemainingStages = true
-                            return 0
-                        }
-                    }
-                }
-            }
-        }
         stage('Checkout') {
-            when { expression { !skipRemainingStages} }
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tiflow") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS)
                     }
                 }
             }
         }
         stage("prepare") {
-            when { expression { !skipRemainingStages} }
-            options { timeout(time: 20, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     script {
-                        def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                        def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
                         retry(2) {
-                            sh label: "download third_party", script: """
-                                export TIDB_BRANCH=${tidbBranch}
-                                export PD_BRANCH=${pdBranch}
-                                export TIKV_BRANCH=${tikvBranch}
-                                cd ../tiflow && ./dm/tests/download-integration-test-binaries.sh ${REFS.base_ref} && ls -alh ./bin
-                                cd - && mkdir -p bin && mv ../tiflow/bin/* ./bin/
-                                ls -alh ./bin
-                                ./bin/tidb-server -V
-                                ./bin/pd-server -V
-                                ./bin/tikv-server -V
+                            sh label: "prepare third_party dir", script: "mkdir -p bin"
+                            container("utils") {
+                                dir("bin") {
+                                    sh label: "download third_party from OCI", script: """
+                                        script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
+                                        \$script \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --pd=${OCI_TAG_PD} \
+                                            --minio=${OCI_TAG_MINIO} \
+                                            --sync-diff-inspector=${OCI_TAG_SYNC_DIFF_INSPECTOR}
+                                    """
+                                }
+                            }
+                            sh label: "download gh-ost", script: """
+                                cd bin
+                                wget --no-verbose --retry-connrefused --waitretry=1 -t 3 \
+                                    -O gh-ost.tar.gz \
+                                    https://github.com/github/gh-ost/releases/download/v1.1.0/gh-ost-binary-linux-20200828140552.tar.gz
+                                tar -xzf gh-ost.tar.gz
+                                rm -f gh-ost.tar.gz
+                                [ -f ./gh-ost ] && chmod +x ./gh-ost
+                                ls -alh ./
+                                ./tidb-server -V
+                                ./pd-server -V
+                                ./tikv-server -V
                             """
                         }
                     }
                 }
-                dir("tiflow") {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'dm-integration-test')) {
                         // build dm-master.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
@@ -128,19 +99,17 @@ pipeline {
                             which ./bin/dm-test-tools/check_worker_online
                         """
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
-                        sh label: "prepare", script: """
-                            cp -r ../third_party_download/bin/* ./bin/
-                            ls -alh ./bin
-                            ls -alh ./bin/dm-test-tools
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                        ls -alh ./bin/dm-test-tools
+                    """
+                    stash name: 'tiflow-dm', includes: '**/*'
                 }
             }
         }
 
         stage('Tests') {
-            when { expression { !skipRemainingStages} }
             matrix {
                 axes {
                     axis {
@@ -153,17 +122,18 @@ pipeline {
                     kubernetes {
                         label "dm-it-${UUID.randomUUID().toString()}"
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
+                        retries 2
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 50, unit: 'MINUTES') }
-                        environment {
-                            DM_CODECOV_TOKEN = credentials('codecov-token-tiflow')
-                            DM_COVERALLS_TOKEN = credentials('coveralls-token-tiflow')
-                        }
                         steps {
                             container("mysql1") {
                                 sh label: "copy mysql certs", script: """
@@ -173,34 +143,32 @@ pipeline {
                                 """
                             }
 
-                            dir('tiflow') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tiflow-dm") {
-                                    timeout(time: 10, unit: 'MINUTES') {
-                                        sh label: "wait mysql ready", script: """
-                                            pwd && ls -alh
-                                            # TODO use wait-for-mysql-ready.sh
-                                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                            set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
-                                        """
-                                    }
-                                    sh label: "${TEST_GROUP}", script: """
-                                        if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
-                                            echo "run tls test"
-                                            echo "copy mysql certs"
-                                            sudo mkdir -p /var/lib/mysql
-                                            sudo chmod 777 /var/lib/mysql
-                                            sudo chown -R 1000:1000 /var/lib/mysql
-                                            sudo cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
-                                            sudo chown -R 1000:1000 /var/lib/mysql/*
-                                            ls -alh /var/lib/mysql/
-                                        else
-                                            echo "run ${TEST_GROUP} test"
-                                        fi
-                                        export PATH=/usr/local/go/bin:\$PATH
-                                        mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
-                                        make dm_integration_test_in_group GROUP="${TEST_GROUP}"
-                                    """
-                                }
+                            dir(REFS.repo) {
+                                unstash 'tiflow-dm'
+                                sh label: "wait mysql ready", script: """
+                                    pwd && ls -alh
+                                    # TODO use wait-for-mysql-ready.sh
+                                    set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3306 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                    set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                    set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3308 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
+                                """
+                                sh label: "${TEST_GROUP}", script: """
+                                    if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
+                                        echo "run tls test"
+                                        echo "copy mysql certs"
+                                        sudo mkdir -p /var/lib/mysql
+                                        sudo chmod 777 /var/lib/mysql
+                                        sudo chown -R 1000:1000 /var/lib/mysql
+                                        sudo cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
+                                        sudo chown -R 1000:1000 /var/lib/mysql/*
+                                        ls -alh /var/lib/mysql/
+                                    else
+                                        echo "run ${TEST_GROUP} test"
+                                    fi
+                                    export PATH=/usr/local/go/bin:\$PATH
+                                    mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
+                                    make dm_integration_test_in_group GROUP="${TEST_GROUP}"
+                                """
                             }
                         }
                         post {
@@ -212,6 +180,7 @@ pipeline {
                                 """
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", allowEmptyArchive: true
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
                         }
                     }
                 }

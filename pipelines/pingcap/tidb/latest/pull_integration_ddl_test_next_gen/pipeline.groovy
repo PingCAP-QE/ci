@@ -9,21 +9,23 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "cloud-engine-nextgen")
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -31,15 +33,10 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-test") {
@@ -55,7 +52,7 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     cache(path: "./bin", includes: '**/*', key: "binary/pingcap/tidb/tidb-server/rev-${REFS.base_sha}") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                     }
@@ -74,13 +71,12 @@ pipeline {
                             """
                         }
                     }
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: 'cache tidb-test', script: """
-                            cp -r ../tidb/bin/tidb-server bin/
-                            cp -r ../tidb/bin/ddltest bin/
-                            touch ws-${BUILD_TAG}
-                        """
-                    }
+                    sh label: 'cache tidb-test', script: """
+                        cp -r ../tidb/bin/tidb-server bin/
+                        cp -r ../tidb/bin/ddltest bin/
+                        touch ws-${BUILD_TAG}
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -100,35 +96,39 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
                     }
                 }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [ddl_test: env.DDL_TEST]) }
+                }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                        ls -alh bin/
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tidb-server -V
-                                    """
-                                    container("golang") {
-                                        sh label: "ddl_test ${DDL_TEST}", script: """#!/usr/bin/env bash
-                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                unstash 'tidb-test'
+                                sh """
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
+                                """
+                                container("golang") {
+                                    sh label: "ddl_test ${DDL_TEST}", script: """#!/usr/bin/env bash
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
 
-                                            cp bin/tidb-server bin/ddltest_tidb-server && ls -alh bin/
-                                            export log_level=debug
-                                            export PATH=`pwd`/bin:\$PATH
-                                            export DDLTEST_PATH="${WORKSPACE}/tidb-test/bin/ddltest"
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/ddltest_tidb-server"
-                                            cd ddl_test/ && pwd && ./test.sh -test.run="${DDL_TEST}"
-                                        """
-                                    }
+                                        cp bin/tidb-server bin/ddltest_tidb-server && ls -alh bin/
+                                        export log_level=debug
+                                        export PATH=`pwd`/bin:\$PATH
+                                        export DDLTEST_PATH="${WORKSPACE}/tidb-test/bin/ddltest"
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/ddltest_tidb-server"
+                                        cd ddl_test/ && pwd && ./test.sh -test.run="${DDL_TEST}"
+                                    """
                                 }
                             }
                         }
@@ -138,6 +138,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [ddl_test: env.DDL_TEST]) } }
                         }
                     }
                 }

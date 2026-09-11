@@ -34,6 +34,7 @@ spec:
         supports: 'release' or 'failpoint'.
     - name: git-ref
     - name: git-sha
+    - name: git-url
     - name: builder-image
       default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
     - name: release-dir
@@ -42,7 +43,6 @@ spec:
       type: string
       default: "false"
     - name: registry
-      default: hub.pingcap.net
     - name: boskos-server-url
       description: The URL of the running boskos server
       default: "http://boskos.test-pods.svc.cluster.local"
@@ -78,7 +78,6 @@ spec:
 
         if [ -f "$out_script" ]; then
           echo -n "true" > $(step.results.generated.path)
-          sed -i 's/fetch_file_from_oci_artifact hub.pingcap.net/fetch_file_from_oci_artifact hub-mig.pingcap.net/g' "$out_script"
           cat "$out_script"
         else
           echo -n "false" > $(step.results.generated.path)
@@ -136,7 +135,7 @@ spec:
         fi
 
         env_file="/workspace/remote.env"
-        deno run --allow-all https://github.com/PingCAP-QE/artifacts/raw/refs/heads/main/packages/scripts/build-in-darwin-boskos.ts \
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/build-in-darwin-boskos.ts \
           --sshInfoDir ${WORKSPACE_SSH_DIRECTORY_PATH} \
           --sourcePath $(workspaces.source.path) \
           --envFile ${env_file} \
@@ -153,6 +152,9 @@ spec:
           operator: in
           values: ["true"]
       workingDir: $(workspaces.source.path)/$(params.component)
+      env:
+        - name: GIT_URL
+          value: $(params.git-url)
       script: |
         script="/workspace/build-package-artifacts.sh"
 

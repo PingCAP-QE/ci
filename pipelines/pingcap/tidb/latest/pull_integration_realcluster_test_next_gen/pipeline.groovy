@@ -9,15 +9,19 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "cloud-engine-nextgen")
+final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
+final GIT_CREDENTIALS_ID = ''
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
@@ -27,19 +31,23 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1' // enable build and test for Next Gen kernel type.
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     stages {
         stage('Checkout') {
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
+                }
+            }
+        }
+        stage('Prepare bazel workspace') {
+            steps {
+                dir(REFS.repo) {
+                    script { bazel.prepareWorkspace(remoteCache: [mode: 'disable']) }
                 }
             }
         }
@@ -58,14 +66,14 @@ pipeline {
                                     --pd=${OCI_TAG_PD} \
                                     --tikv=${OCI_TAG_TIKV} \
                                     --tikv-worker=${OCI_TAG_TIKV} \
+                                    --tiflash=${OCI_TAG_TIFLASH} \
                                     --minio=RELEASE.2025-07-23T15-54-02Z
                             """
                         }
                     }
                     // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch rev-${REFS.pulls[0].sha}"
-                    }
+                    sh "touch rev-${REFS.pulls[0].sha}"
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -78,6 +86,7 @@ pipeline {
                             'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d n',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_sessiontest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_statisticstest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh startertest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest1',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest2',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest3',
@@ -88,11 +97,12 @@ pipeline {
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_importintotest4',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_addindextest',
                             'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pipelineddmltest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pessimistictest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_txntest',
+                            'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pushdowntest',
                             // 🚧 Failed or timeouted groups:
                             // 'tests/integrationtest/run-tests-next-gen.sh -s bin/tidb-server -d y',
                             // 'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_ddltest',
-                            // 'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_pessimistictest',
-                            // 'tests/realtikvtest/scripts/next-gen/run-tests.sh bazel_txntest',
                         )
                     }
                 }
@@ -100,26 +110,39 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'ci-rwo')
+                    }
+                }
+                when {
+                    beforeAgent true
+                    allOf {
+                        expression {
+                            // Skip bazel_pushdowntest when base_ref is release-nextgen-20251011
+                            return !(REFS.base_ref == 'release-nextgen-20251011' && env.SCRIPT_AND_ARGS.contains(' bazel_pushdowntest'))
+                        }
+                        expression {
+                            return REFS.base_ref == 'master' || !env.SCRIPT_AND_ARGS.contains(' startertest')
+                        }
+                        expression { return !matrixCache.shouldSkip(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) }
                     }
                 }
                 stages {
                     stage('Test')  {
-                        options { timeout(time: 50, unit: 'MINUTES') }
                         environment {
                             MINIO_BIN_PATH = "bin/minio"
                         }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                                }
+                                unstash 'ws'
+                                sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
 
-                                sh """
-                                sed -i 's|repository_cache=/home/jenkins/.tidb/tmp|repository_cache=/share/.cache/bazel-repository-cache|g' Makefile.common
-                                git diff .
-                                git status
-                                """
+                                sh '''
+                                    mkdir -p /home/jenkins/.tidb/tmp
+                                    git diff . || true
+                                    git status || true
+                                '''
                                 sh """#! /usr/bin/env bash
                                     set -o pipefail
 
@@ -136,35 +159,7 @@ pipeline {
                                 script {
                                     if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
                                         sh label: "Parse flaky test case results", script: './scripts/plugins/analyze-go-test-from-bazel-output.sh tidb/bazel-test.log || true'
-                                        sh label: 'Send event to cloudevents server', script: """timeout 10 \
-                                            curl --verbose --request POST --url http://cloudevents-server.apps.svc/events \
-                                            --header "ce-id: \$(uuidgen)" \
-                                            --header "ce-source: \${JENKINS_URL}" \
-                                            --header 'ce-type: test-case-run-report' \
-                                            --header 'ce-repo: ${REFS.org}/${REFS.repo}' \
-                                            --header 'ce-branch: ${REFS.base_ref}' \
-                                            --header "ce-buildurl: \${BUILD_URL}" \
-                                            --header 'ce-specversion: 1.0' \
-                                            --header 'content-type: application/json; charset=UTF-8' \
-                                            --data @bazel-go-test-problem-cases.json || true
-                                        """
-                                    }
-                                }
-                            }
-                            unsuccessful {
-                                dir(REFS.repo) {
-                                    sh label: "archive log", script: """
-                                    str="$SCRIPT_AND_ARGS"
-                                    logs_dir="logs_\$(echo \"\$str\" | tr ' /' '_')"
-                                    mkdir -p "\${logs_dir}"
-                                    mv pd*.log "\${logs_dir}" || true
-                                    mv tikv*.log "\${logs_dir}" || true
-                                    tar -czvf "\${logs_dir}.tar.gz" "\${logs_dir}" || true
-                                    """
-                                    archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
-                                }
-                                script {
-                                    if ("$SCRIPT_AND_ARGS".contains(" bazel_")) {
+                                        prow.sendTestCaseRunReport("${REFS.org}/${REFS.repo}", "${REFS.base_ref}")
                                         sh """
                                             logs_dir="logs_\$(echo \"\$SCRIPT_AND_ARGS\" | tr ' /' '_')"
                                             mkdir -p \$logs_dir
@@ -176,6 +171,22 @@ pipeline {
                                     }
                                 }
                             }
+                            unsuccessful {
+                                dir(REFS.repo) {
+                                    sh label: "archive log", script: """
+                                    str="$SCRIPT_AND_ARGS"
+                                    logs_dir="logs_\$(echo \"\$str\" | tr ' /' '_')"
+                                    mkdir -p "\${logs_dir}"
+                                    mv pd*.log "\${logs_dir}" || true
+                                    mv tikv*.log "\${logs_dir}" || true
+                                    mv tiflash*.log "\${logs_dir}" || true
+                                    mv minio.log "\${logs_dir}" || true
+                                    tar -czvf "\${logs_dir}.tar.gz" "\${logs_dir}" || true
+                                    """
+                                    archiveArtifacts(artifacts: '*.tar.gz', allowEmptyArchive: true)
+                                }
+                            }
+                            success { script { matrixCache.markDone(REFS, 'Test', [script_and_args: env.SCRIPT_AND_ARGS]) } }
                         }
                     }
                 }

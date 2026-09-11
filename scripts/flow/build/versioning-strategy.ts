@@ -9,17 +9,36 @@ interface builtControl {
 }
 
 /**
+ * Determine if the given branch is a hotfix branch.
+ * @param {string} branch - The branch name to check.
+ * @returns {boolean} True if the branch is a hotfix branch, false otherwise.
+ */
+function isHotfixBranch(branch: string): boolean {
+  return /\brelease-[0-9]+[.][0-9]+[.][0-9]+-release[.][0-9]+-[0-9]{8}\b/.test(
+    branch,
+  );
+}
+
+function isNextgenReleaseBranch(branch: string): boolean {
+  return /\brelease-nextgen-(\d{6}|\d{8}|\d+\.\d+\.\d+-\d{8})\b/.test(branch);
+}
+
+/**
  * Determine if the given branch is a release branch.
  * @param {string} branch - The branch name to check.
  * @returns {boolean} True if the branch is a release branch, false otherwise.
  */
 function isReleaseBranch(branch: string): boolean {
+  // Exclude hotfix branches explicitly
+  if (isHotfixBranch(branch)) {
+    return false;
+  }
   const standardRelease =
-    /\brelease-[0-9]+[.][0-9]+(?:-beta\.[0-9]+)?(?!-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+)/
+    /\b(?:feature\/)?release-[0-9]+[.][0-9]+(?:-beta\.[0-9]+)?(?![\/.-])(?!-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+)/
       .test(
         branch,
       );
-  const nextgenRelease = /\brelease-nextgen-(\d{6}|\d{8})\b/.test(branch);
+  const nextgenRelease = isNextgenReleaseBranch(branch);
   return standardRelease || nextgenRelease;
 }
 
@@ -50,7 +69,22 @@ export function compute(
   rawVersion: string,
   commitInBranches: string[],
 ): builtControl {
-  const rv = semver.parse(rawVersion.trim());
+  const normalizedRawVersion = rawVersion.trim();
+  const rv = semver.parse(normalizedRawVersion);
+  const hasNextgenReleaseBranch = commitInBranches.some(isNextgenReleaseBranch);
+
+  if (
+    hasNextgenReleaseBranch &&
+    /^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+-g[0-9a-f]+)?(?:-dirty)?$/.test(
+      normalizedRawVersion,
+    )
+  ) {
+    console.info(
+      "Keep calendar-semver nextgen version on release-nextgen branches:",
+      normalizedRawVersion,
+    );
+    return { releaseVersion: normalizedRawVersion };
+  }
 
   // If it's a GA version, return it directly
   if (isGaVer(rv)) {
@@ -62,17 +96,37 @@ export function compute(
   if (!commitInBranches.some(isReleaseBranch)) {
     console.info("Current commit is not contained in any release branches.");
 
+    // Check for hotfix branch
+    const hotfixBranch = commitInBranches.find(isHotfixBranch);
+    if (hotfixBranch) {
+      console.info("Current commit is in a hotfix branch.");
+      return { releaseVersion: "v" + semver.format(rv) };
+    }
+
     // Check for feature branch
     const featureBranch = commitInBranches.find((b) =>
       /\bfeature\/[\w.-]+$/.test(b)
     );
     if (featureBranch) {
+      // Check if the current version is a hotfix tag (format: YYYYMMDD-shortcommit)
+      const hasHotfixTag = rv.prerelease &&
+        rv.prerelease.length === 1 &&
+        /^\d{8}-[0-9a-f]+$/.test(rv.prerelease[0].toString());
+
+      if (hasHotfixTag) {
+        console.info("Current commit is in a feature branch with hotfix tag.");
+        return { releaseVersion: "v" + semver.format(rv) };
+      }
+
       console.info("Current commit is in a feature branch.");
       // Extract feature name, replace '/' with '.' for version/tag
       const suffix = featureBranch
         .replace(/.*\bfeature\//, "feature/")
         .replaceAll("/", ".")
-        .replaceAll("-", ".");
+        // normalize underscores to dashes to match expected version/tag format
+        // NOTE: keep '-' as-is (do not convert to '.') because tests expect dashes to remain.
+        .replaceAll("_", "-");
+      // Construct feature version, ignoring any existing prerelease (e.g., alpha, beta)
       const featureVersion = `v${rv.major}.${rv.minor}.${rv.patch}-${suffix}`;
       return {
         releaseVersion: featureVersion,
@@ -132,8 +186,13 @@ export function compute(
   } else if (preRelease.startsWith("nextgen")) {
     console.info("I will do nothing for this nextgen version:", rawVersion);
   } else if (preRelease.startsWith("release")) {
-    newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}`;
-    rv.prerelease = ["pre"];
+    // if preRelease is exactly "release.<number>", do nothing
+    if (/^release[.][0-9]+$/.test(preRelease)) {
+      console.info("I will do nothing for this release version:", rawVersion);
+    } else {
+      newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}`;
+      rv.prerelease = ["pre"];
+    }
   } else if (preRelease.startsWith("pre")) {
     newGitTag = `v${rv.major}.${rv.minor}.${rv.patch}`;
     rv.prerelease = ["pre"];

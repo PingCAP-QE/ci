@@ -114,17 +114,17 @@ export class OwnerResolver {
     }
 
     type Level = OwnerResolution["level"];
+    const LEVEL_PRIORITY: Record<Level, number> = {
+      none: 0,
+      repo: 1,
+      "repo-branch": 1,
+      "parent-suite": 2,
+      suite: 3,
+      case: 4,
+    };
+
     const levelRank = (lvl: Level): number => {
-      switch (lvl) {
-        case "case":
-          return 4;
-        case "suite":
-          return 3;
-        case "repo":
-          return 1;
-        default:
-          return 0;
-      }
+      return LEVEL_PRIORITY[lvl] ?? 0;
     };
 
     let best: { owner: string; level: Level; priority: number } | null = null;
@@ -149,8 +149,10 @@ export class OwnerResolver {
       let level: Exclude<Level, "none">;
       if ((suiteExact || suiteParent) && caseExact) {
         level = "case";
-      } else if ((suiteExact || suiteParent) && caseAny) {
+      } else if (suiteExact && caseAny) {
         level = "suite";
+      } else if (suiteParent && caseAny) {
+        level = "parent-suite";
       } else if (suiteAny && caseAny) {
         level = "repo";
       } else {

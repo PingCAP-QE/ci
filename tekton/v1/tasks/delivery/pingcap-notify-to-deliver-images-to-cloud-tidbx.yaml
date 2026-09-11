@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: pingcap-notify-to-deliver-images-to-cloud-tidbx
   labels:
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.2.0"
   annotations:
     tekton.dev/pipelines.minVersion: "1.0.0"
     tekton.dev/categories: delivery
@@ -15,36 +15,20 @@ spec:
   params:
     - name: src
       description: images list
-  workspaces:
-    - name: notify-config
-      description: |
-        Configuration for GitHub authentication and issue URLs.
-        Include files:
-        - GitHub token: <stage>_github_token
-        - GitHub issue URL: <stage>_github_issue_url
-      readOnly: true
+    - name: publisher-url
+      type: string
+      description: publisher url
+      default: "http://publisher.publisher.svc"
   stepTemplate:
-    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.26-5-ge8130cb
+    image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
   steps:
-    - name: notify-to-sync-images
-      script: |
-        #!/usr/bin/env bash
-        set -e
-
-        cat > /workspace/images.yaml <<'EOF'
-        $(params.src)
-        EOF
-
-        for stage in dev prod; do
-          github_issue_url="$(cat $(workspaces.notify-config.path)/${stage}_github_issue_url)"
-          gh auth login --with-token < $(workspaces.notify-config.path)/${stage}_github_token
-
-          echo "🚀 Notifiy to sync images to $stage ..."
-          {
-            echo "/fid env=$stage"
-            yq .images[] /workspace/images.yaml
-          } | gh issue comment "$github_issue_url" --body-file - | tee /workspace/notify-results.${stage}.txt
-
-          rm -f /workspace/notify.txt
-          echo "✅ Notified to sync images to $stage"
-        done
+    - name: request-kernel-image-sync
+      ref:
+        name: request-kernel-image-sync
+      params:
+        - name: src
+          value: $(params.src)
+        - name: publisher-url
+          value: $(params.publisher-url)
+        - name: stages
+          value: "prod dev"

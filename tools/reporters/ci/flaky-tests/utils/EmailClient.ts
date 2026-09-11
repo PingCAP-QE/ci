@@ -20,10 +20,7 @@
  *   await mailer.sendText("from@example.com", "ops@example.com", "Ping", "Plain text body");
  */
 
-import {
-  SendConfig,
-  SMTPClient,
-} from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from "npm:nodemailer";
 import type { SmtpConfig } from "../core/types.ts";
 
 type Recipients = string | string[];
@@ -37,21 +34,19 @@ export class EmailClient {
     this.verbose = !!options?.verbose;
   }
 
-  private newClient() {
+  private newTransport() {
     if (this.verbose) {
       console.debug(
         `[email] connecting smtp://${this.cfg.host}:${this.cfg.port} secure=${this.cfg.secure}`,
       );
     }
-    const client = new SMTPClient({
-      connection: {
-        hostname: this.cfg.host,
-        port: this.cfg.port,
-        tls: this.cfg.secure,
-        auth: {
-          username: this.cfg.username!,
-          password: this.cfg.password!,
-        },
+    const transport = nodemailer.createTransport({
+      host: this.cfg.host,
+      port: this.cfg.port,
+      secure: this.cfg.secure,
+      auth: {
+        user: this.cfg.username!,
+        pass: this.cfg.password!,
       },
     });
     if (this.verbose) {
@@ -60,7 +55,7 @@ export class EmailClient {
       );
     }
 
-    return client;
+    return transport;
   }
 
   /**
@@ -82,31 +77,27 @@ export class EmailClient {
     if (!from) throw new Error("from is required");
     if (recipients.length === 0) throw new Error("to is required");
 
-    const client = this.newClient();
+    const transport = this.newTransport();
     try {
       if (this.verbose) {
         console.debug("[email] sending (html)", { from, to, cc, subject });
       }
 
-      const sendArgs: SendConfig = {
+      const mail: nodemailer.SendMailOptions = {
         from,
         to: recipients,
         subject,
         html,
       };
       if (cc) {
-        sendArgs.cc = this.normalizeRecipients(cc);
+        mail.cc = this.normalizeRecipients(cc);
       }
 
-      await client.send(sendArgs);
+      await transport.sendMail(mail);
       if (this.verbose) console.debug("[email] sent");
     } finally {
-      try {
-        await client.close();
-        if (this.verbose) console.debug("[email] closed");
-      } catch {
-        // ignore shutdown errors
-      }
+      transport.close();
+      if (this.verbose) console.debug("[email] closed");
     }
   }
 
@@ -129,7 +120,7 @@ export class EmailClient {
     if (!from) throw new Error("from is required");
     if (recipients.length === 0) throw new Error("to is required");
 
-    const client = this.newClient();
+    const transport = this.newTransport();
     try {
       if (this.verbose) {
         console.debug("[email] sending (text)", {
@@ -140,24 +131,20 @@ export class EmailClient {
         });
       }
 
-      const sendArgs: SendConfig = {
+      const mail: nodemailer.SendMailOptions = {
         from,
         to: recipients,
         subject,
-        content: text,
+        text,
       };
       if (cc) {
-        sendArgs.cc = this.normalizeRecipients(cc);
+        mail.cc = this.normalizeRecipients(cc);
       }
-      await client.send(sendArgs);
+      await transport.sendMail(mail);
       if (this.verbose) console.debug("[email] sent");
     } finally {
-      try {
-        await client.close();
-        if (this.verbose) console.debug("[email] closed");
-      } catch {
-        // ignore shutdown errors
-      }
+      transport.close();
+      if (this.verbose) console.debug("[email] closed");
     }
   }
 

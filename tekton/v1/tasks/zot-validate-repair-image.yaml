@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1_Task.json
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: zot-validate-repair-image
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: CLI
+    tekton.dev/tags: zot,registry,repair
+    tekton.dev/displayName: "zot validate repair image"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Validate a zot registry image and repair broken layer blobs by
+    downloading them from a source image and uploading to KSY S3.
+    Runs validate-repair-zot-image.sh from PingCAP-QE/ci.
+  params:
+    - name: target-image
+      description: The zot registry image URL to validate/repair.
+      type: string
+    - name: source-image
+      description: Source image URL to download healthy blobs from.
+      type: string
+    - name: bucket
+      description: S3 bucket name for blob storage.
+      type: string
+    - name: config-file-path
+      description: Path to ks3util config within the ks3util-config workspace.
+      type: string
+      default: ".ks3utilconfig"
+    - name: max-retries
+      description: Max download/upload attempts per blob.
+      type: string
+      default: "3"
+  workspaces:
+    - name: ks3util-config
+      description: Contains the ks3util config file for S3 authentication.
+  steps:
+    - name: validate-and-repair
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+      env:
+        - name: CONFIG_FILE
+          value: $(workspaces.ks3util-config.path)/$(params.config-file-path)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        SCRIPT_URL="https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/tools/validate-repair-zot-image.sh"
+
+        echo "Downloading validate-repair-zot-image.sh ..."
+        wget -q -O /tmp/validate-repair-zot-image.sh "$SCRIPT_URL"
+        chmod +x /tmp/validate-repair-zot-image.sh
+
+        /tmp/validate-repair-zot-image.sh \
+          --yes \
+          --source "$(params.source-image)" \
+          --bucket "$(params.bucket)" \
+          --config-file "$CONFIG_FILE" \
+          --max-retries "$(params.max-retries)" \
+          "$(params.target-image)"

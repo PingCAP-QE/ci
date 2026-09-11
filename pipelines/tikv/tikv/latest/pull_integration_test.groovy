@@ -6,18 +6,21 @@ final K8S_NAMESPACE = "jenkins-tikv"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/latest/pod-pull_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
+final SUPPORT_REPO_CACHE_REV = REFS.base_sha
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
+            retries 2
             defaultContainer 'runner'
         }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 50, unit: 'MINUTES')
@@ -29,12 +32,8 @@ pipeline {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
                 }
             }
@@ -45,25 +44,23 @@ pipeline {
                     sh label: 'Prepare tikv-server', script: 'make release'
                 }
                 dir('bin') {
-                    script {
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin')
-                    }
-                    script {
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin')
-                    }
-                    script {
-                        component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tidb', REFS.base_ref, REFS.pulls[0].title, 'centos7/tidb-server.tar.gz', 'bin')
+                    container('utils') {
+                        retry(2) {
+                            sh label: 'download components', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV} --tidb=${OCI_TAG_TIDB}
+                            """
+                        }
                     }
                 }
             }
         }
         stage('Tests') {
-            stages{
+            stages {
                 stage('copr test') {
                     options { timeout(time: 30, unit: 'MINUTES') }
                     steps {
                         dir('tidb') {
-                            cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                            cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${SUPPORT_REPO_CACHE_REV}", restoreKeys: ['git/pingcap/tidb/rev-']) {
                                 retry(2) {
                                     script {
                                         component.checkoutSupportBatch('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, REFS, GIT_CREDENTIALS_ID)
@@ -72,7 +69,7 @@ pipeline {
                             }
                         }
                         dir('copr-test') {
-                            cache(path: "./", includes: '**/*', key: "git/tikv/copr-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/tikv/copr-test/rev-']) {
+                            cache(path: "./", includes: '**/*', key: "git/tikv/copr-test/rev-${SUPPORT_REPO_CACHE_REV}", restoreKeys: ['git/tikv/copr-test/rev-']) {
                                 retry(2) {
                                     script {
                                         component.checkoutSupportBatch('https://github.com/tikv/copr-test.git', 'copr-test', REFS.base_ref, REFS.pulls[0].title, REFS, GIT_CREDENTIALS_ID)
@@ -91,14 +88,31 @@ pipeline {
                     }
                     post {
                         failure {
-                            echo "TODO: archive logs"
+                            sh label: 'Collect copr logs', script: """
+                                archive=log-copr-test.tar.gz
+                                tmp_file=\$(mktemp)
+                                for log_dir in "${WORKSPACE}/copr-test" "/tmp/tidb"; do
+                                    if [ -d "\${log_dir}" ]; then
+                                        find "\${log_dir}" -type f \\( -name "*.log" -o -name "*.out" -o -name "*.err" -o -name "nohup.out" \\) >> "\${tmp_file}"
+                                    fi
+                                done
+
+                                if [ -s "\${tmp_file}" ]; then
+                                    tar --warning=no-file-changed -czf "\${archive}" -T "\${tmp_file}" || true
+                                else
+                                    tar -czf "\${archive}" --files-from /dev/null
+                                fi
+                                rm -f "\${tmp_file}"
+                                ls -alh "\${archive}"
+                            """
+                            archiveArtifacts artifacts: 'log-copr-test.tar.gz', fingerprint: true
                         }
                     }
                 }
                 stage('compatible test') {
                     steps {
                         dir("tidb-test") {
-                            cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                            cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${SUPPORT_REPO_CACHE_REV}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
                                 retry(2) {
                                     script {
                                         component.checkoutSupportBatch('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, REFS, GIT_CREDENTIALS_ID)
@@ -123,7 +137,24 @@ pipeline {
                     }
                     post {
                         failure {
-                            echo "TODO: archive logs"
+                            sh label: 'Collect compatible logs', script: """
+                                archive=log-compatible-test.tar.gz
+                                tmp_file=\$(mktemp)
+                                for log_dir in "${WORKSPACE}/tidb-test/compatible_test" "/tmp/tidb"; do
+                                    if [ -d "\${log_dir}" ]; then
+                                        find "\${log_dir}" -type f \\( -name "*.log" -o -name "*.out" -o -name "*.err" -o -name "nohup.out" \\) >> "\${tmp_file}"
+                                    fi
+                                done
+
+                                if [ -s "\${tmp_file}" ]; then
+                                    tar --warning=no-file-changed -czf "\${archive}" -T "\${tmp_file}" || true
+                                else
+                                    tar -czf "\${archive}" --files-from /dev/null
+                                fi
+                                rm -f "\${tmp_file}"
+                                ls -alh "\${archive}"
+                            """
+                            archiveArtifacts artifacts: 'log-compatible-test.tar.gz', fingerprint: true
                         }
                     }
                 }

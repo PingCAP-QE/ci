@@ -10,10 +10,6 @@ pipelineJob('pingcap/tidb/release-9.0-beta/pull_build') {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap/tidb")
-    }
 
     definition {
         cpsScm {

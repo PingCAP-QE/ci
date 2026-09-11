@@ -22,12 +22,12 @@ spec:
       type: string
   steps:
     - name: clone-community-repo
-      image: bitnami/git:2.43.0
+      image: alpine/git:v2.52.0
       workingDir: /workspace
       script: |
         git clone https://github.com/pingcap/community.git --branch master
     - name: create-pull-request
-      image: denoland/deno:1.45.5
+      image: denoland/deno:2.8.3
       workingDir: /workspace/community
       script: |
         owner=$(basename $(dirname $(params.git-url)))
@@ -39,7 +39,7 @@ spec:
         echo "repo=${repo}"
 
         if [ "$owner" == "pingcap" ]; then
-          deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts \
+          deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/community/update-prow-owners.ts \
             --force \
             --owner=${owner} \
             --github_private_token=$(cat /etc/github/token) \
@@ -55,7 +55,7 @@ spec:
             --inputs=teams/migration/membership.json \
             --inputs=teams/bigdata/membership.json
         elif [ "$owner" == "tikv" ]; then
-          deno run --allow-all https://github.com/PingCAP-QE/ci/raw/main/scripts/pingcap/community/update-prow-owners.ts \
+          deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/community/update-prow-owners.ts \
             --force \
             --owner=${owner} \
             --github_private_token=$(cat /etc/github/token) \

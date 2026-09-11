@@ -1,0 +1,36 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-push-pingcap-tidb-binlog
+  labels:
+    type: github-branch-push
+    github-owner: pingcap
+    github-repo: tidb-binlog
+spec:
+  interceptors:
+    - name: filter on repo owner and name and branches
+      ref: { name: cel }
+      params:
+        - name: filter
+          # support branches:
+          # - release-6.5
+          # - release-7.1
+          # - release-7.5
+          # - release-7.1
+          # Deprecated at: release-8.4
+          value: >-
+            body.repository.full_name == 'pingcap/tidb-binlog'
+            &&
+            body.ref.matches('^refs/heads/release-(6[.]5|7[.][15]8[.]1)$')
+
+  bindings:
+    - ref: github-branch-push
+    - ref: ksy-classic-build-params
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: release }
+    - { name: timeout, value: 2h }
+    - { name: source-ws-size, value: 100Gi }
+    - { name: builder-resources-memory, value: 32Gi }
+    - { name: builder-resources-cpu, value: "8" }
+  template:
+    ref: build-component-all-platforms

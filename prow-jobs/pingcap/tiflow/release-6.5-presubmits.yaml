@@ -3,11 +3,14 @@ global_definitions:
   branches: &branches
     - ^release-6\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed_non_ticdc_files: &skip_if_only_changed_non_ticdc_files "(^dm/|^engine/|^cmd/dm-[^/]+/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
 
 presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-6.5/ghpr_verify
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-verify
@@ -19,10 +22,12 @@ presubmits:
 
     - name: pingcap/tiflow/release-6.5/pull_cdc_integration_kafka_test
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false # need add this.
       always_run: false
       run_before_merge: true
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       context: pull-cdc-integration-kafka-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-integration-kafka-test"
@@ -30,11 +35,13 @@ presubmits:
       skip_branches:
         - ^release-6\.5-20241101-v6\.5\.7$ # exclude release-6.5-20241101-v6.5.7 hotfix branch
 
-    - name: pingcap/tiflow/release-6.5/pull_cdc_integration_test
+    - name: pingcap/tiflow/release-6.5/pull_cdc_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
@@ -45,6 +52,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-6.5/pull_dm_compatibility_test
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -58,6 +67,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-6.5/pull_dm_integration_test
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed

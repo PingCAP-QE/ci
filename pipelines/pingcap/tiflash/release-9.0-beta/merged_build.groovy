@@ -22,65 +22,27 @@ pipeline {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
-            retries 5
+            retries 2
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
-    }
-    environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    hostname
-                    df -h
-                    free -hm
-                    gcc --version
-                    cmake --version
-                    clang --version
-                    ccache --version
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
                     retry(2) {
                         script {
-                            container("util") {
-                                withCredentials(
-                                    [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) {
-                                    sh "rm -rf ./*"
-                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
-                                    sh """
-                                    ls -alh
-                                    chown 1000:1000 src-tiflash.tar.gz
-                                    tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
-                                    ls -alh
-                                    """
-                                }
-                            }
                             sh """
                             git config --global --add safe.directory "*"
                             git version
                             git status
                             """
-                            git.setSshKey(GIT_CREDENTIALS_ID)
-                            prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
+                            prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID, timeout = 10, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             dir("contrib/tiflash-proxy") {
                                 proxy_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                                 println "proxy_commit_hash: ${proxy_commit_hash}"
@@ -226,24 +188,6 @@ pipeline {
                     sh """
                     ccache -s
                     ls -lha ${WORKSPACE}/install/tiflash
-                    """
-                }
-            }
-        }
-        stage("License check") {
-            steps {
-                dir("${WORKSPACE}/tiflash") {
-                    // TODO: add license-eye to docker image
-                    sh label: "license header check", script: """
-                        echo "license check"
-                        if [[ -f .github/licenserc.yml ]]; then
-                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
-                            chmod +x license-eye
-                            ./license-eye -c .github/licenserc.yml header check
-                        else
-                            echo "skip license check"
-                            exit 0
-                        fi
                     """
                 }
             }

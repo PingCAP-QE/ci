@@ -2,11 +2,14 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
-      - ^release-nextgen-\d+$
+      - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
       - ^feature/next[-]gen.*
+      - ^feature/tidb-zero.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   jenkins_job: &jenkins_job
     agent: jenkins
+    labels:
+      master: "1"
     decorate: false # need add this.
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
@@ -58,6 +61,7 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_br_integration_test_next_gen
+      # never run before
       # run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       optional: true
       context: non-block/pull-br-integration-test-next-gen
@@ -66,6 +70,7 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_ddl_test_next_gen
+      # never run before
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-integration-ddl-test-next-gen

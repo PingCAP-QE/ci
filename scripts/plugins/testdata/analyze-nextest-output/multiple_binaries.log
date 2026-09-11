@@ -1,0 +1,18 @@
+────────────  Nextest run ID 00000000-0000-0000-0000-000000000006 with nextest profile: default
+    Starting 4 tests across 2 binaries (0 skipped)
+       TRY 1 FAIL [   0.003s] crate_a::tests test_flaky_a
+     stderr ---
+        thread 'test_flaky_a' panicked at src/lib_a.rs:10:5:
+        flaky failure
+       TRY 2 PASS [   0.002s] crate_a::tests test_flaky_a
+       TRY 1 FAIL [   0.003s] crate_b::tests test_flaky_b
+     stderr ---
+        thread 'test_flaky_b' panicked at src/lib_b.rs:10:5:
+        flaky failure
+       TRY 2 PASS [   0.002s] crate_b::tests test_flaky_b
+       PASS [   0.001s] crate_a::tests test_pass_a
+       PASS [   0.001s] crate_b::tests test_pass_b
+────────────
+  Summary [   0.012s] 4 tests run: 4 passed (2 flaky), 0 skipped, 0 failed
+     FLAKY 2/2 [   0.002s] crate_a::tests test_flaky_a
+     FLAKY 2/2 [   0.002s] crate_b::tests test_flaky_b

@@ -4,14 +4,17 @@ global_definitions:
     - ^release-9\.0-beta\.\d+$
     - ^release-9\.0-beta\.\d+-\d{8}-v9\.0\.0-beta\.\d+(-\d+)?$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed_non_ticdc_files: &skip_if_only_changed_non_ticdc_files "(^dm/|^engine/|^cmd/dm-[^/]+/|(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$)"
 
 presubmits:
   pingcap/tiflow:
     - name: pingcap/tiflow/release-9.0-beta/pull_cdc_integration_kafka_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-kafka-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-kafka-test|all)(?: .*?)?$"
@@ -20,9 +23,11 @@ presubmits:
 
     - name: pingcap/tiflow/release-9.0-beta/pull_cdc_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-mysql-test|all)(?: .*?)?$"
@@ -31,9 +36,11 @@ presubmits:
 
     - name: pingcap/tiflow/release-9.0-beta/pull_cdc_integration_pulsar_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-pulsar-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-pulsar-test|all)(?: .*?)?$"
@@ -42,9 +49,11 @@ presubmits:
 
     - name: pingcap/tiflow/release-9.0-beta/pull_cdc_integration_storage_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
-      skip_if_only_changed: *skip_if_only_changed
+      skip_if_only_changed: *skip_if_only_changed_non_ticdc_files
       run_before_merge: true
       context: pull-cdc-integration-storage-test
       trigger: "(?m)^/test (?:.*? )?(pull-cdc-integration-storage-test|all)(?: .*?)?$"
@@ -53,6 +62,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-9.0-beta/pull_dm_compatibility_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -64,6 +75,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-9.0-beta/pull_dm_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -75,6 +88,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-9.0-beta/pull_syncdiff_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       always_run: false
       skip_if_only_changed: *skip_if_only_changed
@@ -85,6 +100,8 @@ presubmits:
 
     - name: pingcap/tiflow/release-9.0-beta/pull_verify
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-verify

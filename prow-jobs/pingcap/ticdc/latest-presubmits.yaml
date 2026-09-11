@@ -1,94 +1,177 @@
 global_definitions:
   branches: &branches
     - ^master$
-    - ^release-nextgen-\d+$
-    - ^release-8\.5$
+    - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
     - ^feature/.+
-  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  jenkins_job: &jenkins_job
+    agent: jenkins
+    decorate: false # need add this.
+    labels:
+      master: "1"
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap/ticdc:
-    - name: pingcap/ticdc/pull_cdc_mysql_integration_light
-      agent: jenkins
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_light
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-light
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light|light|mysql|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-light"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
-      agent: jenkins
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_heavy
+      labels:
+        master: "0"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-mysql-integration-heavy
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy|heavy|mysql|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-mysql-integration-heavy"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_kafka_integration_light
-      agent: jenkins
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_kafka_integration_light
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-kafka-integration-light
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light|light|kafka|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-light"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_kafka_integration_heavy
-      agent: jenkins
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_kafka_integration_heavy
+      labels:
+        master: "0"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-kafka-integration-heavy
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy|heavy|kafka|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-kafka-integration-heavy"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_pulsar_integration_light
-      agent: jenkins
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_pulsar_integration_light
+      labels:
+        master: "0"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-pulsar-integration-light
       optional: true # TODO: change this after the job is ready
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light|light|pulsar|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-pulsar-integration-light"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_storage_integration_light
-      agent: jenkins
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_pulsar_integration_heavy
+      labels:
+        master: "0"
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-pulsar-integration-heavy
+      optional: true
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-heavy|pulsar|heavy|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-pulsar-integration-heavy"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_storage_integration_light
+      labels:
+        master: "1"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-light
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light|light|storage|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-light"
       branches: *branches
 
-    - name: pingcap/ticdc/pull_cdc_storage_integration_heavy
-      agent: jenkins
-      decorate: false # need add this.
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_storage_integration_heavy
+      labels:
+        master: "0"
       # skip_if_only_changed: *skip_if_only_changed
       run_before_merge: true
       context: pull-cdc-storage-integration-heavy
-      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy|all)(?: .*?)?$"
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy|heavy|storage|all)(?: .*?)?$"
       rerun_command: "/test pull-cdc-storage-integration-heavy"
       branches: *branches
 
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_light_v7_5
+      labels:
+        master: "1"
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: false
+      optional: true
+      context: pull-cdc-mysql-integration-light-v7-5
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-v7-5|all-v7-5)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-light-v7-5"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_v7_5
+      labels:
+        master: "1"
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: false
+      optional: true
+      context: pull-cdc-mysql-integration-heavy-v7-5
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-v7-5|all-v7-5)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-heavy-v7-5"
+      branches: *branches
+
+
+
+
+
+
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_light_v8_1
+      labels:
+        master: "0"
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: false
+      optional: true
+      context: pull-cdc-mysql-integration-light-v8-1
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light-v8-1|all-v8-1)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-light-v8-1"
+      branches: *branches
+
+    - <<: *jenkins_job
+      name: pingcap/ticdc/pull_cdc_mysql_integration_heavy_v8_1
+      labels:
+        master: "0"
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: false
+      optional: true
+      context: pull-cdc-mysql-integration-heavy-v8-1
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy-v8-1|all-v8-1)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-heavy-v8-1"
+      branches: *branches
+
+
+
+
+
+
+
     - name: pull-unit-test
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       branches:
         - ^master$
-        - ^release-8\.5$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
       spec:
         containers:
           - name: check
-            image: &image ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            image: &image ghcr.io/pingcap-qe/ci/base:v2026.3.15-1-g5625431-go1.25
             command: [bash, -ce]
             args:
               - |
@@ -103,10 +186,11 @@ presubmits:
 
     - name: pull-build
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       branches:
         - ^master$
-        - ^release-8\.5$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
       spec:
         containers:
           - name: build
@@ -125,10 +209,11 @@ presubmits:
 
     - name: pull-check
       decorate: true # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
       branches:
         - ^master$
-        - ^release-8\.5$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
       spec:
         containers:
           - name: check
@@ -142,7 +227,7 @@ presubmits:
     - name: pull-error-log-review
       branches:
         - ^master$
-        - ^release-8\.5$
+        - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
       decorate: true
       decoration_config:
         timeout: 20m
@@ -161,8 +246,8 @@ presubmits:
                   echo "JOB_TYPE is batch, skipping error log review check"
                   exit 0
                 fi
-                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
-                go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
+                wget -O /tmp/config.yaml https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/configs/error-log-review/config.yaml
+                GOPROXY=direct go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
                   -config /tmp/config.yaml \
                   -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
             env:

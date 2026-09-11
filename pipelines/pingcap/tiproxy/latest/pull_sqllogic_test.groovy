@@ -8,41 +8,26 @@ final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tiproxy/latest/pod-pull_sqllogic_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         CI = "1"
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -72,19 +57,26 @@ pipeline {
                     sh label: 'tiproxy', script: '[ -f bin/tiproxy ] || make'
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch ws-${BUILD_TAG}"
-                        sh label: 'prepare thirdparty binary', script: """
-                        chmod +x download_binary.sh
-                        ./download_binary.sh --tidb=master --pd=master --tikv=master
-                        cp ../tiproxy/bin/tiproxy ./bin/
-                        ls -alh bin/
-                        ./bin/tidb-server -V
-                        ./bin/pd-server -V
-                        ./bin/tikv-server -V
-                        ./bin/tiproxy --version
-                        """
+                    sh "touch ws-${BUILD_TAG}"
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: 'download binary', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                    --tidb=master --pd=master --tikv=master
+                                """
+                            }
+                        }
                     }
+                    sh label: 'prepare thirdparty binary', script: """
+                    cp ../tiproxy/bin/tiproxy ./bin/
+                    ls -alh bin/
+                    ./bin/tidb-server -V
+                    ./bin/pd-server -V
+                    ./bin/tikv-server -V
+                    ./bin/tiproxy --version
+                    """
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -103,28 +95,34 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_path_string: env.TEST_PATH_STRING]) }
                 }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh label: "test_path: ${TEST_PATH_STRING}", script: """
-                                        #!/usr/bin/env bash
-                                        path_array=(${TEST_PATH_STRING})
-                                        for path in \${path_array[@]}; do
-                                            echo "test path: \${path}"
-                                            SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
-                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p \${SQLLOGIC_TEST_PATH}"
-                                        done
-                                    """
-                                }
+                                unstash 'ws'
+                                sh label: "test_path: ${TEST_PATH_STRING}", script: """
+                                    #!/usr/bin/env bash
+                                    path_array=(${TEST_PATH_STRING})
+                                    for path in \${path_array[@]}; do
+                                        echo "test path: \${path}"
+                                        SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
+                                        make deploy-sqllogictest ARGS="-x -c y -s tikv -p \${SQLLOGIC_TEST_PATH}"
+                                    done
+                                """
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }
@@ -142,28 +140,34 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_path_string: env.TEST_PATH_STRING]) }
                 }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh label: "test_path: ${TEST_PATH_STRING}", script: """
-                                        #!/usr/bin/env bash
-                                        path_array=(${TEST_PATH_STRING})
-                                        for path in \${path_array[@]}; do
-                                            echo "test path: \${path}"
-                                            SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
-                                            make deploy-sqllogictest ARGS="-x -c y -s tikv -p \${SQLLOGIC_TEST_PATH}"
-                                        done
-                                    """
-                                }
+                                unstash 'ws'
+                                sh label: "test_path: ${TEST_PATH_STRING}", script: """
+                                    #!/usr/bin/env bash
+                                    path_array=(${TEST_PATH_STRING})
+                                    for path in \${path_array[@]}; do
+                                        echo "test path: \${path}"
+                                        SQLLOGIC_TEST_PATH="/git/sqllogictest/test/\${path}" \
+                                        make deploy-sqllogictest ARGS="-x -c y -s tikv -p \${SQLLOGIC_TEST_PATH}"
+                                    done
+                                """
                             }
                         }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [test_path_string: env.TEST_PATH_STRING]) } } }
                     }
                 }
             }

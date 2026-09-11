@@ -6,7 +6,7 @@ from .util import shell_cmd
 from .types import Components
 from .matcher import Matcher
 
-download_url = "https://download.pingcap.org"
+download_url = "https://download.pingcap.com"
 tmp_dir = "$HOME/release-checker-tarball"
 
 

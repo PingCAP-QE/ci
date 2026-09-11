@@ -1,0 +1,36 @@
+# event payload:
+# {
+#   "type": "PUSH_ARTIFACT",
+#   "occur_at": 1701140373,
+#   "operator": "robot$release",
+#   "event_data": {
+#     "resources": [
+#         {
+#             "digest": "sha256:14b865676344230458998ebe886d32165264303c38a811a5a6372301ebf45c41",
+#             "tag": "v1",
+#             "resource_url": "hub.pingcap.net/pingcap/hello:v1"
+#         }
+#     ],
+#     "repository": {
+#         "date_created": 1701140373,
+#         "name": "hello",
+#         "namespace": "pingcap",
+#         "repo_full_name": "pingcap/hello",
+#         "repo_type": "public"
+#     }
+#   }
+# }
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: harbor-image-push
+spec:
+  params:
+    - name: image_url
+      value: $(body.event_data.resources[0].resource_url)
+    - name: digest
+      value: $(body.event_data.resources[0].digest)
+    - name: tag
+      value: $(body.event_data.resources[0].tag)
+    - name: namespace
+      value: $(body.event_data.repository.namespace)

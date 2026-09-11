@@ -7,57 +7,39 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_integration_ddl_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
-        GITHUB_TOKEN = credentials('github-bot-token')
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
-            options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
-                            }
+                    retry(2) {
+                        script {
+                            component.checkout('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
                         }
                     }
                 }
@@ -65,38 +47,32 @@ pipeline {
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     container("golang") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
                         sh label: 'ddl-test', script: 'ls bin/ddltest || make ddltest'
-                        retry(3) {
-                            script {
-                                def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-                                sh label: 'download binary', script: """
-                                    chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${pdBranch} --tikv=${tikvBranch}
-                                    mv third_bin/tikv-server bin/
-                                    mv third_bin/pd-server bin/
-                                    ls -alh bin/
+                    }
+                    container("utils") {
+                        dir("bin") {
+                            retry(3) {
+                                sh label: 'download tidb components', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
                                 """
                             }
-
                         }
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: "prepare", script: """
-                            touch ws-${BUILD_TAG}
-                            mkdir -p bin
-                            cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tidb-server -V
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        touch ws-${BUILD_TAG}
+                        mkdir -p bin
+                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                        ls -alh bin/
+                        ./bin/pd-server -V
+                        ./bin/tikv-server -V
+                        ./bin/tidb-server -V
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -112,45 +88,43 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                         defaultContainer 'golang'
+                        retries 2
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [ddl_test: env.DDL_TEST]) }
                 }
                 stages {
                     stage("Test") {
-                        options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh """
-                                        ls -alh bin/
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tidb-server -V
-                                    """
-                                    container("golang") {
-                                        sh label: "ddl_test ${DDL_TEST}", script: """#!/usr/bin/env bash
-                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                unstash 'tidb-test'
+                                sh """
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
+                                """
+                                container("golang") {
+                                    sh label: "ddl_test ${DDL_TEST}", script: """#!/usr/bin/env bash
+                                        echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                        bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
 
-                                            cp bin/tidb-server bin/ddltest_tidb-server && ls -alh bin/
-                                            export log_level=debug
-                                            export PATH=`pwd`/bin:\$PATH
-                                            export DDLTEST_PATH="${WORKSPACE}/tidb-test/bin/ddltest"
-                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/ddltest_tidb-server"
-                                            cd ddl_test/ && pwd && ./test.sh -test.run="${DDL_TEST}"
-                                        """
-                                    }
+                                        cp bin/tidb-server bin/ddltest_tidb-server && ls -alh bin/
+                                        export log_level=debug
+                                        export PATH=`pwd`/bin:\$PATH
+                                        export DDLTEST_PATH="${WORKSPACE}/tidb-test/bin/ddltest"
+                                        export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/ddltest_tidb-server"
+                                        cd ddl_test/ && pwd && ./test.sh -test.run="${DDL_TEST}"
+                                    """
                                 }
                             }
                         }
-                        post{
-                            failure {
-                                script {
-                                    println "Test failed, archive the log"
-                                }
-                            }
-                        }
+                        post { success { script { matrixCache.markDone(REFS, 'Test', [ddl_test: env.DDL_TEST]) } } }
                     }
                 }
             }

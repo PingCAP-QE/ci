@@ -7,7 +7,7 @@ presubmits:
         - ^main$
       spec:
         containers:
-          - image: ticommunityinfra/checkconfig:v20221227-b4eaee6696
+          - image: ghcr.io/ti-community-infra/prow/checkconfig:v20251023-c4199afa4
             command:
               - /ko-app/checkconfig
             args:
@@ -33,7 +33,7 @@ presubmits:
         - ^main$
       spec:
         containers:
-          - image: golang:1.18
+          - image: golang:1.26.4
             command:
               - scripts/verify-labels.sh
     - name: pull-configs-validate-orgs
@@ -44,7 +44,7 @@ presubmits:
       max_concurrency: 1
       spec:
         containers:
-          - image: golang:1.18
+          - image: golang:1.26.4
             command:
               - scripts/peribolos.sh
             args:
@@ -81,7 +81,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
+            image: ghcr.io/fluxcd/flux-cli:v2.8.8
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
             command: [flux, -n, flux-system]
@@ -109,7 +109,7 @@ presubmits:
       spec:
         containers:
           - name: main
-            image: ghcr.io/fluxcd/flux-cli:v2.0.0-rc.4
+            image: ghcr.io/fluxcd/flux-cli:v2.8.8
             securityContext:
               runAsUser: 0 # the default user or the image is not root.
             command: [flux, -n, flux-system]

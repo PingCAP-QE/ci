@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/wangweizhen/tidb_image:go12320241009"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
       securityContext:
         privileged: true
       tty: true
@@ -16,11 +16,6 @@ spec:
         limits:
           memory: 32Gi
           cpu: "8"
-      # env:
-      #   - name: GOPATH
-      #     value: /share/.go
-      #   - name: GOCACHE
-      #     value: /share/.cache/go-build
       volumeMounts:
         - mountPath: /home/jenkins/.tidb/tmp
           name: bazel-out-merged
@@ -29,10 +24,6 @@ spec:
           mountPath: /bazel-out-lower
         - name: bazel-out-overlay
           mountPath: /bazel-out-overlay
-        - name: gocache
-          mountPath: /share/.cache/go-build
-        - name: gopathcache
-          mountPath: /share/.go
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
@@ -44,20 +35,7 @@ spec:
             command:
               - /bin/sh
               - /data/bazel-prepare-in-container.sh
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
-      tty: true
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 100m
   volumes:
-    - name: gopathcache
-      persistentVolumeClaim:
-        claimName: gopathcache
-    - name: gocache
-      persistentVolumeClaim:
-        claimName: gocache
     - name: bazel-out-lower
       persistentVolumeClaim:
         claimName: bazel-out-data

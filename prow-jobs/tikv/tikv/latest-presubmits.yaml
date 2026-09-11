@@ -4,6 +4,7 @@ global_definitions:
     branches:
       - ^master$
       - ^feature/.+
+      - ^release-fts-[0-9]+$
     skip_branches:
       - ^feature/release-\d+\.\d+(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -13,6 +14,8 @@ presubmits:
     - <<: *brancher
       name: tikv/tikv/pull_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       optional: false
@@ -24,6 +27,8 @@ presubmits:
     - <<: *brancher
       name: tikv/tikv/pull_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       # skip_if_only_changed: *skip_if_only_changed
       always_run: false # update here after test passed
@@ -36,15 +41,12 @@ presubmits:
     - <<: *brancher
       name: pull-clippy-linux-arm64
       agent: kubernetes
-      cluster: gcp-prow-ksyun
       decorate: true # need add this.
-      # skip_if_only_changed: *skip_if_only_changed
-      always_run: false
-      optional: true # update here after test passed
+      skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
           - name: build
-            image: hub.pingcap.net/ee/ci/base:v20230803-go1.19.12
+            image: ghcr.io/pingcap-qe/cd/builders/tikv:v2026.3.22-3-g892e449
             command: [bash, -ce]
             args:
               - |
@@ -73,6 +75,7 @@ presubmits:
     - name: pull-error-log-review
       branches:
         - ^master$
+        - ^release-fts-202602$
       decorate: true
       decoration_config:
         timeout: 20m
@@ -93,8 +96,8 @@ presubmits:
                   echo "JOB_TYPE is batch, skipping error log review check"
                   exit 0
                 fi
-                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
-                go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
+                wget -O /tmp/config.yaml https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/configs/error-log-review/config.yaml
+                GOPROXY=direct go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
                   -config /tmp/config.yaml \
                   -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
             env:

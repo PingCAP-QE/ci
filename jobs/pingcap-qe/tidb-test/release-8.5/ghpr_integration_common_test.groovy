@@ -13,7 +13,6 @@ pipelineJob('pingcap-qe/tidb-test/release-8.5/ghpr_integration_common_test') {
     properties {
         buildFailureAnalyzer(false) // disable failure analyze
         // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/pingcap-qe/tidb-test")
     }
 
     definition {

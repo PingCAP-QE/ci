@@ -21,16 +21,16 @@ spec:
         - name: CACHE_READ_SERVER_BASE_URL
           value: "http://fileserver.pingcap.net/download"
       script: |
-        cfg_github_raw_path_url="PingCAP-QE/artifacts/main/packages/delivery.yaml"
-        gs_github_raw_path_url="PingCAP-QE/artifacts/main/packages/scripts/gen-delivery-image-commands.ts"
-        cfg_yaml_file="https://raw.githubusercontent.com/$cfg_github_raw_path_url"
-        gen_script_url="https://raw.githubusercontent.com/$gs_github_raw_path_url"
+        cfg_github_raw_path_url="PingCAP-QE/artifacts@main/packages/delivery.yaml"
+        gs_github_raw_path_url="PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts"
+        cfg_yaml_file="https://cdn.jsdelivr.net/gh/$cfg_github_raw_path_url"
+        gen_script_url="https://cdn.jsdelivr.net/gh/$gs_github_raw_path_url"
 
-        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$cfg_github_raw_path_url"; then
-          cfg_yaml_file="$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$cfg_github_raw_path_url"
+        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/cdn.jsdelivr.net/gh/$cfg_github_raw_path_url"; then
+          cfg_yaml_file="$CACHE_READ_SERVER_BASE_URL/cdn.jsdelivr.net/gh/$cfg_github_raw_path_url"
         fi
-        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$gs_github_raw_path_url"; then
-          gen_script_url="$CACHE_READ_SERVER_BASE_URL/raw.githubusercontent.com/$gs_github_raw_path_url"
+        if wget -q --spider "$CACHE_READ_SERVER_BASE_URL/cdn.jsdelivr.net/gh/$gs_github_raw_path_url"; then
+          gen_script_url="$CACHE_READ_SERVER_BASE_URL/cdn.jsdelivr.net/gh/$gs_github_raw_path_url"
         fi
 
         wget -O delivery.yaml "$cfg_yaml_file"
@@ -39,9 +39,9 @@ spec:
           --yaml_file=delivery.yaml \
           --outfile=/workspace/delivery.sh
     - name: run-commands
-      image: gcr.io/go-containerregistry/crane/debug:latest
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       script: |
-        #!/busybox/sh
+        #!/bin/sh
         set -e
 
         script="/workspace/delivery.sh"
@@ -50,10 +50,9 @@ spec:
           exit 0
         fi
 
-        chmod +x $script
         tries=0
         max_retries=3
-        until $script; do
+        until /bin/sh $script; do
           tries=$((tries + 1))
           if [ $tries -ge $max_retries ]; then
             echo "Script '$script' failed after $max_retries attempts."

@@ -8,88 +8,53 @@ final GIT_FULL_REPO_NAME = 'pingcap-qe/tidb-test'
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final WORKSPACE_STASH_NAME = 'tidb-test-workspace'
 
+prow.setPRDescription(REFS)
 pipeline {
-    agent {
-        kubernetes {
-            namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
-            defaultContainer 'golang'
-        }
-    }
+    agent none
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 45, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    ls -l /dev/null
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
+        stage('Checkout & Prepare') {
+            agent {
+                kubernetes {
+                    namespace K8S_NAMESPACE
+                    yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                    retries 2
+                    workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
+                    defaultContainer 'golang'
                 }
             }
-        }
-        stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
                 dir("tidb") {
                     cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb/rev-']) {
-                        retry(2) {
-                            script {
-                                component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
-                            }
+                        script {
+                            component.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, trunkBranch=REFS.base_ref, timeout=5, credentialsId="")
                         }
                     }
+
+                    sh label: 'compile tidb-server', script: 'make'
                 }
                 dir("tidb-test") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutPrivateRefs(REFS, GIT_CREDENTIALS_ID, timeout=5)
-                            }
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
+                    }
+                    container("utils") {
+                        dir('mysql_test/bin') {
+                            sh label: 'download tidb components', script: """
+                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                            """
+                            sh "cp -v ${WORKSPACE}/tidb/bin/* ./"
                         }
                     }
-                }
-            }
-        }
-        stage('Prepare') {
-            steps {
-                dir('tidb') {
-                    cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                        sh label: 'tidb-server', script: 'make'
-                        retry(2) {
-                            sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/* bin/
-                                ls -alh bin/
-                            """
-                            sh label: "check binary", script: """
-                                pwd && ls -alh
-                                ls bin/tidb-server && ./bin/tidb-server -V
-                                ls bin/pd-server && ./bin/pd-server -V
-                                ls bin/tikv-server && ./bin/tikv-server -V
-                            """
-                        }
-                    }
-                }
-                dir('tidb-test') {
-                    cache(path: "./mysql_test", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
-                        sh "touch ws-${BUILD_TAG}"
-                    }
+                    stash includes: '**/*', name: WORKSPACE_STASH_NAME
                 }
             }
         }
@@ -105,29 +70,28 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [part: env.PART]) }
                 }
                 stages {
                     stage("Test") {
                         steps {
-                            dir('tidb') {
-                                cache(path: "./bin", includes: '**/*', key: "ws/${BUILD_TAG}/dependencies") {
-                                    sh label: "print version", script: """
+                            dir('tidb-test') {
+                                unstash name: WORKSPACE_STASH_NAME
+                                dir('mysql_test') {
+                                    sh label: "check binary", script: """
                                         pwd && ls -alh
+                                        chmod +x bin/*
                                         ls bin/tidb-server && ./bin/tidb-server -V
                                         ls bin/pd-server && ./bin/pd-server -V
                                         ls bin/tikv-server && ./bin/tikv-server -V
                                     """
-                                }
-                            }
-                            dir('tidb-test/mysql_test') {
-                                sh """
-                                    mkdir -p bin
-                                    mv ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                                    ls -alh bin/
-                                """
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/mysql-test") {
                                     sh label: "PART ${PART}", script: """
                                         #!/usr/bin/env bash
                                         ls -alh
@@ -145,6 +109,7 @@ pipeline {
                             always {
                                 junit(testResults: "**/result.xml")
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [part: env.PART]) } }
                         }
                     }
                 }

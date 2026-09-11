@@ -6,72 +6,62 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_tiflash_integration_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_CREDENTIALS_ID = ''
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, 'master')
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             steps {
-                dir('tidb') {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
         }
         stage('Prepare') {
             steps {
-                dir('tidb') {
+                dir(REFS.repo) {
                     sh label: 'tidb-server', script: 'ls bin/tidb-server || make server'
                     cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'vector-search-test')) {
-                        script {
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tikv', REFS.base_ref, REFS.pulls[0].title, 'centos7/tikv-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'pd', REFS.base_ref, REFS.pulls[0].title, 'centos7/pd-server.tar.gz', 'bin', trunkBranch="master", artifactVerify=true)
-                            // Note tiflash need extract all files in tiflash dir (extract tar.gz to tiflash dir)
-                            component.fetchAndExtractArtifact(FILE_SERVER_URL, 'tiflash', REFS.base_ref, REFS.pulls[0].title, 'centos7/tiflash.tar.gz', '', trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=true)
-                            sh label: 'move tiflash', script: 'mv tiflash/* bin/ && rm -rf tiflash'
+                        container("utils") {
+                            dir("bin") {
+                                retry(3) {
+                                    sh label: 'download tidb components', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --pd=${OCI_TAG_PD} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH}
+                                    """
+                                }
+                            }
                         }
                     }
                 }
                 dir('test-assets') {
                     cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/euclidean-hdf5") {
                         sh label: 'download test assets', script: """
-                        # wget https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
-                        # wget https://ann-benchmarks.com/mnist-784-euclidean.hdf5
-                        # Use internal file server to download test assets
-                        wget -q ${FILE_SERVER_URL}/download/ci-artifacts/tidb/vector-search-test/v20250521/fashion-mnist-784-euclidean.hdf5
-                        wget -q ${FILE_SERVER_URL}/download/ci-artifacts/tidb/vector-search-test/v20250521/mnist-784-euclidean.hdf5
+                        wget -q https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
+                        wget -q https://ann-benchmarks.com/mnist-784-euclidean.hdf5
                         """
                     }
                 }
@@ -108,18 +98,24 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_script: env.TEST_SCRIPT]) }
                 }
                 stages {
                     stage('Restore cache') {
                         steps {
-                            dir("tidb") {
+                            dir(REFS.repo) {
                                 cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS)) {
                                     sh 'ls -lh'
                                 }
                             }
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'vector-search-test')) {
                                     sh label: 'print version', script: """
                                         bin/tidb-server -V
@@ -152,9 +148,8 @@ pipeline {
                         }
                     }
                     stage("Test") {
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
-                            dir('tidb') {
+                            dir(REFS.repo) {
                                 sh label: "TEST_SCRIPT ${TEST_SCRIPT}", script: """#!/usr/bin/env bash
                                     export PATH="\$HOME/.tiup/bin:\$PATH"
                                     export PATH="\$HOME/.local/bin:\$PATH"
@@ -177,6 +172,7 @@ pipeline {
                                     archiveArtifacts artifacts: 'tidb/tests/clusterintegrationtest/logs', fingerprint: true
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_script: env.TEST_SCRIPT]) } }
                         }
                     }
                 }

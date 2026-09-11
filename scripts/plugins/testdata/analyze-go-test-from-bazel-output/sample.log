@@ -1,0 +1,14 @@
+==================== Test output for //pkg:skip_case (1 shards, 1 tests) ====================
+=== RUN   TestSkipOnly
+--- SKIP: TestSkipOnly (0.00s)
+==================== ========================================================= ====================
+==================== Test output for //pkg:fail_case (1 shards, 1 tests) ====================
+=== RUN   TestFailRace
+--- FAIL: TestFailRace (0.01s)
+WARNING: DATA RACE
+testing.go:123: race detected during execution of test
+==================== ========================================================= ====================
+==================== Test output for //pkg:timeout_case (1 shards, 1 tests) ====================
+=== RUN   TestTimeout
+-- Test timed out at 2026-05-20 00:00:00 UTC
+==================== ========================================================= ====================

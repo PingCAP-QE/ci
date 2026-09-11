@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "hub.pingcap.net/jenkins/centos7_golang-1.21:latest"
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25"
       tty: true
       resources:
         requests:
@@ -17,7 +17,7 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - image: hub.pingcap.net/jenkins/zookeeper
+    - image: docker.io/wurstmeister/zookeeper
       imagePullPolicy: IfNotPresent
       name: zookeeper
       resources:
@@ -46,7 +46,7 @@ spec:
           value: "zk"
         - name: KAFKA_ZOOKEEPER_CONNECT
           value: "127.0.0.1:2181"
-      image: hub.pingcap.net/jenkins/kafka
+      image: docker.io/wurstmeister/kafka:2.12-2.4.1
       imagePullPolicy: IfNotPresent
       name: kafka
       resources:
@@ -60,13 +60,17 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - name: net-tool
-      image: hub.pingcap.net/jenkins/network-multitool
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
-        limits:
-          memory: 128Mi
+        requests:
+          memory: 256Mi
           cpu: 100m
+        limits:
+          cpu: "1"
+          memory: 4Gi
+
   volumes:
     - emptyDir:
         medium: Memory

@@ -1,8 +1,13 @@
 global_definitions:
+  ftsbrancher: &ftsbrancher
+    branches:
+      - ^feature/fts$
+      - ^release-fts-[0-9]+$
   brancher: &brancher
     branches:
       - ^master$
       - ^feature/.+
+      - ^release-fts-[0-9]+$
     skip_branches: # skip feature branches based on released version.
       - ^feature/release-\d+\.\d+(.\d+)?-.+$
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
@@ -13,6 +18,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/ghpr_build
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/build
@@ -22,6 +29,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/ghpr_check
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev
@@ -31,6 +40,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/ghpr_check2
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -40,6 +51,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/ghpr_mysql_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/mysql-test
@@ -49,6 +62,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/ghpr_unit_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/unit-test
@@ -58,6 +73,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_unit_test_ddlv1
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "pkg/(ddl|meta)/.*"
       context: pull-unit-test-ddlv1
@@ -67,15 +84,31 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_integration_mysql_test
       agent: jenkins
+      labels:
+        master: "1"
       decorate: false # need add this.
       optional: true
       context: pull-integration-mysql-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-mysql-test(?: .*?)?$"
       rerun_command: "/test pull-integration-mysql-test"
 
+    - <<: *ftsbrancher
+      name: pingcap/tidb/pull_integration_tici_test
+      agent: jenkins
+      labels:
+        master: "1"
+      decorate: false # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-integration-tici-test
+      trigger: "(?m)^/test (?:.*? )?pull-integration-tici-test(?: .*?)?$"
+      optional: true
+      rerun_command: "/test pull-integration-tici-test"
+
     - <<: *brancher
       name: pingcap/tidb/pull_integration_copr_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-integration-copr-test
@@ -85,6 +118,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_integration_jdbc_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-integration-jdbc-test
@@ -94,6 +129,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-e2e-test
@@ -103,6 +140,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_integration_e2e_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-e2e-test
@@ -112,6 +151,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_br_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-br-integration-test
       run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
@@ -121,6 +162,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_lightning_integration_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       context: pull-lightning-integration-test
       run_if_changed: "(lightning|pkg/(domain|statistics|ddl|infoschema)|br/pkg/(checksum|httputil|membuf|pdutil|restore/split|storage))/.*"
@@ -130,6 +173,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_common_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-common-test
@@ -139,6 +184,9 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_integration_common_test
       agent: jenkins
+      labels:
+        master: "1"
+      # never run before
       decorate: false # need add this.
       optional: true
       context: pull-integration-common-test
@@ -148,8 +196,12 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_integration_ddl_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
-      skip_if_only_changed: *skip_if_only_changed
+      always_run: false
+      optional: true
+      # skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-ddl-test
       trigger: "(?m)^/test (?:.*? )?pull-integration-ddl-test(?: .*?)?$"
       rerun_command: "/test pull-integration-ddl-test"
@@ -157,6 +209,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_sqllogic_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-sqllogic-test
@@ -166,6 +220,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_mysql_client_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-mysql-client-test
@@ -175,6 +231,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_integration_nodejs_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-integration-nodejs-test
@@ -184,6 +242,8 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_integration_python_orm_test
       agent: jenkins
+      labels:
+        master: "0"
       decorate: false # need add this.
       optional: true
       context: pull-integration-python-orm-test
@@ -193,6 +253,9 @@ presubmits:
     - <<: *brancher
       name: pingcap/tidb/pull_tiflash_integration_test
       agent: jenkins
+      labels:
+        master: "1"
+      # this job never run before.
       decorate: false # need add this.
       optional: true
       context: pull-tiflash-integration-test
@@ -202,6 +265,7 @@ presubmits:
     - name: pull-error-log-review
       branches:
         - ^master$
+        - ^release-fts-[0-9]+$
       decorate: true
       decoration_config:
         timeout: 20m
@@ -221,7 +285,7 @@ presubmits:
                   echo "JOB_TYPE is batch, skipping error log review check"
                   exit 0
                 fi
-                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
+                wget -O /tmp/config.yaml https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/configs/error-log-review/config.yaml
                 go run github.com/PingCAP-QE/ci/tools/error-log-review@eb8212b575c315a2d127ec71cc5a653bc4cba54f \
                   -config /tmp/config.yaml \
                   -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"

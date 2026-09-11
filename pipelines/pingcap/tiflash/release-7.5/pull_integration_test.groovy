@@ -12,70 +12,45 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 16
 final dependency_dir = "/home/jenkins/agent/dependency"
 Boolean proxy_cache_ready = false
+Boolean build_cache_ready = false
 String proxy_commit_hash = null
 String tiflash_commit_hash = null
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
             defaultContainer 'runner'
-            retries 5
+            retries 2
             customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
     options {
         timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
+            when {
+                expression { !build_cache_ready }
+            }
             options { timeout(time: 15, unit: 'MINUTES') }
             steps {
                 dir("tiflash") {
                     retry(2) {
                         script {
-                            container("util") {
-                                withCredentials(
-                                    [file(credentialsId: 'ks3util-config', variable: 'KS3UTIL_CONF')]
-                                ) {
-                                    sh "rm -rf ./*"
-                                    sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/cicd/daily-cache-code/src-tiflash.tar.gz src-tiflash.tar.gz"
-                                    sh """
-                                    ls -alh
-                                    chown 1000:1000 src-tiflash.tar.gz
-                                    tar -xf src-tiflash.tar.gz --strip-components=1 && rm -rf src-tiflash.tar.gz
-                                    ls -alh
-                                    """
-                                }
-                            }
                             sh """
                             git config --global --add safe.directory "*"
                             git version
                             git status
                             """
-                            prow.checkoutRefs(REFS, timeout = 5, credentialsId = '', gitBaseUrl = 'https://github.com', withSubmodule=true)
+                            prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
                             tiflash_commit_hash = sh(returnStdout: true, script: 'git log -1 --format="%H"').trim()
                             println "tiflash_commit_hash: ${tiflash_commit_hash}"
                             dir("contrib/tiflash-proxy") {
@@ -91,6 +66,9 @@ pipeline {
             }
         }
         stage("Prepare Cache") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Ccache") {
                     steps {
@@ -181,6 +159,9 @@ pipeline {
             }
         }
         stage("Configure Project") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 script {
                     def toolchain = "llvm"
@@ -222,6 +203,9 @@ pipeline {
             }
         }
         stage("Format Check") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 script {
                     def target_branch = REFS.base_ref
@@ -240,12 +224,17 @@ pipeline {
                             --repo_path '${WORKSPACE}/tiflash' \\
                             --check_formatted \\
                             --diff_from \$(git merge-base origin/${target_branch} HEAD)
+
+                        cat /tmp/tiflash-diff-files.json
                         """
                     }
                 }
             }
         }
         stage("Build TiFlash") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
                     sh """
@@ -261,25 +250,10 @@ pipeline {
                 }
             }
         }
-        stage("License check") {
-            steps {
-                dir("${WORKSPACE}/tiflash") {
-                    // TODO: add license-eye to docker image
-                    sh label: "license header check", script: """
-                        echo "license check"
-                        if [[ -f .github/licenserc.yml ]]; then
-                            wget -q -O license-eye http://fileserver.pingcap.net/download/cicd/ci-tools/license-eye_v0.4.0
-                            chmod +x license-eye
-                            ./license-eye -c .github/licenserc.yml header check
-                        else
-                            echo "skip license check"
-                            exit 0
-                        fi
-                    """
-                }
-            }
-        }
         stage("Post Build") {
+            when {
+                expression { !build_cache_ready }
+            }
             parallel {
                 stage("Static Analysis"){
                     steps {
@@ -289,8 +263,12 @@ pipeline {
                             def fix_compile_commands = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/fix_compile_commands.py"
                             def run_clang_tidy = "${WORKSPACE}/tiflash/release-centos7-llvm/scripts/run-clang-tidy.py"
                             dir("${WORKSPACE}/build") {
-                                sh """
+                                sh label: "debug diff files", script: """
+                                cat /tmp/tiflash-diff-files.json
+                                """
+                                sh label: "run clang tidy", script: """
                                 NPROC=\$(nproc || grep -c ^processor /proc/cpuinfo || echo '1')
+                                cat /tmp/tiflash-diff-files.json
                                 cmake "${WORKSPACE}/tiflash" \\
                                     -DENABLE_TESTS=false \\
                                     -DCMAKE_BUILD_TYPE=Debug \\
@@ -310,10 +288,14 @@ pipeline {
                 stage("Upload Build Artifacts") {
                     steps {
                         dir("${WORKSPACE}/install") {
-                            sh """
+                            sh label: "archive tiflash binary", script: """
                             tar -czf 'tiflash.tar.gz' 'tiflash'
                             """
                             archiveArtifacts artifacts: "tiflash.tar.gz"
+                            sh """
+                            du -sh tiflash.tar.gz
+                            rm -rf tiflash.tar.gz
+                            """
                         }
                     }
                 }
@@ -321,17 +303,20 @@ pipeline {
         }
 
         stage("Cache code and artifact") {
+            when {
+                expression { !build_cache_ready }
+            }
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')) {
                         dir('tests/.build') {
-                            sh """
+                            sh label: "archive tiflash binary", script: """
                             cp -r ${WORKSPACE}/install/* ./
                             pwd && ls -alh
                             """
                         }
                         // remove .git and contrib to save cache space
-                        sh """
+                        sh label: "clean unnecessary dirs", script: """
                         git status
                         git show --oneline -s
                         rm -rf .git
@@ -357,28 +342,35 @@ pipeline {
                         namespace K8S_NAMESPACE
                         yamlFile POD_INTEGRATIONTEST_TEMPLATE_FILE
                         defaultContainer 'docker'
-                        retries 5
+                        retries 2
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_path: env.TEST_PATH]) }
                 }
                 stages {
                     stage("Test") {
                         steps {
                             dir("${WORKSPACE}/tiflash") {
-                                cache(path: "./", includes: '**/*', key: "ws/pull-tiflash-integration-tests/${BUILD_TAG}") {
-                                    sh """
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('tiflash', REFS, 'it-build')) {
+                                    println "restore from cache key: ${prow.getCacheKey('tiflash', REFS, 'it-build')}"
+                                    sh label: "debug info", script: """
                                     printenv
                                     pwd && ls -alh
                                     """
                                     dir("tests/${TEST_PATH}") {
                                         echo "path: ${pwd()}"
-                                        sh "docker ps -a && docker version"
+                                        sh label: "debug docker info", script: """
+                                        docker ps -a && docker version
+                                        """
                                         // TODO: check the env TAG, currently the tiflash_commmit_hash is not the pr latest commit hash
                                         // because we checkout tiflash pr code in pre-merge method.
                                         script {
-                                            def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-7.5')
-                                            def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-7.5')
-                                            def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-7.5')
+                                            def pdBranch = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-7.5')
+                                            def tikvBranch = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-7.5')
+                                            def tidbBranch = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'release-7.5')
                                             sh label: "run integration tests", script: """
                                             PD_BRANCH=${pdBranch} TIKV_BRANCH=${tikvBranch} TIDB_BRANCH=${tidbBranch} TAG=${tiflash_commit_hash} BRANCH=${REFS.base_ref} ./run.sh
                                             """
@@ -407,6 +399,7 @@ pipeline {
                                     }
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_path: env.TEST_PATH]) } }
                         }
                     }
                 }

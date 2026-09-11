@@ -4,6 +4,8 @@ final branchAlias = 'dedicated'
 final jobName = 'pull_integration_realcluster_test_next_gen'
 
 pipelineJob("${fullRepo}/${branchAlias}/${jobName}") {
+    description("Deprecated historical job. Use ${fullRepo}/${jobName} for new builds.")
+    disabled(true)
     logRotator {
         daysToKeep(30)
     }
@@ -13,15 +15,11 @@ pipelineJob("${fullRepo}/${branchAlias}/${jobName}") {
         stringParam("PROW_JOB_ID")
         stringParam("JOB_SPEC")
     }
-    properties {
-        // priority(0) // 0 fast than 1
-        githubProjectUrl("https://github.com/${fullRepo}")
-    }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/${fullRepo}/${branchAlias}/${jobName}/pipeline.groovy")
+            scriptPath("pipelines/${fullRepo}/latest/${jobName}/pipeline.groovy")
             scm {
                 git{
                     remote {

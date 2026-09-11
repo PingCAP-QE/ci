@@ -1,0 +1,12 @@
+# Allowed storageClassName literals in CI manifests.
+# One name per line; lines starting with '#' are comments.
+#
+# - ci-rwo: the unified CI workspace storage class, provisioned per cluster by
+#   PingCAP-QE/ee-ops (GCP: hyperdisk-balanced; Tencent Cloud: CBS HSSD).
+# - ceph-block: legacy storage class of the prod (rook-ceph) cluster, still
+#   referenced by tekton/v0 templates; to be unified to ci-rwo later.
+#
+# Note: ${STORAGE_CLASSNAME_*} environment-variable indirections (tekton/v1)
+# are always allowed and do not need to be listed here.
+ci-rwo
+ceph-block

@@ -2,7 +2,8 @@ global_definitions:
   brancher: &brancher
     branches:
       - ^master$
-      - ^release-nextgen-\d+$
+      - ^release-nextgen-(\d+|\d+\.\d+\.\d+-\d{8})$
+      - ^feature/tidb-zero.*
   skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf|gitignore)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
   affinity: &affinity
     nodeAffinity:
@@ -15,6 +16,8 @@ global_definitions:
                   - amd64
   jenkins_job: &jenkins_job
     agent: jenkins
+    labels:
+      master: "1"
     decorate: false
   kubernetes_job: &kubernetes_job
     agent: kubernetes
@@ -30,7 +33,7 @@ presubmits:
         affinity: *affinity
         containers:
           - name: build
-            image: ghcr.io/pingcap-qe/cd/builders/pd:v2025.5.11-8-g6a5de16-centos7-go1.23
+            image: ghcr.io/pingcap-qe/cd/builders/pd:v2026.1.18-8-gbb5ada9-centos7-go1.25
             command: [bash, -ce]
             args:
               - |
@@ -45,18 +48,86 @@ presubmits:
                 memory: 12Gi
 
     - <<: [*brancher, *kubernetes_job]
-      name: pull-unit-test-next-gen
+      name: pull-unit-test-next-gen-1
       skip_if_only_changed: *skip_if_only_changed
       spec:
         containers:
           - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2025.6.8-1-g5c4ef89-go1.23
+            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
             command: [bash, -ce]
             env:
               - { name: NEXT_GEN, value: "1" }
             args:
               - |
-                for i in $(seq 1 10); do
+                for i in $(seq 1 3); do
+                  echo "🚀 Testing for job index: ${i} ..."
+                  make ci-test-job JOB_INDEX=${i} || exit 1
+                  echo "🎉 Passed for job index: ${i}."
+
+                  # unit test coverage data
+                  # mv covprofile covprofile_${JOB_INDEX}
+                  # if [ -f junitfile ]; then
+                  #     cat junitfile
+                  # fi
+                done
+
+                # ls -alh covprofile_*
+            resources:
+              requests:
+                cpu: "6"
+                memory: 12Gi
+              limits:
+                cpu: "12"
+                memory: 24Gi
+        affinity: *affinity
+
+    - <<: [*brancher, *kubernetes_job]
+      name: pull-unit-test-next-gen-2
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        containers:
+          - name: test
+            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
+            command: [bash, -ce]
+            env:
+              - { name: NEXT_GEN, value: "1" }
+            args:
+              - |
+                for i in $(seq 4 6); do
+                  echo "🚀 Testing for job index: ${i} ..."
+                  make ci-test-job JOB_INDEX=${i} || exit 1
+                  echo "🎉 Passed for job index: ${i}."
+
+                  # unit test coverage data
+                  # mv covprofile covprofile_${JOB_INDEX}
+                  # if [ -f junitfile ]; then
+                  #     cat junitfile
+                  # fi
+                done
+
+                # ls -alh covprofile_*
+            resources:
+              requests:
+                cpu: "6"
+                memory: 12Gi
+              limits:
+                cpu: "12"
+                memory: 24Gi
+        affinity: *affinity
+
+    - <<: [*brancher, *kubernetes_job]
+      name: pull-unit-test-next-gen-3
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        containers:
+          - name: test
+            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
+            command: [bash, -ce]
+            env:
+              - { name: NEXT_GEN, value: "1" }
+            args:
+              - |
+                for i in $(seq 7 10); do
                   echo "🚀 Testing for job index: ${i} ..."
                   make ci-test-job JOB_INDEX=${i} || exit 1
                   echo "🎉 Passed for job index: ${i}."

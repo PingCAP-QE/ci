@@ -14,7 +14,6 @@ pipelineJob("${folder}/${jobName}") {
     }
     properties {
         buildFailureAnalyzer(false) // disable failure analyze
-        githubProjectUrl("https://github.com/tikv/copr-test")
     }
 
     definition {

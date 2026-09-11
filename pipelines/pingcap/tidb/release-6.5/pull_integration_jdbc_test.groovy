@@ -7,38 +7,27 @@ final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/release-6.5/pod-pull_integration_jdbc_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
-prow.setPRDescription(REFS)
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
             defaultContainer 'golang'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
         // parallelsAlwaysFailFast()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    go env
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -46,7 +35,7 @@ pipeline {
                     cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
-                                prow.checkoutRefs(REFS)
+                                prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
                             }
                         }
                     }
@@ -67,33 +56,28 @@ pipeline {
                 dir('tidb') {
                     container("golang") {
                         sh label: 'tidb-server', script: '[ -f bin/tidb-server ] || make'
-                        retry(3) {
-                            sh label: 'download binary', script: """
-                                chmod +x ${WORKSPACE}/scripts/artifacts/*.sh
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_artifact.sh --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
-                                mv third_bin/tikv-server bin/
-                                mv third_bin/pd-server bin/
-                                ls -alh bin/
-                                chmod +x bin/*
-                                ./bin/tidb-server -V
-                                ./bin/tikv-server -V
-                                ./bin/pd-server -V
-                            """
+                    }
+                    container("utils") {
+                        dir("bin") {
+                            retry(3) {
+                                sh label: 'download tidb components', script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh --pd=${OCI_TAG_PD} --tikv=${OCI_TAG_TIKV}
+                                """
+                            }
                         }
                     }
                 }
                 dir('tidb-test') {
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                        sh label: "prepare", script: """
-                            touch ws-${BUILD_TAG}
-                            mkdir -p bin
-                            cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
-                            ls -alh bin/
-                            ./bin/pd-server -V
-                            ./bin/tikv-server -V
-                            ./bin/tidb-server -V
-                        """
-                    }
+                    sh label: "prepare", script: """
+                        touch ws-${BUILD_TAG}
+                        mkdir -p bin
+                        cp ${WORKSPACE}/tidb/bin/* bin/ && chmod +x bin/*
+                        ls -alh bin/
+                        ./bin/pd-server -V
+                        ./bin/tikv-server -V
+                        ./bin/tidb-server -V
+                    """
+                    stash name: 'tidb-test', includes: '**/*'
                 }
             }
         }
@@ -115,44 +99,48 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
                         defaultContainer 'java'
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_params: env.TEST_PARAMS, test_store: env.TEST_STORE]) }
                 }
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('tidb-test') {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}/tidb-test") {
-                                    sh label: "print version", script: """
-                                        ls -alh bin/
-                                        ./bin/pd-server -V
-                                        ./bin/tikv-server -V
-                                        ./bin/tidb-server -V
-                                    """
-                                    container("java") {
-                                        sh label: "test_params=${TEST_PARAMS} ", script: """#!/usr/bin/env bash
-                                            params_array=(\${TEST_PARAMS})
-                                            TEST_DIR=\${params_array[0]}
-                                            TEST_SCRIPT=\${params_array[1]}
-                                            echo "TEST_DIR=\${TEST_DIR}"
-                                            echo "TEST_SCRIPT=\${TEST_SCRIPT}"
+                                unstash 'tidb-test'
+                                sh label: "print version", script: """
+                                    ls -alh bin/
+                                    ./bin/pd-server -V
+                                    ./bin/tikv-server -V
+                                    ./bin/tidb-server -V
+                                """
+                                container("java") {
+                                    sh label: "test_params=${TEST_PARAMS} ", script: """#!/usr/bin/env bash
+                                        params_array=(\${TEST_PARAMS})
+                                        TEST_DIR=\${params_array[0]}
+                                        TEST_SCRIPT=\${params_array[1]}
+                                        echo "TEST_DIR=\${TEST_DIR}"
+                                        echo "TEST_SCRIPT=\${TEST_SCRIPT}"
 
-                                            if [[ "${TEST_STORE}" == "tikv" ]]; then
-                                                echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
-                                                bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIKV_PATH="127.0.0.1:2379"
-                                                export TIDB_TEST_STORE_NAME="tikv"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            else
-                                                export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
-                                                export TIDB_TEST_STORE_NAME="unistore"
-                                                cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
-                                            fi
-                                        """
-                                    }
+                                        if [[ "${TEST_STORE}" == "tikv" ]]; then
+                                            echo '[storage]\nreserve-space = "0MB"'> tikv_config.toml
+                                            bash ${WORKSPACE}/scripts/PingCAP-QE/tidb-test/start_tikv.sh
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIKV_PATH="127.0.0.1:2379"
+                                            export TIDB_TEST_STORE_NAME="tikv"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                        else
+                                            export TIDB_SERVER_PATH="${WORKSPACE}/tidb-test/bin/tidb-server"
+                                            export TIDB_TEST_STORE_NAME="unistore"
+                                            cd \${TEST_DIR} && chmod +x *.sh && \${TEST_SCRIPT}
+                                        fi
+                                    """
                                 }
                             }
                         }
@@ -162,6 +150,7 @@ pipeline {
                                     println "Test failed, archive the log"
                                 }
                             }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_params: env.TEST_PARAMS, test_store: env.TEST_STORE]) } }
                         }
                     }
                 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tekton CD Backend Worker"
+  short_description: "Handle Tekton v1 delivery, release, and trigger wiring"
+  default_prompt: "Use $tekton-cd-backend-worker to handle Tekton v1 backend CD work in PingCAP-QE/ci. Stay within tekton/v1, trace parameter and result changes end to end across Tasks, Pipelines, TriggerTemplates, TriggerBindings, and env-gcp/env-prod2 Triggers, run .ci/update-tekton-kustomizations.sh after structural changes, and consult docs/guides/tekton/trigger-CEL.md for nontrivial CEL edits."

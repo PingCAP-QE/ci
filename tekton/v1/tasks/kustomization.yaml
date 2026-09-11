@@ -2,20 +2,38 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - ci/ci-helper-for-pr.yaml
   - ci/resolve-cherrypick-conflicts.yaml
+  - delivery/pingcap-deliver-binaries.yaml
   - delivery/pingcap-deliver-images.yaml
   - delivery/pingcap-notify-to-deliver-images-to-cloud-tidbx.yaml
   - delivery/pingcap-notify-to-update-ops-tidbx.yaml
+  - delivery/pingcap-notify-to-update-tcms-tidbx.yaml
+  # - delivery/publish-fileserver-from-oci-artifact.yaml
+  - echo.yaml
   - git-clone.yaml
   - github-set-status.yaml
   - golang-build.yaml
   - golang-test.yaml
+  - hotfix/create-pr-to-sync-owners.yaml
+  - hotfix/create-pr-to-update-gomod-fix-ladp.yaml
   - ks3utils.yaml
+  - multi-arch-image-collect.yaml
   - multi-arch-image-push.yaml
   - pingcap-build-binaries-darwin.yaml
   - pingcap-build-binaries-linux.yaml
   - pingcap-build-images.yaml
   - pingcap-get-builder-image.yaml
-  - pingcap-get-set-release-version-v2.yaml
+  - pingcap-get-set-release-version.yaml
   - pingcap-git-clone-ext.yaml
+  - pingcap-git-clone.yaml
   - release/create-pr-to-add-release-anchor-commit.yaml
+  - release/create-pr-to-bump-tikv-version.yaml
+  - release/pingcap-compose-offline-pkgs.yaml
+  - release/pingcap-create-github-releases.yaml
+  # - release/pingcap-upload-enterprise-plugins.yaml
+  - release/pingcap-upload-offline-package.yaml
+  - release/tag-and-deliver-rc2ga-on-oci-artifacts.yaml
+  - release/wait-delivery-images.yaml
+  - release/wait-delivery-tiup.yaml
+  - zot-validate-repair-image.yaml

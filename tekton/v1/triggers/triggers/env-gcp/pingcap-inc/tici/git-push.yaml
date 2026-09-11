@@ -1,0 +1,29 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-push-pingcap-inc-tici-linux
+  labels:
+    type: github-branch-push
+    github-owner: pingcap-inc
+    github-repo: tici
+spec:
+  interceptors:
+    - name: filter on repo owner and name and branches
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name == 'pingcap-inc/tici'
+            &&
+            body.ref.matches('^refs/heads/(master|release-fts-[0-9]+)$')
+  bindings:
+    - ref: github-branch-push
+    - ref: gcp-classic-build-params
+    - { name: builder-resources-cpu, value: "6" }
+    - { name: builder-resources-memory, value: 24Gi }
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: release }
+    - { name: source-ws-size, value: 50Gi }
+    - { name: timeout, value: 2h }
+  template:
+    ref: build-component-linux

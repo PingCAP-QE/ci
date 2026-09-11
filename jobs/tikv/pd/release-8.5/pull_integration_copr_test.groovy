@@ -12,7 +12,6 @@ pipelineJob('tikv/pd/release-8.5/pull_integration_copr_test') {
     }
     properties {
         buildFailureAnalyzer(false) // disable failure analyze
-        githubProjectUrl("https://github.com/tikv/pd")
     }
 
     definition {

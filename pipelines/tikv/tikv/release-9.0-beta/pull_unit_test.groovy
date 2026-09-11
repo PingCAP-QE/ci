@@ -10,16 +10,17 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 
 final EXTRA_NEXTEST_ARGS = "-j 8"
 
+prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
             yamlFile POD_TEMPLATE_FILE
+            retries 2
             defaultContainer 'runner'
         }
     }
     environment {
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
         TIKV_TEST_MEMORY_DISK_MOUNT_POINT = "/home/jenkins/agent/memvolume"
     }
     options {
@@ -28,27 +29,6 @@ pipeline {
         skipDefaultCheckout()
     }
     stages {
-        stage('Debug info') {
-            steps {
-                sh label: 'Debug info', script: """
-                    printenv
-                    echo "-------------------------"
-                    env
-                    hostname
-                    df -h
-                    free -hm
-                    gcc --version
-                    echo "-------------------------"
-                    echo "debug command: kubectl -n ${K8S_NAMESPACE} exec -ti ${NODE_NAME} bash"
-                """
-                container(name: 'net-tool') {
-                    sh 'dig github.com'
-                    script {
-                        currentBuild.description = "PR #${REFS.pulls[0].number}: ${REFS.pulls[0].title} ${REFS.pulls[0].link}"
-                    }
-                }
-            }
-        }
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
             steps {
@@ -68,7 +48,10 @@ pipeline {
                     pwd & ls -alh
                     mv ./tikv \$HOME/tikv-src
                     cd \$HOME/tikv-src
-                    ln -s \$HOME/tikv-target \$HOME/tikv-src/target
+                    # Hotfix: some CI images may leave a non-directory target path.
+                    rm -rf \$HOME/tikv-src/target
+                    mkdir -p \$HOME/tikv-target
+                    ln -sfn \$HOME/tikv-target \$HOME/tikv-src/target
                     pwd && ls -alh
                 """
             }
@@ -119,7 +102,7 @@ pipeline {
                             # Cargo metadata
                             cargo metadata --format-version 1 > test-metadata.json
                             # cp ${WORKSPACE}/scripts/tikv/tikv/gen_test_binary_json.py ./gen_test_binary_json.py
-                            wget https://raw.githubusercontent.com/PingCAP-QE/ci/main/scripts/tikv/tikv/gen_test_binary_json.py
+                            wget https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/tikv/tikv/gen_test_binary_json.py
                             python gen_test_binary_json.py
                             cat test-binaries.json
 

@@ -24,14 +24,17 @@ import { ConfigLoader } from "./core/ConfigLoader.ts";
 import { Database } from "./core/Database.ts";
 import { OwnerResolver } from "./core/OwnerResolver.ts";
 import { FlakyReporter } from "./core/FlakyReporter.ts";
+import { GithubIssueManager } from "./core/GithubIssueManager.ts";
 import { HtmlRenderer } from "./render/HtmlRenderer.ts";
 import type {
   CaseAgg,
   ProblemCaseRunRow,
+  ReportData,
   SmtpConfig,
   SuiteAgg,
   TeamAgg,
 } from "./core/types.ts";
+import { DEFAULT_ISSUE_SUBSCRIBE_TEXT } from "./core/IssueUtils.ts";
 import { EmailClient } from "./utils/EmailClient.ts";
 import * as path from "jsr:@std/path";
 
@@ -57,6 +60,16 @@ export async function main(args: string[]): Promise<number> {
   if (showHelp) {
     console.log(loader.helpText());
     return 0;
+  }
+
+  if (
+    (cli.issueCreate || cli.issueReopen || cli.issueComment) &&
+    !cli.githubToken
+  ) {
+    console.error(
+      "GitHub token is required when --issue-create/--issue-reopen/--issue-comment is enabled.",
+    );
+    return 2;
   }
 
   let window;
@@ -101,12 +114,30 @@ export async function main(args: string[]): Promise<number> {
   }
 
   let runs: ProblemCaseRunRow[] = [];
+  let previousWeekRuns: ProblemCaseRunRow[] = [];
   try {
     runs = await db.fetchRuns(window);
   } catch (e: unknown) {
     await db.close();
     console.error(
       `Failed to query runs: ${e instanceof Error ? e.message : String(e)}`,
+    );
+    return 3;
+  }
+
+  try {
+    const windowDurationMs = window.to.getTime() - window.from.getTime();
+    const previousWeekTimeWindow = {
+      from: new Date(window.from.getTime() - windowDurationMs),
+      to: window.from,
+    };
+    previousWeekRuns = await db.fetchRuns(previousWeekTimeWindow);
+  } catch (e: unknown) {
+    await db.close();
+    console.error(
+      `Failed to query previous week runs: ${
+        e instanceof Error ? e.message : String(e)
+      }`,
     );
     return 3;
   }
@@ -125,7 +156,7 @@ export async function main(args: string[]): Promise<number> {
     topFlakyCases: CaseAgg[];
   try {
     ({ byCase, bySuite, byTeam, topFlakyCases } = await reporter
-      .buildAggregates(runs, cli.thresholdMs));
+      .buildAggregates(runs, cli.thresholdMs, previousWeekRuns));
   } catch (e: unknown) {
     await db.close();
     console.error(
@@ -146,7 +177,7 @@ export async function main(args: string[]): Promise<number> {
   const thresholdedCases =
     byCase.filter((c: CaseAgg) => c.thresholdedCount > 0).length;
 
-  const report = {
+  const report: ReportData = {
     window: {
       from: window.from.toISOString(),
       to: window.to.toISOString(),
@@ -183,6 +214,27 @@ export async function main(args: string[]): Promise<number> {
     topFlakyCases,
   };
 
+  let subscriptionText = DEFAULT_ISSUE_SUBSCRIBE_TEXT;
+  if (cli.issueSubscribeTextPath) {
+    try {
+      const raw = await Deno.readTextFile(cli.issueSubscribeTextPath);
+      const trimmed = raw.trim();
+      if (trimmed) subscriptionText = trimmed;
+    } catch (e: unknown) {
+      console.error(
+        `Failed to read subscription text file: ${cli.issueSubscribeTextPath}: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      );
+    }
+  }
+
+  report.issueMeta = {
+    subscriptionText,
+    repoOverride: cli.issueRepoOverride,
+    titleIncludesRepo: !!cli.issueRepoOverride,
+  };
+
   if (cli.dryRun) {
     console.log("DRY RUN SUMMARY");
     console.log(JSON.stringify(report.summary, null, 2));
@@ -196,6 +248,35 @@ export async function main(args: string[]): Promise<number> {
     }
     await db.close();
     return 0;
+  }
+
+  if ((cli.issueCreate || cli.issueReopen) && !cli.githubToken) {
+    console.error(
+      "GitHub token is not set; issue create/reopen will be skipped.",
+    );
+  }
+
+  const issueManager = new GithubIssueManager({
+    token: cli.githubToken,
+    allowCreate: cli.issueCreate,
+    allowReopen: cli.issueReopen,
+    allowComment: cli.issueComment,
+    mutationLimit: cli.issueMutationLimit,
+    dryRun: cli.issueDryRun,
+    labels: cli.issueLabels,
+    repoOverride: cli.issueRepoOverride,
+    titleIncludesRepo: !!cli.issueRepoOverride,
+    verbose: cli.verbose,
+  });
+
+  report.issueMeta.enabled = issueManager.isEnabled();
+  report.issueMeta.dryRun = issueManager.isDryRun();
+
+  const casesForIssue = report.byCase.filter((c: CaseAgg) =>
+    (c.flakyCount || 0) > 0 || (c.thresholdedCount || 0) > 0
+  );
+  if (casesForIssue.length > 0) {
+    await issueManager.sync(report, casesForIssue);
   }
 
   const reportFileHtml = new HtmlRenderer().render(report);

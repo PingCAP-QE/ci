@@ -40,7 +40,7 @@ folder('tikv') {
                     // If checked, scripts will automatically have access to this library without needing to request it via @Library.
                     implicit(false)
                     // If checked, any changes in the library will be included in the changesets of a build, and changing the library would cause new builds to run for Pipelines that include this library.
-                    includeInChangesets(true)
+                    includeInChangesets(false)
                 }
             }
         }

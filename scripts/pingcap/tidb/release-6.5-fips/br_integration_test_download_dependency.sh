@@ -11,12 +11,16 @@ set -o pipefail
 
 # Specify which branch to be utilized for executing the test, which is
 # exclusively accessible when obtaining binaries from
-# http://fileserver.pingcap.net.
+# http://sunset-fileserver.pingcap.net.
 branch=${1:-release-6.5-fips}
-file_server_url=${2:-http://fileserver.pingcap.net}
+file_server_url=${2:-${ARTIFACT_DOWNLOAD_BASE_URL:-http://sunset-fileserver.pingcap.net}}
 oci_fips_branch="feature-release-6.5-fips-fips_linux_amd64"
 # Note: osci_base_url is only available in the ci environment.
-oci_base_url="http://dl.apps.svc"
+# dl.dl.svc is an internal k8s service; the oci-files download chain
+# (internal OCI registry) has no direct public equivalent. These scripts
+# will remain non-functional in public cloud until the artifact
+# infrastructure is migrated (release-6.5-fips is EOL; acceptable debt).
+oci_base_url="http://dl.dl.svc"
 
 tikv_importer_branch="release-5.0"
 default_target_branch="release-6.5"
@@ -70,8 +74,9 @@ function download() {
 function download_from_oci() {
     local org_and_repo=$1
     local grep_pattern=$2
-    local list_api="${oci_base_url}/oci-files/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}"
-    local download_api="${oci_base_url}/oci-file/hub.pingcap.net/${org_and_repo}/package?tag=${oci_fips_branch}&file="
+    local oci_registry="${OCI_REGISTRY:-hub.pingcap.net}"
+    local list_api="${oci_base_url}/oci-files/${oci_registry}/${org_and_repo}/package?tag=${oci_fips_branch}"
+    local download_api="${oci_base_url}/oci-file/${oci_registry}/${org_and_repo}/package?tag=${oci_fips_branch}&file="
 
     # TODO: remove --insecure after the certificate issue is fixed
     local file_list=$(curl -s $list_api --insecure | grep -o ${grep_pattern} |  sort | uniq)

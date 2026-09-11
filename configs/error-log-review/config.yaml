@@ -12,19 +12,17 @@ repositories:
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
     approvers:
       - "zanmato1984"
-      - "fixdb"
       - "windtalker"
-      - "Benjamin2037"
       - "bb7133"
       - "terry1purcell"
       - "cfzjywxk"
       - "niubell"
-      - "flowbehappy"
-      - "BornChanger"
+      - "nongfushanquan"
+      - "v01dstar"
       - "xuhuaiyu"
       - "YuJuncen"
 
-  - name: "pingcap/pd"
+  - name: "tikv/pd"
     patterns:
       - name: "string_literals"
         description: "Pattern for string literals"
@@ -44,8 +42,8 @@ repositories:
         description: "Pattern for variables and function calls"
         regex: '(?:^|\s)(?:(?:[^)]+\.)?(?:log|logutil|logger|brlog)(?:\.(?:L\(\)|CL\([^)]*\)|FromContext\([^)]*\)|Logger\([^)]*\)|[A-Za-z]+Logger\([^)]*\))\)?)?)\.(Error|Panic|Fatal|Fatalf|Fatalln)\(\s*([^,)]+?)(?:\s*,\s*[^)]+?)?\s*\)'
     approvers:
-      - "Benjamin2037"
-      - "flowbehappy"
+      - "bb7133"
+      - "nongfushanquan"
 
   - name: "pingcap/ticdc"
     patterns:
@@ -60,7 +58,8 @@ repositories:
         excludes:
           - "tests/**"
     approvers:
-      - "flowbehappy"
+      - "lidezhu"
+      - "nongfushanquan"
 
   - name: "tikv/tikv"
     patterns:
@@ -72,7 +71,6 @@ repositories:
         regex: '(?:^|\s)error!\s*(\?%?\w+(?:\s*,\s*[^)]*)?)'
     approvers:
       - "zhangjinpeng87"
-      - "BornChanger"
       - "YuJuncen"
 
   - name: "pingcap/tiflash"
@@ -88,7 +86,8 @@ repositories:
         regex: '(?:^|\s)LOG_(ERROR|FATAL)\s*\(\s*[^,]+,\s*([^,)]+?)(?:\s*,\s*[^)]+)?\s*\)'
     approvers:
       - "windtalker"
-      - "kolafish"
+      - "JaySon-Huang"
+      - "zhangjinpeng87"
 
 # Global settings
 settings:

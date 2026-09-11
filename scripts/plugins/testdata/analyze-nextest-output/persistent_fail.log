@@ -1,0 +1,17 @@
+────────────  Nextest run ID 00000000-0000-0000-0000-000000000003 with nextest profile: default
+    Starting 1 test across 1 binary (0 skipped)
+       TRY 1 FAIL [   0.003s] fixture::basic test_always_fail
+     stdout ---
+     stderr ---
+        thread 'test_always_fail' panicked at src/basic.rs:100:9:
+        assertion `left == right` failed
+          left: 1
+         right: 2
+       TRY 2 FAIL [   0.003s] fixture::basic test_always_fail
+     stderr ---
+        thread 'test_always_fail' panicked at src/basic.rs:100:9:
+        assertion `left == right` failed
+       TRY 3 FAIL [   0.002s] fixture::basic test_always_fail
+────────────
+  Summary [   0.010s] 1 test run: 0 passed, 0 skipped, 1 failed (1 persistent failure)
+       FAIL [   0.002s] fixture::basic test_always_fail

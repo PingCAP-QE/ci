@@ -10,23 +10,24 @@ final SELF_DIR = "pipelines/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAM
 final POD_TEMPLATE_FILE = "${SELF_DIR}/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
-final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "master-next-gen")
-final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? REFS.base_ref : "dedicated-next-gen")
+final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
+final OCI_TAG_TIFLASH = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
+final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "cloud-engine-nextgen")
 
 prow.setPRDescription(REFS)
 pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
     environment {
         NEXT_GEN = '1'
-        OCI_ARTIFACT_HOST = 'us-docker.pkg.dev/pingcap-testing-account/hub'
-        FILE_SERVER_URL = 'http://fileserver.pingcap.net'
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
     }
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -34,15 +35,10 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            options { timeout(time: 5, unit: 'MINUTES') }
             steps {
-                dir("tidb") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
-                        retry(2) {
-                            script {
-                                prow.checkoutRefs(REFS)
-                            }
-                        }
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
                     }
                 }
             }
@@ -65,20 +61,16 @@ pipeline {
                             """
                         }
                         sh '''
-                            mv tiflash tiflash_dir
-                            ln -s `pwd`/tiflash_dir/tiflash tiflash
-
                             ./tikv-server -V
                             ./tikv-worker -V
                             ./pd-server -V
                             ./tiflash --version
                         '''
-                        sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh ${FILE_SERVER_URL}"
+                        sh "${WORKSPACE}/${SELF_DIR}/download_tools.sh"
                     }
                     // cache it for other pods
-                    cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                        sh "touch rev-${REFS.pulls[0].sha}"
-                    }
+                    sh "touch rev-${REFS.pulls[0].sha}"
+                    stash name: 'ws', includes: '**/*'
                 }
             }
         }
@@ -94,18 +86,22 @@ pipeline {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         defaultContainer 'golang'
-                        yamlFile POD_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
                     }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
                     stage("Test") {
                         environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-                        options { timeout(time: 45, unit: 'MINUTES') }
                         steps {
                             dir(REFS.repo) {
-                                cache(path: "./", includes: '**/*', key: "ws/${BUILD_TAG}") {
-                                    sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-                                }
+                                unstash 'ws'
+                                sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
                                 sh label: "TEST_GROUP ${TEST_GROUP}", script: "chmod +x br/tests/*.sh && ./br/tests/run_group_br_tests.sh ${TEST_GROUP}"
                             }
                         }
@@ -122,9 +118,11 @@ pipeline {
                                 dir(REFS.repo) {
                                     sh 'ls -alh /tmp/group_cover && gocovmerge /tmp/group_cover/cov.* > coverage.txt'
                                     script {
+
                                         prow.uploadCoverageToCodecov(REFS, 'integration', './coverage.txt')
                                     }
                                 }
+                                script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                             }
                         }
                     }
