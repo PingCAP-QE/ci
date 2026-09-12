@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 )
@@ -146,6 +148,178 @@ index 1234567..abcdefg 100644
 
 	if len(matches) > 0 && matches[0].File != "main.go" {
 		t.Errorf("Expected match in main.go, got %s", matches[0].File)
+	}
+}
+
+func TestLoadConfigWithFileScopedPattern(t *testing.T) {
+	configData := `repositories:
+  - name: "pingcap/tidb"
+    patterns:
+      - name: "go_mod_version"
+        description: "Pattern for go.mod go and toolchain directives"
+        regex: '^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$'
+        files:
+          - "go.mod"
+    approvers:
+      - "approver"
+settings:
+  min_approvals: 1
+  require_repo_specific_approvers: true
+  check_behavior:
+    mode: "check_and_fail"
+`
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(configPath, []byte(configData), 0o600); err != nil {
+		t.Fatalf("failed to write config fixture: %v", err)
+	}
+
+	config, err := LoadConfig(configPath)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	repo := config.GetRepository("pingcap/tidb")
+	if repo == nil {
+		t.Fatal("expected repository pingcap/tidb to be present")
+	}
+
+	if len(repo.Patterns) != 1 {
+		t.Fatalf("expected 1 pattern, got %d", len(repo.Patterns))
+	}
+
+	if len(repo.Patterns[0].Files) != 1 || repo.Patterns[0].Files[0] != "go.mod" {
+		t.Fatalf("expected file scope [go.mod], got %v", repo.Patterns[0].Files)
+	}
+
+	if repo.Patterns[0].compiled == nil {
+		t.Fatal("expected regex to be compiled")
+	}
+}
+
+func TestLoadSharedConfigIncludesGoModReview(t *testing.T) {
+	configPath := filepath.Join("..", "..", "configs", "error-log-review", "config.yaml")
+
+	config, err := LoadConfig(configPath)
+	if err != nil {
+		t.Fatalf("LoadConfig failed for shared config: %v", err)
+	}
+
+	for _, repo := range config.Repositories {
+		found := false
+		for _, pattern := range repo.Patterns {
+			if pattern.Name != "go_mod_version" {
+				continue
+			}
+
+			found = true
+			if !matchesFileScope("go.mod", pattern.Files) {
+				t.Errorf("repository %s go_mod_version pattern should match root go.mod", repo.Name)
+			}
+			if !matchesFileScope("nested/module/go.mod", pattern.Files) {
+				t.Errorf("repository %s go_mod_version pattern should match nested go.mod", repo.Name)
+			}
+		}
+
+		if !found {
+			t.Errorf("repository %s is missing go_mod_version pattern", repo.Name)
+		}
+	}
+}
+
+func TestCheckPRDiffWithFileScopedPatterns(t *testing.T) {
+	config := &Config{
+		Repositories: []Repository{
+			{
+				Name: "pingcap/tidb",
+				Patterns: []Pattern{
+					{
+						Name:        "go_mod_version",
+						Description: "Pattern for go.mod go and toolchain directives",
+						Regex:       `^\s*(?:go\s+\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?|toolchain\s+go\d+\.\d+(?:\.\d+)?(?:[A-Za-z0-9.-]+)?)\s*$`,
+						Files:       []string{"go.mod"},
+					},
+					{
+						Name:        "error_pattern",
+						Description: "Pattern for error log changes",
+						Regex:       `log\.Error\(".*"\)`,
+					},
+				},
+			},
+		},
+	}
+
+	for i := range config.Repositories {
+		for j := range config.Repositories[i].Patterns {
+			pattern := &config.Repositories[i].Patterns[j]
+			compiled, _ := regexp.Compile(pattern.Regex)
+			pattern.compiled = compiled
+		}
+	}
+
+	checker := NewErrorLogChecker(config)
+
+	diff := `diff --git a/go.mod b/go.mod
+index 1234567..abcdefg 100644
+--- a/go.mod
++++ b/go.mod
+@@ -1,2 +1,4 @@
++go 1.24.1
++toolchain go1.24.2
++toolchain local
+diff --git a/components/worker/go.mod b/components/worker/go.mod
+index 1234567..abcdefg 100644
+--- a/components/worker/go.mod
++++ b/components/worker/go.mod
+@@ -1,1 +1,2 @@
++go 1.23.7
+diff --git a/docs/upgrade.md b/docs/upgrade.md
+index 1234567..abcdefg 100644
+--- a/docs/upgrade.md
++++ b/docs/upgrade.md
+@@ -10,0 +11,1 @@
++go 1.25.0
+diff --git a/main.go b/main.go
+index 1234567..abcdefg 100644
+--- a/main.go
++++ b/main.go
+@@ -10,0 +11,1 @@
++    log.Error("production error")
+`
+
+	matches, err := checker.CheckPRDiff("pingcap/tidb", diff)
+	if err != nil {
+		t.Fatalf("CheckPRDiff failed: %v", err)
+	}
+
+	if len(matches) != 4 {
+		t.Fatalf("expected 4 matches, got %d: %+v", len(matches), matches)
+	}
+
+	var goModMatches, logMatches int
+	for _, match := range matches {
+		switch match.Pattern {
+		case "go_mod_version":
+			goModMatches++
+			if filepath.Base(match.File) != "go.mod" {
+				t.Errorf("expected go.mod scoped match, got %s", match.File)
+			}
+		case "error_pattern":
+			logMatches++
+			if match.File != "main.go" {
+				t.Errorf("expected error pattern to match main.go, got %s", match.File)
+			}
+		default:
+			t.Errorf("unexpected pattern %s", match.Pattern)
+		}
+	}
+
+	if goModMatches != 3 {
+		t.Errorf("expected 3 go.mod matches, got %d", goModMatches)
+	}
+
+	if logMatches != 1 {
+		t.Errorf("expected 1 error log match, got %d", logMatches)
 	}
 }
 

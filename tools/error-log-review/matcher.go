@@ -57,6 +57,10 @@ func (clc *ErrorLogChecker) CheckPRDiff(repoName, diff string) ([]Match, error) 
 
 		// Check against all patterns for this repository
 		for _, pattern := range repo.Patterns {
+			if !matchesFileScope(currentFile, pattern.Files) {
+				continue
+			}
+
 			// Check if current file is excluded for this specific pattern
 			if matchesAnyPattern(currentFile, pattern.Excludes) {
 				continue
