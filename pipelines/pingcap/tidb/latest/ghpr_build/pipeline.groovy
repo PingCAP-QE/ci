@@ -22,7 +22,6 @@ pipeline {
     }
     options {
         timeout(time: 90, unit: 'MINUTES')
-        parallelsAlwaysFailFast()
     }
     stages {
         stage('Checkout') {

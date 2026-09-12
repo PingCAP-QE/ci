@@ -152,12 +152,6 @@ pipeline {
                             dir('tidb') {
                                 unstash 'ws'
                                 sh "ls -l rev-${REFS.pulls[0].sha}" // will fail when not found in cache or no cached.
-
-                                sh """
-                                mkdir -p /home/jenkins/.tidb/tmp
-                                git diff . || true
-                                git status || true
-                                """
                                 sh """#! /usr/bin/env bash
                                     set -o pipefail
 

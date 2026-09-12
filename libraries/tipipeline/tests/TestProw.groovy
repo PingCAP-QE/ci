@@ -97,6 +97,22 @@ class TestProw {
                 checkoutScript.contains(
                     '+refs/pull/123/head:refs/remotes/origin/pr/123/head'))
         }
+
+        @Test
+        void shouldKeepRefsDirNonEmptyForStashTransfer() {
+            def shCalls = []
+            def script = loadProw(sh: { Map args -> shCalls << args })
+
+            script.checkoutPublicRefs(refs(), 7, false, 'https://github.example')
+
+            def checkoutScript = shCalls[0].script
+            assertTrue(
+                'checkout must leave a file under .git/refs so the directory survives stash/unstash',
+                checkoutScript.contains('mkdir -p .git/refs'))
+            assertTrue(
+                'checkout must leave a file under .git/refs so the directory survives stash/unstash',
+                checkoutScript.contains('touch .git/refs/.keep'))
+        }
     }
 
     static class PrivateCheckout {

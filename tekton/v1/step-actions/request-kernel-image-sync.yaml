@@ -21,7 +21,7 @@ spec:
       default: "http://publisher.publisher.svc"
     - name: stages
       type: string
-      description: target stage(s) (dev or prod or "dev prod")
+      description: target stage(s) (dev or prod or "prod dev")
       default: "dev"
   env:
     - name: IMAGES_SRC
