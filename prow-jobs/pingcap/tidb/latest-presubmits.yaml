@@ -41,7 +41,7 @@ presubmits:
       name: pingcap/tidb/ghpr_check2
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: idc-jenkins-ci-tidb/check_dev_2
