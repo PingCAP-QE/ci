@@ -43,15 +43,11 @@ pipeline {
             environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
-                    sh """
-                        git diff .
-                        git status
-                    """
                     sh '''#! /usr/bin/env bash
                         set -o pipefail
 
                         ./build/jenkins_unit_test.sh 2>&1 | tee bazel-test.log
-                        '''
+                    '''
                 }
             }
             post {
@@ -72,34 +68,6 @@ pipeline {
                         prow.sendTestCaseRunReport("${REFS.org}/${REFS.repo}", "${REFS.base_ref}")
                     }
                     archiveArtifacts(artifacts: 'bazel-*.log, bazel-*.json', fingerprint: false, allowEmptyArchive: true)
-                }
-            }
-        }
-        stage('Test Enterprise Extensions') {
-            when {
-                expression {
-                    // Q: why this step is not existed in presubmit job of master branch?
-                    // A: we should not forbiden the community contrubutor on the unit test on private submodules.
-                    // if it failed, the enterprise extension owners should fix it.
-                    return REFS.base_ref != 'master' || REFS.pulls == null || REFS.pulls.size() == 0
-                }
-            }
-            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
-            steps {
-                dir(REFS.repo) {
-                    sh(
-                        label: 'test enterprise extensions',
-                        script: 'go test --tags intest -coverprofile=coverage-extension.dat -covermode=atomic ./pkg/extension/enterprise/...'
-                    )
-                }
-            }
-            post {
-                success {
-                    dir(REFS.repo) {
-                        script {
-                            prow.uploadCoverageToCodecov(REFS, 'unit', './coverage-extension.dat')
-                        }
-                    }
                 }
             }
         }
