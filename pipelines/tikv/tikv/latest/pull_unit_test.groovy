@@ -97,40 +97,38 @@ pipeline {
         stage('build') {
             steps {
                 script {
-                    retry(2) {
-                        prow.withCache(path: "./${ARCHIVE_DIR}", key: prow.getCacheKey('ut-build', REFS)) {
-                            dir(SRC_DIR) {
-                                sh label: 'Build test artifact', script: """
-                                    export RUSTFLAGS=-Dwarnings
-                                    export FAIL_POINT=1
-                                    export ROCKSDB_SYS_SSE=1
-                                    export RUST_BACKTRACE=1
-                                    export LOG_LEVEL=INFO
-                                    export CARGO_INCREMENTAL=0
-                                    export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
+                    prow.withCache(path: "./${ARCHIVE_DIR}", key: prow.getCacheKey('ut-build', REFS)) {
+                        dir(SRC_DIR) {
+                            sh label: 'Build test artifact', script: """
+                                export RUSTFLAGS=-Dwarnings
+                                export FAIL_POINT=1
+                                export ROCKSDB_SYS_SSE=1
+                                export RUST_BACKTRACE=1
+                                export LOG_LEVEL=INFO
+                                export CARGO_INCREMENTAL=0
+                                export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
 
-                                    set -e
-                                    set -o pipefail
+                                set -e
+                                set -o pipefail
 
-                                    # Build and generate a list of binaries
-                                    CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
-                                    # Cargo metadata
-                                    cargo metadata --format-version 1 > test-metadata.json
-                                    wget https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/tikv/tikv/gen_test_binary_json.py
-                                    export TIKV_SRC_DIR=${WORKSPACE}/${SRC_DIR}
-                                    python gen_test_binary_json.py
-                                    cat test-binaries.json
+                                # Build and generate a list of binaries
+                                CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
+                                # Cargo metadata
+                                cargo metadata --format-version 1 > test-metadata.json
+                                wget https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/tikv/tikv/gen_test_binary_json.py
+                                export TIKV_SRC_DIR=${WORKSPACE}/${SRC_DIR}
+                                python gen_test_binary_json.py
+                                cat test-binaries.json
 
-                                    # archive test artifacts
-                                    ls -alh archive-test-binaries
-                                    tar -cvf ${TEST_BINARIES_ARCHIVE} archive-test-binaries
-                                    ls -alh ${TEST_BINARIES_ARCHIVE}
-                                    tar czf ${TEST_ARTIFACTS} test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
-                                    ls -alh ${TEST_ARTIFACTS}
-                                    mkdir -p ${WORKSPACE}/${ARCHIVE_DIR}
-                                    mv ${TEST_ARTIFACTS} ${TEST_BINARIES_ARCHIVE} ${WORKSPACE}/${ARCHIVE_DIR}/
-                                """
-                            }
+                                # archive test artifacts
+                                ls -alh archive-test-binaries
+                                tar -cvf ${TEST_BINARIES_ARCHIVE} archive-test-binaries
+                                ls -alh ${TEST_BINARIES_ARCHIVE}
+                                tar czf ${TEST_ARTIFACTS} test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
+                                ls -alh ${TEST_ARTIFACTS}
+                                mkdir -p ${WORKSPACE}/${ARCHIVE_DIR}
+                                mv ${TEST_ARTIFACTS} ${TEST_BINARIES_ARCHIVE} ${WORKSPACE}/${ARCHIVE_DIR}/
+                            """
                         }
                     }
                 }
