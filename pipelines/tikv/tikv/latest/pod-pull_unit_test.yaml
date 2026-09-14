@@ -14,7 +14,6 @@ spec:
           memory: 24Gi
         limits:
           cpu: "6"
-          memory: 24Gi
       securityContext:
         privileged: true
       volumeMounts:

@@ -13,7 +13,6 @@ spec:
           memory: 32Gi
         limits:
           cpu: "8"
-          memory: 32Gi
       securityContext:
         privileged: true
       volumeMounts:
