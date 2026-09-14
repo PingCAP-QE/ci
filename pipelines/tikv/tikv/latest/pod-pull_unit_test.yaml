@@ -10,10 +10,10 @@ spec:
       tty: true
       resources:
         requests:
-          cpu: "6"
-          memory: 24Gi
+          cpu: "8"
+          memory: 32Gi
         limits:
-          cpu: "6"
+          cpu: "8"
       securityContext:
         privileged: true
       volumeMounts:
