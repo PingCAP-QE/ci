@@ -146,12 +146,8 @@ class TestProw {
         void shouldScopeCredentialsAndCleanUpAskPassScript() {
             def events = []
             def script = loadProw(
-                sh: { Map args ->
-                    if (args.returnStdout) {
-                        return '/tmp/git-askpass-test'
-                    }
-                    events << "sh:${args.script}".toString()
-                },
+                env: [WORKSPACE: '/tmp/ws'],
+                sh: { Map args -> events << "sh:${args.script}".toString() },
                 libraryResource: { String path ->
                     events << "resource:${path}".toString()
                     'askpass helper'
@@ -174,15 +170,17 @@ class TestProw {
                 events << 'checkout'
             }
 
-            assertEquals([
-                'resource:scripts/git_askpass.sh',
-                'write:/tmp/git-askpass-test:askpass helper',
-                'sh:chmod 700 \'/tmp/git-askpass-test\'',
-                'credentials:github-bot-https',
-                'env:[GIT_ASKPASS=/tmp/git-askpass-test, GIT_TERMINAL_PROMPT=0]',
-                'checkout',
-                'sh:rm -f \'/tmp/git-askpass-test\'',
-            ], events)
+            assertEquals('resource loaded', 'resource:scripts/git_askpass.sh', events[0])
+            assertTrue('helper written from resource',
+                events[1] ==~ /write:\/tmp\/ws\/git-askpass-.*:askpass helper/)
+            assertTrue('helper made executable',
+                events[2] ==~ /sh:chmod 700 '\/tmp\/ws\/git-askpass-.*'/)
+            assertEquals('credentials scoped', 'credentials:github-bot-https', events[3])
+            assertTrue('askpass env scoped',
+                events[4] ==~ /env:\[GIT_ASKPASS=\/tmp\/ws\/git-askpass-.*, GIT_TERMINAL_PROMPT=0\]/)
+            assertEquals('checkout runs inside scope', 'checkout', events[5])
+            assertTrue('helper removed',
+                events[6] ==~ /sh:rm -f '\/tmp\/ws\/git-askpass-.*'/)
         }
 
         @Test
@@ -190,12 +188,9 @@ class TestProw {
             def events = []
             def failure = new RuntimeException('temporary directory is unavailable')
             def script = loadProw(
-                sh: { Map args ->
-                    if (args.returnStdout) {
-                        throw failure
-                    }
-                    events << "sh:${args.script}".toString()
-                },
+                env: [WORKSPACE: '/tmp/ws'],
+                libraryResource: { String path -> throw failure },
+                sh: { Map args -> events << "sh:${args.script}".toString() },
             )
 
             try {
@@ -208,6 +203,100 @@ class TestProw {
             }
 
             assertTrue('cleanup must not run without a temporary path', events.isEmpty())
+        }
+    }
+
+    static class WithCache {
+        private List events
+        private boolean markerExists = false
+        private String markerContent = ''
+
+        private def load(Map overrides = [:]) {
+            events = []
+            def steps = [
+                cache: { Map args, Closure body ->
+                    events << ['cache', args]
+                    body()
+                },
+                fileExists: { Map a ->
+                    events << ['fileExists', a.file]
+                    return markerExists
+                },
+                readFile: { Map a ->
+                    events << ['readFile', a.file]
+                    return markerContent
+                },
+                writeFile: { Map a -> events << ['writeFile', a.file, a.text] },
+                echo: { String message -> events << ['echo', message] },
+            ]
+            steps.putAll(overrides)
+            return loadProw(steps)
+        }
+
+        @Test
+        void shouldRunBodyAndWriteMarkerOnMiss() {
+            def script = load()
+            def ran = false
+
+            script.withCache(path: './archives', key: 'k1') { ran = true }
+
+            assertTrue('body runs on a cache miss', ran)
+            def cacheArgs = events.find { it[0] == 'cache' }[1]
+            assertEquals('cache path forwarded', './archives', cacheArgs.path)
+            assertEquals('cache key forwarded', 'k1', cacheArgs.key)
+            assertEquals('marker force-included', '**/*,.cache-complete', cacheArgs.includes)
+            assertEquals('restoreKeys defaults to empty', [], cacheArgs.restoreKeys)
+            def write = events.find { it[0] == 'writeFile' }
+            assertEquals('marker written inside path', './archives/.cache-complete', write[1])
+            assertEquals('marker content is the exact key', 'k1', write[2])
+        }
+
+        @Test
+        void shouldSkipBodyWhenMarkerMatchesKey() {
+            markerExists = true
+            markerContent = 'k1\n'
+            def script = load()
+            def ran = false
+
+            script.withCache(path: './archives', key: 'k1') { ran = true }
+
+            assertFalse('body skipped on an exact-key hit', ran)
+            assertNull('marker not rewritten on a hit', events.find { it[0] == 'writeFile' })
+        }
+
+        @Test
+        void shouldRunBodyWhenRestoredMarkerIsFromAnotherKey() {
+            markerExists = true
+            markerContent = 'fallback-key\n'
+            def script = load()
+            def ran = false
+
+            script.withCache(path: './archives', key: 'k1') { ran = true }
+
+            assertTrue('body runs when a fallback cache was restored', ran)
+            def write = events.find { it[0] == 'writeFile' }
+            assertEquals('marker rewritten with the exact key', 'k1', write[2])
+        }
+
+        @Test
+        void shouldForwardIncludesRestoreKeysNameAndMarker() {
+            def script = load()
+
+            script.withCache(
+                path: './bin',
+                key: 'k1',
+                includes: 'tidb-server',
+                restoreKeys: ['a', 'b'],
+                name: 'my-cache',
+                marker: 'done') { }
+
+            def cacheArgs = events.find { it[0] == 'cache' }[1]
+            assertEquals('includes forwarded and marker appended', 'tidb-server,done', cacheArgs.includes)
+            assertEquals('restoreKeys forwarded', ['a', 'b'], cacheArgs.restoreKeys)
+            assertEquals('marker file uses the custom name', './bin/done',
+                events.find { it[0] == 'fileExists' }[1])
+            assertTrue('name used in log messages',
+                events.any { it[0] == 'echo' && it[1].contains('my-cache') })
         }
     }
 }
