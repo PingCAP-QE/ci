@@ -3,7 +3,7 @@
 // should triggerd for master branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tiflow"
+final K8S_NAMESPACE = 'jenkins-tiflow'
 final GIT_FULL_REPO_NAME = 'pingcap-inc/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final BRANCH_ALIAS = 'latest'
@@ -57,11 +57,11 @@ pipeline {
                         cdc.prepareIntegrationTestStorageConsumerBinariesWithCacheLock(REFS, 'binary')
                     }
                     // Download other binaries
-                    container("utils") {
-                        dir("bin") {
+                    container('utils') {
+                        dir('bin') {
                             script {
                                 retry(2) {
-                                    sh label: "download tidb components", script: """
+                                    sh label: 'download tidb components', script: """
                                         export script=${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh
                                         chmod +x \$script
                                         OCI_ARTIFACT_HOST=${env._JENKINS_OCI_ARTIFACT_HOST_INTERNAL} \$script --tidb=${OCI_TAG_TIDB}
@@ -80,9 +80,9 @@ pipeline {
                             }
                         }
                     }
-                    sh label: "prepare", script: """
+                    sh label: 'prepare', script: '''
                         ls -alh ./bin
-                    """
+                    '''
                     // Stash the prepared workspace for downstream test stages.
                     stash includes: '**/*', name: WORKSPACE_STASH_NAME, useDefaultExcludes: false
                 }
@@ -97,7 +97,7 @@ pipeline {
                             'G09', 'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
-                agent{
+                agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
@@ -111,11 +111,11 @@ pipeline {
                     expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
-                    stage("Test") {
+                    stage('Test') {
                         steps {
                             dir(REFS.repo) {
                                 unstash name: WORKSPACE_STASH_NAME
-                                sh """
+                                sh '''
                                     ln -sf /usr/bin/jq ./bin/jq
                                     make check_third_party_binary
                                     ls -alh ./bin
@@ -123,10 +123,10 @@ pipeline {
                                     ./bin/pd-server -V
                                     ./bin/tikv-server -V
                                     ./bin/tiflash --version
-                                """
-                                container("kafka") {
+                                '''
+                                container('kafka') {
                                     timeout(time: 6, unit: 'MINUTES') {
-                                        sh label: "Waiting for kafka ready", script: """
+                                        sh label: 'Waiting for kafka ready', script: """
                                             echo "Waiting for zookeeper to be ready..."
                                             while ! nc -z localhost 2181; do sleep 10; done
                                             echo "Waiting for kafka to be ready..."
@@ -143,7 +143,7 @@ pipeline {
                         }
                         post {
                             failure {
-                                sh label: "collect logs", script: """
+                                sh label: 'collect logs', script: """
                                     ls /tmp/tidb_cdc_test/
                                     log_files=\$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
                                     if [ -n "\${log_files}" ]; then
