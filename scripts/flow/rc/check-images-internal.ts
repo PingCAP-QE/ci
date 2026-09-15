@@ -2,6 +2,11 @@
 import * as yaml from "jsr:@std/yaml@1.0.5";
 import { parseArgs } from "jsr:@std/cli@1.0.6";
 import { Octokit } from "https://esm.sh/octokit@4.0.2?dts";
+import {
+  greaterOrEqual,
+  lessThanOrEqual,
+  parse as parseSemver,
+} from "jsr:@std/semver@^1.0.4";
 
 const platforms = [
   "linux/amd64",
@@ -65,6 +70,34 @@ interface Results {
 }
 
 type GitRepoImageMap = Record<string, string[]>;
+
+/**
+ * Normalize version string for semver parsing.
+ * Removes 'v' prefix and '-enterprise' suffix if present.
+ */
+function normalizeVersion(version: string): string {
+  return version.replace(/^v/, "").replace(/-enterprise$/, "");
+}
+
+/**
+ * Compare two version strings using semantic versioning.
+ * Returns true if version >= threshold.
+ */
+function versionGreaterOrEqual(version: string, threshold: string): boolean {
+  const v = parseSemver(normalizeVersion(version));
+  const t = parseSemver(normalizeVersion(threshold));
+  return greaterOrEqual(v, t);
+}
+
+/**
+ * Compare two version strings using semantic versioning.
+ * Returns true if version <= threshold.
+ */
+function versionLessThanOrEqual(version: string, threshold: string): boolean {
+  const v = parseSemver(normalizeVersion(version));
+  const t = parseSemver(normalizeVersion(threshold));
+  return lessThanOrEqual(v, t);
+}
 
 function validate(info: ImageInfo) {
   info.ok = true;
@@ -152,11 +185,11 @@ async function checkImages(
   const results = {} as Record<string, ImageInfo>;
   for (const [gitRepo, map] of Object.entries(mm)) {
     // tidb-binlog is deprecated since v8.4.0, skip it.
-    if (version >= "v8.4.0" && gitRepo === "pingcap/tidb-binlog") {
+    if (versionGreaterOrEqual(version, "v8.4.0") && gitRepo === "pingcap/tidb-binlog") {
       continue;
     }
     // ticdc is initilized since v8.5.4
-    if (version <= "v8.5.3" && gitRepo === "pingcap/ticdc") {
+    if (versionLessThanOrEqual(version, "v8.5.3") && gitRepo === "pingcap/ticdc") {
       continue;
     }
 
@@ -164,7 +197,7 @@ async function checkImages(
     const gitSha = await gatheringGithubGitSha(ghClient, gitRepo, branch);
 
     for (const src of map) {
-      if (version >= "v8.5.4" && src === "pingcap/tiflow/images/cdc") {
+      if (versionGreaterOrEqual(version, "v8.5.4") && src === "pingcap/tiflow/images/cdc") {
         continue;
       }
       const imageUrl = `${oci_registry}/${src}:${version}`;
