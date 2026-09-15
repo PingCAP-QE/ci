@@ -7,15 +7,12 @@ spec:
     - name: runner
       image: "ghcr.io/pingcap-qe/ci/jenkins/tikv:v2026.3.22-4-gd9d1135"
       tty: true
-      command:
-        - "/bin/sh"
-        - "-c"
-      args:
-        - "cat"
       resources:
         requests:
-          memory: 24Gi
-          cpu: "6"
+          cpu: "8"
+          memory: 32Gi
+        limits:
+          cpu: "8"
       securityContext:
         privileged: true
       volumeMounts:

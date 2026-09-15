@@ -2,7 +2,7 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tikv"
+final K8S_NAMESPACE = 'jenkins-tikv'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/release-8.1/pod-pull_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -13,7 +13,7 @@ final ARCHIVE_DIR = 'archives'
 final UNIT_TEST_DIR = 'unit-test'
 final TEST_ARTIFACTS = 'test-artifacts.tar.gz'
 final TEST_BINARIES_ARCHIVE = 'archive-test-binaries.tar'
-final EXTRA_NEXTEST_ARGS = "-j 8"
+final EXTRA_NEXTEST_ARGS = '-j 8'
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -27,7 +27,7 @@ pipeline {
         }
     }
     environment {
-        TIKV_TEST_MEMORY_DISK_MOUNT_POINT = "/home/jenkins/agent/memvolume"
+        TIKV_TEST_MEMORY_DISK_MOUNT_POINT = '/home/jenkins/agent/memvolume'
     }
     options {
         timeout(time: 50, unit: 'MINUTES')
@@ -45,7 +45,7 @@ pipeline {
                         ${WORKSPACE}/${ARCHIVE_DIR} \
                         ${WORKSPACE}/${UNIT_TEST_DIR}
                 """
-                dir("tikv") {
+                dir('tikv') {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
@@ -63,6 +63,9 @@ pipeline {
             }
         }
         stage('lint') {
+            when {
+                expression { return !matrixCache.shouldSkip(REFS, 'lint', [:]) }
+            }
             steps {
                 retry(2) {
                     sh label: 'Run lint: format', script: """
@@ -83,49 +86,59 @@ pipeline {
                     """
                 }
             }
-        }
-        stage('build') {
-            steps {
-                retry(2) {
-                    sh label: 'Build test artifact', script: """
-                        cd ${WORKSPACE}/${SRC_DIR}
-                        export RUSTFLAGS=-Dwarnings
-                        export FAIL_POINT=1
-                        export ROCKSDB_SYS_SSE=1
-                        export RUST_BACKTRACE=1
-                        export LOG_LEVEL=INFO
-                        export CARGO_INCREMENTAL=0
-                        export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
-
-                        set -e
-                        set -o pipefail
-
-                        # Build and generate a list of binaries
-                        CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
-                        # Cargo metadata
-                        cargo metadata --format-version 1 > test-metadata.json
-                        wget https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/tikv/tikv/gen_test_binary_json.py
-                        export TIKV_SRC_DIR=${WORKSPACE}/${SRC_DIR}
-                        python gen_test_binary_json.py
-                        cat test-binaries.json
-
-                        # archive test artifacts
-                        ls -alh archive-test-binaries
-                        tar -cvf ${TEST_BINARIES_ARCHIVE} archive-test-binaries
-                        ls -alh ${TEST_BINARIES_ARCHIVE}
-                        tar czf ${TEST_ARTIFACTS} test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
-                        ls -alh ${TEST_ARTIFACTS}
-                        mkdir -p ${WORKSPACE}/${ARCHIVE_DIR}
-                        mv ${TEST_ARTIFACTS} ${TEST_BINARIES_ARCHIVE} ${WORKSPACE}/${ARCHIVE_DIR}/
-                    """
+            post {
+                success {
+                    script {
+                        matrixCache.markDone(REFS, 'lint', [:])
+                    }
                 }
             }
         }
-        stage("Test") {
+        stage('build') {
+            steps {
+                script {
+                    prow.withCache(path: "./${ARCHIVE_DIR}", key: prow.getCacheKey('ut-build', REFS)) {
+                        dir(SRC_DIR) {
+                            sh label: 'Build test artifact', script: """
+                                export RUSTFLAGS=-Dwarnings
+                                export FAIL_POINT=1
+                                export ROCKSDB_SYS_SSE=1
+                                export RUST_BACKTRACE=1
+                                export LOG_LEVEL=INFO
+                                export CARGO_INCREMENTAL=0
+                                export RUSTDOCFLAGS="-Z unstable-options --persist-doctests"
+
+                                set -e
+                                set -o pipefail
+
+                                # Build and generate a list of binaries
+                                CUSTOM_TEST_COMMAND="nextest list" EXTRA_CARGO_ARGS="--message-format json --list-type binaries-only" make test_with_nextest | grep -E '^{.+}\$' > test.json
+                                # Cargo metadata
+                                cargo metadata --format-version 1 > test-metadata.json
+                                wget https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/tikv/tikv/gen_test_binary_json.py
+                                export TIKV_SRC_DIR=${WORKSPACE}/${SRC_DIR}
+                                python gen_test_binary_json.py
+                                cat test-binaries.json
+
+                                # archive test artifacts
+                                ls -alh archive-test-binaries
+                                tar -cvf ${TEST_BINARIES_ARCHIVE} archive-test-binaries
+                                ls -alh ${TEST_BINARIES_ARCHIVE}
+                                tar czf ${TEST_ARTIFACTS} test-binaries test-binaries.json test-metadata.json Cargo.toml cmd src tests components .config `ls target/*/deps/*plugin.so 2>/dev/null`
+                                ls -alh ${TEST_ARTIFACTS}
+                                mkdir -p ${WORKSPACE}/${ARCHIVE_DIR}
+                                mv ${TEST_ARTIFACTS} ${TEST_BINARIES_ARCHIVE} ${WORKSPACE}/${ARCHIVE_DIR}/
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Test') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir("${WORKSPACE}/${UNIT_TEST_DIR}") {
-                    sh label: "Prepare unit test workspace", script: """
+                    sh label: 'Prepare unit test workspace', script: """
                         rm -rf ${WORKSPACE}/${SRC_DIR} ${WORKSPACE}/${TARGET_DIR}
                         ls -alh ${WORKSPACE}/
                         ln -s `pwd` ${WORKSPACE}/${SRC_DIR}
@@ -143,7 +156,7 @@ pipeline {
                         ls -la
                         ls -alh target/debug/deps/
                     """
-                    sh label: "Run nextest", script: """
+                    sh label: 'Run nextest', script: """
                     ls -alh ${WORKSPACE}/${SRC_DIR}/
                     ls -alh ${WORKSPACE}/${SRC_DIR}/target/debug/deps/
                     export RUSTFLAGS=-Dwarnings
@@ -166,7 +179,7 @@ pipeline {
             }
             post {
                 failure {
-                    sh label: "collect logs", script: """
+                    sh label: 'collect logs', script: """
                         log_dir=${WORKSPACE}/${SRC_DIR}/target
                         tmp_file=\$(mktemp)
                         if [ -d "\${log_dir}" ]; then
@@ -181,7 +194,7 @@ pipeline {
                         rm -f "\${tmp_file}"
                         ls -alh log-ut.tar.gz
                     """
-                    archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true
+                    archiveArtifacts artifacts: 'log-ut.tar.gz', fingerprint: true
                 }
             }
         }

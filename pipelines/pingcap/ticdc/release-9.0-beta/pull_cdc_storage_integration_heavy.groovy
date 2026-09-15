@@ -3,7 +3,7 @@
 // should triggerd for master branches
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tiflow"
+final K8S_NAMESPACE = 'jenkins-tiflow'
 final GIT_FULL_REPO_NAME = 'pingcap/ticdc'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/pingcap/ticdc/release-9.0-beta/pod-pull_cdc_storage_integration_heavy.yaml'
@@ -31,8 +31,8 @@ pipeline {
         stage('Checkout') {
             options { timeout(time: 10, unit: 'MINUTES') }
             steps {
-                dir("ticdc") {
-                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
+                dir('ticdc') {
+                    cache(path: './', includes: '**/*', key: prow.getCacheKey('git', REFS), restoreKeys: prow.getRestoreKeys('git', REFS)) {
                         retry(2) {
                             script {
                                 prow.checkoutRefs(REFS, credentialsId = GIT_CREDENTIALS_ID)
@@ -42,17 +42,17 @@ pipeline {
                 }
             }
         }
-        stage("prepare") {
+        stage('prepare') {
             options { timeout(time: 20, unit: 'MINUTES') }
             steps {
-                dir("third_party_download") {
+                dir('third_party_download') {
                     script {
                         def tidbBranch = component.computeBranchFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
                         def pdBranch = component.computeBranchFromPR('pd', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
                         def tikvBranch = component.computeBranchFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
                         def tiflashBranch = component.computeBranchFromPR('tiflash', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)
                         retry(2) {
-                            sh label: "download third_party", script: """
+                            sh label: 'download third_party', script: """
                                 export TIDB_BRANCH=${tidbBranch}
                                 export PD_BRANCH=${pdBranch}
                                 export TIKV_BRANCH=${tikvBranch}
@@ -69,11 +69,11 @@ pipeline {
                         }
                     }
                 }
-                dir("ticdc") {
-                    cache(path: "./bin", includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-storage-integration')) {
+                dir('ticdc') {
+                    cache(path: './bin', includes: '**/*', key: prow.getCacheKey('binary', REFS, 'cdc-storage-integration')) {
                         // build cdc, kafka_consumer, storage_consumer, cdc.test for integration test
                         // only build binarys if not exist, use the cached binarys if exist
-                        sh label: "prepare", script: """
+                        sh label: 'prepare', script: '''
                             ls -alh ./bin
                             [ -f ./bin/cdc ] || make cdc
                             [ -f ./bin/cdc_kafka_consumer ] || make kafka_consumer
@@ -81,12 +81,12 @@ pipeline {
                             [ -f ./bin/cdc.test ] || make integration_test_build
                             ls -alh ./bin
                             ./bin/cdc version
-                        """
+                        '''
                     }
-                    sh label: "prepare", script: """
+                    sh label: 'prepare', script: '''
                         cp -r ../third_party_download/bin/* ./bin/
                         ls -alh ./bin
-                    """
+                    '''
                     stash name: 'ticdc', includes: '**/*'
                 }
             }
@@ -101,7 +101,7 @@ pipeline {
                             'G10', 'G11', 'G12', 'G13', 'G14', 'G15'
                     }
                 }
-                agent{
+                agent {
                     kubernetes {
                         namespace K8S_NAMESPACE
                         yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
@@ -114,7 +114,7 @@ pipeline {
                     expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
                 }
                 stages {
-                    stage("Test") {
+                    stage('Test') {
                         options { timeout(time: 40, unit: 'MINUTES') }
                         steps {
                             dir('ticdc') {
@@ -126,7 +126,7 @@ pipeline {
                         }
                         post {
                             failure {
-                                sh label: "collect logs", script: """
+                                sh label: 'collect logs', script: """
                                     ls /tmp/tidb_cdc_test/
                                     log_files=\$(find /tmp/tidb_cdc_test/ -type f -name "*.log")
                                     if [ -n "\${log_files}" ]; then
