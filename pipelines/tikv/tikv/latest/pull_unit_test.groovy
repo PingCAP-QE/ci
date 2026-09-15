@@ -2,7 +2,7 @@
 // Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
 @Library('tipipeline') _
 
-final K8S_NAMESPACE = "jenkins-tikv"
+final K8S_NAMESPACE = 'jenkins-tikv'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
 final POD_TEMPLATE_FILE = 'pipelines/tikv/tikv/latest/pod-pull_unit_test.yaml'
 final REFS = readJSON(text: params.JOB_SPEC).refs
@@ -13,7 +13,7 @@ final ARCHIVE_DIR = 'archives'
 final UNIT_TEST_DIR = 'unit-test'
 final TEST_ARTIFACTS = 'test-artifacts.tar.gz'
 final TEST_BINARIES_ARCHIVE = 'archive-test-binaries.tar'
-final EXTRA_NEXTEST_ARGS = "-j 8"
+final EXTRA_NEXTEST_ARGS = '-j 8'
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -27,7 +27,7 @@ pipeline {
         }
     }
     environment {
-        TIKV_TEST_MEMORY_DISK_MOUNT_POINT = "/home/jenkins/agent/memvolume"
+        TIKV_TEST_MEMORY_DISK_MOUNT_POINT = '/home/jenkins/agent/memvolume'
     }
     options {
         timeout(time: 50, unit: 'MINUTES')
@@ -45,7 +45,7 @@ pipeline {
                         ${WORKSPACE}/${ARCHIVE_DIR} \
                         ${WORKSPACE}/${UNIT_TEST_DIR}
                 """
-                dir("tikv") {
+                dir('tikv') {
                     script {
                         prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID)
                     }
@@ -134,11 +134,11 @@ pipeline {
                 }
             }
         }
-        stage("Test") {
+        stage('Test') {
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
                 dir("${WORKSPACE}/${UNIT_TEST_DIR}") {
-                    sh label: "Prepare unit test workspace", script: """
+                    sh label: 'Prepare unit test workspace', script: """
                         rm -rf ${WORKSPACE}/${SRC_DIR} ${WORKSPACE}/${TARGET_DIR}
                         ls -alh ${WORKSPACE}/
                         ln -s `pwd` ${WORKSPACE}/${SRC_DIR}
@@ -156,7 +156,7 @@ pipeline {
                         ls -la
                         ls -alh target/debug/deps/
                     """
-                    sh label: "Run nextest", script: """
+                    sh label: 'Run nextest', script: """
                     ls -alh ${WORKSPACE}/${SRC_DIR}/
                     ls -alh ${WORKSPACE}/${SRC_DIR}/target/debug/deps/
                     export RUSTFLAGS=-Dwarnings
@@ -179,7 +179,7 @@ pipeline {
             }
             post {
                 failure {
-                    sh label: "collect logs", script: """
+                    sh label: 'collect logs', script: """
                         log_dir=${WORKSPACE}/${SRC_DIR}/target
                         tmp_file=\$(mktemp)
                         if [ -d "\${log_dir}" ]; then
@@ -194,7 +194,7 @@ pipeline {
                         rm -f "\${tmp_file}"
                         ls -alh log-ut.tar.gz
                     """
-                    archiveArtifacts artifacts: "log-ut.tar.gz", fingerprint: true
+                    archiveArtifacts artifacts: 'log-ut.tar.gz', fingerprint: true
                 }
             }
         }
