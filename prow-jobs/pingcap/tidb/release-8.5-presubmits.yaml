@@ -205,7 +205,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_sqllogic_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
