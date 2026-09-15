@@ -96,7 +96,7 @@ presubmits:
       name: pingcap/tidb/pull_integration_tici_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-tici-test
