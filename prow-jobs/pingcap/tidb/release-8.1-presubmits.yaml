@@ -104,7 +104,7 @@ presubmits:
     - name: pingcap/tidb/release-8.1/pull_mysql_client_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
