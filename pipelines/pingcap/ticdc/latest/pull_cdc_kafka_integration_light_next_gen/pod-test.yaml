@@ -17,7 +17,7 @@ spec:
       tty: true
       volumeMounts:
         - mountPath: /tmp
-          name: volume-0
+          name: test-tmp
     - image: ghcr.io/pingcap-qe/ci/jenkins:v2026.6.28-8-g92327eaa-go1.25
       command: [tini, --, bash]
       imagePullPolicy: Always
@@ -29,7 +29,7 @@ spec:
       tty: true
       volumeMounts:
         - mountPath: /tmp
-          name: volume-0
+          name: test-tmp
     - env:
         - name: KAFKA_CREATE_TOPICS
           value: big-message-test:1:1
@@ -72,7 +72,7 @@ spec:
       tty: true
       volumeMounts:
         - mountPath: /tmp
-          name: volume-0
+          name: test-tmp
     - env:
         - name: KAFKA_SERVER
           value: 127.0.0.1:9092
@@ -99,7 +99,7 @@ spec:
       tty: true
       volumeMounts:
         - mountPath: /tmp
-          name: volume-0
+          name: test-tmp
     - name: mysql
       image: quay.io/debezium/example-mysql:2.4
       imagePullPolicy: IfNotPresent
@@ -138,8 +138,16 @@ spec:
           cpu: 2000m
           memory: 4Gi
   volumes:
-    - emptyDir: {}
-      name: volume-0
+    - name: test-tmp
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: ci-rwo
+            resources:
+              requests:
+                storage: 100Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
