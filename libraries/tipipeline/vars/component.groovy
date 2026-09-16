@@ -1,3 +1,20 @@
+import groovy.transform.Field
+
+// Special branch -> peer-component source mappings, loaded from
+// resources/configs/component-branch-mapping.yaml and cached per pipeline run.
+@Field private Map componentBranchMapping
+
+// Resource path of the special branch mapping, bundled with this shared library.
+@Field private static final String COMPONENT_BRANCH_MAPPING_RESOURCE = 'configs/component-branch-mapping.yaml'
+
+// Components published with patch-level branches (release-X.Y.Z) on hotfix /
+// patch-version branches. Used when the config does not declare
+// `patchAwareComponents`.
+@Field private static final List<String> DEFAULT_PATCH_AWARE_COMPONENTS = ['tidb-test', 'plugin']
+
+// ============================================================
+// CI params parsing / pre-built validation
+// ============================================================
 // Parse all CI params from PR title.
 //
 // Supported inputs:
@@ -74,6 +91,9 @@ def validatePreBuiltComponentParams(String prTitle, String prTargetBranch) {
     return errors
 }
 
+// ============================================================
+// Artifact OCI tag
+// ============================================================
 def computeArtifactNextGenOciTagFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     def ret = computeArtifactOciTagFromPR(component, prTargetBranch, prTitle, trunkBranch)
     return ret.contains("nextgen") ? ret : "${ret}-nextgen"
@@ -109,6 +129,9 @@ def computeNextgenPeerBranch(String branch) {
     return branch
 }
 
+// ============================================================
+// Branch mapping
+// ============================================================
 // compute component branch from pr info.
 def computeBranchFromPR(String component, String prTargetBranch, String prTitle, String trunkBranch="master") {
     // pr title xxx | dep1=release-x.y
@@ -145,85 +168,168 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     // - feature_abcd
     final featureBranchReg = /^feature[\/_].*/
 
-    // the components that will created the patch release branch when version released: release-X.Y.Z
-    final componentsSupportPatchReleaseBranch = ['tidb-test', 'plugin']
+    // components published with patch-level branches on hotfix / patch-version branches.
+    def componentsSupportPatchReleaseBranch = getPatchAwareComponents()
 
-    def componentBranch = prTargetBranch
+    // explicit component param in the PR title always wins.
     def ciParams = parseCIParamsFromPRTitle(prTitle)
     if (ciParams.containsKey(component)) {
-         componentBranch = ciParams[component]
-    } else if (prTargetBranch =~ releaseBranchReg ) {
-        componentBranch = String.format('release-%s', (prTargetBranch =~ releaseBranchReg)[0][1]) // => release-X.Y or release-X.Y-beta.M
-    } else if (prTargetBranch =~ wipReleaseFeatureBranchReg ) {
-        // Special handling for feature/materialized_view branch，use the same feature branch for all components
-        // If the feature/materialized_view is no longer in use, clean up this logic
-        if (prTargetBranch == 'feature/release-8.5-materialized-view' && component != "ticdc") {
-            componentBranch = prTargetBranch
-        } else {
-            componentBranch = String.format('release-%s', (prTargetBranch =~ wipReleaseFeatureBranchReg)[0][1]) // => release-X.Y
-        }
-    } else if (prTargetBranch =~ oldHotfixBranchReg) {
-        componentBranch = String.format('release-%s', (prTargetBranch =~ oldHotfixBranchReg)[0][1]) // => release-X.Y
-    } else if (prTargetBranch =~ newHotfixBranchReg) {
-        if (componentsSupportPatchReleaseBranch.contains(component)) {
-            componentBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][1]) // => release-X.Y.Z
-        } else {
-            componentBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][2]) // => release-X.Y
-        }
-    } else if (prTargetBranch =~ historyReleaseFeatureBranchReg) {
-        // Special Branches:
-        if (prTargetBranch == 'feature/release-8.5.5-active-active') {
-            if (component == "tidb" || component == "ticdc") {
-                return prTargetBranch
-            }
-            if (component == "tidb-test") {
-                return 'release-8.5-20260121-v8.5.5'
-            }
-        }
+        def resolved = ciParams[component]
+        println("🎫 '${component}' on '${prTargetBranch}' resolved from PR title param '${component}=${resolved}' -> '${resolved}'")
+        return resolved
+    }
 
-        if (componentsSupportPatchReleaseBranch.contains(component)) {
-            componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][1]) // => release-X.Y.Z
-        } else {
-            componentBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][2]) // => release-X.Y
+    // Derive the release-X.Y / release-X.Y.Z branch implied by the target branch.
+    def releaseBranch = null
+    def patchBranch = null
+    if (prTargetBranch =~ releaseBranchReg) {
+        releaseBranch = String.format('release-%s', (prTargetBranch =~ releaseBranchReg)[0][1]) // => release-X.Y or release-X.Y-beta.M
+    } else if (prTargetBranch =~ wipReleaseFeatureBranchReg) {
+        releaseBranch = String.format('release-%s', (prTargetBranch =~ wipReleaseFeatureBranchReg)[0][1]) // => release-X.Y
+    } else if (prTargetBranch =~ oldHotfixBranchReg) {
+        releaseBranch = String.format('release-%s', (prTargetBranch =~ oldHotfixBranchReg)[0][1]) // => release-X.Y
+    } else if (prTargetBranch =~ newHotfixBranchReg) {
+        patchBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][1]) // => release-X.Y.Z
+        releaseBranch = String.format('release-%s', (prTargetBranch =~ newHotfixBranchReg)[0][2]) // => release-X.Y
+    } else if (prTargetBranch =~ historyReleaseFeatureBranchReg) {
+        patchBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][1]) // => release-X.Y.Z
+        releaseBranch = String.format('release-%s', (prTargetBranch =~ historyReleaseFeatureBranchReg)[0][2]) // => release-X.Y
+    }
+
+    // Special mappings from resources/configs/component-branch-mapping.yaml take precedence
+    // over the generic derivation below.
+    def special = findComponentBranchMapping(prTargetBranch)
+    if (special != null) {
+        def components = special['components']
+        def fromComponentMap = components instanceof Map && components.containsKey(component)
+        def value = fromComponentMap ? components[component] : special['default']
+        if (value != null) {
+            def resolved = resolveBranchToken(value.toString(), prTargetBranch, releaseBranch, patchBranch, trunkBranch)
+            def matchedBy = special['match'] != null ? "match='${special['match']}'" : "matchRegex='${special['matchRegex']}'"
+            def valueSource = fromComponentMap ? "components.${component}" : 'default'
+            println("🎯 '${component}' on '${prTargetBranch}' matched ${COMPONENT_BRANCH_MAPPING_RESOURCE} (${matchedBy}, ${valueSource}='${value}') -> '${resolved}'")
+            return resolved
         }
+    }
+
+    def componentBranch = prTargetBranch
+    def resolvedBy
+    if (prTargetBranch =~ releaseBranchReg) {
+        componentBranch = releaseBranch
+        resolvedBy = "release branch rule ('${prTargetBranch}' -> release-X.Y)"
+    } else if (prTargetBranch =~ wipReleaseFeatureBranchReg) {
+        componentBranch = releaseBranch
+        resolvedBy = "feature branch on a release branch rule ('${prTargetBranch}' -> release-X.Y)"
+    } else if (prTargetBranch =~ oldHotfixBranchReg) {
+        componentBranch = releaseBranch
+        resolvedBy = "old hotfix branch rule ('${prTargetBranch}' -> release-X.Y)"
+    } else if (prTargetBranch =~ newHotfixBranchReg) {
+        def patchAware = componentsSupportPatchReleaseBranch.contains(component)
+        componentBranch = patchAware ? patchBranch : releaseBranch
+        resolvedBy = "new hotfix branch rule (${patchAware ? 'patch-aware component -> release-X.Y.Z' : 'release-X.Y'})"
+    } else if (prTargetBranch =~ historyReleaseFeatureBranchReg) {
+        def patchAware = componentsSupportPatchReleaseBranch.contains(component)
+        componentBranch = patchAware ? patchBranch : releaseBranch
+        resolvedBy = "feature branch on a patch version rule (${patchAware ? 'patch-aware component -> release-X.Y.Z' : 'release-X.Y'})"
     } else if (prTargetBranch =~ nextgenReleaseBranchReg) {
         // peer components are fetched from the monthly release-nextgen branch.
         componentBranch = computeNextgenPeerBranch(prTargetBranch)
+        resolvedBy = 'release-nextgen peer branch rule'
     } else if (prTargetBranch =~ featureBranchReg) {
         componentBranch = trunkBranch
+        resolvedBy = "generic feature branch rule (trunk='${trunkBranch}')"
+    } else {
+        resolvedBy = 'no specific branch rule (keep the target branch)'
     }
 
+    println("🧭 '${component}' on '${prTargetBranch}' resolved by ${resolvedBy} -> '${componentBranch}'")
     return componentBranch
 }
 
+// Load and cache the special branch mapping config from
+// resources/configs/component-branch-mapping.yaml. A missing or invalid config is
+// treated as an empty config so a bad config never breaks every pipeline.
+private Map loadComponentBranchMapping() {
+    if (componentBranchMapping != null) {
+        return componentBranchMapping
+    }
+    def config = [mappings: []]
+    try {
+        def text = libraryResource(COMPONENT_BRANCH_MAPPING_RESOURCE)
+        def parsed = readYaml(text: text)
+        if (parsed instanceof Map) {
+            config = parsed
+            if (!(config['mappings'] instanceof List)) {
+                config['mappings'] = []
+            }
+        } else {
+            println("⚠️ ${COMPONENT_BRANCH_MAPPING_RESOURCE} is not a map, ignore it.")
+        }
+    } catch (Exception e) {
+        println("⚠️ failed to load ${COMPONENT_BRANCH_MAPPING_RESOURCE}: ${e.message}, ignore it.")
+    }
+    componentBranchMapping = config
+    return componentBranchMapping
+}
+
+// Components published with patch-level branches (release-X.Y.Z) on hotfix /
+// patch-version branches; other components use release-X.Y. Configured via the
+// `patchAwareComponents` list in resources/configs/component-branch-mapping.yaml,
+// falling back to DEFAULT_PATCH_AWARE_COMPONENTS when absent.
+private List<String> getPatchAwareComponents() {
+    def configured = loadComponentBranchMapping()['patchAwareComponents']
+    if (configured instanceof List) {
+        return configured.collect { it.toString() }
+    }
+    return DEFAULT_PATCH_AWARE_COMPONENTS
+}
+
+// Find the first special mapping matching the PR target branch, either by exact
+// branch name (`match`) or by regex (`matchRegex`). Returns null when none match.
+private Map findComponentBranchMapping(String prTargetBranch) {
+    return loadComponentBranchMapping()['mappings'].find { m ->
+        if (!(m instanceof Map)) {
+            return false
+        }
+        def exact = m['match']
+        if (exact != null && prTargetBranch == exact.toString()) {
+            return true
+        }
+        def regex = m['matchRegex']
+        if (regex != null && prTargetBranch ==~ regex.toString()) {
+            return true
+        }
+        return false
+    }
+}
+
+// Resolve a special mapping value into a concrete branch name.
+//
+// Tokens: $self -> target branch, $release -> release-X.Y, $patch -> release-X.Y.Z,
+// $trunk -> caller trunk branch. Any other value is used verbatim.
+private String resolveBranchToken(String value, String prTargetBranch, String releaseBranch, String patchBranch, String trunkBranch) {
+    switch (value) {
+        case '$self':
+            return prTargetBranch
+        case '$release':
+            return releaseBranch ?: prTargetBranch
+        case '$patch':
+            return patchBranch ?: (releaseBranch ?: prTargetBranch)
+        case '$trunk':
+            return trunkBranch
+        default:
+            return value
+    }
+}
+
+// ============================================================
+// Git CDN
+// ============================================================
 // Route GitHub checkouts through the in-cluster git-cdn when the Jenkins
 // instance enables it. git-cdn serves anonymous public requests first and
 // returns 401 for private repositories, so Git must be able to answer with the
 // github-bot-https credential after the URL is rewritten to git-cdn.
 // See prow.withGitAskPass and ee-ops docs/git-cdn-jenkins-auth.md.
-private Boolean isGitCdnEnabled() {
-    return env.GIT_CDN_ENABLED?.trim()?.toBoolean()
-}
-
-private String gitCdnHttpCredentialsId() {
-    def id = env.GIT_HTTP_CREDENTIALS_ID?.trim()
-    return isGitCdnEnabled() && id ? id : ''
-}
-
-// Rewrite a GitHub SSH/HTTPS URL to the in-cluster git-cdn HTTP URL when the
-// Jenkins instance routes GitHub through git-cdn. Non-GitHub URLs and CDN-disabled
-// instances are returned unchanged so the caller keeps its original transport.
-private String gitCdnRewriteUrl(String gitUrl) {
-    if (!isGitCdnEnabled()) {
-        return gitUrl
-    }
-    def matcher = (gitUrl =~ /^(?:git@github\.com:|https:\/\/github\.com\/|ssh:\/\/git@github\.com\/)([^\/\s]+)\/([^\/\s]+?)(\.git)?$/)
-    if (!matcher) {
-        return gitUrl
-    }
-    final cdnBase = env.GIT_CDN_URL?.trim() ?: 'http://git-cdn.cache.svc:8000'
-    return "${cdnBase}/${matcher[0][1]}/${matcher[0][2]}.git"
-}
 
 /*
  * Let Git try an anonymous HTTP request first and provide Jenkins' PAT only
@@ -257,6 +363,33 @@ def withGitCdnAskPass(Closure body) {
     }
 }
 
+private Boolean isGitCdnEnabled() {
+    return env.GIT_CDN_ENABLED?.trim()?.toBoolean()
+}
+
+private String gitCdnHttpCredentialsId() {
+    def id = env.GIT_HTTP_CREDENTIALS_ID?.trim()
+    return isGitCdnEnabled() && id ? id : ''
+}
+
+// Rewrite a GitHub SSH/HTTPS URL to the in-cluster git-cdn HTTP URL when the
+// Jenkins instance routes GitHub through git-cdn. Non-GitHub URLs and CDN-disabled
+// instances are returned unchanged so the caller keeps its original transport.
+private String gitCdnRewriteUrl(String gitUrl) {
+    if (!isGitCdnEnabled()) {
+        return gitUrl
+    }
+    def matcher = (gitUrl =~ /^(?:git@github\.com:|https:\/\/github\.com\/|ssh:\/\/git@github\.com\/)([^\/\s]+)\/([^\/\s]+?)(\.git)?$/)
+    if (!matcher) {
+        return gitUrl
+    }
+    final cdnBase = env.GIT_CDN_URL?.trim() ?: 'http://git-cdn.cache.svc:8000'
+    return "${cdnBase}/${matcher[0][1]}/${matcher[0][2]}.git"
+}
+
+// ============================================================
+// Checkout
+// ============================================================
 // checkout component src from git repo.
 def checkout(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunkBranch="master", timeout=5) {
     def componentBranch = computeBranchFromPR(component, prTargetBranch, prTitle,  trunkBranch)
@@ -556,6 +689,9 @@ def checkoutWithMergeBase(gitUrl, component, prTargetBranch, prTitle, trunkBranc
     }
 }
 
+// ============================================================
+// Artifacts
+// ============================================================
 // fetch component artifact from artifactory(current http server)
 // Note: useBranchInArtifactUrl is used for tiflash component, only support master branch and common release branch
 def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artifactPath, pathInArchive="", trunkBranch="master", artifactVerify=false, useBranchInArtifactUrl=false) {
@@ -588,7 +724,9 @@ def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artif
     """)
 }
 
-
+// ============================================================
+// Misc helpers
+// ============================================================
 def getPrDiffFiles(fullRepoName, prId, credentialsId) {
     withCredentials([string(credentialsId: "${credentialsId}", variable: 'token')]) {
         def apiUrl = "https://api.github.com/repos/${fullRepoName}/pulls/${prId}/files"
