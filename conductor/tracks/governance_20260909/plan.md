@@ -28,7 +28,7 @@
     - [x] Checklist item: OWNERS/sig approval routing
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
-## Phase 3: Define Branch Support & EOL Governance
+## Phase 3: Define Branch Support & EOL Governance [checkpoint: 197c20f]
 
 - [x] Task: Document the branch support matrix process
     - [x] Describe adding a new `release-X.Y` across `prow-jobs/`, `jobs/`, and `pipelines/`
