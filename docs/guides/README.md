@@ -15,6 +15,7 @@ Welcome to the guides section of our CI repository. This directory contains docu
 ### Development Workflow
 
 - [Job and Pipeline Change Governance](./job-change-governance.md) - The lifecycle for proposing, planning, implementing, verifying and promoting a CI job/pipeline change, plus the three-layer consistency rule and review checklist
+- [Branch Support and EOL Governance](./branch-support-and-eol.md) - How supported `release-X.Y` branches are added, synced and retired across `prow-jobs/`, `jobs/` and `pipelines/`, including hotfix and EOL control hooks
 - [Cherry-Pick Pull Request](./cherry-pick-pull-request.md) - How to cherry-pick changes from one pull request to another branch using our helper script, with step-by-step instructions and conflict resolution guidance
 
 ### Testing

@@ -30,13 +30,13 @@
 
 ## Phase 3: Define Branch Support & EOL Governance
 
-- [ ] Task: Document the branch support matrix process
-    - [ ] Describe adding a new `release-X.Y` across `prow-jobs/`, `jobs/`, and `pipelines/`
-    - [ ] Describe removing an EOL `release-X.Y` across all three layers plus Tekton resources
-- [ ] Task: Document hotfix and EOL control hooks
-    - [ ] Reference hotfix branch rules and merge guards
-    - [ ] Reference maintained-GitHub-label removal and affects-X.Y label denial for EOL versions
-- [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
+- [x] Task: Document the branch support matrix process
+    - [x] Describe adding a new `release-X.Y` across `prow-jobs/`, `jobs/`, and `pipelines/`
+    - [x] Describe removing an EOL `release-X.Y` across all three layers plus Tekton resources
+- [x] Task: Document hotfix and EOL control hooks
+    - [x] Reference hotfix branch rules and merge guards
+    - [x] Reference maintained-GitHub-label removal and affects-X.Y label denial for EOL versions
+- [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
 ## Phase 4: Validate Governance End to End
 

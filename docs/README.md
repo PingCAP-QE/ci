@@ -26,6 +26,7 @@ It contains both trigger configurations and detailed pipeline implementations.
   - Finding Pipelines for a Specific Repository
   - How to Modify and Test a Pipeline
   - [Job and Pipeline Change Governance](./guides/job-change-governance.md) — lifecycle, three-layer consistency and review checklist
+  - [Branch Support and EOL Governance](./guides/branch-support-and-eol.md) — adding, syncing and retiring release branches
   - [Testing Library Code](./guides/testing-library-code.md) — Run unit tests for shared library functions locally
   - Common Use Cases `WIP`
   - Troubleshooting `WIP`
