@@ -38,7 +38,7 @@
     - [x] Reference maintained-GitHub-label removal and affects-X.Y label denial for EOL versions
 - [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
-## Phase 4: Validate Governance End to End
+## Phase 4: Validate Governance End to End [checkpoint: bd33a72]
 
 - [x] Task: Execute repository verification gates
     - [x] Run `pre-commit run --all-files` and fix findings
