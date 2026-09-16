@@ -103,6 +103,25 @@ Be careful when writing `#NNN`-style references in GitHub PR titles, description
 - When a reference to a GitHub issue/PR *is* intended, prefer the explicit form `<owner>/<repo>#NNN` (or a full URL) over a bare `#NNN` to avoid ambiguity across repos.
 - Review rendered text before posting: a wrong auto-link cannot be seen by readers as plain text.
 
+### Jenkins Shared Library Code Organization
+
+Applies to `libraries/*/vars/*.groovy` (Jenkins global variables). Follow these rules so large files stay navigable:
+
+- Put **file-level fields and constants at the top** of the file (e.g. `@Field` caches and resource paths), before the first function.
+- Group functions by **feature/cohesion**, not by visibility. Do not sort the whole file by `public`/`private`; a `private` helper must stay next to the public entry that uses it.
+- Inside a feature block, put the **public entry first, then its private helpers** (top-down reading).
+- Prefix each feature block with a banner comment:
+
+  ```groovy
+  // ============================================================
+  // <Feature name>
+  // ============================================================
+  ```
+
+- Prefer a **data/config file over hardcoded branches**: special-case mappings live under `libraries/tipipeline/resources/configs/` (e.g. `component-branch-mapping.yaml`) and are read via `libraryResource` (+ `readYaml`), with a defensive fallback so a missing or invalid config never breaks pipelines. Keep scripts under `resources/scripts/` and other resource kinds in their own subdirectories.
+- **Log the branch-resolution reason for every path** — PR-title param, config mapping, or derived/default rule — including the matched rule/source and the resolved branch, so CI logs stay transparent about why a branch was chosen.
+- Add or update tests in `libraries/tipipeline/tests/` for any behavior change; keep a golden/characterization table for behavior that must not regress.
+
 ## Common Tasks for Agents
 
 ### 1. Adding/Modifying CI Jobs

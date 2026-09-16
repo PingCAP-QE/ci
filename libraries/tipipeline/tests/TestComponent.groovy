@@ -190,6 +190,40 @@ class TestComponent {
                 [component, targetBranch, title, trunk])
         }
 
+        private String captureLog(Closure body) {
+            def out = new ByteArrayOutputStream()
+            def original = System.out
+            System.setOut(new PrintStream(out))
+            try {
+                body()
+            } finally {
+                System.setOut(original)
+            }
+            return out.toString()
+        }
+
+        @Test
+        void shouldLogPrTitleParamResolution() {
+            def log = captureLog { branch('tidb', 'master', 'feat: support fast read | tidb=pr/123') }
+            assertTrue("expected PR-title log in: ${log}", log.contains("from PR title param 'tidb=pr/123'"))
+            assertTrue("expected resolved branch in: ${log}", log.contains("-> 'pr/123'"))
+        }
+
+        @Test
+        void shouldLogDerivedBranchResolution() {
+            def releaseLog = captureLog { branch('tikv', 'release-8.5', 'feat: support fast read') }
+            assertTrue("expected release-rule log in: ${releaseLog}", releaseLog.contains('release branch rule'))
+            assertTrue("expected resolved branch in: ${releaseLog}", releaseLog.contains("-> 'release-8.5'"))
+
+            def trunkLog = captureLog { branch('tikv', 'feature/my-feature', 'feat: support fast read') }
+            assertTrue("expected generic-feature log in: ${trunkLog}", trunkLog.contains('generic feature branch rule'))
+            assertTrue("expected trunk fallback in: ${trunkLog}", trunkLog.contains("-> 'master'"))
+
+            def keepLog = captureLog { branch('tikv', 'master', 'feat: support fast read') }
+            assertTrue("expected keep-target log in: ${keepLog}", keepLog.contains('keep the target branch'))
+            assertTrue("expected target branch in: ${keepLog}", keepLog.contains("-> 'master'"))
+        }
+
         @Test
         void shouldUseParamFromTitle() {
             def cases = [
@@ -453,6 +487,397 @@ class TestComponent {
             def remote = scmArg.scm.userRemoteConfigs[0]
             assertEquals('git@gitlab.example.com:foo/bar.git', remote.url)
             assertEquals('some-ssh-cred', remote.credentialsId)
+        }
+    }
+
+    // ============================================================
+    // component-branch-mapping.yaml driven special mappings
+    // ============================================================
+    static class ComponentBranchMapping {
+        private static final String RESOURCE = 'configs/component-branch-mapping.yaml'
+
+        private def scriptWithConfig(Map config) {
+            return loadScriptWithBindings([
+                libraryResource: { String path -> 'mappings: []' },
+                readYaml: { Map args -> config },
+            ])
+        }
+
+        private String branch(def script, String component, String target,
+                              String title = 'feat: support fast read', String trunk = 'master') {
+            script.invokeMethod('computeBranchFromPR', [component, target, title, trunk])
+        }
+
+        @Test
+        void shouldRequestConfigFromConfigsSubdir() {
+            def requested = []
+            def script = loadScriptWithBindings([
+                libraryResource: { String path -> requested << path; 'mappings: []' },
+                readYaml: { Map args -> [mappings: []] },
+            ])
+            script.invokeMethod('computeBranchFromPR', ['tidb', 'feature/my-feature', 'feat: x', 'master'])
+            assertEquals([RESOURCE], requested)
+        }
+
+        @Test
+        void shouldLogWhenSpecialMappingIsApplied() {
+            def script = scriptWithConfig([
+                mappings: [[match: 'feature/release-8.5-fts', default: '$release',
+                            components: [pd: '$self']]],
+            ])
+            def out = new ByteArrayOutputStream()
+            def original = System.out
+            System.setOut(new PrintStream(out))
+            try {
+                branch(script, 'pd', 'feature/release-8.5-fts')
+            } finally {
+                System.setOut(original)
+            }
+            def log = out.toString()
+            assertTrue("log should mention the config resource: ${log}",
+                log.contains('configs/component-branch-mapping.yaml'))
+            assertTrue("log should mention the matched rule: ${log}",
+                log.contains("match='feature/release-8.5-fts'"))
+            assertTrue("log should mention the value source: ${log}", log.contains('components.pd'))
+            assertTrue("log should mention the resolved branch: ${log}",
+                log.contains("-> 'feature/release-8.5-fts'"))
+        }
+
+        @Test
+        void shouldApplyDefaultAndComponentOverride() {
+            def script = scriptWithConfig([
+                mappings: [
+                    [match: 'feature/release-8.5-fts', default: '$release',
+                     components: [pd: '$self', tikv: 'release-8.5-20260101-v8.5.9']],
+                ],
+            ])
+            def cases = [
+                // component, expected
+                ['tidb', 'release-8.5'],
+                ['pd',   'feature/release-8.5-fts'],
+                ['tikv', 'release-8.5-20260101-v8.5.9'],
+            ]
+            cases.each { c ->
+                def (component, expected) = c
+                assertEquals("${component} on feature/release-8.5-fts", expected,
+                    branch(script, component, 'feature/release-8.5-fts'))
+            }
+        }
+
+        @Test
+        void shouldSupportReleaseAndPatchTokens() {
+            def script = scriptWithConfig([
+                mappings: [
+                    [match: 'feature/release-8.5.5-active-active', default: '$release',
+                     components: [tidb: '$self', 'tidb-test': 'release-8.5-20260121-v8.5.5', plugin: '$patch']],
+                ],
+            ])
+            def cases = [
+                ['tidb',      'feature/release-8.5.5-active-active'],
+                ['tidb-test', 'release-8.5-20260121-v8.5.5'],
+                ['plugin',    'release-8.5.5'],
+                ['tikv',      'release-8.5'],
+            ]
+            cases.each { c ->
+                def (component, expected) = c
+                assertEquals("${component} on feature/release-8.5.5-active-active", expected,
+                    branch(script, component, 'feature/release-8.5.5-active-active'))
+            }
+        }
+
+        @Test
+        void shouldMatchByRegex() {
+            def script = scriptWithConfig([
+                mappings: [[matchRegex: '^feature/release-8\\.5-fts.*$', default: '$self']],
+            ])
+            assertEquals('feature/release-8.5-fts', branch(script, 'tikv', 'feature/release-8.5-fts'))
+            assertEquals('feature/release-8.5-fts-abc', branch(script, 'tikv', 'feature/release-8.5-fts-abc'))
+        }
+
+        @Test
+        void shouldFallBackToGenericDerivationWhenNoMappingMatches() {
+            def script = scriptWithConfig([
+                mappings: [[match: 'feature/release-8.5-fts', default: '$release']],
+            ])
+            assertEquals('master', branch(script, 'tidb', 'feature/my-feature'))
+            assertEquals('release-8.5', branch(script, 'tikv', 'feature/release-8.5-other'))
+        }
+
+        @Test
+        void shouldPreferPrTitleParamOverMapping() {
+            def script = scriptWithConfig([
+                mappings: [[match: 'feature/release-8.5-fts', default: '$release']],
+            ])
+            assertEquals('pr/123', branch(script, 'pd', 'feature/release-8.5-fts', 'feat: x | pd=pr/123'))
+        }
+
+        @Test
+        void shouldDegradeGracefullyWithoutConfigResource() {
+            // No libraryResource/readYaml bindings: loader must fall back to the
+            // generic derivation instead of throwing.
+            def script = loadScript()
+            assertEquals('release-8.5', branch(script, 'tidb', 'feature/release-8.5-fts'))
+        }
+
+        @Test
+        void shouldApplyShippedConfigBehavior() {
+            def realConfig = new groovy.yaml.YamlSlurper()
+                .parse(new File('libraries/tipipeline/resources/configs/component-branch-mapping.yaml'))
+            def script = scriptWithConfig(realConfig)
+
+            def cases = [
+                // component,   target branch,                          expected
+                ['tidb',        'feature/release-8.5-materialized-view', 'feature/release-8.5-materialized-view'],
+                ['ticdc',       'feature/release-8.5-materialized-view', 'release-8.5'],
+                ['tidb',        'feature/release-8.5.5-active-active',   'feature/release-8.5.5-active-active'],
+                ['ticdc',       'feature/release-8.5.5-active-active',   'feature/release-8.5.5-active-active'],
+                ['tidb-test',   'feature/release-8.5.5-active-active',   'release-8.5-20260121-v8.5.5'],
+                ['plugin',      'feature/release-8.5.5-active-active',   'release-8.5.5'],
+                ['tikv',        'feature/release-8.5.5-active-active',   'release-8.5'],
+                ['tidb',        'feature/release-8.5-fts',               'feature/release-8.5-fts'],
+                ['pd',          'feature/release-8.5-fts',               'feature/release-8.5-fts'],
+                ['tici',        'feature/release-8.5-fts',               'release-fts-202602'],
+            ]
+            cases.each { c ->
+                def (component, target, expected) = c
+                assertEquals("${component} on ${target}", expected, branch(script, component, target))
+            }
+        }
+
+        @Test
+        void shouldShipValidConfigWithExpectedMappings() {
+            def file = new File('libraries/tipipeline/resources/configs/component-branch-mapping.yaml')
+            assertTrue('config resource must exist', file.exists())
+
+            def config = new groovy.yaml.YamlSlurper().parse(file)
+            def mappings = config['mappings']
+            assertTrue('mappings must be a non-empty list', mappings instanceof List && !mappings.isEmpty())
+
+            def byMatch = mappings.findAll { it instanceof Map && it['match'] != null }
+                .collectEntries { [(it['match'].toString()): it] }
+            ['feature/release-8.5-materialized-view',
+             'feature/release-8.5.5-active-active',
+             'feature/release-8.5-fts'].each { m ->
+                assertTrue("config must contain mapping for ${m}", byMatch.containsKey(m))
+            }
+            assertEquals('$self', byMatch['feature/release-8.5-materialized-view']['default'])
+            assertEquals('$release', byMatch['feature/release-8.5.5-active-active']['default'])
+            assertEquals('release-8.5-20260121-v8.5.5',
+                byMatch['feature/release-8.5.5-active-active']['components']['tidb-test'])
+            assertEquals('$self', byMatch['feature/release-8.5-fts']['components']['tidb'])
+            assertEquals('release-fts-202602', byMatch['feature/release-8.5-fts']['components']['tici'])
+        }
+    }
+
+    // ============================================================
+    // Regression: preserve the legacy branch matching captured before the
+    // component-branch-mapping.yaml refactor. The golden tables below were
+    // generated from the pre-refactor implementation; a mismatch means the
+    // refactor changed behavior.
+    // ============================================================
+    static class LegacyBranchMatchingRegression {
+        private def script
+
+        @Before
+        void setUp() {
+            script = loadScriptWithBindings([
+                libraryResource: { String path -> 'mappings: []' },
+                readYaml: { Map args ->
+                    new groovy.yaml.YamlSlurper()
+                        .parse(new File('libraries/tipipeline/resources/configs/component-branch-mapping.yaml'))
+                },
+            ])
+        }
+
+        private String branch(String component, String target,
+                              String title = 'feat: x', String trunk = 'master') {
+            script.invokeMethod('computeBranchFromPR', [component, target, title, trunk])
+        }
+
+        @Test
+        void shouldPreserveLegacyBranchDerivation() {
+            def cases = [
+                // component, target branch, expected  (title='feat: x', trunk='master')
+                ['tidb', 'master', 'master'],
+                ['tidb', 'release-8.5', 'release-8.5'],
+                ['tidb', 'release-8.5-beta.1', 'release-8.5-beta.1'],
+                ['tidb', 'release-6.2-20220801', 'release-6.2'],
+                ['tidb', 'release-8.5-20230101-v8.5.1', 'release-8.5'],
+                ['tidb', 'release-6.1-20230101-v6.1.2', 'release-6.1'],
+                ['tidb', 'feature/release-8.5-abc', 'release-8.5'],
+                ['tidb', 'feature_release-8.1-xyz', 'release-8.1'],
+                ['tidb', 'feature/release-8.5-materialized-view', 'feature/release-8.5-materialized-view'],
+                // feature/release-8.5-fts intentionally deviates from the legacy
+                // behavior; it is covered by FtsBranchMapping.
+                ['tidb', 'feature/release-8.5.5-active-active', 'feature/release-8.5.5-active-active'],
+                ['tidb', 'feature/release-8.5.5-abc', 'release-8.5'],
+                ['tidb', 'feature/release-8.1.1-xyz', 'release-8.1'],
+                ['tidb', 'feature/my-feature', 'master'],
+                ['tidb', 'feature_my-feature', 'master'],
+                ['tidb', 'release-nextgen-202603', 'release-nextgen-202603'],
+                ['tidb', 'release-nextgen-20260301', 'release-nextgen-20260301'],
+                ['tidb', 'release-nextgen-25.10-20251123', 'release-nextgen-20251011'],
+                ['tidb', 'release-nextgen-26.3.9-20260817', 'release-nextgen-202603'],
+                ['tikv', 'master', 'master'],
+                ['tikv', 'release-8.5', 'release-8.5'],
+                ['tikv', 'release-8.5-beta.1', 'release-8.5-beta.1'],
+                ['tikv', 'release-6.2-20220801', 'release-6.2'],
+                ['tikv', 'release-8.5-20230101-v8.5.1', 'release-8.5'],
+                ['tikv', 'release-6.1-20230101-v6.1.2', 'release-6.1'],
+                ['tikv', 'feature/release-8.5-abc', 'release-8.5'],
+                ['tikv', 'feature_release-8.1-xyz', 'release-8.1'],
+                ['tikv', 'feature/release-8.5-materialized-view', 'feature/release-8.5-materialized-view'],
+                ['tikv', 'feature/release-8.5.5-active-active', 'release-8.5'],
+                ['tikv', 'feature/release-8.5.5-abc', 'release-8.5'],
+                ['tikv', 'feature/release-8.1.1-xyz', 'release-8.1'],
+                ['tikv', 'feature/my-feature', 'master'],
+                ['tikv', 'feature_my-feature', 'master'],
+                ['tikv', 'release-nextgen-202603', 'release-nextgen-202603'],
+                ['tikv', 'release-nextgen-20260301', 'release-nextgen-20260301'],
+                ['tikv', 'release-nextgen-25.10-20251123', 'release-nextgen-20251011'],
+                ['tikv', 'release-nextgen-26.3.9-20260817', 'release-nextgen-202603'],
+                ['ticdc', 'master', 'master'],
+                ['ticdc', 'release-8.5', 'release-8.5'],
+                ['ticdc', 'release-8.5-beta.1', 'release-8.5-beta.1'],
+                ['ticdc', 'release-6.2-20220801', 'release-6.2'],
+                ['ticdc', 'release-8.5-20230101-v8.5.1', 'release-8.5'],
+                ['ticdc', 'release-6.1-20230101-v6.1.2', 'release-6.1'],
+                ['ticdc', 'feature/release-8.5-abc', 'release-8.5'],
+                ['ticdc', 'feature_release-8.1-xyz', 'release-8.1'],
+                ['ticdc', 'feature/release-8.5-materialized-view', 'release-8.5'],
+                ['ticdc', 'feature/release-8.5.5-active-active', 'feature/release-8.5.5-active-active'],
+                ['ticdc', 'feature/release-8.5.5-abc', 'release-8.5'],
+                ['ticdc', 'feature/release-8.1.1-xyz', 'release-8.1'],
+                ['ticdc', 'feature/my-feature', 'master'],
+                ['ticdc', 'feature_my-feature', 'master'],
+                ['ticdc', 'release-nextgen-202603', 'release-nextgen-202603'],
+                ['ticdc', 'release-nextgen-20260301', 'release-nextgen-20260301'],
+                ['ticdc', 'release-nextgen-25.10-20251123', 'release-nextgen-20251011'],
+                ['ticdc', 'release-nextgen-26.3.9-20260817', 'release-nextgen-202603'],
+                ['tidb-test', 'master', 'master'],
+                ['tidb-test', 'release-8.5', 'release-8.5'],
+                ['tidb-test', 'release-8.5-beta.1', 'release-8.5-beta.1'],
+                ['tidb-test', 'release-6.2-20220801', 'release-6.2'],
+                ['tidb-test', 'release-8.5-20230101-v8.5.1', 'release-8.5.1'],
+                ['tidb-test', 'release-6.1-20230101-v6.1.2', 'release-6.1.2'],
+                ['tidb-test', 'feature/release-8.5-abc', 'release-8.5'],
+                ['tidb-test', 'feature_release-8.1-xyz', 'release-8.1'],
+                ['tidb-test', 'feature/release-8.5-materialized-view', 'feature/release-8.5-materialized-view'],
+                ['tidb-test', 'feature/release-8.5.5-active-active', 'release-8.5-20260121-v8.5.5'],
+                ['tidb-test', 'feature/release-8.5.5-abc', 'release-8.5.5'],
+                ['tidb-test', 'feature/release-8.1.1-xyz', 'release-8.1.1'],
+                ['tidb-test', 'feature/my-feature', 'master'],
+                ['tidb-test', 'feature_my-feature', 'master'],
+                ['tidb-test', 'release-nextgen-202603', 'release-nextgen-202603'],
+                ['tidb-test', 'release-nextgen-20260301', 'release-nextgen-20260301'],
+                ['tidb-test', 'release-nextgen-25.10-20251123', 'release-nextgen-20251011'],
+                ['tidb-test', 'release-nextgen-26.3.9-20260817', 'release-nextgen-202603'],
+                ['plugin', 'master', 'master'],
+                ['plugin', 'release-8.5', 'release-8.5'],
+                ['plugin', 'release-8.5-beta.1', 'release-8.5-beta.1'],
+                ['plugin', 'release-6.2-20220801', 'release-6.2'],
+                ['plugin', 'release-8.5-20230101-v8.5.1', 'release-8.5.1'],
+                ['plugin', 'release-6.1-20230101-v6.1.2', 'release-6.1.2'],
+                ['plugin', 'feature/release-8.5-abc', 'release-8.5'],
+                ['plugin', 'feature_release-8.1-xyz', 'release-8.1'],
+                ['plugin', 'feature/release-8.5-materialized-view', 'feature/release-8.5-materialized-view'],
+                ['plugin', 'feature/release-8.5.5-active-active', 'release-8.5.5'],
+                ['plugin', 'feature/release-8.5.5-abc', 'release-8.5.5'],
+                ['plugin', 'feature/release-8.1.1-xyz', 'release-8.1.1'],
+                ['plugin', 'feature/my-feature', 'master'],
+                ['plugin', 'feature_my-feature', 'master'],
+                ['plugin', 'release-nextgen-202603', 'release-nextgen-202603'],
+                ['plugin', 'release-nextgen-20260301', 'release-nextgen-20260301'],
+                ['plugin', 'release-nextgen-25.10-20251123', 'release-nextgen-20251011'],
+                ['plugin', 'release-nextgen-26.3.9-20260817', 'release-nextgen-202603'],
+            ]
+            cases.each { c ->
+                def (component, target, expected) = c
+                assertEquals("${component} on ${target}", expected, branch(component, target))
+            }
+        }
+
+        @Test
+        void shouldPreserveLegacyTitleAndTrunkHandling() {
+            def cases = [
+                // component, target branch, title, trunk, expected
+                ['tidb', 'master', 'feat: x | tidb=pr/123', 'master', 'pr/123'],
+                ['pd', 'release-8.5', 'feat: x | pd=@v8.5.0', 'master', '@v8.5.0'],
+                ['tikv', 'feature/release-8.5-fts', 'feat: x | tikv=release-9.0', 'master', 'release-9.0'],
+                ['tidb-test', 'feature/release-8.5-fts', 'feat: x | tidb-test=pr/999', 'master', 'pr/999'],
+                ['tidb', 'master', 'feat: x (#123) | tidb=release-8.5', 'master', 'release-8.5'],
+                ['tidb', 'release-8.5', 'feat: x (#123) | tidb=release-9.0', 'master', 'release-9.0'],
+                ['tidb', 'feature/my-feature', 'feat: x', 'release-8.5', 'release-8.5'],
+                ['tidb', 'feature/release-8.5.5-abc', 'feat: x', 'release-8.5', 'release-8.5'],
+            ]
+            cases.each { c ->
+                def (component, target, title, trunk, expected) = c
+                assertEquals("${component} on ${target} (${title}, trunk=${trunk})", expected,
+                    branch(component, target, title, trunk))
+            }
+        }
+    }
+
+    // ============================================================
+    // feature/release-8.5-fts: the listed components consume each other's
+    // code/binaries from the feature branch itself (intentional deviation
+    // from the legacy release-8.5 default).
+    // ============================================================
+    static class FtsBranchMapping {
+        private static final String BRANCH = 'feature/release-8.5-fts'
+        private def script
+
+        @Before
+        void setUp() {
+            script = loadScriptWithBindings([
+                libraryResource: { String path -> 'mappings: []' },
+                readYaml: { Map args ->
+                    new groovy.yaml.YamlSlurper()
+                        .parse(new File('libraries/tipipeline/resources/configs/component-branch-mapping.yaml'))
+                },
+            ])
+        }
+
+        private String branch(String component, String title = 'feat: x') {
+            script.invokeMethod('computeBranchFromPR', [component, BRANCH, title, 'master'])
+        }
+
+        @Test
+        void shouldUseFeatureBranchForAllPeerComponents() {
+            ['tidb', 'pd', 'tiflash', 'tikv', 'ticdc', 'tidb-test'].each { component ->
+                assertEquals("${component} on ${BRANCH}", BRANCH, branch(component))
+            }
+        }
+
+        @Test
+        void shouldUseReleaseFts202602ForTici() {
+            assertEquals('release-fts-202602', branch('tici'))
+        }
+
+        @Test
+        void shouldKeepReleaseDefaultForOtherComponents() {
+            assertEquals('release-8.5', branch('tiproxy'))
+            assertEquals('release-8.5', branch('tiflow'))
+        }
+
+        @Test
+        void shouldLetPrTitleParamOverrideTheMapping() {
+            assertEquals('pr/123', branch('pd', 'feat: x | pd=pr/123'))
+            assertEquals('@v8.5.0', branch('tikv', 'feat: x | tikv=@v8.5.0'))
+            assertEquals('release-fts-202603', branch('tici', 'feat: x | tici=release-fts-202603'))
+        }
+
+        @Test
+        void shouldDeriveFeatureBranchOciTag() {
+            // computeArtifactOciTagFromPR replaces '/' with '-' to form the OCI tag.
+            ['tidb', 'pd', 'tiflash', 'tikv', 'ticdc', 'tidb-test'].each { component ->
+                def tag = script.invokeMethod('computeArtifactOciTagFromPR',
+                    [component, BRANCH, 'feat: x', 'master'])
+                assertEquals("OCI tag for ${component}", 'feature-release-8.5-fts', tag)
+            }
+            // tici is pinned to release-fts-202602, which is used as-is.
+            assertEquals('release-fts-202602',
+                script.invokeMethod('computeArtifactOciTagFromPR', ['tici', BRANCH, 'feat: x', 'master']))
         }
     }
 

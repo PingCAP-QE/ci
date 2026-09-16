@@ -1,0 +1,46 @@
+# Special mappings from a non-standard PR target branch to the source branch used
+# to download peer-component artifacts (OCI binaries) in CI.
+#
+# Consumed by computeBranchFromPR() in libraries/tipipeline/vars/component.groovy
+# via `libraryResource` + `readYaml`.
+#
+# Matching (first match wins):
+#   - match:      exact branch name
+#   - matchRegex: regex matched against the branch name
+#
+# Value resolution (per component, falling back to `default`):
+#   - $self:    the PR target branch itself
+#   - $release: release-X.Y derived from the target branch
+#   - $patch:   release-X.Y.Z derived from a patch-aware target branch
+#   - $trunk:   the trunk branch passed by the caller (e.g. master)
+#   - anything else is used verbatim (a concrete branch or tag)
+mappings:
+  # Peer components follow this feature branch, except ticdc which uses release-8.5.
+  - match: "feature/release-8.5-materialized-view"
+    default: "$self"
+    components:
+      ticdc: "$release"
+
+  # tidb/ticdc track the feature branch; tidb-test is pinned to a snapshot;
+  # other patch-aware components (plugin) use release-8.5.5.
+  - match: "feature/release-8.5.5-active-active"
+    default: "$release"
+    components:
+      tidb: "$self"
+      ticdc: "$self"
+      tidb-test: "release-8.5-20260121-v8.5.5"
+      plugin: "$patch"
+
+  # FTS feature branch based on release-8.5: these components consume each other's
+  # code/binaries from the feature branch itself, while TiCI comes from the
+  # release-fts-202602 branch. Any other component keeps the release-8.5 default.
+  - match: "feature/release-8.5-fts"
+    default: "$release"
+    components:
+      tidb: "$self"
+      pd: "$self"
+      tiflash: "$self"
+      tikv: "$self"
+      ticdc: "$self"
+      tidb-test: "$self"
+      tici: "release-fts-202602"
