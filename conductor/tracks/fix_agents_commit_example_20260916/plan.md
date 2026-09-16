@@ -7,4 +7,4 @@
     - [x] Confirm no other `ci(...)` example contradicts the documented rule
 - [x] Task: Verify the change
     - [x] Run `pre-commit run --files AGENTS.md`
-- [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
