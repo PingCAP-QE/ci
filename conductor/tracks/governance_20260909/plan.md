@@ -40,10 +40,10 @@
 
 ## Phase 4: Validate Governance End to End
 
-- [ ] Task: Execute repository verification gates
-    - [ ] Run `pre-commit run --all-files` and fix findings
-    - [ ] Run `.ci/verify-jenkins-pipelines.sh`
-- [ ] Task: Open and complete a small real maintenance track
-    - [ ] Select a low-risk job/pipeline or branch-sync change as the first governed track
-    - [ ] Implement the change through the governance lifecycle and close the track
+- [x] Task: Execute repository verification gates
+    - [x] Run `pre-commit run --all-files` and fix findings
+    - [x] Run `.ci/verify-jenkins-pipelines.sh`
+- [x] Task: Open and complete a small real maintenance track
+    - [x] Select a low-risk job/pipeline or branch-sync change as the first governed track
+    - [x] Implement the change through the governance lifecycle and close the track
 - [ ] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)
