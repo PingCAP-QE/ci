@@ -1,0 +1,41 @@
+Conductor Phase 4 Checkpoint — Validate Governance End to End
+
+Track: governance_20260909
+Phase: Phase 4 (Validate Governance End to End)
+Checkpoint commit: bd33a72e3565a8c9558a777a73ec6a1973f803e6
+
+Tasks completed:
+- Execute repository verification gates
+- Open and complete a small real maintenance track
+
+Repository verification gates:
+- Command: pre-commit run --all-files
+  Result: Passed (end-of-file-fixer, trailing-whitespace, check-yaml, gitleaks).
+  Note: pre-commit was not installed; a temporary virtualenv was used at
+  /var/folders/.../opencode/pcvenv.
+- Command: JENKINS_URL=https://prow.tidb.net/jenkins .ci/verify-jenkins-pipelines.sh
+  Result: exit 0, 374/374 pipelines "successfully validated".
+
+First governed maintenance track (fix_agents_commit_example_20260916):
+- Opened as a Conductor track (spec.md, plan.md, metadata.json, index.md) and
+  registered in conductor/tracks.md.
+- Implemented: AGENTS.md commit example changed from the contradictory
+  `ci(prow): add presubmit for tiflow lint` to
+  `feat(prow-jobs): add presubmit for tiflow lint`.
+- Verified with `pre-commit run --files AGENTS.md` (Passed).
+- Checkpointed (1076fb96) with a Git note, and closed ([x] in tracks.md via
+  commit ef263222), demonstrating the governance lifecycle end to end.
+
+Phase scope (git diff --name-only 197c20f HEAD):
+- AGENTS.md
+- conductor/tracks.md
+- conductor/tracks/fix_agents_commit_example_20260916/{index.md,metadata.json,plan.md,spec.md}
+- conductor/tracks/governance_20260909/plan.md
+No code modules changed, so no new unit tests were required.
+
+Manual verification steps proposed to the user:
+1. Confirm pre-commit and pipeline validation results.
+2. Confirm the first governed track exists and is marked complete.
+3. Confirm the AGENTS.md example change.
+
+User confirmation: Confirmed (yes) via ask_user.
