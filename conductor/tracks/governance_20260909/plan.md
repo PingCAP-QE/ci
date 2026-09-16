@@ -2,7 +2,7 @@
 
 > Workflow: see `conductor/workflow.md` (per-phase commits, Git-note summaries, >80% coverage for code modules, Phase Completion Verification and Checkpointing Protocol). Task status markers: `[ ]` pending, `[~]` in progress, `[x]` complete.
 
-## Phase 1: Establish Conductor Baseline
+## Phase 1: Establish Conductor Baseline [checkpoint: ba5ea45]
 
 - [x] Task: Review conductor context documents for internal consistency
     - [x] Cross-check `product.md`, `product-guidelines.md`, `tech-stack.md`, and `workflow.md` for contradictions
