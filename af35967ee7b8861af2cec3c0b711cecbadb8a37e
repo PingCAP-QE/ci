@@ -1,0 +1,41 @@
+Conductor Phase 2 Checkpoint — Define Job/Pipeline Change Governance
+
+Track: governance_20260909
+Phase: Phase 2 (Define Job/Pipeline Change Governance)
+Checkpoint commit: af35967ee7b8861af2cec3c0b711cecbadb8a37e
+
+Tasks completed:
+- Document the job-change lifecycle in the repo docs
+- Define a consistency checklist for job/pipeline reviews
+
+Deliverable:
+- New guide docs/guides/job-change-governance.md documenting:
+  - the propose -> plan -> implement -> verify -> promote lifecycle aligned with
+    docs/contributing.md and docs/guides/CI.md
+  - the three-layer consistency rule (Prow trigger + Job DSL + pipeline + pod template)
+  - track bookkeeping and evidence expectations
+  - a review consistency checklist (naming, references, pod/image tags, approvals,
+    generated manifests, evidence)
+  - a minimal Conductor track template
+- Linked the guide from docs/guides/README.md, docs/README.md and docs/contributing.md
+
+Automated verification:
+- Command: git diff --check -- docs conductor/tracks/governance_20260909/plan.md
+- Result: CLEAN (no whitespace errors)
+- EOF newline check: OK for all changed files
+- Note: pre-commit is not installed in this environment; equivalent checks were run.
+
+Manual verification steps proposed to the user:
+1. Read docs/guides/job-change-governance.md and confirm the lifecycle, three-layer
+   rule, checklist and template.
+2. Confirm the guide is linked from the docs indexes and contributing.md.
+3. Confirm the referenced verification commands exist under .ci/.
+
+User confirmation: Confirmed (yes) via ask_user.
+
+Files changed in this phase:
+- docs/guides/job-change-governance.md (new)
+- docs/guides/README.md
+- docs/README.md
+- docs/contributing.md
+- conductor/tracks/governance_20260909/plan.md
