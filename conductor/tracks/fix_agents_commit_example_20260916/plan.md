@@ -1,6 +1,6 @@
 # Implementation Plan: Fix the AGENTS.md commit-convention example
 
-## Phase 1: Fix and verify
+## Phase 1: Fix and verify [checkpoint: 1076fb9]
 
 - [x] Task: Update the commit example in `AGENTS.md`
     - [x] Replace `ci(prow): add presubmit for tiflow lint` with the compliant example `feat(prow-jobs): add presubmit for tiflow lint`
