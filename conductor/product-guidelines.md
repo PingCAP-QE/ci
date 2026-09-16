@@ -32,7 +32,7 @@ These guidelines govern how CI/CD configuration is written, structured, document
 
 ## Communication & Contribution Guidelines
 
-- Conventional Commits for messages/PR titles: type(scope): subject, e.g. `ci(prow): add presubmit for tiflow lint`. Do not use the `ci:` type except for .github/.ci-only changes.
+- Conventional Commits for messages/PR titles: type(scope): subject, e.g. `feat(prow-jobs): add presubmit for tiflow lint`. Do not use the `ci:` type except for .github/.ci-only changes.
 - Acknowledge approval requirements: `sig-approvers-ee` for CI infrastructure, project SIGs for their job configs.
 - Deprecations are as important as additions: mark legacy tooling under tools/deprecated explicitly and schedule EOL cleanup.
 

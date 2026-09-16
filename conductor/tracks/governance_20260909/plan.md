@@ -4,16 +4,16 @@
 
 ## Phase 1: Establish Conductor Baseline
 
-- [ ] Task: Review conductor context documents for internal consistency
-    - [ ] Cross-check `product.md`, `product-guidelines.md`, `tech-stack.md`, and `workflow.md` for contradictions
-    - [ ] Fix any inconsistencies found
-- [ ] Task: Wire repository development commands into the workflow
-    - [ ] Document `.ci/verify-jenkins-pipelines.sh` under Development Commands
-    - [ ] Document `.ci/update-prow-job-kustomization.sh` and `.ci/update-tekton-kustomizations.sh`
-    - [ ] Document pre-commit usage and `go test`/`deno test` entry points for Go/Deno tools
-- [ ] Task: Verify the baseline is usable
-    - [ ] Confirm `conductor/index.md` links resolve to all context files
-    - [ ] Confirm `conductor/tracks.md` and the track directory follow the registry format
+- [x] Task: Review conductor context documents for internal consistency
+    - [x] Cross-check `product.md`, `product-guidelines.md`, `tech-stack.md`, and `workflow.md` for contradictions
+    - [x] Fix any inconsistencies found
+- [x] Task: Wire repository development commands into the workflow
+    - [x] Document `.ci/verify-jenkins-pipelines.sh` under Development Commands
+    - [x] Document `.ci/update-prow-job-kustomization.sh` and `.ci/update-tekton-kustomizations.sh`
+    - [x] Document pre-commit usage and `go test`/`deno test` entry points for Go/Deno tools
+- [x] Task: Verify the baseline is usable
+    - [x] Confirm `conductor/index.md` links resolve to all context files
+    - [x] Confirm `conductor/tracks.md` and the track directory follow the registry format
 - [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
 ## Phase 2: Define Job/Pipeline Change Governance
