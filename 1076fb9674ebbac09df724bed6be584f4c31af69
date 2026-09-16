@@ -1,0 +1,35 @@
+Conductor Phase 1 Checkpoint — Fix the AGENTS.md commit-convention example
+
+Track: fix_agents_commit_example_20260916
+Phase: Phase 1 (Fix and verify)
+Checkpoint commit: 1076fb9674ebbac09df724bed6be584f4c31af69
+
+First real maintenance change executed through the governance lifecycle defined by
+the governance_20260909 track (docs/guides/job-change-governance.md).
+
+Tasks completed:
+- Update the commit example in AGENTS.md
+- Verify the change
+
+Change:
+- AGENTS.md: replaced the contradictory example
+  `ci(prow): add presubmit for tiflow lint` with the compliant
+  `feat(prow-jobs): add presubmit for tiflow lint`, matching the rule that the
+  `ci` type is reserved for .github/.ci changes.
+
+Automated verification:
+- Command: pre-commit run --files AGENTS.md
+- Result: Passed (end-of-file-fixer, trailing-whitespace, gitleaks; check-yaml skipped)
+- Also confirmed no remaining `ci(` examples in AGENTS.md.
+
+Manual verification steps proposed to the user:
+1. Confirm the example now reads feat(prow-jobs): ...
+2. Confirm consistency with the adjacent rule.
+3. pre-commit passed.
+
+User confirmation: Confirmed (yes) via ask_user.
+
+Files changed:
+- AGENTS.md
+- conductor/tracks/fix_agents_commit_example_20260916/{spec.md,plan.md,metadata.json,index.md}
+- conductor/tracks.md
