@@ -18,14 +18,14 @@
 
 ## Phase 2: Define Job/Pipeline Change Governance
 
-- [ ] Task: Document the job-change lifecycle in the repo docs
-    - [ ] Author lifecycle: propose → plan → staging test → promote, aligned with `docs/contributing.md`
-    - [ ] Document the three-layer consistency rule (prow-jobs/ trigger + jobs/ DSL + pipelines/ implementation)
-    - [ ] Record where each new job change must update the plan and attach verification evidence
-- [ ] Task: Define a consistency checklist for job/pipeline reviews
-    - [ ] Checklist item: naming conventions per branch and job type
-    - [ ] Checklist item: pod templates and image tag variants referenced correctly
-    - [ ] Checklist item: OWNERS/sig approval routing
+- [x] Task: Document the job-change lifecycle in the repo docs
+    - [x] Author lifecycle: propose → plan → staging test → promote, aligned with `docs/contributing.md`
+    - [x] Document the three-layer consistency rule (prow-jobs/ trigger + jobs/ DSL + pipelines/ implementation)
+    - [x] Record where each new job change must update the plan and attach verification evidence
+- [x] Task: Define a consistency checklist for job/pipeline reviews
+    - [x] Checklist item: naming conventions per branch and job type
+    - [x] Checklist item: pod templates and image tag variants referenced correctly
+    - [x] Checklist item: OWNERS/sig approval routing
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Define Branch Support & EOL Governance

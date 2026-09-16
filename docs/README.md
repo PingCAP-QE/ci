@@ -25,6 +25,7 @@ It contains both trigger configurations and detailed pipeline implementations.
 - [Guides](./guides/README.md)
   - Finding Pipelines for a Specific Repository
   - How to Modify and Test a Pipeline
+  - [Job and Pipeline Change Governance](./guides/job-change-governance.md) — lifecycle, three-layer consistency and review checklist
   - [Testing Library Code](./guides/testing-library-code.md) — Run unit tests for shared library functions locally
   - Common Use Cases `WIP`
   - Troubleshooting `WIP`

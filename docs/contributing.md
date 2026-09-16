@@ -11,6 +11,10 @@
 5. Create a new PR to move from staging to production
 6. Include test results and links in your PR
 
+For non-trivial changes, track the work through the governance lifecycle (propose →
+plan → implement → verify → promote) and use the review checklist in
+[Job and Pipeline Change Governance](./guides/job-change-governance.md).
+
 ## Recommended Checks Before Opening a PR
 
 If your changes include `pipelines/**/*.groovy`, run these checks locally first:
