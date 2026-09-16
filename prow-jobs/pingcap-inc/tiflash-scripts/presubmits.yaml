@@ -17,7 +17,7 @@ presubmits:
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       context: pull-regression-test
       decorate: false
       name: pingcap-inc/tiflash-scripts/pull_regression_test
@@ -31,7 +31,7 @@ presubmits:
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       context: pull-schrodinger-test
       decorate: false
       name: pingcap-inc/tiflash-scripts/pull_schrodinger_test
