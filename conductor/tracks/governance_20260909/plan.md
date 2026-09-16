@@ -16,7 +16,7 @@
     - [x] Confirm `conductor/tracks.md` and the track directory follow the registry format
 - [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
-## Phase 2: Define Job/Pipeline Change Governance
+## Phase 2: Define Job/Pipeline Change Governance [checkpoint: af35967]
 
 - [x] Task: Document the job-change lifecycle in the repo docs
     - [x] Author lifecycle: propose → plan → staging test → promote, aligned with `docs/contributing.md`
