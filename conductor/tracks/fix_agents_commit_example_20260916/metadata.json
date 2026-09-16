@@ -1,0 +1,8 @@
+{
+  "track_id": "fix_agents_commit_example_20260916",
+  "type": "chore",
+  "status": "in_progress",
+  "created_at": "2026-09-16T10:05:00Z",
+  "updated_at": "2026-09-16T10:05:00Z",
+  "description": "Fix the self-contradicting commit-convention example in the root AGENTS.md."
+}

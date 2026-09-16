@@ -89,7 +89,7 @@ Follow the **Conventional Commits** specification for commit messages:
 - **Language**: All commit messages and PR titles/descriptions must be written in English.
 
 Examples:
-- `ci(prow): add presubmit for tiflow lint`
+- `feat(prow-jobs): add presubmit for tiflow lint`
 - `fix(tiflow): increase pipeline timeout`
 - `docs(agents): document Conventional Commits`
 - `test(libraries): add unit tests for parseCIParamsFromPRTitle`
