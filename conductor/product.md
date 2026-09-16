@@ -4,7 +4,7 @@ A centralized, as-code repository (PingCAP-QE/ci) that defines and manages conti
 
 # Product Overview
 
-The product is a single source of truth for all CI/CD configuration across the PingCAP/TiDB product line. Every CI job is represented by three collaborating artifacts: a Prow trigger in prow-jobs/, a Jenkins Job DSL definition in jobs/, and a Jenkins pipeline implementation in pipelines/, complemented by shared libraries, Tekton delivery/release resources, and operational scripts. The repo is governed by OWNERS-based approvals, staged promotion, pre-commit hooks, and Conventional Commits.
+The product is a single source of truth for all CI/CD configuration across the PingCAP/TiDB product line. Every CI job is represented by three collaborating artifacts: a Prow trigger in prow-jobs/, a Jenkins Job DSL definition in jobs/, and a Jenkins pipeline implementation in pipelines/, complemented by shared libraries, Tekton delivery/release resources, and operational scripts. The repo is governed by OWNERS-based approvals, staged promotion, pre-commit hooks, Conventional Commits, and a Conductor-tracked change lifecycle with documented job/pipeline change and branch/EOL governance.
 
 # Vision
 
@@ -22,7 +22,7 @@ Reliable, consistent, and easy-to-maintain CI/CD at scale for the entire TiDB/Ti
 - Reliable CI: repeatable, fast presubmit/postsubmit feedback across all maintained branches.
 - Safe staged rollout: changes verified in staging before promotion to production.
 - Config consistency: uniform structure, naming and documentation for jobs/pipelines.
-- Governance & compliance: OWNERS approvals, pre-commit hooks, gitleaks, Conventional Commits, tidy EOL handling.
+- Governance & compliance: OWNERS approvals, pre-commit hooks, gitleaks, Conventional Commits, tidy EOL handling, and a tracked change lifecycle (propose -> plan -> verify -> promote).
 
 # Focus Areas & Priorities
 
