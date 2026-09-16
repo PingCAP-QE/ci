@@ -1,37 +1,48 @@
-# Special mappings from a non-standard PR target branch to the source branch used
-# to download peer-component artifacts (OCI binaries) in CI.
+# Component branch mapping configuration.
 #
-# Consumed by computeBranchFromPR() in libraries/tipipeline/vars/component.groovy
-# via `libraryResource` + `readYaml`.
+# When a PR targets a non-standard branch, CI resolves the source branch of the
+# peer components (used for code checkout and OCI artifact download) through
+# computeBranchFromPR() in libraries/tipipeline/vars/component.groovy, which
+# reads this file via `libraryResource` + `readYaml`.
 #
-# Matching (first match wins):
-#   - match:      exact branch name
-#   - matchRegex: regex matched against the branch name
-#
-# Value resolution (per component, falling back to `default`):
-#   - $self:    the PR target branch itself
-#   - $release: release-X.Y derived from the target branch
-#   - $patch:   release-X.Y.Z derived from a patch-aware target branch
-#   - $trunk:   the trunk branch passed by the caller (e.g. master)
-#   - anything else is used verbatim (a concrete branch or tag)
+# Resolution order:
+#   1. explicit `component=...` param in the PR title
+#   2. an entry under `mappings` below (first match wins)
+#   3. the built-in branch rules (release-X.Y, hotfix, nextgen, feature -> trunk)
+#   4. otherwise the target branch itself
 
 # Components published with patch-level branches (release-X.Y.Z) on hotfix /
-# patch-version branches (e.g. release-8.5-20230101-v8.5.1); all other
+# patch-version branches (e.g. release-8.5-20230101-v8.5.1). All other
 # components use release-X.Y. Omit this key to use the built-in default
 # (tidb-test, plugin).
 patchAwareComponents:
   - tidb-test
   - plugin
 
+# Special branch -> peer-component source mappings (first match wins).
+#
+# Entry fields:
+#   - match:      exact branch name
+#   - matchRegex: regex matched against the branch name
+#   - default:    value for components not listed in `components`
+#   - components: per-component overrides
+#
+# Value tokens (resolved per entry):
+#   - $self:    the PR target branch itself
+#   - $release: release-X.Y implied by the target branch
+#   - $patch:   release-X.Y.Z implied by the target branch
+#   - $trunk:   the trunk branch passed by the caller (e.g. master)
+#   - anything else is a literal branch or tag
 mappings:
-  # Peer components follow this feature branch, except ticdc which uses release-8.5.
+  # materialized-view: peer components follow the feature branch, except ticdc
+  # which uses release-8.5.
   - match: "feature/release-8.5-materialized-view"
     default: "$self"
     components:
       ticdc: "$release"
 
-  # tidb/ticdc track the feature branch; tidb-test is pinned to a snapshot;
-  # other patch-aware components (plugin) use release-8.5.5.
+  # active-active: tidb/ticdc track the feature branch, tidb-test is pinned to a
+  # snapshot, and other patch-aware components (plugin) use release-8.5.5.
   - match: "feature/release-8.5.5-active-active"
     default: "$release"
     components:
@@ -40,9 +51,9 @@ mappings:
       tidb-test: "release-8.5-20260121-v8.5.5"
       plugin: "$patch"
 
-  # FTS feature branch based on release-8.5: these components consume each other's
-  # code/binaries from the feature branch itself, while TiCI comes from the
-  # release-fts-202602 branch. Any other component keeps the release-8.5 default.
+  # FTS (release-8.5 based): these components consume each other's code and
+  # binaries from the feature branch itself, while TiCI comes from
+  # release-fts-202602. Any other component keeps the release-8.5 default.
   - match: "feature/release-8.5-fts"
     default: "$release"
     components:
@@ -54,12 +65,12 @@ mappings:
       tidb-test: "$self"
       tici: "release-fts-202602"
 
-  # Hotfix / patch-version branches are handled by the built-in branch rules
-  # (release-X.Y for most components, release-X.Y.Z for `patchAwareComponents`).
-  # Override a specific hotfix branch here when needed, for example:
+  # Hotfix / patch-version branches need no entry here: the built-in branch
+  # rules already resolve them (release-X.Y, or release-X.Y.Z for
+  # `patchAwareComponents`). Add an entry only to override a specific branch:
   #
-  # - matchRegex: "^release-8\\.5-20260101-v8\\.5\\.1$"
-  #   default: "$release"      # release-8.5
-  #   components:
-  #     tidb-test: "$patch"    # release-8.5.1
-  #     tikv: "release-8.5-20251231-v8.5.2"
+  #   - matchRegex: "^release-8\\.5-20260101-v8\\.5\\.1$"
+  #     default: "$release"      # release-8.5
+  #     components:
+  #       tidb-test: "$patch"    # release-8.5.1
+  #       tikv: "release-8.5-20251231-v8.5.2"
