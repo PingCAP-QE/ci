@@ -14,6 +14,15 @@
 #   - $patch:   release-X.Y.Z derived from a patch-aware target branch
 #   - $trunk:   the trunk branch passed by the caller (e.g. master)
 #   - anything else is used verbatim (a concrete branch or tag)
+
+# Components published with patch-level branches (release-X.Y.Z) on hotfix /
+# patch-version branches (e.g. release-8.5-20230101-v8.5.1); all other
+# components use release-X.Y. Omit this key to use the built-in default
+# (tidb-test, plugin).
+patchAwareComponents:
+  - tidb-test
+  - plugin
+
 mappings:
   # Peer components follow this feature branch, except ticdc which uses release-8.5.
   - match: "feature/release-8.5-materialized-view"
@@ -44,3 +53,13 @@ mappings:
       ticdc: "$self"
       tidb-test: "$self"
       tici: "release-fts-202602"
+
+  # Hotfix / patch-version branches are handled by the built-in branch rules
+  # (release-X.Y for most components, release-X.Y.Z for `patchAwareComponents`).
+  # Override a specific hotfix branch here when needed, for example:
+  #
+  # - matchRegex: "^release-8\\.5-20260101-v8\\.5\\.1$"
+  #   default: "$release"      # release-8.5
+  #   components:
+  #     tidb-test: "$patch"    # release-8.5.1
+  #     tikv: "release-8.5-20251231-v8.5.2"

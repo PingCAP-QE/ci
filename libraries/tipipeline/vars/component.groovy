@@ -7,6 +7,11 @@ import groovy.transform.Field
 // Resource path of the special branch mapping, bundled with this shared library.
 @Field private static final String COMPONENT_BRANCH_MAPPING_RESOURCE = 'configs/component-branch-mapping.yaml'
 
+// Components published with patch-level branches (release-X.Y.Z) on hotfix /
+// patch-version branches. Used when the config does not declare
+// `patchAwareComponents`.
+@Field private static final List<String> DEFAULT_PATCH_AWARE_COMPONENTS = ['tidb-test', 'plugin']
+
 // ============================================================
 // CI params parsing / pre-built validation
 // ============================================================
@@ -163,8 +168,8 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     // - feature_abcd
     final featureBranchReg = /^feature[\/_].*/
 
-    // the components that will created the patch release branch when version released: release-X.Y.Z
-    final componentsSupportPatchReleaseBranch = ['tidb-test', 'plugin']
+    // components published with patch-level branches on hotfix / patch-version branches.
+    def componentsSupportPatchReleaseBranch = getPatchAwareComponents()
 
     // explicit component param in the PR title always wins.
     def ciParams = parseCIParamsFromPRTitle(prTitle)
@@ -241,27 +246,42 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     return componentBranch
 }
 
-// Load and cache the special branch -> peer-component source mappings from
+// Load and cache the special branch mapping config from
 // resources/configs/component-branch-mapping.yaml. A missing or invalid config is
-// treated as "no special mappings" so a bad config never breaks every pipeline.
+// treated as an empty config so a bad config never breaks every pipeline.
 private Map loadComponentBranchMapping() {
     if (componentBranchMapping != null) {
         return componentBranchMapping
     }
-    def mappings = []
+    def config = [mappings: []]
     try {
         def text = libraryResource(COMPONENT_BRANCH_MAPPING_RESOURCE)
         def parsed = readYaml(text: text)
-        if (parsed instanceof Map && parsed['mappings'] instanceof List) {
-            mappings = parsed['mappings']
+        if (parsed instanceof Map) {
+            config = parsed
+            if (!(config['mappings'] instanceof List)) {
+                config['mappings'] = []
+            }
         } else {
-            println("⚠️ ${COMPONENT_BRANCH_MAPPING_RESOURCE} does not contain a 'mappings' list, ignore it.")
+            println("⚠️ ${COMPONENT_BRANCH_MAPPING_RESOURCE} is not a map, ignore it.")
         }
     } catch (Exception e) {
         println("⚠️ failed to load ${COMPONENT_BRANCH_MAPPING_RESOURCE}: ${e.message}, ignore it.")
     }
-    componentBranchMapping = [mappings: mappings]
+    componentBranchMapping = config
     return componentBranchMapping
+}
+
+// Components published with patch-level branches (release-X.Y.Z) on hotfix /
+// patch-version branches; other components use release-X.Y. Configured via the
+// `patchAwareComponents` list in resources/configs/component-branch-mapping.yaml,
+// falling back to DEFAULT_PATCH_AWARE_COMPONENTS when absent.
+private List<String> getPatchAwareComponents() {
+    def configured = loadComponentBranchMapping()['patchAwareComponents']
+    if (configured instanceof List) {
+        return configured.collect { it.toString() }
+    }
+    return DEFAULT_PATCH_AWARE_COMPONENTS
 }
 
 // Find the first special mapping matching the PR target branch, either by exact

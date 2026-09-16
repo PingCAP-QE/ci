@@ -565,6 +565,39 @@ class TestComponent {
         }
 
         @Test
+        void shouldUseConfiguredPatchAwareComponents() {
+            def script = scriptWithConfig([
+                patchAwareComponents: ['plugin'],
+                mappings: [],
+            ])
+            def hotfix = 'release-8.5-20230101-v8.5.1'
+            assertEquals('release-8.5.1', branch(script, 'plugin', hotfix))
+            assertEquals('release-8.5', branch(script, 'tidb-test', hotfix))
+        }
+
+        @Test
+        void shouldFallBackToDefaultPatchAwareComponentsWhenUnset() {
+            def script = scriptWithConfig([mappings: []])
+            def hotfix = 'release-8.5-20230101-v8.5.1'
+            assertEquals('release-8.5.1', branch(script, 'tidb-test', hotfix))
+            assertEquals('release-8.5.1', branch(script, 'plugin', hotfix))
+        }
+
+        @Test
+        void shouldSupportHotfixBranchOverrideViaMatchRegex() {
+            def script = scriptWithConfig([
+                mappings: [
+                    [matchRegex: '^release-8\\.5-\\d+-v8\\.5\\.1$', default: '$release',
+                     components: ['tidb-test': '$patch', tikv: 'release-8.5-20251231-v8.5.2']],
+                ],
+            ])
+            def hotfix = 'release-8.5-20230101-v8.5.1'
+            assertEquals('release-8.5.1', branch(script, 'tidb-test', hotfix))
+            assertEquals('release-8.5-20251231-v8.5.2', branch(script, 'tikv', hotfix))
+            assertEquals('release-8.5', branch(script, 'pd', hotfix))
+        }
+
+        @Test
         void shouldSupportReleaseAndPatchTokens() {
             def script = scriptWithConfig([
                 mappings: [
@@ -666,6 +699,7 @@ class TestComponent {
                 byMatch['feature/release-8.5.5-active-active']['components']['tidb-test'])
             assertEquals('$self', byMatch['feature/release-8.5-fts']['components']['tidb'])
             assertEquals('release-fts-202602', byMatch['feature/release-8.5-fts']['components']['tici'])
+            assertEquals(['tidb-test', 'plugin'], config['patchAwareComponents'])
         }
     }
 
