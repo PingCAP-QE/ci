@@ -3,6 +3,7 @@ import {
   buildConflictPullRequestBody,
   buildConflictPullRequestTitle,
   buildMergeCommitMessage,
+  normalizeSyncSpecs,
   normalizeTargetBranches,
 } from "./sync-branch.ts";
 
@@ -23,6 +24,49 @@ Deno.test("normalizeTargetBranches", () => {
   for (const { description, input, expect } of tests) {
     assertEquals(normalizeTargetBranches(input), expect, description);
   }
+});
+
+Deno.test("normalizeSyncSpecs", () => {
+  const specs = normalizeSyncSpecs({
+    syncs: [
+      {
+        owner: "pingcap",
+        repository: "tidb",
+        source_branch: "release-8.5",
+        target_branches: [
+          "feature/release-8.5-fts",
+          "feature/release-8.5-fts",
+        ],
+      },
+      {
+        owner: "tikv",
+        repository: "client-go",
+        source_branch: "tidb-8.5",
+        target_branches: ["feature/release-8.5-fts"],
+      },
+      {
+        owner: "pingcap",
+        repository: "broken",
+        source_branch: "",
+        target_branches: ["feature/release-8.5-fts"],
+      },
+      {
+        owner: "pingcap",
+        repository: "no-target",
+        source_branch: "release-8.5",
+        target_branches: [],
+      },
+    ],
+  });
+
+  assertEquals(specs.length, 2, "should drop invalid entries");
+  assertEquals(specs[0].owner, "pingcap");
+  assertEquals(
+    specs[0].target_branches,
+    ["feature/release-8.5-fts"],
+    "should deduplicate target branches",
+  );
+  assertEquals(specs[1].source_branch, "tidb-8.5");
 });
 
 Deno.test("buildMergeCommitMessage", () => {

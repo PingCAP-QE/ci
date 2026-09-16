@@ -179,11 +179,11 @@ periodics:
                 secretKeyRef:
                   key: smtp-password
                   name: ci-smtp
-  - name: periodic-sync-branch-tidb-feature-release-8.5-fts
+  - name: periodic-sync-feature-branches-with-release-8.5
     decorate: true # need add this.
     cron: "0 2 * * *" # Run daily at 10:00 UTC+8 (02:00 UTC)
     spec:
-      activeDeadlineSeconds: 600
+      activeDeadlineSeconds: 900
       containers:
         - name: main
           image: denoland/deno:2.9.6
@@ -193,10 +193,7 @@ periodics:
             - --allow-net
             - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/sync-branch.ts
           args:
-            - --owner=pingcap
-            - --repository=tidb
-            - --source_branch=release-8.5
-            - --target_branch=feature/release-8.5-fts
+            - --config=https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/sync-branches.yaml
             - --github_private_token=$(GITHUB_API_TOKEN)
           env:
             - name: GITHUB_API_TOKEN

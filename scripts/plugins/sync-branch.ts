@@ -1,4 +1,5 @@
 import { parseArgs } from "jsr:@std/cli@1.0.17";
+import { parse as parseYaml } from "jsr:@std/yaml@1.0.5";
 import { Octokit } from "https://esm.sh/@octokit/rest@21.1.1?dts";
 import { RequestError } from "https://esm.sh/@octokit/request-error@6.1.8?dts";
 
@@ -6,17 +7,51 @@ const BOT_EMAIL = "ti-community-prow-bot@tidb.io";
 const BOT_NAME = "Ti Chi Robot";
 
 interface CliArgs {
-  owner: string;
-  repository: string;
-  source_branch: string;
-  target_branch: string[];
+  owner?: string;
+  repository?: string;
+  source_branch?: string;
+  target_branch?: string[];
+  config?: string;
   github_private_token: string;
   notify_webhook_url?: string;
   dry_run?: boolean;
 }
 
+interface SyncSpec {
+  owner: string;
+  repository: string;
+  source_branch: string;
+  target_branches: string[];
+}
+
+interface SyncConfig {
+  syncs?: SyncSpec[];
+}
+
 export function normalizeTargetBranches(targetBranches: string[]): string[] {
   return [...new Set(targetBranches.filter(Boolean))];
+}
+
+export function normalizeSyncSpecs(config: SyncConfig): SyncSpec[] {
+  const specs = config.syncs ?? [];
+  const normalized: SyncSpec[] = [];
+
+  for (const spec of specs) {
+    if (!spec.owner || !spec.repository || !spec.source_branch) {
+      console.warn(`skipping invalid sync entry: ${JSON.stringify(spec)}`);
+      continue;
+    }
+    const targetBranches = normalizeTargetBranches(spec.target_branches ?? []);
+    if (targetBranches.length === 0) {
+      console.warn(
+        `skipping sync entry without target branches: ${spec.owner}/${spec.repository}`,
+      );
+      continue;
+    }
+    normalized.push({ ...spec, target_branches: targetBranches });
+  }
+
+  return normalized;
 }
 
 export function buildMergeCommitMessage(
@@ -259,43 +294,69 @@ async function syncTarget(
   }
 }
 
-async function main({
-  owner,
-  repository,
-  source_branch,
-  target_branch,
-  github_private_token,
-  notify_webhook_url,
-  dry_run,
-}: CliArgs) {
-  const octokit = new Octokit({ auth: github_private_token });
-  const targetBranches = normalizeTargetBranches(target_branch);
+async function loadSyncSpecs(args: CliArgs): Promise<SyncSpec[]> {
+  if (args.config) {
+    const text = /^https?:\/\//.test(args.config)
+      ? await (await fetch(args.config)).text()
+      : Deno.readTextFileSync(args.config);
+    return normalizeSyncSpecs(parseYaml(text) as SyncConfig);
+  }
 
-  if (targetBranches.length === 0) {
-    console.error("no target branch specified.");
+  if (!args.owner || !args.repository || !args.source_branch) {
+    return [];
+  }
+
+  return normalizeSyncSpecs({
+    syncs: [{
+      owner: args.owner,
+      repository: args.repository,
+      source_branch: args.source_branch,
+      target_branches: args.target_branch ?? [],
+    }],
+  });
+}
+
+async function main(args: CliArgs) {
+  const octokit = new Octokit({ auth: args.github_private_token });
+  const specs = await loadSyncSpecs(args);
+
+  if (specs.length === 0) {
+    console.error("no sync entry specified.");
     Deno.exit(1);
   }
 
-  if (!await branchExists(octokit, owner, repository, source_branch)) {
-    console.error(`source branch '${source_branch}' does not exist.`);
-    Deno.exit(1);
+  let failed = false;
+  for (const spec of specs) {
+    if (
+      !await branchExists(
+        octokit,
+        spec.owner,
+        spec.repository,
+        spec.source_branch,
+      )
+    ) {
+      console.error(
+        `source branch '${spec.source_branch}' does not exist in ${spec.owner}/${spec.repository}.`,
+      );
+      failed = true;
+      continue;
+    }
+
+    for (const targetBranch of spec.target_branches) {
+      const conflicted = await syncTarget(
+        octokit,
+        spec.owner,
+        spec.repository,
+        spec.source_branch,
+        targetBranch,
+        args.notify_webhook_url,
+        Boolean(args.dry_run),
+      );
+      failed = failed || conflicted;
+    }
   }
 
-  let hasConflict = false;
-  for (const targetBranch of targetBranches) {
-    const conflicted = await syncTarget(
-      octokit,
-      owner,
-      repository,
-      source_branch,
-      targetBranch,
-      notify_webhook_url,
-      Boolean(dry_run),
-    );
-    hasConflict = hasConflict || conflicted;
-  }
-
-  if (hasConflict) {
+  if (failed) {
     Deno.exit(1);
   }
 }
