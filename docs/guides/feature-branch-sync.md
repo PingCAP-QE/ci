@@ -9,7 +9,7 @@ The mechanism is a scheduled Prow periodic job that merges the release branch
 into the feature branch with the GitHub Merge API. It is implemented by
 [`scripts/plugins/sync-branch.ts`](../../scripts/plugins/sync-branch.ts), driven
 by the repository list in
-[`scripts/plugins/sync-branches.yaml`](../../scripts/plugins/sync-branches.yaml),
+[`configs/sync-branches.yaml`](../../configs/sync-branches.yaml),
 and triggered by `periodic-sync-feature-branches-with-release-8.5` in
 [`prow-jobs/pingcap-qe/ci/periodics.yaml`](../../prow-jobs/pingcap-qe/ci/periodics.yaml).
 
@@ -59,7 +59,7 @@ not by the sync job.
 ## Synced repositories
 
 The repository list lives in
-[`scripts/plugins/sync-branches.yaml`](../../scripts/plugins/sync-branches.yaml).
+[`configs/sync-branches.yaml`](../../configs/sync-branches.yaml).
 Today it syncs the `feature/release-8.5-fts` branch of the following
 repositories:
 
@@ -84,7 +84,7 @@ with the shared config:
 
 ```yaml
 args:
-  - --config=https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/sync-branches.yaml
+  - --config=https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/configs/sync-branches.yaml
   - --github_private_token=$(GITHUB_API_TOKEN)
 ```
 
@@ -129,7 +129,7 @@ hits a conflict.
 ## Adding or changing a synced repository
 
 1. Add or edit an entry in
-   [`scripts/plugins/sync-branches.yaml`](../../scripts/plugins/sync-branches.yaml):
+   [`configs/sync-branches.yaml`](../../configs/sync-branches.yaml):
 
    ```yaml
    - owner: tikv
@@ -155,7 +155,7 @@ The script can be run locally to preview what it would do:
 
 ```bash
 deno run --allow-net --allow-read scripts/plugins/sync-branch.ts \
-  --config=scripts/plugins/sync-branches.yaml \
+  --config=configs/sync-branches.yaml \
   --github_private_token="$(gh auth token)" \
   --dry_run
 ```

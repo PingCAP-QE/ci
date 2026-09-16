@@ -193,7 +193,7 @@ periodics:
             - --allow-net
             - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/sync-branch.ts
           args:
-            - --config=https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/sync-branches.yaml
+            - --config=https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/configs/sync-branches.yaml
             - --github_private_token=$(GITHUB_API_TOKEN)
           env:
             - name: GITHUB_API_TOKEN
