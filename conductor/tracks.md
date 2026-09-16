@@ -14,5 +14,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: Fix the AGENTS.md commit-convention example**
+- [x] **Track: Fix the AGENTS.md commit-convention example**
   *Link: [./tracks/fix_agents_commit_example_20260916/](./tracks/fix_agents_commit_example_20260916/)*
