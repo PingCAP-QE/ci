@@ -1,0 +1,41 @@
+Conductor Phase 3 Checkpoint — Define Branch Support & EOL Governance
+
+Track: governance_20260909
+Phase: Phase 3 (Define Branch Support & EOL Governance)
+Checkpoint commit: 197c20fe92065abf8dd5972d6761b4fc4e99c1f7
+
+Tasks completed:
+- Document the branch support matrix process
+- Document hotfix and EOL control hooks
+
+Deliverable:
+- New guide docs/guides/branch-support-and-eol.md documenting:
+  - the branch model (latest, release-X.Y, patch, dated hotfix) and the
+    <branch-special> directory convention across prow-jobs/, jobs/, pipelines/
+  - adding a new release-X.Y across all three layers (with kustomization + validation)
+  - retiring an EOL release-X.Y, including patch/hotfix SDLC, Tekton review, and
+    ti-community-infra/configs label/merge-policy cleanup
+  - hotfix branch rules (Tide "Merge is forbidden" is expected), merge guards, and
+    affects-X.Y label denial / maintained-label removal for EOL versions
+  - discovery and validation commands (find_tidb_eol_candidates.sh, rg searches)
+- Linked the guide from docs/guides/README.md and docs/README.md
+
+Automated verification:
+- Command: git diff --check -- docs conductor/tracks/governance_20260909/plan.md
+- Result: CLEAN (no whitespace errors)
+- EOF newline check: OK for all changed files
+- Note: pre-commit is not installed in this environment; equivalent checks were run.
+
+Manual verification steps proposed to the user:
+1. Read docs/guides/branch-support-and-eol.md and confirm branch add/retire coverage,
+   hotfix/merge guards and label controls.
+2. Confirm the guide is linked from docs/guides/README.md and docs/README.md.
+3. Confirm the referenced EOL discovery script exists.
+
+User confirmation: Confirmed (yes) via ask_user.
+
+Files changed in this phase:
+- docs/guides/branch-support-and-eol.md (new)
+- docs/guides/README.md
+- docs/README.md
+- conductor/tracks/governance_20260909/plan.md
