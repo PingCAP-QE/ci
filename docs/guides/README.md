@@ -15,6 +15,7 @@ Welcome to the guides section of our CI repository. This directory contains docu
 ### Development Workflow
 
 - [Cherry-Pick Pull Request](./cherry-pick-pull-request.md) - How to cherry-pick changes from one pull request to another branch using our helper script, with step-by-step instructions and conflict resolution guidance
+- [Feature Branch Sync](./feature-branch-sync.md) - How a feature branch (e.g. `feature/release-8.5-fts`) is kept up to date with its base release branch automatically, and why the sync uses a merge commit to preserve the feature branch's git tags
 
 ### Testing
 
