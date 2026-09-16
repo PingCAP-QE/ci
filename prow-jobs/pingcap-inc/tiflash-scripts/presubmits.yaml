@@ -14,6 +14,14 @@ global_definitions:
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap-inc/tiflash-scripts:
+    # TODO: migrate these two jobs to the to Jenkins (`master: "1"` -> `"0"`).
+    # Blocked: the pipeline must `yum install` runtime packages (jq,
+    # java-1.8.0-openjdk-headless, fio, mariadb, lsof, net-tools, nmap-ncat)
+    # in the CentOS 7 based pod image, which pins
+    # `baseurl=http://vault.centos.org/centos/$releasever/...`. That host
+    # answers HTTP 403 from the to Jenkins cluster while it still answers 200
+    # from the from Jenkins cluster, so the "Prepare Runtime And Artifacts"
+    # stage fails before any test case runs. See #5250 for the evidence.
     - <<: *brancher
       agent: jenkins
       labels:
@@ -28,6 +36,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       skip_report: false
 
+    # Same blocker as `pull_regression_test` above, see #5250.
     - <<: *brancher
       agent: jenkins
       labels:
