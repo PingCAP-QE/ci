@@ -24,11 +24,14 @@ attempts to restore the label; failed runs need operator attention and retry.
 No PR code is checked out or executed. Event values enter the shell through
 environment variables, and repository/PR identifiers are validated.
 
-## Rollout (not enabled yet)
+## Rollout (deployment and event routing pending)
 
-1. Select pilot repositories and, if needed, add base-branch restrictions to
+1. The pilot is `ti-community-infra/configs`, restricted to PRs whose base
+   branch is exactly `test_ai_review`, in
    `tekton/v1/triggers/triggers/env-gcp/_/github-pr-coderabbit-review-label.yaml`.
-   The repository allowlist is deliberately empty until that decision is made.
+   Create the branch separately if it does not exist. CodeRabbit must review PRs
+   targeting this non-default branch; creating or retargeting a PR alone is not
+   sufficient evidence that the review event chain works.
 2. Deploy the registered Task, TriggerTemplate and Trigger to the same namespace.
    The existing `github` secret needs PR read and issue label write permissions.
    The selected release image must provide bash, gh (with --slurp), and jq.
@@ -37,7 +40,9 @@ environment variables, and repository/PR identifiers are validated.
    of `pull_request_review` events. EventListener definitions are not in this
    change; do not assume the pull_request selector accepts review events.
 4. In configs/prow/config/plugins.yaml, add `pull_request_review` to exactly the
-   external-plugin endpoint serving this deployment for the pilot organization.
+   external-plugin endpoint serving this deployment for the pilot repository
+   `ti-community-infra/configs`, along with `pull_request`. Its existing plugin
+   entries must be preserved.
    Do not enable both tekton2-ee-cd and prow-tekton without verifying routing.
 5. Sync the new label definition from configs. Every Tide query admitting a pilot
    PR must exclude the exact label; bare `do-not-merge` is not a wildcard.

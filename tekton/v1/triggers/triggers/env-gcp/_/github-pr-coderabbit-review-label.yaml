@@ -10,9 +10,10 @@ spec:
       ref: { name: cel }
       params:
         - name: filter
-          # Disabled until pilot repositories are selected.
+          # Pilot scope: only PRs targeting this repository and base branch.
           value: >-
-            body.repository.full_name in []
+            body.repository.full_name in ['ti-community-infra/configs']
+            && body.pull_request.base.ref == 'test_ai_review'
             &&
             (
               (
