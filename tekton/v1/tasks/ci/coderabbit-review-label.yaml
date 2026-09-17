@@ -104,10 +104,19 @@ spec:
             continue
           fi
           restore=true
-          gh api --method DELETE \
-            "$endpoint/issues/$PR_NUMBER/labels/do-not-merge%2Frequest-change" >/dev/null
+          if response=$(gh api --include --method DELETE \
+            "$endpoint/issues/$PR_NUMBER/labels/do-not-merge%2Frequest-change"); then
+            :
+          else
+            result=$?
+            read -r protocol status remainder <<< "$response"
+            # Another TaskRun may have already removed the label. Verify below.
+            if [[ "$protocol" != HTTP/* || "$status" != 404 ]]; then
+              exit "$result"
+            fi
+          fi
           after=$(snapshot)
-          if can_clear "$after" && \
+          if can_clear "$after" && jq -e '.blocked | not' >/dev/null <<< "$after" && \
             [ "$(jq -c '{head, review}' <<< "$before")" = \
               "$(jq -c '{head, review}' <<< "$after")" ]; then
             restore=false
