@@ -1,0 +1,33 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-pr-coderabbit-review-label
+  labels:
+    type: github-pr
+spec:
+  interceptors:
+    - name: filter rollout repositories and review events
+      ref: { name: cel }
+      params:
+        - name: filter
+          # Disabled until pilot repositories are selected.
+          value: >-
+            body.repository.full_name in []
+            &&
+            (
+              (
+                header.match('X-GitHub-Event', 'pull_request_review')
+                && body.action in ['submitted', 'dismissed', 'edited']
+                && body.review.user.login == 'coderabbitai[bot]'
+                && body.review.user.type == 'Bot'
+              )
+              ||
+              (
+                header.match('X-GitHub-Event', 'pull_request')
+                && body.action in ['opened', 'reopened', 'synchronize']
+              )
+            )
+  bindings:
+    - ref: github-pr
+  template:
+    ref: coderabbit-review-label

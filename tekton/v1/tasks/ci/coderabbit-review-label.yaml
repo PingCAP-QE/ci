@@ -1,0 +1,121 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: coderabbit-review-label
+spec:
+  description: Block on CodeRabbit objections; only a current-head approval clears the label.
+  params:
+    - name: owner
+      type: string
+    - name: repo
+      type: string
+    - name: number
+      type: string
+  workspaces:
+    - name: github
+      description: GitHub token with pull request read and issue label write permissions.
+  steps:
+    - name: reconcile
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+      env:
+        - name: PR_OWNER
+          value: $(params.owner)
+        - name: PR_REPO
+          value: $(params.repo)
+        - name: PR_NUMBER
+          value: $(params.number)
+        - name: TOKEN_FILE
+          value: $(workspaces.github.path)/token
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        export GH_TOKEN="$(cat "$TOKEN_FILE")"
+        [[ "$PR_OWNER" =~ ^[A-Za-z0-9-]+$ ]]
+        [[ "$PR_REPO" =~ ^[A-Za-z0-9_.-]+$ ]]
+        [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+        endpoint="repos/$PR_OWNER/$PR_REPO"
+        label='do-not-merge/request-change'
+        restore=false
+
+        add_label() {
+          gh api --method POST "$endpoint/issues/$PR_NUMBER/labels" \
+            -f "labels[]=$label" >/dev/null
+        }
+
+        # A failed read after deletion must not leave an unverified PR unblocked.
+        cleanup() {
+          result=$?
+          if [ "$restore" = true ]; then
+            add_label || result=1
+          fi
+          exit "$result"
+        }
+        trap cleanup EXIT
+
+        snapshot() {
+          local pr reviews
+          pr=$(gh api "$endpoint/pulls/$PR_NUMBER") || return
+          reviews=$(gh api --paginate --slurp \
+            "$endpoint/pulls/$PR_NUMBER/reviews?per_page=100") || return
+          jq -cn --argjson pr "$pr" --argjson pages "$reviews" --arg label "$label" '
+            ($pages | add // [] | map(select(
+              .user.login == "coderabbitai[bot]" and .user.type == "Bot" and
+              (.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "DISMISSED")
+            )) | sort_by(.submitted_at, .id) | last) as $review |
+            {head: $pr.head.sha, open: ($pr.state == "open"),
+             blocked: any($pr.labels[]; .name == $label),
+             review: ($review | if . == null then null else
+               {id, state, commit_id, submitted_at} end)}'
+        }
+
+        can_clear() {
+          jq -e '.open and .review.state == "APPROVED" and
+            .review.commit_id == .head' >/dev/null <<< "$1"
+        }
+
+        # Webhooks are hints. Fetch all pages to tolerate out-of-order delivery.
+        # COMMENTED does not replace a decision. DISMISSED never revives an old
+        # approval. A new head alone neither creates nor clears a blocker.
+        for attempt in 1 2 3; do
+          current=$(snapshot)
+          if ! jq -e '.open' >/dev/null <<< "$current"; then
+            exit 0
+          fi
+          state=$(jq -r '.review.state // "NONE"' <<< "$current")
+          if [ "$state" = CHANGES_REQUESTED ]; then
+            add_label
+            after=$(snapshot)
+            if [ "$(jq -c '{head, review}' <<< "$current")" != \
+              "$(jq -c '{head, review}' <<< "$after")" ]; then
+              continue
+            fi
+            echo 'CodeRabbit requested changes; blocking Tide.'
+            exit 0
+          fi
+          if ! can_clear "$current"; then
+            echo 'No current-head approval; preserving the existing label state.'
+            exit 0
+          fi
+          if ! jq -e '.blocked' >/dev/null <<< "$current"; then
+            exit 0
+          fi
+          before=$(snapshot)
+          if [ "$current" != "$before" ]; then
+            continue
+          fi
+          restore=true
+          gh api --method DELETE \
+            "$endpoint/issues/$PR_NUMBER/labels/do-not-merge%2Frequest-change" >/dev/null
+          after=$(snapshot)
+          if can_clear "$after" && \
+            [ "$(jq -c '{head, review}' <<< "$before")" = \
+              "$(jq -c '{head, review}' <<< "$after")" ]; then
+            restore=false
+            echo 'Current-head CodeRabbit approval cleared the blocker.'
+            exit 0
+          fi
+          add_label
+          restore=false
+        done
+        echo 'PR changed during reconciliation; retained the blocker. Retry this TaskRun.' >&2
+        exit 1
