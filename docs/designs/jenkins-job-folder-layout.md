@@ -27,8 +27,9 @@ Current scale (see the track inventory note for the full breakdown):
 - 369 job folders: 301 flat + 68 nested.
 - 15 nested jobs carry **more than one** pod template (`pod-build.yaml` +
   `pod-test.yaml`, or `main-pod.yaml` + `test-pod.yaml`).
-- The reference graph is already not clean: 16 DSL files point at pipelines
-  that do not exist, and 5 pipeline scripts have no referencing DSL.
+- The reference graph is already not clean: the reference checker finds 11
+  dangling `scriptPath` targets and 15 orphaned artifacts, plus 4 pod references
+  that use runtime variables and cannot be resolved statically.
 
 ## 2. Goals
 
