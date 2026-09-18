@@ -200,6 +200,19 @@ rel_symlink() {
   ln -sfn "${rel}" "${link}"
 }
 
+# place_artifact <src> <dst>: move src to dst (leaving a back-compat symlink), or
+# copy the content when src is already a migrated symlink (shared artifact).
+place_artifact() {
+  local src="$1" dst="$2"
+  mkdir -p "$(dirname "${dst}")"
+  if [[ -L "${src}" ]]; then
+    cp -L "${src}" "${dst}"
+  else
+    mv "${src}" "${dst}"
+    rel_symlink "${src}" "${dst}"
+  fi
+}
+
 # --- cleanup mode ---
 
 if [[ "${mode}" == "cleanup" ]]; then
@@ -363,9 +376,9 @@ migrate_job() {
 
   mkdir -p "${root}/${target_rel}"
   mv "${dsl}" "${root}/${target_rel}/dsl.groovy"
-  mv "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile"
+  place_artifact "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile"
   for ((i = 0; i < n; i++)); do
-    mv "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}"
+    place_artifact "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}"
   done
 
   local tmp base_f base_name
@@ -379,8 +392,7 @@ migrate_job() {
       [[ -e "${base_f}" ]] || continue
       base_name="$(basename "${base_f}")"
       [[ -e "${root}/${target_rel}/${base_name}" ]] && continue
-      mv "${base_f}" "${root}/${target_rel}/${base_name}"
-      rel_symlink "${base_f}" "${root}/${target_rel}/${base_name}"
+      place_artifact "${base_f}" "${root}/${target_rel}/${base_name}"
     done
   fi
 
@@ -413,10 +425,6 @@ migrate_job() {
   mv "${tmp}" "${root}/${target_rel}/Jenkinsfile"
 
   rel_symlink "${legacy_jobs_dir}/${dirrel}/${job}.groovy" "${root}/${target_rel}/dsl.groovy"
-  rel_symlink "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile"
-  for ((i = 0; i < n; i++)); do
-    rel_symlink "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}"
-  done
 
   moved=$((moved + 1))
   return 0
