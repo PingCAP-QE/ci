@@ -1,0 +1,21 @@
+Phase 3 verification report (track jenkins_job_layout_20260916)
+
+Automated checks:
+- shellcheck on all four changed scripts -> clean
+- .ci/test-check-jenkins-job-references.sh -> all cases pass
+- .ci/test-migrate-jenkins-jobs.sh -> 28/28 pass
+- scripts/migrate-jenkins-jobs.sh --root . --dry-run -> 374 jobs planned, 0 skipped
+- .ci/check-jenkins-job-references.sh --root . --quiet -> exit 0 (11 pre-existing orphan warnings)
+
+Dry-run report summary:
+- 374 jobs would be co-located under jenkins/jobs/<org>/<repo>/<branch>/<job>/
+- 65 aa_folder.groovy folder definitions moved to the mirrored path
+- 0 skips
+
+Decisions during the phase:
+- Resolver maps ${REFS.org}/${REFS.repo} to the job's <org>/<repo>.
+- The 11 dead dangling DSLs were removed: 9 tidb-test *_next_gen (no pipeline
+  ever existed, no Prow trigger) and 2 docs/docs-cn merged_update_docs(_cn)
+  (pipelines deleted and replaced by Prow k8s postsubmits in a30410b1).
+
+User confirmation: yes.
