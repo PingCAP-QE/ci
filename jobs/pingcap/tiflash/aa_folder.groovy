@@ -1,3 +1,1 @@
-folder('pingcap/tiflash') {
-    description("Folder for pipelines of pingcap/tiflash repo")
-}
+../../../jenkins/jobs/pingcap/tiflash/aa_folder.groovy
