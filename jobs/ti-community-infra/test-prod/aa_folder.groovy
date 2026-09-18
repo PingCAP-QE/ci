@@ -1,3 +1,1 @@
-folder('ti-community-infra/test-prod') {
-    description("Folder for all pipelines of ti-community-infra/test-prod repo")
-}
+../../../jenkins/jobs/ti-community-infra/test-prod/aa_folder.groovy
