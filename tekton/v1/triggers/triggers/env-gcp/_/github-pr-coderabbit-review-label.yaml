@@ -14,20 +14,10 @@ spec:
           value: >-
             body.repository.full_name in ['ti-community-infra/configs']
             && body.pull_request.base.ref == 'test_ai_review'
-            &&
-            (
-              (
-                header.match('X-GitHub-Event', 'pull_request_review')
-                && body.action in ['submitted', 'dismissed', 'edited']
-                && body.review.user.login == 'coderabbitai[bot]'
-                && body.review.user.type == 'Bot'
-              )
-              ||
-              (
-                header.match('X-GitHub-Event', 'pull_request')
-                && body.action in ['opened', 'reopened', 'synchronize']
-              )
-            )
+            && header.match('X-GitHub-Event', 'pull_request_review')
+            && body.action in ['submitted', 'dismissed']
+            && body.review.user.login == 'coderabbitai[bot]'
+            && body.review.user.type == 'Bot'
   bindings:
     - ref: github-pr
   template:

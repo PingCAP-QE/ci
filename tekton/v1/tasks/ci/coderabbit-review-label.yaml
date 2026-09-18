@@ -33,13 +33,12 @@ spec:
         [[ "$PR_OWNER" =~ ^[A-Za-z0-9-]+$ ]]
         [[ "$PR_REPO" =~ ^[A-Za-z0-9_.-]+$ ]]
         [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
-        endpoint="repos/$PR_OWNER/$PR_REPO"
+        pr_url="https://github.com/$PR_OWNER/$PR_REPO/pull/$PR_NUMBER"
         label='do-not-merge/request-change'
         restore=false
 
         add_label() {
-          gh api --method POST "$endpoint/issues/$PR_NUMBER/labels" \
-            -f "labels[]=$label" >/dev/null
+          gh pr edit --add-label "$label" "$pr_url" >/dev/null
         }
 
         # A failed read after deletion must not leave an unverified PR unblocked.
@@ -53,19 +52,21 @@ spec:
         trap cleanup EXIT
 
         snapshot() {
-          local pr reviews
-          pr=$(gh api "$endpoint/pulls/$PR_NUMBER") || return
-          reviews=$(gh api --paginate --slurp \
-            "$endpoint/pulls/$PR_NUMBER/reviews?per_page=100") || return
-          jq -cn --argjson pr "$pr" --argjson pages "$reviews" --arg label "$label" '
-            ($pages | add // [] | map(select(
-              .user.login == "coderabbitai[bot]" and .user.type == "Bot" and
-              (.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "DISMISSED")
-            )) | sort_by(.submitted_at, .id) | last) as $review |
-            {head: $pr.head.sha, open: ($pr.state == "open"),
-             blocked: any($pr.labels[]; .name == $label),
+          local pr
+          pr=$(gh pr view "$PR_NUMBER" --repo "$PR_OWNER/$PR_REPO" \
+            --json headRefOid,state,labels,reviews) || return
+          # GraphQL uses coderabbitai, without the REST/webhook [bot] suffix.
+          # Review IDs are opaque; use API order to break submission-time ties.
+          jq -c --arg label "$label" '
+            (.reviews | to_entries | map(select(
+              .value.author.login == "coderabbitai" and
+              (.value.state == "APPROVED" or .value.state == "CHANGES_REQUESTED" or
+               .value.state == "DISMISSED")
+            )) | sort_by(.value.submittedAt, .key) | last | .value) as $review |
+            {head: .headRefOid, open: (.state == "OPEN"),
+             blocked: any(.labels[]; .name == $label),
              review: ($review | if . == null then null else
-               {id, state, commit_id, submitted_at} end)}'
+               {id, state, commit_id: .commit.oid, submitted_at: .submittedAt} end)}' <<< "$pr"
         }
 
         can_clear() {
@@ -73,7 +74,7 @@ spec:
             .review.commit_id == .head' >/dev/null <<< "$1"
         }
 
-        # Webhooks are hints. Fetch all pages to tolerate out-of-order delivery.
+        # Webhooks are hints. gh pr view paginates reviews to read current state.
         # COMMENTED does not replace a decision. DISMISSED never revives an old
         # approval. A new head alone neither creates nor clears a blocker.
         for attempt in 1 2 3; do
@@ -104,16 +105,11 @@ spec:
             continue
           fi
           restore=true
-          if response=$(gh api --include --method DELETE \
-            "$endpoint/issues/$PR_NUMBER/labels/do-not-merge%2Frequest-change"); then
-            :
-          else
-            result=$?
-            read -r protocol status remainder <<< "$response"
-            # Another TaskRun may have already removed the label. Verify below.
-            if [[ "$protocol" != HTTP/* || "$status" != 404 ]]; then
-              exit "$result"
-            fi
+          delete_failed=false
+          if ! gh pr edit --remove-label "$label" "$pr_url" >/dev/null; then
+            # A concurrent TaskRun may already have removed the label. Verify
+            # the resulting state below instead of trusting this command alone.
+            delete_failed=true
           fi
           after=$(snapshot)
           if can_clear "$after" && jq -e '.blocked | not' >/dev/null <<< "$after" && \
@@ -125,6 +121,10 @@ spec:
           fi
           add_label
           restore=false
+          if [ "$delete_failed" = true ]; then
+            echo 'Failed to remove the blocker label; retained it.' >&2
+            exit 1
+          fi
         done
         echo 'PR changed during reconciliation; retained the blocker. Retry this TaskRun.' >&2
         exit 1
