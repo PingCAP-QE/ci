@@ -1,3 +1,1 @@
-folder('pingcap-inc/enterprise-extensions') {
-    description("Folder for pipelines of pingcap-inc/enterprise-extensions repo")
-}
+../../../jenkins/jobs/pingcap-inc/enterprise-extensions/aa_folder.groovy
