@@ -1,8 +1,0 @@
-{
-  "track_id": "jenkins_job_layout_20260916",
-  "type": "refactor",
-  "status": "new",
-  "created_at": "2026-09-16T09:38:06Z",
-  "updated_at": "2026-09-16T09:38:06Z",
-  "description": "Design the refactoring to put the Jenkins DSL, pipeline groovy and pod template in the same folder per job for better maintainability."
-}
