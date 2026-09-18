@@ -1,3 +1,1 @@
-folder('pingcap/docs-tidb-operator') {
-    description("Folder for pipelines of pingcap/docs-tidb-operator repo")
-}
+../../../jenkins/jobs/pingcap/docs-tidb-operator/aa_folder.groovy
