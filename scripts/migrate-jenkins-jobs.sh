@@ -24,6 +24,7 @@
 set -euo pipefail
 
 mode="dry-run"
+only=""
 root="."
 
 usage() {
@@ -34,6 +35,7 @@ Usage: scripts/migrate-jenkins-jobs.sh [options]
 
 Options:
   --root DIR   Repository root to migrate (default: current directory).
+  --only PATH  Only migrate jobs under this <org>/<repo>/<branch> prefix.
   --dry-run    Print the plan only (default).
   --apply      Perform the migration and create back-compat symlinks.
   --cleanup    Remove the legacy pipelines/ tree and symlinks (requires a clean
@@ -45,6 +47,7 @@ USAGE
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --root) root="${2:-}"; shift 2 ;;
+    --only) only="${2:-}"; shift 2 ;;
     --dry-run) mode="dry-run"; shift ;;
     --apply) mode="apply"; shift ;;
     --cleanup) mode="cleanup"; shift ;;
@@ -233,6 +236,10 @@ migrate_job() {
   job="${job%.groovy}"
   target_rel="jenkins/jobs/${dirrel}/${job}"
 
+  if [[ -n "${only}" && "${dirrel}/${job}" != "${only}"* ]]; then
+    return 0
+  fi
+
   pairs=()
   while IFS= read -r line; do
     [[ -n "${line}" ]] && pairs+=("${line}")
@@ -380,6 +387,10 @@ while IFS= read -r folder_file; do
   [[ -n "${folder_file}" ]] || continue
   rel="${folder_file#"${legacy_jobs_dir}/"}"
   target="${new_jobs_dir}/${rel}"
+  folder_dir="$(dirname "${rel}")"
+  if [[ -n "${only}" && "${folder_dir}" != "${only}"* && "${only}" != "${folder_dir}"* ]]; then
+    continue
+  fi
   if [[ -e "${target}" && -L "${folder_file}" ]]; then
     log "UP-TO-DATE folder: ${rel}"
     continue

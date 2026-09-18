@@ -17,7 +17,16 @@ export POD_YAML_TEST_NAMESPACE
 if [ "$#" -gt 0 ]; then
     files="$*"
 else
-    files=$(find pipelines -type f \( -name '*.yaml' -o -name '*.yml' \) | LC_ALL=C sort)
+    files=$(
+        {
+            if [ -d pipelines ]; then
+                find pipelines -type f \( -name '*.yaml' -o -name '*.yml' \)
+            fi
+            if [ -d jenkins/jobs ]; then
+                find jenkins/jobs -type f -name 'pod*.yaml'
+            fi
+        } | LC_ALL=C sort
+    )
 fi
 
 CRANE_BIN=${CRANE_BIN:-crane}
