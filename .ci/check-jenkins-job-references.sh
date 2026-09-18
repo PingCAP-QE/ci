@@ -248,7 +248,7 @@ while IFS= read -r dsl; do
     expr="${decl#*=}"
     pval="$(resolve_expr "${expr}" "${ppairs[@]+"${ppairs[@]}"}")"
     check_ref "${pipeline_abs}" "POD_TEMPLATE" "${pval}" || true
-  done < <(grep -oE 'POD_TEMPLATE[A-Z_]*[[:space:]]*=[[:space:]]*("[^"]*"|'"'"'[^'"'"']*'"'"')' "${pipeline_abs}" 2>/dev/null || true)
+  done < <(grep -oE '[A-Za-z_]*POD[A-Za-z_]*TEMPLATE[A-Za-z_]*[[:space:]]*=[[:space:]]*("[^"]*"|'"'"'[^'"'"']*'"'"')' "${pipeline_abs}" 2>/dev/null || true)
 done < <(find "${jobs_dir}" -type f -name '*.groovy' | LC_ALL=C sort)
 
 # Orphan detection.

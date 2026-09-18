@@ -305,7 +305,7 @@ migrate_job() {
     pod_olds+=("${old_pod}")
     pod_news+=("")
     pod_exprs+=("${expr}")
-  done < <(grep -oE 'POD_TEMPLATE[A-Z_]*[[:space:]]*=[[:space:]]*("[^"]*"|'"'"'[^'"'"']*'"'"')' "${root}/${sp_old}" 2>/dev/null || true)
+  done < <(grep -oE '[A-Za-z_]*POD[A-Za-z_]*TEMPLATE[A-Za-z_]*[[:space:]]*=[[:space:]]*("[^"]*"|'"'"'[^'"'"']*'"'"')' "${root}/${sp_old}" 2>/dev/null || true)
 
   local n=${#pod_vars[@]} i base
   for ((i = 0; i < n; i++)); do
@@ -320,6 +320,22 @@ migrate_job() {
     fi
   done
 
+  local nested_job_dir="" aux_refs=() aux_old skip tok
+  if [[ "$(basename "${sp_old}")" == "pipeline.groovy" ]]; then
+    nested_job_dir="$(dirname "${sp_old}")"
+  fi
+  while IFS= read -r tok; do
+    [[ -n "${tok}" ]] || continue
+    [[ "${tok}" == "${sp_old}" ]] && continue
+    skip=0
+    for aux_old in "${pod_olds[@]+"${pod_olds[@]}"}"; do
+      if [[ "${tok}" == "${aux_old}" ]]; then skip=1; break; fi
+    done
+    [[ "${skip}" -eq 1 ]] && continue
+    [[ -e "${root}/${tok}" ]] || continue
+    aux_refs+=("${tok}")
+  done < <(grep -oE 'pipelines/[A-Za-z0-9._/-]+' "${root}/${sp_old}" 2>/dev/null | sort -u || true)
+
   local new_sp="${target_rel}/Jenkinsfile"
 
   log "${mode_upper} ${dirrel}/${job}:"
@@ -332,6 +348,13 @@ migrate_job() {
   for ((i = 0; i < n; i++)); do
     log "  - rewrite ${pod_vars[i]}"
   done
+  local m
+  for m in "${aux_refs[@]+"${aux_refs[@]}"}"; do
+    log "  - ${m} -> jenkins/jobs/${m#pipelines/}"
+  done
+  if [[ -n "${nested_job_dir}" ]]; then
+    log "  - move auxiliary files from ${nested_job_dir}/ -> ${target_rel}/"
+  fi
 
   if [[ "${mode}" != "apply" ]]; then
     moved=$((moved + 1))
@@ -345,13 +368,35 @@ migrate_job() {
     mv "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}"
   done
 
-  local tmp
+  local tmp base_f base_name
   tmp="$(mktemp)"
   sed -E "s|scriptPath\([^)]*\)|scriptPath(\"${new_sp}\")|" "${root}/${target_rel}/dsl.groovy" >"${tmp}"
   mv "${tmp}" "${root}/${target_rel}/dsl.groovy"
 
+  # Move auxiliary files that live in the job directory (nested jobs).
+  if [[ -n "${nested_job_dir}" && -d "${root}/${nested_job_dir}" ]]; then
+    for base_f in "${root}/${nested_job_dir}"/*; do
+      [[ -e "${base_f}" ]] || continue
+      base_name="$(basename "${base_f}")"
+      [[ -e "${root}/${target_rel}/${base_name}" ]] && continue
+      mv "${base_f}" "${root}/${target_rel}/${base_name}"
+      rel_symlink "${base_f}" "${root}/${target_rel}/${base_name}"
+    done
+  fi
+
+  # Mirror-move shared referenced files (e.g. a common/ helper script).
+  local aux aux_new
+  for aux in "${aux_refs[@]+"${aux_refs[@]}"}"; do
+    aux_new="jenkins/jobs/${aux#pipelines/}"
+    if [[ -e "${root}/${aux}" && ! -e "${root}/${aux_new}" ]]; then
+      mkdir -p "$(dirname "${root}/${aux_new}")"
+      mv "${root}/${aux}" "${root}/${aux_new}"
+      rel_symlink "${root}/${aux}" "${root}/${aux_new}"
+    fi
+  done
+
+  local sed_args=() new_expr old_base
   if [[ "${n}" -gt 0 ]]; then
-    local sed_args=() new_expr old_base
     for ((i = 0; i < n; i++)); do
       old_base="$(basename "${pod_olds[i]}")"
       if [[ "${pod_exprs[i]}" == *'${'* && "$(dirname "${pod_olds[i]}")" == "pipelines/${dirrel}/${job}" ]]; then
@@ -362,10 +407,10 @@ migrate_job() {
       fi
       sed_args+=(-e "s|(^[[:space:]]*final[[:space:]]+${pod_vars[i]}[[:space:]]*=[[:space:]]*).*$|\1${new_expr}|")
     done
-    tmp="$(mktemp)"
-    sed -E "${sed_args[@]}" "${root}/${target_rel}/Jenkinsfile" >"${tmp}"
-    mv "${tmp}" "${root}/${target_rel}/Jenkinsfile"
   fi
+  tmp="$(mktemp)"
+  sed -E "${sed_args[@]+"${sed_args[@]}"}" "${root}/${target_rel}/Jenkinsfile" | sed 's#pipelines/#jenkins/jobs/#g' >"${tmp}"
+  mv "${tmp}" "${root}/${target_rel}/Jenkinsfile"
 
   rel_symlink "${legacy_jobs_dir}/${dirrel}/${job}.groovy" "${root}/${target_rel}/dsl.groovy"
   rel_symlink "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile"

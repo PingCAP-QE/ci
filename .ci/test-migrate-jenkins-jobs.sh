@@ -72,6 +72,11 @@ assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/pod-build.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/pod-test.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aa_folder.groovy"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/refs/pod.yaml"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aux/dsl.groovy"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aux/Jenkinsfile"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aux/pod.yaml"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aux/run.sh"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/common/helper.sh"
 
 assert_symlink "${TMP_ROOT}/jobs/acme/widget/latest/build.groovy"
 assert_symlink "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
@@ -84,6 +89,8 @@ assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile" 
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/refs/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/refs/pod.yaml'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aux/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/common/helper.sh'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aux/Jenkinsfile" 'final SELF_DIR = "jenkins/jobs/acme/widget/latest/aux"'
 
 if bash "${CHECKER}" --root "${TMP_ROOT}" --quiet; then
   ok "reference checker passes on the migrated tree"
