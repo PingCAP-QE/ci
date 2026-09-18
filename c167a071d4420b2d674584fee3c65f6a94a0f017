@@ -1,0 +1,12 @@
+Pilot migration (track jenkins_job_layout_20260916, Phase 4)
+
+Slice: ti-community-infra/test-prod
+Command: scripts/migrate-jenkins-jobs.sh --apply --only ti-community-infra/test-prod
+
+Result: 1 job + 2 folder definitions moved under jenkins/jobs/; scriptPath
+rewritten to the sibling Jenkinsfile; old jobs/ and pipelines/ paths kept as
+relative back-compat symlinks (verified to resolve).
+
+Validation: .ci/check-jenkins-job-references.sh --root . --quiet -> exit 0.
+Pending before promotion: Jenkins syntax validation, staging replay, rollback
+exercise.
