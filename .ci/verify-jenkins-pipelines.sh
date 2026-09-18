@@ -9,10 +9,22 @@ set -eo pipefail
 # JENKINS_CRUMB is needed if your Jenkins controller has CRSF protection enabled as it should
 
 JENKINS_CRUMB=$(curl -fsS "$JENKINS_URL/crumbIssuer/api/json" | jq .crumb)
-SCRIPT_DIR="$(realpath $(dirname "${BASH_SOURCE[0]}"))"
+export JENKINS_CRUMB
+SCRIPT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
+
+discover_pipelines() {
+    # Legacy layout: pipelines/**/*.groovy
+    if [ -d pipelines ]; then
+        find pipelines -name "*.groovy"
+    fi
+    # New layout: jenkins/jobs/**/Jenkinsfile
+    if [ -d jenkins/jobs ]; then
+        find jenkins/jobs -name "Jenkinsfile"
+    fi
+}
 
 if command -v parallel > /dev/null; then
-    find pipelines -name "*.groovy" | parallel -j4 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
+    discover_pipelines | parallel -j4 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
 else
-    find pipelines -name "*.groovy" -print0 | xargs -0 -P 4 -n 1 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
+    discover_pipelines | xargs -P 4 -n 1 "$SCRIPT_DIR/verify-jenkins-pipeline-file.sh"
 fi
