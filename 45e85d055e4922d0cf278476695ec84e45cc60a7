@@ -1,0 +1,14 @@
+Phase 1 verification report (track jenkins_job_layout_20260916)
+
+Automated checks: no markdownlint/pre-commit available in this environment; ran
+'git diff --check' and EOF-newline checks - passed. No code modules changed
+(docs only), so no unit tests apply.
+
+Manual verification: user reviewed the design at PR 5254
+(https://github.com/PingCAP-QE/ci/pull/5254) and confirmed it meets
+expectations, including the revised top-level jenkins/ layout
+(jenkins/jobs/<org>/<repo>/<branch>/<job>/{dsl.groovy,Jenkinsfile,pod.yaml}),
+the multi-pod rule (pod-<purpose>.yaml), libraries/ staying at repo root, and the
+seed/staging back-compat coordination.
+
+Confirmation: yes.
