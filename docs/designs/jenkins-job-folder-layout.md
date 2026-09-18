@@ -27,9 +27,13 @@ Current scale (see the track inventory note for the full breakdown):
 - 369 job folders: 301 flat + 68 nested.
 - 15 nested jobs carry **more than one** pod template (`pod-build.yaml` +
   `pod-test.yaml`, or `main-pod.yaml` + `test-pod.yaml`).
-- The reference graph is already not clean: the reference checker finds 11
-  dangling `scriptPath` targets and 15 orphaned artifacts, plus 4 pod references
-  that use runtime variables and cannot be resolved statically.
+- The reference graph was not clean at the start: the reference checker found 11
+  dangling `scriptPath` targets and 15 orphaned artifacts, plus pod references
+  that used runtime variables. The 11 dangling DSLs were retired as dead jobs
+  (their pipelines never existed, or were removed when the jobs moved to Prow),
+  and the resolver now maps `${REFS.org}`/`${REFS.repo}` to the job's
+  `<org>/<repo>`. 11 pre-existing orphaned pipeline/pod files remain; they are
+  removed with the `pipelines/` tree at cleanup.
 
 ## 2. Goals
 
@@ -121,6 +125,10 @@ final TEST_POD_TEMPLATE_FILE = "jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIA
 
 Both reference types remain simple string constants, so both literal and
 templated forms are mechanically rewritable.
+
+For static checking, pod paths that reference runtime PR variables
+(`${REFS.org}` / `${REFS.repo}`) are resolved to the job's `<org>/<repo>` path
+components, which is what those variables evaluate to for the owning job.
 
 ## 6. Edge cases
 

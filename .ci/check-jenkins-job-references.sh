@@ -179,6 +179,8 @@ derive_pipeline_pairs() {
   fi
   printf 'GIT_FULL_REPO_NAME=%s\n' "${orgrepo}"
   printf 'GIT_FULL_REPO=%s\n' "${orgrepo}"
+  printf 'REFS.org=%s\n' "$(printf '%s' "${dir}" | cut -d/ -f1)"
+  printf 'REFS.repo=%s\n' "$(printf '%s' "${dir}" | cut -d/ -f2)"
   printf 'BRANCH_ALIAS=%s\n' "${branch}"
   printf 'JOB_BASE_NAME=%s\n' "${job}"
 }

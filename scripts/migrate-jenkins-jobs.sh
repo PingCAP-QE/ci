@@ -171,6 +171,8 @@ derive_pipeline_pairs() {
   fi
   printf 'GIT_FULL_REPO_NAME=%s\n' "${orgrepo}"
   printf 'GIT_FULL_REPO=%s\n' "${orgrepo}"
+  printf 'REFS.org=%s\n' "$(printf '%s' "${dir}" | cut -d/ -f1)"
+  printf 'REFS.repo=%s\n' "$(printf '%s' "${dir}" | cut -d/ -f2)"
   printf 'BRANCH_ALIAS=%s\n' "${branch}"
   printf 'JOB_BASE_NAME=%s\n' "${job}"
 }
@@ -202,9 +204,14 @@ if [[ "${mode}" == "cleanup" ]]; then
     echo "reference checker not found: ${checker}" >&2
     exit 2
   fi
-  if ! bash "${checker}" --root "${root}" --quiet --strict; then
+  check_out="$(bash "${checker}" --root "${root}" --quiet 2>&1)" || {
+    printf '%s\n' "${check_out}" >&2
     echo "REFUSING cleanup: Jenkins job references are not clean (see above)." >&2
     exit 1
+  }
+  orphans="$(printf '%s\n' "${check_out}" | grep -c 'orphan artifact' || true)"
+  if [[ "${orphans}" -gt 0 ]]; then
+    log "Note: ${orphans} orphaned artifact(s) will be removed with the pipelines/ tree."
   fi
   find "${legacy_jobs_dir}" -type l -delete
   if [[ -d "${pipelines_dir}" ]]; then
