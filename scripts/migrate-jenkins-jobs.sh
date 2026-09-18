@@ -391,6 +391,12 @@ migrate_job() {
     for base_f in "${root}/${nested_job_dir}"/*; do
       [[ -e "${base_f}" ]] || continue
       base_name="$(basename "${base_f}")"
+      local skip_aux=0 pbase
+      for pbase in "${pod_olds[@]+"${pod_olds[@]}"}"; do
+        [[ "$(basename "${pbase}")" == "${base_name}" ]] && skip_aux=1
+      done
+      [[ "${base_name}" == "$(basename "${sp_old}")" ]] && skip_aux=1
+      [[ "${skip_aux}" -eq 1 ]] && continue
       [[ -e "${root}/${target_rel}/${base_name}" ]] && continue
       place_artifact "${base_f}" "${root}/${target_rel}/${base_name}"
     done

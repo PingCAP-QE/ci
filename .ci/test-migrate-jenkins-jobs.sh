@@ -81,6 +81,8 @@ assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_a/Jenkinsfile"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_a/pod.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/Jenkinsfile"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/pod.yaml"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/single/pod.yaml"
+assert_absent "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/single/pod-custom.yaml"
 
 assert_symlink "${TMP_ROOT}/jobs/acme/widget/latest/build.groovy"
 assert_symlink "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
