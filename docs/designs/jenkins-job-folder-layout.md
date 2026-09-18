@@ -42,19 +42,32 @@ Current scale (see the track inventory note for the full breakdown):
 
 - Changing Jenkins job names, Prow triggers, pipeline logic, or runtime behavior.
 - Restructuring Tekton resources or Prow job YAML.
+- Moving `libraries/` (Jenkins shared library). It stays at the repository root;
+  relocating it is a separate follow-up track (see section 4).
 - Executing the full migration in this track.
 
 ## 4. Target layout
 
+All Jenkins job artifacts move under a single top-level `jenkins/` directory, so
+the repository reads as `prow-jobs/` (triggers), `jenkins/` (Jenkins backend),
+`tekton/` (CD):
+
 ```
-jobs/<org>/<repo>/<branch>/<job>/
-├── dsl.groovy     # Jenkins Job DSL (pipelineJob); was jobs/.../<job>.groovy
-├── Jenkinsfile    # declarative pipeline; was pipelines/.../<job>.groovy
-└── pod.yaml       # Kubernetes pod template (OPTIONAL); was pipelines/.../pod-<job>.yaml
+jenkins/
+└── jobs/<org>/<repo>/<branch>/<job>/
+    ├── dsl.groovy     # Jenkins Job DSL (pipelineJob); was jobs/.../<job>.groovy
+    ├── Jenkinsfile    # declarative pipeline; was pipelines/.../<job>.groovy
+    └── pod.yaml       # Kubernetes pod template (OPTIONAL); was pipelines/.../pod-<job>.yaml
 ```
 
-`aa_folder.groovy` files are **not** jobs and stay where they are:
-`jobs/<org>/<repo>/<branch>/aa_folder.groovy`.
+`aa_folder.groovy` files are **not** jobs and stay one level above the job
+folders: `jenkins/jobs/<org>/<repo>/<branch>/aa_folder.groovy`.
+
+`libraries/` is **out of scope** and stays at the repository root. Moving it
+would couple this change to the Jenkins controller's global library
+configuration (`libraryPath('libraries/tipipeline')` in `aa_folder.groovy`),
+every `@Library('tipipeline')` annotation, and the library tests. It is a
+candidate for a dedicated follow-up track once `jenkins/jobs/` has landed.
 
 ### 4.1 Naming rules
 
@@ -82,27 +95,27 @@ pods; tikv/pd main+test pods). To keep names predictable *and* collision-free:
 ### 5.1 `scriptPath`
 
 `cpsScm.scriptPath` is resolved relative to the repository root, so it can point
-into `jobs/`. Examples:
+into `jenkins/jobs/`. Examples:
 
 ```groovy
 // literal, flat
-scriptPath("jobs/pingcap/tidb/latest/pull_unit_test/Jenkinsfile")
+scriptPath("jenkins/jobs/pingcap/tidb/latest/pull_unit_test/Jenkinsfile")
 
 // templated, nested (local final vars)
-scriptPath("jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile")
+scriptPath("jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile")
 ```
 
 ### 5.2 Pod templates
 
 `pod_label.withCiLabels(<path>, REFS)` resolves `<path>` with `readTrusted`,
 i.e. relative to the workspace root. Pod paths therefore also become
-`jobs/<org>/<repo>/<branch>/<job>/pod.yaml` (or `pod-<purpose>.yaml`).
+`jenkins/jobs/<org>/<repo>/<branch>/<job>/pod.yaml` (or `pod-<purpose>.yaml`).
 
 ```groovy
-final POD_TEMPLATE_FILE = "jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
+final POD_TEMPLATE_FILE = "jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
 // multi-pod:
-final MAIN_POD_TEMPLATE_FILE = "jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-main.yaml"
-final TEST_POD_TEMPLATE_FILE = "jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
+final MAIN_POD_TEMPLATE_FILE = "jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-main.yaml"
+final TEST_POD_TEMPLATE_FILE = "jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
 ```
 
 Both reference types remain simple string constants, so both literal and
@@ -132,18 +145,22 @@ templated forms are mechanically rewritable.
    create back-compat symlinks. Idempotent; re-running is a no-op.
 3. **Verify:** run the reference-integrity checker, pipeline syntax validation,
    pod-manifest validation, and a staging replay on the pilot slice.
-4. **Cleanup (`--cleanup`):** remove the `pipelines/` tree and the back-compat
-   symlinks only after the checker is clean and the pilot replay passed.
+4. **Cleanup (`--cleanup`):** remove the retired `pipelines/` tree, the now-empty
+   legacy `jobs/` tree, and the back-compat symlinks only after the checker is
+   clean and the pilot replay passed.
 
 ### 7.1 Back-compat symlinks
 
-During the transition, old paths must still resolve for Jenkins builds that
-reference the previous `scriptPath` until the next job re-index:
+During the transition, old paths must still resolve for the external seed job
+(which scans `jobs/**`) and for Jenkins builds that reference the previous
+`scriptPath` until the next job re-index:
 
-- `pipelines/<...>/<job>.groovy` -> `../../jobs/<...>/<job>/Jenkinsfile`
-  (relative symlink; the exact depth is computed by the tool).
-- `pipelines/<...>/pod-<job>.yaml` -> `../../jobs/<...>/<job>/pod.yaml`.
+- `jobs/<...>/<job>.groovy` -> `jenkins/jobs/<...>/<job>/dsl.groovy`, so the seed
+  job keeps discovering the DSL unchanged.
+- `pipelines/<...>/<job>.groovy` -> `jenkins/jobs/<...>/<job>/Jenkinsfile`.
+- `pipelines/<...>/pod-<job>.yaml` -> `jenkins/jobs/<...>/<job>/pod.yaml`.
 
+Relative symlinks are used; the exact depth is computed by the tool.
 Directory-form entries (`pipelines/<...>/<job>/pipeline.groovy`) are replaced by
 a symlinked directory or individual file symlinks, decided by the tool. Symlinks
 are retained for one release and removed by `--cleanup`.
@@ -161,7 +178,7 @@ are retained for one release and removed by `--cleanup`.
 
 ### 8.1 Reference-integrity checker: `.ci/check-jenkins-job-references.sh`
 
-- Scans every `jobs/**` job folder.
+- Scans every `jenkins/jobs/**` job folder.
 - Resolves each `scriptPath` (literal and templated) to a real `Jenkinsfile`.
 - Resolves each `POD_TEMPLATE_FILE*` (literal and templated) to a real pod file.
 - Fails non-zero with actionable output when a target is missing.
@@ -184,16 +201,18 @@ are retained for one release and removed by `--cleanup`.
 ### 8.3 Verification script update: `.ci/verify-jenkins-pipelines.sh`
 
 Repoint discovery from `find pipelines -name "*.groovy"` to
-`find jobs -name "Jenkinsfile"` (excluding `aa_folder.groovy`, which is not
-validated as a pipeline anyway). `.ci/verify-k8s-pod-yaml.sh` is repointed from
-`find pipelines -type f -name '*.yaml'` to `find jobs -type f -name 'pod*.yaml'`.
+`find jenkins/jobs -name "Jenkinsfile"` (excluding `aa_folder.groovy`, which is
+not validated as a pipeline anyway). `.ci/verify-k8s-pod-yaml.sh` is repointed
+from `find pipelines -type f -name '*.yaml'` to
+`find jenkins/jobs -type f -name 'pod*.yaml'`.
 
 ### 8.4 Other consumers
 
 `.ci/replay-jenkins-build.sh`, `.ci/verify-jenkins-credential-policy.sh` and its
 test, the `.agents` replay skill, and `.github/renovate.json` all encode
 `pipelines/*` path assumptions and must be repointed in the same change as the
-pilot migration.
+pilot migration. The external seed job and the `staging/` mirror convention must
+also be updated in lockstep; they live outside this repository.
 
 ## 9. Risks
 
@@ -204,6 +223,8 @@ pilot migration.
 | Symlink handling differences across tooling | Validate by staging replay before cleanup. |
 | Multi-pod jobs mis-mapped to a single `pod.yaml` | Explicit `pod-<purpose>.yaml` rule + checker fails on duplicate/missing targets. |
 | Pre-existing dangling references confuse the checker | Baseline is recorded; the checker distinguishes pre-existing from introduced orphans and never auto-deletes. |
+| External seed job / `staging/` still expects `jobs/` | Old `jobs/**` and `pipelines/**` paths kept resolvable via symlinks; seed/staging config updated in lockstep before `--cleanup`. |
+| Jenkins controller library config if `libraries/` moved | Out of scope: `libraries/` stays at the repository root. |
 
 ## 10. Rollback
 
@@ -222,8 +243,9 @@ the rollout phase, once the migration tooling exists.
 ### 11.1 `AGENTS.md`
 
 - Repository structure: replace the separate `jobs/` + `pipelines/` entries with
-  the one-folder-per-job layout.
-- File naming: `jobs/<org>/<repo>/<branch>/<job>/{dsl.groovy,Jenkinsfile,pod.yaml|pod-<purpose>.yaml}`.
+  a `jenkins/` entry containing the one-folder-per-job layout.
+- File naming:
+  `jenkins/jobs/<org>/<repo>/<branch>/<job>/{dsl.groovy,Jenkinsfile,pod.yaml|pod-<purpose>.yaml}`.
 - Common task "Adding/Modifying CI Jobs": edit the single job folder.
 
 ### 11.2 `conductor/code_styleguides/`
@@ -235,7 +257,10 @@ rule, and that all `scriptPath` / pod references are repo-root-relative.
 
 1. This track: design doc + checker + migration tool + verification repoint +
    docs (no mass migration).
-2. Pilot: migrate one bounded slice (e.g. `tikv/pd/latest` integration jobs),
-   run checker + syntax validation + staging replay.
+2. Pilot: migrate one bounded slice (e.g. `tikv/pd/latest` integration jobs) to
+   `jenkins/jobs/`, run checker + syntax validation + staging replay.
 3. Full migration (follow-up track): `--dry-run` -> review -> `--apply` ->
    verify -> `--cleanup`, in reviewable batches.
+4. External coordination: update the seed job and `staging/` path convention
+   before `--cleanup`; consider a follow-up track to move `libraries/` under
+   `jenkins/`.
