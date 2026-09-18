@@ -1,0 +1,11 @@
+Task: Author the design document under docs/designs/ (track jenkins_job_layout_20260916, Phase 1)
+
+Summary:
+- Added docs/designs/jenkins-job-folder-layout.md describing the one-folder-per-job layout.
+- Captures the current inventory (385 DSL, 374 pipelines, 408 pod templates), reference patterns (scriptPath, POD_TEMPLATE_FILE), edge cases (multi-pod jobs, nested dirs, non-standard/dangling entries), the migration phases (dry-run/apply/verify/cleanup), back-compat symlinks, cleanup gate, risks, rollback and rollout plan.
+
+Files:
+- docs/designs/jenkins-job-folder-layout.md (new)
+
+Why:
+- Provide the authoritative design before implementing the checker/migration tooling and the later full migration.
