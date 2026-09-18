@@ -1,0 +1,14 @@
+Phase 2 verification report (track jenkins_job_layout_20260916)
+
+Automated checks:
+- shellcheck .ci/check-jenkins-job-references.sh .ci/test-check-jenkins-job-references.sh -> clean
+- bash .ci/test-check-jenkins-job-references.sh -> all 7 fixture cases passed
+- baseline: bash .ci/check-jenkins-job-references.sh --root . --quiet -> exit 1,
+  11 dangling scriptPath, 15 orphan warnings, 4 unresolved runtime-variable warnings
+
+Manual verification:
+1. fixture suite -> passed
+2. checker against repo -> 11 dangling, 15 orphans as expected
+3. --strict -> exit 1 (orphans fatal)
+
+User confirmation: yes.
