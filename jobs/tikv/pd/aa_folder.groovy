@@ -1,3 +1,1 @@
-folder('tikv/pd') {
-    description("Folder for pipelines of tikv/pd repo")
-}
+../../../jenkins/jobs/tikv/pd/aa_folder.groovy
