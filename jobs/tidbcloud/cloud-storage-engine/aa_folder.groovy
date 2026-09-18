@@ -1,3 +1,1 @@
-folder('tidbcloud/cloud-storage-engine') {
-    description("Folder for pipelines of tidbcloud/cloud-storage-engine repo")
-}
+../../../jenkins/jobs/tidbcloud/cloud-storage-engine/aa_folder.groovy
