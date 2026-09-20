@@ -1,9 +1,9 @@
-final jobName = 'aux'
+final jobName = 'auxiliary'
 pipelineJob("acme/widget/${jobName}") {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/acme/widget/latest/aux/pipeline.groovy")
+            scriptPath("pipelines/acme/widget/latest/auxiliary/pipeline.groovy")
         }
     }
 }

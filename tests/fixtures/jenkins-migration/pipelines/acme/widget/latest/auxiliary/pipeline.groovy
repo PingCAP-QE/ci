@@ -1,4 +1,4 @@
-final SELF_DIR = "pipelines/acme/widget/latest/aux"
+final SELF_DIR = "pipelines/acme/widget/latest/auxiliary"
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = "${SELF_DIR}/pod.yaml"
 final SHARED_HELPER = "pipelines/acme/widget/latest/common/helper.sh"
 pipeline {
