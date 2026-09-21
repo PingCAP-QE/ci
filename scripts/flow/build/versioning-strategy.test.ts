@@ -424,6 +424,31 @@ Deno.test("compute", () => {
         version: "v8.5.5-release.3-20260109-abcdef1",
       },
     },
+    {
+      description: "rust branch - commits after the beta pre tag",
+      gitVer: "v9.0.0-beta.2.pre-9643-g0194f0fed0",
+      branches: ["hparser-integration"],
+      expect: {
+        version: "v9.0.0-beta.2.pre.rust",
+        // no new git tag is created for the rust branch.
+      },
+    },
+    {
+      description: "rust branch - exact beta pre tag",
+      gitVer: "v9.0.0-beta.2.pre",
+      branches: ["hparser-integration"],
+      expect: {
+        version: "v9.0.0-beta.2.pre.rust",
+      },
+    },
+    {
+      description: "rust branch - rust tag on an unrelated branch is untouched",
+      gitVer: "v9.0.0-beta.2.pre-9643-g0194f0fed0",
+      branches: ["master"],
+      expect: {
+        version: "v9.0.0-beta.2.pre-9643-g0194f0fed0",
+      },
+    },
   ];
 
   for (const { description, gitVer, branches, expect } of tests) {

@@ -24,6 +24,22 @@ function isNextgenReleaseBranch(branch: string): boolean {
 }
 
 /**
+ * The branch that carries the Rust SQL-node rewrite. It is a single named
+ * constant so additional rust branches can be added without touching the logic.
+ */
+const RUST_BRANCH_PATTERN = /^hparser-integration$/;
+
+/**
+ * The base tag shape the rust version is derived from, e.g. `v9.0.0-beta.2.pre`.
+ * Deriving from anything else fails loudly instead of inventing a version.
+ */
+const RUST_BASE_VERSION_PATTERN = /^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+\.pre$/;
+
+function isRustBranch(branch: string): boolean {
+  return RUST_BRANCH_PATTERN.test(branch.trim());
+}
+
+/**
  * Determine if the given branch is a release branch.
  * @param {string} branch - The branch name to check.
  * @returns {boolean} True if the branch is a release branch, false otherwise.
@@ -84,6 +100,27 @@ export function compute(
       normalizedRawVersion,
     );
     return { releaseVersion: normalizedRawVersion };
+  }
+
+  // The Rust SQL-node branch publishes its own pre-release version, derived from
+  // the base beta tag (`v9.0.0-beta.2.pre` -> `v9.0.0-beta.2.pre.rust`). It never
+  // creates a git tag, and it is inert for every other branch.
+  if (commitInBranches.some(isRustBranch)) {
+    const base = normalizedRawVersion.replace(
+      /-\d+-g[0-9a-f]+(?:-dirty)?$/,
+      "",
+    );
+    if (!RUST_BASE_VERSION_PATTERN.test(base)) {
+      throw new Error(
+        `Cannot derive the rust version from '${normalizedRawVersion}': ` +
+          `expected a base tag like 'v9.0.0-beta.2.pre'.`,
+      );
+    }
+    console.info(
+      "Current commit is in the rust branch; derived version:",
+      base,
+    );
+    return { releaseVersion: `${base}.rust` };
   }
 
   // If it's a GA version, return it directly
