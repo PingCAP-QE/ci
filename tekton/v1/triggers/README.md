@@ -55,6 +55,7 @@ go install github.com/tektoncd/triggers/cmd/cel-eval@v0.20.2
 - `failpoint` - Build with failpoint enabled
 - `community` - Community version build
 - `fips` - FIPS compliant build
+- `rust` - Standalone Rust SQL node (`tidb-server`) for `pingcap/tidb@hparser-integration`; linux amd64/arm64, publishes the `tidb` tiup package to the staging mirror only, builds no container images
 
 ## Common Parameters
 
