@@ -64,6 +64,10 @@ spec:
         skips resolution and checks out this ref directly.
       type: string
       default: ""
+    - name: fetch-external
+      description: Fetch the external enterprise-plugin repo during checkout.
+      type: string
+      default: "false"
   results:
     - name: pushed-binaries
       description: pushed binaries.
@@ -101,7 +105,7 @@ spec:
         - name: git-ref
           value: $(params.git-ref)
         - name: fetch-external
-          value: "true"
+          value: $(params.fetch-external)
         - name: external-git-ref
           value: $(params.external-git-ref)
       workspaces:

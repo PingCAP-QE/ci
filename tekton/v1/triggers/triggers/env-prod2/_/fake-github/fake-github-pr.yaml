@@ -138,6 +138,7 @@ spec:
                   'builder-image': header.canonical('ce-paramBuilderImage'),
                   'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
+                  'fetch-external': (body.repository.name == 'tidb' && header.canonical('ce-paramProfile') == 'enterprise') ? 'true' : 'false',
                 }
             - key: component
               expression: >-

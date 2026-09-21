@@ -45,6 +45,9 @@ spec:
     - name: external-git-ref
       description: Explicit enterprise-plugin ref. When non-empty, skips resolution.
       default: ""
+    - name: fetch-external
+      description: Fetch the external enterprise-plugin repo during checkout.
+      default: "false"
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -88,6 +91,8 @@ spec:
             value: $(tt.params.git-instead-of)
           - name: external-git-ref
             value: $(tt.params.external-git-ref)
+          - name: fetch-external
+            value: $(tt.params.fetch-external)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -170,6 +175,8 @@ spec:
             value: $(tt.params.git-instead-of)
           - name: external-git-ref
             value: $(tt.params.external-git-ref)
+          - name: fetch-external
+            value: $(tt.params.fetch-external)
         taskRunTemplate:
           podTemplate:
             nodeSelector:
@@ -254,6 +261,8 @@ spec:
             value: $(tt.params.git-instead-of)
           - name: external-git-ref
             value: $(tt.params.external-git-ref)
+          - name: fetch-external
+            value: $(tt.params.fetch-external)
         timeouts:
           pipeline: $(tt.params.timeout)
         taskRunSpecs:
@@ -318,6 +327,8 @@ spec:
             value: $(tt.params.git-instead-of)
           - name: external-git-ref
             value: $(tt.params.external-git-ref)
+          - name: fetch-external
+            value: $(tt.params.fetch-external)
         timeouts:
           pipeline: $(tt.params.timeout)
         taskRunSpecs:
