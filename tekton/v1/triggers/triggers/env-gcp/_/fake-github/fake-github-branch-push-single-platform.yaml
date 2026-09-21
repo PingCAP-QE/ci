@@ -138,6 +138,7 @@ spec:
                   'os': header.canonical('ce-paramPlatform').split('/')[0],
                   'arch': header.canonical('ce-paramPlatform').split('/')[1],
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
+                  'fetch-external': (body.repository.name == 'tidb' && header.canonical('ce-paramProfile') == 'enterprise') ? 'true' : 'false',
                 }
             - key: component
               expression: >-

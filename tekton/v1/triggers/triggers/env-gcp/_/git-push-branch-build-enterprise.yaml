@@ -50,6 +50,9 @@ spec:
                     'memory': '56Gi',
                   },
                 }[body.repository.full_name]
+            - key: fetch-external
+              expression: >-
+                body.repository.name == 'tidb' ? 'true' : 'false'
   bindings:
     - ref: github-branch-push
     - ref: gcp-classic-build-params
@@ -59,6 +62,7 @@ spec:
       value: $(extensions.resource-config.memory)
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: enterprise }
+    - { name: fetch-external, value: $(extensions.fetch-external) }
     - { name: timeout, value: $(extensions.resource-config.timeout) }
     - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
 
