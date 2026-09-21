@@ -30,6 +30,11 @@ spec:
     - { name: component, value: tidb }
     - { name: os, value: linux }
     - { name: profile, value: rust }
+    # The checkout task always fetches the enterprise-plugin repo (`fetch-external`
+    # is hard-coded true in the pipeline). The rust branch does not use the plugin,
+    # and `hparser-integration` does not exist in `pingcap-inc/enterprise-plugin`,
+    # so pin the external ref to `master` to bypass the branch resolution.
+    - { name: external-git-ref, value: master }
     - { name: timeout, value: 60m }
     - { name: source-ws-size, value: 50Gi }
     - { name: builder-resources-memory, value: 32Gi }
