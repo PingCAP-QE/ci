@@ -13,11 +13,14 @@
 #
 # Modes:
 #   --dry-run  (default)  print the plan and change nothing
-#   --apply               move/rename files, rewrite references and create
-#                         back-compat symlinks from the old paths
-#   --cleanup             remove the legacy pipelines/ tree and the back-compat
-#                         symlinks; refuses unless the reference checker is clean
-#                         (run with --strict)
+#   --apply               move the job DSL into the job folder, copy the pipeline
+#                         and pod templates next to it and rewrite references. No
+#                         back-compat symlinks are created: the Jenkins seed job
+#                         discovers jobs in both `jobs/**` and `jenkins/jobs/**`.
+#                         The legacy pipelines/ tree is left in place so old
+#                         scriptPath values keep resolving until cleanup.
+#   --cleanup             remove the legacy pipelines/ tree and prune the emptied
+#                         jobs/ tree; refuses unless the reference checker is clean.
 #
 # Usage: scripts/migrate-jenkins-jobs.sh [--root DIR] [--dry-run|--apply|--cleanup]
 #
@@ -35,11 +38,11 @@ Usage: scripts/migrate-jenkins-jobs.sh [options]
 
 Options:
   --root DIR   Repository root to migrate (default: current directory).
-  --only PATH  Only migrate jobs under this <org>/<repo>/<branch> prefix.
+  --only PATH  Only migrate the job at <org>/<repo>/<branch>/<job>.
   --dry-run    Print the plan only (default).
-  --apply      Perform the migration and create back-compat symlinks.
-  --cleanup    Remove the legacy pipelines/ tree and symlinks (requires a clean
-               reference check).
+  --apply      Perform the migration (no back-compat symlinks are created).
+  --cleanup    Remove the legacy pipelines/ tree and prune the emptied jobs/
+               tree (requires a clean reference check).
   -h, --help   Show this help.
 USAGE
 }
@@ -72,11 +75,6 @@ new_jobs_dir="${root}/jenkins/jobs"
 if [[ ! -d "${legacy_jobs_dir}" ]]; then
   echo "no legacy jobs/ directory under ${root}; nothing to migrate" >&2
   exit 0
-fi
-
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "python3 is required to create relative symlinks" >&2
-  exit 2
 fi
 
 moved=0 skipped=0
@@ -192,34 +190,45 @@ normalize_pod_base() {
   esac
 }
 
-rel_symlink() {
-  local link="$1" target="$2"
-  mkdir -p "$(dirname "${link}")"
-  local rel
-  rel="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[2], os.path.dirname(sys.argv[1])))' "${link}" "${target}")"
-  ln -sfn "${rel}" "${link}"
-}
-
-# place_artifact <src> <dst>: move src to dst (leaving a back-compat symlink), or
-# copy the content when src is already a migrated symlink (shared artifact).
-place_artifact() {
+# move_file <src> <dst>: move src to dst, materializing a pre-existing symlink
+# (from an older, symlink-based tool run) instead of moving the link itself.
+move_file() {
   local src="$1" dst="$2"
   mkdir -p "$(dirname "${dst}")"
   if [[ -L "${src}" ]]; then
     cp -L "${src}" "${dst}"
+    rm -f "${src}"
   else
     mv "${src}" "${dst}"
-    rel_symlink "${src}" "${dst}"
+  fi
+}
+
+# copy_artifact <src> <dst>: copy a pipeline/pod/auxiliary artifact into the job
+# folder. The legacy copy stays under pipelines/ until --cleanup, which keeps the
+# old scriptPath resolvable and lets several jobs share one source safely (each
+# job gets its own copy of the pristine source).
+copy_artifact() {
+  local src="$1" dst="$2"
+  if [[ "${src}" == "${dst}" ]]; then
+    return 0
+  fi
+  mkdir -p "$(dirname "${dst}")"
+  if [[ -L "${src}" ]]; then
+    cp -L "${src}" "${dst}"
+  else
+    cp "${src}" "${dst}"
   fi
 }
 
 # --- cleanup mode ---
 
 if [[ "${mode}" == "cleanup" ]]; then
-  if [[ ! -x "${checker}" && ! -f "${checker}" ]]; then
+  if [[ ! -f "${checker}" ]]; then
     echo "reference checker not found: ${checker}" >&2
     exit 2
   fi
+
+  # Gate 1: reference integrity must be clean.
   check_out="$(bash "${checker}" --root "${root}" --quiet 2>&1)" || {
     printf '%s\n' "${check_out}" >&2
     echo "REFUSING cleanup: Jenkins job references are not clean (see above)." >&2
@@ -229,12 +238,42 @@ if [[ "${mode}" == "cleanup" ]]; then
   if [[ "${orphans}" -gt 0 ]]; then
     log "Note: ${orphans} orphaned artifact(s) will be removed with the pipelines/ tree."
   fi
-  find "${legacy_jobs_dir}" -type l -delete
+
+  # Gate 2: pipeline syntax validation. Needs a Jenkins instance, so it runs only
+  # when JENKINS_URL is available.
+  if [[ -n "${JENKINS_URL:-}" && -f "${root}/.ci/verify-jenkins-pipelines.sh" ]]; then
+    log "Running pipeline syntax validation (.ci/verify-jenkins-pipelines.sh)..."
+    (cd "${root}" && bash .ci/verify-jenkins-pipelines.sh) || {
+      echo "REFUSING cleanup: pipeline syntax validation failed." >&2
+      exit 1
+    }
+  else
+    log "WARN: pipeline syntax validation skipped (set JENKINS_URL to enable); manual precondition."
+  fi
+
+  # Gate 3: pod manifest validation. Needs yq.
+  if command -v yq >/dev/null 2>&1 && [[ -f "${root}/.ci/verify-k8s-pod-yaml.sh" ]]; then
+    log "Running pod manifest validation (.ci/verify-k8s-pod-yaml.sh)..."
+    (cd "${root}" && sh .ci/verify-k8s-pod-yaml.sh) || {
+      echo "REFUSING cleanup: pod manifest validation failed." >&2
+      exit 1
+    }
+  else
+    log "WARN: pod manifest validation skipped (yq not found); manual precondition."
+  fi
+
+  # Gate 4: a staging replay of the migrated jobs must have succeeded. It cannot
+  # be automated from here.
+  log "WARN: staging replay is a manual precondition; confirm it passed before promoting."
+
   if [[ -d "${pipelines_dir}" ]]; then
     rm -rf "${pipelines_dir}"
   fi
   find "${legacy_jobs_dir}" -mindepth 1 -type d -empty -delete 2>/dev/null || true
-  log "Cleaned up: removed legacy pipelines/ tree and back-compat symlinks."
+  if [[ -d "${legacy_jobs_dir}" ]] && [[ -z "$(find "${legacy_jobs_dir}" -mindepth 1 -print -quit)" ]]; then
+    rmdir "${legacy_jobs_dir}" 2>/dev/null || true
+  fi
+  log "Cleaned up: removed the legacy pipelines/ tree and pruned the emptied jobs/ tree."
   exit 0
 fi
 
@@ -249,8 +288,17 @@ migrate_job() {
   job="${job%.groovy}"
   target_rel="jenkins/jobs/${dirrel}/${job}"
 
-  if [[ -n "${only}" && "${dirrel}/${job}" != "${only}"* ]]; then
-    return 0
+  if [[ -n "${only}" ]]; then
+    local only_norm="${only#/}"
+    only_norm="${only_norm%/}"
+    if [[ "${dirrel}/${job}" != "${only_norm}" ]]; then
+      return 0
+    fi
+  fi
+
+  # Non-standard paths are migrated but reported, so they can be reviewed.
+  if [[ "$(printf '%s' "${dirrel}" | awk -F/ '{print NF}')" -ne 3 ]]; then
+    log "WARN ${dirrel}/${job}: non-standard path (expected <org>/<repo>/<branch>)"
   fi
 
   pairs=()
@@ -281,8 +329,8 @@ migrate_job() {
     return 0
   fi
 
-  # Already migrated?
-  if [[ -e "${root}/${target_rel}/dsl.groovy" && -L "${dsl}" ]]; then
+  # Already migrated? (the legacy DSL is gone and the new job folder exists)
+  if [[ -e "${root}/${target_rel}/dsl.groovy" && ! -e "${dsl}" ]]; then
     log "UP-TO-DATE ${dirrel}/${job}"
     return 0
   fi
@@ -366,7 +414,7 @@ migrate_job() {
     log "  - ${m} -> jenkins/jobs/${m#pipelines/}"
   done
   if [[ -n "${nested_job_dir}" ]]; then
-    log "  - move auxiliary files from ${nested_job_dir}/ -> ${target_rel}/"
+    log "  - copy auxiliary files from ${nested_job_dir}/ -> ${target_rel}/"
   fi
 
   if [[ "${mode}" != "apply" ]]; then
@@ -375,10 +423,10 @@ migrate_job() {
   fi
 
   mkdir -p "${root}/${target_rel}"
-  mv "${dsl}" "${root}/${target_rel}/dsl.groovy"
-  place_artifact "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile"
+  move_file "${dsl}" "${root}/${target_rel}/dsl.groovy"
+  copy_artifact "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile"
   for ((i = 0; i < n; i++)); do
-    place_artifact "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}"
+    copy_artifact "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}"
   done
 
   local tmp base_f base_name
@@ -398,18 +446,18 @@ migrate_job() {
       [[ "${base_name}" == "$(basename "${sp_old}")" ]] && skip_aux=1
       [[ "${skip_aux}" -eq 1 ]] && continue
       [[ -e "${root}/${target_rel}/${base_name}" ]] && continue
-      place_artifact "${base_f}" "${root}/${target_rel}/${base_name}"
+      copy_artifact "${base_f}" "${root}/${target_rel}/${base_name}"
     done
   fi
 
-  # Mirror-move shared referenced files (e.g. a common/ helper script).
+  # Mirror shared referenced files (e.g. a common/ helper script) into the new
+  # layout; the legacy copy is retired with the pipelines/ tree at cleanup.
   local aux aux_new
   for aux in "${aux_refs[@]+"${aux_refs[@]}"}"; do
     aux_new="jenkins/jobs/${aux#pipelines/}"
     if [[ -e "${root}/${aux}" && ! -e "${root}/${aux_new}" ]]; then
       mkdir -p "$(dirname "${root}/${aux_new}")"
-      mv "${root}/${aux}" "${root}/${aux_new}"
-      rel_symlink "${root}/${aux}" "${root}/${aux_new}"
+      cp "${root}/${aux}" "${root}/${aux_new}"
     fi
   done
 
@@ -427,10 +475,14 @@ migrate_job() {
     done
   fi
   tmp="$(mktemp)"
-  sed -E "${sed_args[@]+"${sed_args[@]}"}" "${root}/${target_rel}/Jenkinsfile" | sed 's#pipelines/#jenkins/jobs/#g' >"${tmp}"
+  if [[ "${#sed_args[@]}" -gt 0 ]]; then
+    sed -E "${sed_args[@]}" "${root}/${target_rel}/Jenkinsfile" | sed 's#pipelines/#jenkins/jobs/#g' >"${tmp}"
+  else
+    # No pod constants to rewrite. Passing an empty "${sed_args[@]}" would make
+    # sed treat the Jenkinsfile path as its script and fail.
+    sed 's#pipelines/#jenkins/jobs/#g' "${root}/${target_rel}/Jenkinsfile" >"${tmp}"
+  fi
   mv "${tmp}" "${root}/${target_rel}/Jenkinsfile"
-
-  rel_symlink "${legacy_jobs_dir}/${dirrel}/${job}.groovy" "${root}/${target_rel}/dsl.groovy"
 
   moved=$((moved + 1))
   return 0
@@ -456,11 +508,23 @@ while IFS= read -r folder_file; do
   fi
   log "${mode_upper} folder: ${rel} -> jenkins/jobs/${rel}"
   if [[ "${mode}" == "apply" ]]; then
-    mkdir -p "$(dirname "${target}")"
-    mv "${folder_file}" "${target}"
-    rel_symlink "${folder_file}" "${target}"
+    move_file "${folder_file}" "${target}"
   fi
 done < <(find "${legacy_jobs_dir}" \( -type f -o -type l \) -name 'aa_folder.groovy' | LC_ALL=C sort)
+
+# OWNERS files follow the jobs they describe.
+while IFS= read -r owners_file; do
+  [[ -n "${owners_file}" ]] || continue
+  rel="${owners_file#"${legacy_jobs_dir}/"}"
+  target="${new_jobs_dir}/${rel}"
+  if [[ -e "${target}" ]]; then
+    continue
+  fi
+  log "${mode_upper} owners: ${rel} -> jenkins/jobs/${rel}"
+  if [[ "${mode}" == "apply" ]]; then
+    move_file "${owners_file}" "${target}"
+  fi
+done < <(find "${legacy_jobs_dir}" -type f -name 'OWNERS' | LC_ALL=C sort)
 
 if [[ "${mode}" == "apply" ]]; then
   log "Migration applied: ${moved} job(s) migrated, ${skipped} skipped."

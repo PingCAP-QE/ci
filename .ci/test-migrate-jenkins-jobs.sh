@@ -30,16 +30,19 @@ assert_file() {
   if [[ -f "$1" ]]; then ok "file exists: ${1#"${TMP_ROOT}"/}"; else bad "file missing: $1"; fi
 }
 
-assert_symlink() {
-  if [[ -L "$1" && -e "$1" ]]; then ok "symlink resolves: ${1#"${TMP_ROOT}"/}"; else bad "symlink missing/dangling: $1"; fi
-}
-
 assert_absent() {
   if [[ ! -e "$1" ]]; then ok "absent: ${1#"${TMP_ROOT}"/}"; else bad "should be absent: $1"; fi
 }
 
 assert_contains() {
   if grep -qF "$2" "$1"; then ok "contains '${2}' in ${1#"${TMP_ROOT}"/}"; else bad "missing '${2}' in $1"; fi
+}
+
+# The migration must not leave any back-compat symlink behind.
+assert_no_symlinks() {
+  local found
+  found="$(find "$1" -type l -print -quit)"
+  if [[ -z "${found}" ]]; then ok "no symlinks under ${1#"${TMP_ROOT}"/}"; else bad "unexpected symlink: ${found}"; fi
 }
 
 TMP_ROOT=""
@@ -55,7 +58,7 @@ if grep -qF "jenkins/jobs/acme/widget/latest/build/Jenkinsfile" <<<"${DRY_OUT}";
 else
   bad "dry-run did not plan the Jenkinsfile move"
 fi
-if [[ ! -e "${TMP_ROOT}/jenkins/jobs" && ! -L "${TMP_ROOT}/jobs/acme/widget/latest/build.groovy" ]]; then
+if [[ ! -e "${TMP_ROOT}/jenkins/jobs" && -f "${TMP_ROOT}/jobs/acme/widget/latest/build.groovy" ]]; then
   ok "dry-run changed nothing"
 else
   bad "dry-run modified the tree"
@@ -84,11 +87,32 @@ assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/pod.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/single/pod.yaml"
 assert_absent "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/single/pod-custom.yaml"
 
-assert_symlink "${TMP_ROOT}/jobs/acme/widget/latest/build.groovy"
-assert_symlink "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
-assert_symlink "${TMP_ROOT}/pipelines/acme/widget/latest/pod-build.yaml"
-assert_symlink "${TMP_ROOT}/pipelines/acme/widget/latest/multi/pipeline.groovy"
-assert_symlink "${TMP_ROOT}/pipelines/acme/widget/latest/multi/pod-build.yaml"
+# A job without a pod template must migrate too (regression guard: an empty
+# pod-constant set used to abort the run and leave a half-migrated job).
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/nopod/dsl.groovy"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/nopod/Jenkinsfile"
+assert_absent "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/nopod/pod.yaml"
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/nopod/Jenkinsfile" 'pipeline { agent { kubernetes {} } }'
+
+# The legacy jobs/ tree is emptied by the migration (the DSL is moved) and no
+# back-compat symlinks are created.
+assert_absent "${TMP_ROOT}/jobs/acme/widget/latest/build.groovy"
+assert_absent "${TMP_ROOT}/jobs/acme/widget/latest/nopod.groovy"
+assert_no_symlinks "${TMP_ROOT}"
+
+# The legacy pipelines/ tree is left in place until --cleanup, so the previous
+# scriptPath values keep resolving.
+assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
+assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/pod-build.yaml"
+assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/multi/pipeline.groovy"
+assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/nopod.groovy"
+
+# A pipeline shared by two jobs must be copied for each of them, with each copy
+# pointing at its own pod.
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_a/pod.yaml"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/pod.yaml"
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_a/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/shared_a/pod.yaml'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/shared_b/pod.yaml'
 
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'scriptPath("jenkins/jobs/acme/widget/latest/build/Jenkinsfile")'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/build/pod.yaml'
@@ -105,11 +129,12 @@ else
 fi
 
 SECOND_OUT="$(bash "${TOOL}" --root "${TMP_ROOT}" --apply)"
-if grep -q "UP-TO-DATE" <<<"${SECOND_OUT}"; then
-  ok "re-running --apply is idempotent"
+if grep -qF "0 job(s) migrated" <<<"${SECOND_OUT}"; then
+  ok "re-running --apply is a no-op"
 else
-  bad "re-running --apply was not recognised as up-to-date"
+  bad "re-running --apply migrated jobs again"
 fi
+assert_no_symlinks "${TMP_ROOT}"
 
 # --- cleanup guard + success ---
 TMP_ROOT="$(mktemp -d)"
@@ -140,9 +165,10 @@ else
   bad "cleanup failed on a clean tree"
 fi
 
-assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
 if [[ ! -d "${TMP_ROOT}/pipelines" ]]; then ok "pipelines/ tree removed"; else bad "pipelines/ tree still exists"; fi
+if [[ ! -d "${TMP_ROOT}/jobs" ]]; then ok "jobs/ tree pruned"; else bad "jobs/ tree still exists"; fi
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile"
+assert_no_symlinks "${TMP_ROOT}"
 
 if [[ "${failures}" -ne 0 ]]; then
   echo "${failures}/${checks} migration test check(s) failed." >&2
