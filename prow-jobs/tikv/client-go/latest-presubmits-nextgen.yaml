@@ -165,7 +165,7 @@ presubmits:
     - name: pull-integration-test-release-nextgen
       agent: kubernetes
       branches:
-        - ^release-nextgen-202603$
+        - ^release-nextgen-202609$
       decorate: true
       skip_if_only_changed: *skip_if_only_changed
       optional: true
@@ -177,7 +177,7 @@ presubmits:
         initContainers:
           - *sidecar-minio
           - <<: [*sidecar-pd]
-            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:release-nextgen-202603
+            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:release-nextgen-202609
           - <<: [*sidecar-tikv]
-            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:release-nextgen-202603
+            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:release-nextgen-202609
         containers: *containers
