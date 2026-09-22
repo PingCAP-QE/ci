@@ -298,6 +298,17 @@ migrate_job() {
     fi
   fi
 
+  # Already migrated? Never overwrite an existing job folder; a legacy path that
+  # is a leftover symlink is reported as up to date rather than re-processed.
+  if [[ -e "${root}/${target_rel}/dsl.groovy" ]]; then
+    if [[ ! -e "${dsl}" || -L "${dsl}" ]]; then
+      log "UP-TO-DATE ${dirrel}/${job}"
+    else
+      log "WARN ${dirrel}/${job}: already migrated but the legacy DSL still exists"
+    fi
+    return 0
+  fi
+
   # Non-standard paths are migrated but reported, so they can be reviewed.
   if [[ "$(printf '%s' "${dirrel}" | awk -F/ '{print NF}')" -ne 3 ]]; then
     log "WARN ${dirrel}/${job}: non-standard path (expected <org>/<repo>/<branch>)"
@@ -330,13 +341,6 @@ migrate_job() {
     skipped=$((skipped + 1))
     return 0
   fi
-
-  # Already migrated? (the legacy DSL is gone and the new job folder exists)
-  if [[ -e "${root}/${target_rel}/dsl.groovy" && ! -e "${dsl}" ]]; then
-    log "UP-TO-DATE ${dirrel}/${job}"
-    return 0
-  fi
-
 
   # Collect pod references.
   local pod_vars=() pod_olds=() pod_news=() pod_exprs=()
