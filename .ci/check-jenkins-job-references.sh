@@ -285,7 +285,9 @@ if [[ -d "${root}/jenkins/jobs" && -d "${root}/jobs" ]]; then
   find "${root}/jenkins/jobs" -type f -name 'dsl.groovy' | LC_ALL=C sort | while IFS= read -r f; do
     printf '%s\n' "$(dirname "${f#"${root}/jenkins/jobs/"}")"
   done >"${new_ids}"
-  find "${root}/jobs" \( -type f -o -type l \) -name '*.groovy' ! -name 'aa_folder.groovy' | LC_ALL=C sort | while IFS= read -r f; do
+  # Only regular files count as a second definition: a back-compat symlink left
+  # behind by an earlier migration is not a duplicate.
+  find "${root}/jobs" -type f -name '*.groovy' ! -name 'aa_folder.groovy' | LC_ALL=C sort | while IFS= read -r f; do
     rel="${f#"${root}/jobs/"}"
     printf '%s/%s\n' "$(dirname "${rel}")" "$(basename "${rel}" .groovy)"
   done >"${old_ids}"
