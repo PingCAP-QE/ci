@@ -150,38 +150,52 @@ components, which is what those variables evaluate to for the owning job.
 1. **Dry-run (default):** classify every DSL/pipeline/pod, print planned
    moves/renames and every reference rewrite, and list unrecognized files. No
    filesystem changes.
-2. **Apply:** create job folders, move/rename files, rewrite references, and
-   create back-compat symlinks. Idempotent; re-running is a no-op.
+2. **Apply:** create job folders, move each job DSL into its folder, copy the
+   referenced pipeline and pod templates next to it, and rewrite references. No
+   back-compat symlinks are created. Idempotent; re-running is a no-op.
 3. **Verify:** run the reference-integrity checker, pipeline syntax validation,
-   pod-manifest validation, and a staging replay on the pilot slice.
-4. **Cleanup (`--cleanup`):** remove the retired `pipelines/` tree, the now-empty
-   legacy `jobs/` tree, and the back-compat symlinks only after the checker is
-   clean and the pilot replay passed.
+   pod-manifest validation, and a staging replay on the migrated slice.
+4. **Cleanup (`--cleanup`):** remove the retired `pipelines/` tree and prune the
+   now-empty legacy `jobs/` tree, only after the checker is clean and the replay
+   passed.
 
-### 7.1 Back-compat symlinks
+### 7.1 No back-compat symlinks; dual-tree discovery
 
-During the transition, old paths must still resolve for the external seed job
-(which scans `jobs/**`) and for Jenkins builds that reference the previous
-`scriptPath` until the next job re-index:
+An earlier revision kept back-compat symlinks at the legacy paths. That was
+dropped for two reasons:
 
-- `jobs/<...>/<job>.groovy` -> `jenkins/jobs/<...>/<job>/dsl.groovy`, so the seed
-  job keeps discovering the DSL unchanged.
-- `pipelines/<...>/<job>.groovy` -> `jenkins/jobs/<...>/<job>/Jenkinsfile`.
-- `pipelines/<...>/pod-<job>.yaml` -> `jenkins/jobs/<...>/<job>/pod.yaml`.
+- The Jenkins seed job runs with `removedJobAction('DELETE')`, so any job the
+  seed fails to discover is **deleted**. A symlink-based back-compat layer turns
+  a single missing symlink into a deleted Jenkins job — too sharp an edge for a
+  bulk migration.
+- Symlink behavior differs across tools (git checkout, glob, Jenkins Job DSL
+  target resolution) and is hard to validate exhaustively.
 
-Relative symlinks are used; the exact depth is computed by the tool.
-Directory-form entries (`pipelines/<...>/<job>/pipeline.groovy`) are replaced by
-a symlinked directory or individual file symlinks, decided by the tool. Symlinks
-are retained for one release and removed by `--cleanup`.
+Instead, discovery is made layout-independent:
+
+- The seed job scans **both** trees:
+  `targets('jobs/**/*.groovy\njenkins/jobs/**/*.groovy')`, configured in
+  `PingCAP-QE/ee-ops` (JCasC). A partially migrated repository is therefore
+  always fully discovered, and the legacy pattern degrades to a no-op once the
+  migration finishes.
+- The migration **moves** the job DSL (so a job is never defined twice) and
+  **copies** the pipeline and pod templates into the job folder. The legacy
+  `pipelines/` copies stay in place until `--cleanup`, which keeps the previous
+  `scriptPath` values resolvable for builds that start before the seed
+  re-indexes — the same protection the symlinks provided, without symlinks.
+- The checker fails when a job is defined in both trees, so the two layouts can
+  never both own a job.
 
 ### 7.2 Cleanup gate
 
-`--cleanup` refuses to run unless **all** of the following hold:
+`--cleanup` refuses to run unless the following hold:
 
-1. `.ci/check-jenkins-job-references.sh` exits 0.
-2. `.ci/verify-jenkins-pipelines.sh` passes on the new layout.
-3. `.ci/verify-k8s-pod-yaml.sh` passes on the new layout.
-4. A staging replay of the pilot slice succeeded and is recorded.
+1. `.ci/check-jenkins-job-references.sh` exits 0 (always enforced).
+2. `.ci/verify-jenkins-pipelines.sh` passes on the new layout (enforced when
+   `JENKINS_URL` is set; otherwise reported as a manual precondition).
+3. `.ci/verify-k8s-pod-yaml.sh` passes on the new layout (enforced when `yq` is
+   available; otherwise reported as a manual precondition).
+4. A staging replay of the migrated jobs succeeded and is recorded (manual).
 
 ## 8. Tooling
 
@@ -193,19 +207,25 @@ are retained for one release and removed by `--cleanup`.
 - Fails non-zero with actionable output when a target is missing.
 - Flags orphaned artifacts (a pipeline/pod with no referencing job) as warnings,
   with a `--strict` mode that turns them into failures for CI.
+- Fails when a job folder is incomplete (`dsl.groovy` without `Jenkinsfile`).
+- Fails when the same job is defined in both layouts (`jobs/` and
+  `jenkins/jobs/`), which is what the dual-tree seed discovery relies on.
 - Ships with a fixture-based test: `.ci/test-check-jenkins-job-references.sh`
   covering valid refs, dangling `scriptPath`, dangling pod ref, orphaned
-  artifact, and a job without a pod template.
+  artifact, a job without a pod template, a job defined in both layouts, and a
+  job folder without a `Jenkinsfile`.
 
 ### 8.2 Migration tool: `scripts/migrate-jenkins-jobs.sh`
 
 - `--dry-run` (default) / `--apply` / `--cleanup`.
-- Per job: create folder, move/rename artifacts, rewrite references, create
-  symlinks, emit a summary.
-- Idempotent and re-run safe.
+- Per job: create the job folder, move the DSL to `dsl.groovy`, copy the pipeline
+  to `Jenkinsfile` and the pod templates next to it, rewrite `scriptPath` and the
+  pod constants, and emit a summary. No symlinks.
+- Idempotent and re-run safe: the legacy DSL is moved away, so a second `--apply`
+  finds nothing to migrate.
 - Ships with a sandbox fixture repo under `tests/fixtures/` and a test that
-  asserts planned moves/renames, reference rewrites, symlink creation,
-  idempotency, and cleanup guarding.
+  asserts planned moves/renames, reference rewrites, absence of symlinks, the
+  no-pod job case, shared-pipeline copies, idempotency, and cleanup guarding.
 
 ### 8.3 Verification script update: `.ci/verify-jenkins-pipelines.sh`
 
@@ -219,29 +239,30 @@ from `find pipelines -type f -name '*.yaml'` to
 
 `.ci/replay-jenkins-build.sh`, `.ci/verify-jenkins-credential-policy.sh` and its
 test, the `.agents` replay skill, and `.github/renovate.json` all encode
-`pipelines/*` path assumptions and must be repointed in the same change as the
-pilot migration. The external seed job and the `staging/` mirror convention must
-also be updated in lockstep; they live outside this repository.
+`pipelines/*` path assumptions. They are repointed in the hardening change that
+lands before the migration batches, together with the Prow presubmit
+`run_if_changed` filters and the seed postsubmit trigger. The external seed job
+(`PingCAP-QE/ee-ops`) is updated in lockstep; it lives outside this repository.
 
 ## 9. Risks
 
 | Risk | Mitigation |
 |---|---|
-| Stale `scriptPath` while Jenkins re-indexes | Back-compat symlinks retained for one release. |
-| Merge conflicts with in-flight PRs touching moved files | This track keeps to design + tooling; migration runs incrementally later. |
-| Symlink handling differences across tooling | Validate by staging replay before cleanup. |
+| Seed job misses a migrated job and deletes it (`removedJobAction('DELETE')`) | Seed scans both `jobs/**` and `jenkins/jobs/**`, so discovery is independent of migration progress. |
+| Stale `scriptPath` before the seed re-indexes | The legacy `pipelines/` tree is kept (copies, not moves) until `--cleanup`, so old paths keep resolving. |
+| A job defined in both layouts generates two different configs | The migration moves the DSL, and the checker fails on a job defined in both trees. |
+| Merge conflicts with in-flight PRs touching moved files | Migration runs in small per-repo batches. |
 | Multi-pod jobs mis-mapped to a single `pod.yaml` | Explicit `pod-<purpose>.yaml` rule + checker fails on duplicate/missing targets. |
 | Pre-existing dangling references confuse the checker | Baseline is recorded; the checker distinguishes pre-existing from introduced orphans and never auto-deletes. |
-| External seed job / `staging/` still expects `jobs/` | Old `jobs/**` and `pipelines/**` paths kept resolvable via symlinks; seed/staging config updated in lockstep before `--cleanup`. |
 | Jenkins controller library config if `libraries/` moved | Out of scope: `libraries/` stays at the repository root. |
 
 ## 10. Rollback
 
 1. Do not run `--cleanup` until verification passes; before cleanup, `git`
-   history is the primary rollback (all moves are renames).
+   history is the primary rollback (the DSL move and artifact copies are plain
+   file changes).
 2. Revert the migration commit(s) and the reference rewrites together.
-3. Remove any back-compat symlinks created by the tool (`git clean -n` first).
-4. Re-run `.ci/check-jenkins-job-references.sh` to confirm the revert restored a
+3. Re-run `.ci/check-jenkins-job-references.sh` to confirm the revert restored a
    consistent state.
 
 ## 11. Proposed convention updates (draft, content only)
@@ -264,12 +285,15 @@ rule, and that all `scriptPath` / pod references are repo-root-relative.
 
 ## 12. Rollout plan
 
-1. This track: design doc + checker + migration tool + verification repoint +
-   docs (no mass migration).
-2. Pilot: migrate one bounded slice (e.g. `tikv/pd/latest` integration jobs) to
-   `jenkins/jobs/`, run checker + syntax validation + staging replay.
-3. Full migration (follow-up track): `--dry-run` -> review -> `--apply` ->
-   verify -> `--cleanup`, in reviewable batches.
-4. External coordination: update the seed job and `staging/` path convention
-   before `--cleanup`; consider a follow-up track to move `libraries/` under
-   `jenkins/`.
+1. Hardening (this change): migration tool + checker + no-symlink redesign,
+   consumer repointing (replay, credential policy, renovate, `.agents` skill),
+   Prow `run_if_changed` filters and the seed postsubmit trigger, design doc.
+2. Seed: `PingCAP-QE/ee-ops` scans both trees (JCasC `targets`). Must be deployed
+   before the legacy `jobs/` tree is retired.
+3. Migration batches (this track's stacked PRs, rebased on the hardening change):
+   `--apply` one `<org>/<repo>` slice at a time, checking the seed output after
+   each merge.
+4. Cleanup (`--cleanup`): after every job is migrated, the checker is clean, the
+   syntax/pod validation and a staging replay have passed.
+5. Follow-ups: move `libraries/` under `jenkins/`; retire the now-unused legacy
+   `jobs/**` pattern from the seed `targets`.
