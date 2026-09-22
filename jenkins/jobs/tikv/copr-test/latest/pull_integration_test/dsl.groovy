@@ -19,7 +19,7 @@ pipelineJob("${folder}/${jobName}") {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/${folder}/latest/${jobName}.groovy")
+            scriptPath("jenkins/jobs/tikv/copr-test/latest/pull_integration_test/Jenkinsfile")
             scm {
                 git{
                     remote {
