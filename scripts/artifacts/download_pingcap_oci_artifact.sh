@@ -54,6 +54,29 @@ function compute_oci_arch_suffix() {
     esac
 }
 
+# Print the artifact config (its annotations/metadata) for debugging.
+#
+# OCI 1.1 allows the config descriptor to embed its content in the `data` field.
+# Third-party artifacts use the `application/vnd.oci.empty.v1+json` config,
+# which carries `data: "e30="` (the base64 of `{}`). Prefer the embedded content
+# when present: some registries (e.g. the zot mirror) cannot serve that blob and
+# fetching it fails, even though the manifest itself is intact.
+function fetch_artifact_config() {
+    local oci_url="$1"
+    local manifest
+    manifest="$(oras manifest fetch "${oci_url}")" || return 1
+
+    local config_data
+    config_data="$(printf '%s' "${manifest}" | yq -r '.config.data // ""')"
+    if [[ -n "${config_data}" && "${config_data}" != "null" ]]; then
+        printf '%s' "${manifest}" | yq -r '.config.data | @base64d'
+        echo
+        return 0
+    fi
+
+    oras manifest fetch-config "${oci_url}"
+}
+
 function download() {
     local url=$1
     local to_match_file=$2
@@ -64,7 +87,7 @@ function download() {
     fi
     echo "🚀 Downloading file with name matched regex: '${to_match_file}' from ${url}"
     echo "📦 == artifact information ======="
-    oras manifest fetch-config "$url"
+    fetch_artifact_config "$url" || echo "⚠️ failed to fetch artifact config (ignored)"
     echo "================================🔚"
     local tarball_file
     if ! tarball_file="$(fetch_file_from_oci_artifact "${url}" "${to_match_file}")"; then
