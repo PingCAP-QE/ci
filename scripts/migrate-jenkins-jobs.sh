@@ -38,7 +38,7 @@ Usage: scripts/migrate-jenkins-jobs.sh [options]
 
 Options:
   --root DIR   Repository root to migrate (default: current directory).
-  --only PATH  Only migrate the job at <org>/<repo>/<branch>/<job>.
+  --only PATH  Only migrate jobs under <org>/<repo>[/<branch>[/<job>]].
   --dry-run    Print the plan only (default).
   --apply      Perform the migration (no back-compat symlinks are created).
   --cleanup    Remove the legacy pipelines/ tree and prune the emptied jobs/
@@ -291,7 +291,9 @@ migrate_job() {
   if [[ -n "${only}" ]]; then
     local only_norm="${only#/}"
     only_norm="${only_norm%/}"
-    if [[ "${dirrel}/${job}" != "${only_norm}" ]]; then
+    local job_id="${dirrel}/${job}"
+    # Exact job path, or a path-boundary prefix such as <org>/<repo>.
+    if [[ "${job_id}" != "${only_norm}" && "${job_id}" != "${only_norm}"/* ]]; then
       return 0
     fi
   fi
@@ -499,8 +501,12 @@ while IFS= read -r folder_file; do
   rel="${folder_file#"${legacy_jobs_dir}/"}"
   target="${new_jobs_dir}/${rel}"
   folder_dir="$(dirname "${rel}")"
-  if [[ -n "${only}" && "${folder_dir}" != "${only}"* && "${only}" != "${folder_dir}"* ]]; then
-    continue
+  if [[ -n "${only}" ]]; then
+    only_prefix="${only#/}"
+    only_prefix="${only_prefix%/}"
+    if [[ "${folder_dir}" != "${only_prefix}" && "${folder_dir}" != "${only_prefix}"/* ]]; then
+      continue
+    fi
   fi
   if [[ -e "${target}" && -L "${folder_file}" ]]; then
     log "UP-TO-DATE folder: ${rel}"
