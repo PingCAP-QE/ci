@@ -527,6 +527,14 @@ while IFS= read -r owners_file; do
   [[ -n "${owners_file}" ]] || continue
   rel="${owners_file#"${legacy_jobs_dir}/"}"
   target="${new_jobs_dir}/${rel}"
+  owners_dir="$(dirname "${rel}")"
+  if [[ -n "${only}" ]]; then
+    only_prefix="${only#/}"
+    only_prefix="${only_prefix%/}"
+    if [[ "${owners_dir}" != "${only_prefix}" && "${owners_dir}" != "${only_prefix}"/* ]]; then
+      continue
+    fi
+  fi
   if [[ -e "${target}" ]]; then
     continue
   fi
