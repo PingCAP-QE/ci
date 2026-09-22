@@ -57,7 +57,7 @@ presubmits:
       optional: true
       trigger: "(?m)^/test (?:.*? )?pull-replay-jenkins-pipelines(?: .*?)?$"
       rerun_command: "/test pull-replay-jenkins-pipelines"
-      run_if_changed: "^pipelines/.*\\.groovy$"
+      run_if_changed: "^(pipelines/.*\\.groovy|jenkins/jobs/.*/Jenkinsfile)$"
       branches:
         - ^main$
       spec:
@@ -167,7 +167,7 @@ presubmits:
     - name: pull-verify-secret-scan
       labels: *labels
       decorate: true
-      run_if_changed: "^(pipelines|jobs|libraries|prow-jobs)/.*\\.(groovy|yaml|yml)$|^\\.ci/(verify-secret-scan|verify-jenkins-credential-policy|security-policy-allowlist)\\.(sh|txt)$"
+      run_if_changed: "^(pipelines|jobs|jenkins|libraries|prow-jobs)/.*\\.(groovy|yaml|yml)$|^\\.ci/(verify-secret-scan|verify-jenkins-credential-policy|security-policy-allowlist)\\.(sh|txt)$"
       max_concurrency: 1
       timeout: 15m
       branches:
@@ -300,7 +300,7 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: pipelines/.*\.groovy
+      run_if_changed: (pipelines/.*\.groovy|jenkins/jobs/.*/Jenkinsfile)
       branches:
         - main
       spec:
@@ -323,7 +323,7 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^pipelines/.*\\.(yaml|yml)$"
+      run_if_changed: "^(pipelines/.*\\.(yaml|yml)|jenkins/jobs/.*/pod.*\\.ya?ml)$"
       branches:
         - ^main$
       spec:

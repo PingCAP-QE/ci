@@ -11,6 +11,7 @@ Replay Jenkins pipeline scripts from historical builds.
 
 Single script replay:
   .ci/replay-jenkins-build.sh --script-file pipelines/.../job.groovy --build-url https://jenkins/job/.../1234 --wait
+  .ci/replay-jenkins-build.sh --script-file jenkins/jobs/.../job/Jenkinsfile --build-url https://jenkins/job/.../1234 --wait
 
 Auto replay all changed pipeline Groovy files in current PR/worktree:
   .ci/replay-jenkins-build.sh --auto-changed --base-sha <base_sha> --head-sha <head_sha> --wait
@@ -20,7 +21,8 @@ Options:
   --build-url <url>        Historical build URL used as replay source.
   --job-url <url>          Jenkins job URL. Used with --selector to choose historical build.
   --selector <name>        Build selector under job URL. Default: lastSuccessfulBuild.
-  --auto-changed           Replay all changed pipelines/*.groovy from git diff.
+  --auto-changed           Replay all changed pipeline scripts (pipelines/*.groovy
+                           and jenkins/jobs/**/Jenkinsfile) from git diff.
   --base-sha <sha>         Base SHA for --auto-changed.
   --head-sha <sha>         Head SHA for --auto-changed.
   --jenkins-url <url>      Jenkins root URL. Default: $JENKINS_URL or https://prow.tidb.net/jenkins.
@@ -75,36 +77,54 @@ script_to_job_path() {
     local script_file="$1"
     local rel="${script_file#./}"
 
-    [[ "$rel" == pipelines/* ]] || fatal "script path must be under pipelines/: ${script_file}"
-    rel="${rel#pipelines/}"
-
+    local org="" repo="" branch="" job="" last="" n=0
     local IFS='/'
-    # shellcheck disable=SC2206
-    local parts=(${rel})
-    local n="${#parts[@]}"
+    local parts=()
 
-    (( n >= 3 )) || fatal "unexpected pipeline path: ${script_file}"
-
-    local org="${parts[0]}"
-    local repo="${parts[1]}"
-    local last="${parts[n-1]}"
-    local branch=""
-    local job=""
-
-    if [[ "$last" == "pipeline.groovy" ]]; then
-        (( n >= 4 )) || fatal "unexpected pipeline path: ${script_file}"
-        job="${parts[n-2]}"
-        if (( n >= 5 )); then
+    case "$rel" in
+        pipelines/*)
+            # pipelines/<org>/<repo>/<branch>/<job>.groovy
+            # pipelines/<org>/<repo>/<branch>/<job>/pipeline.groovy
+            rel="${rel#pipelines/}"
+            # shellcheck disable=SC2206
+            parts=(${rel})
+            n="${#parts[@]}"
+            (( n >= 3 )) || fatal "unexpected pipeline path: ${script_file}"
+            org="${parts[0]}"
+            repo="${parts[1]}"
+            last="${parts[n-1]}"
+            if [[ "$last" == "pipeline.groovy" ]]; then
+                (( n >= 4 )) || fatal "unexpected pipeline path: ${script_file}"
+                job="${parts[n-2]}"
+                if (( n >= 5 )); then
+                    branch="${parts[2]}"
+                fi
+            elif [[ "$last" == *.groovy ]]; then
+                job="${last%.groovy}"
+                if (( n >= 4 )); then
+                    branch="${parts[2]}"
+                fi
+            else
+                fatal "unsupported pipeline file: ${script_file}"
+            fi
+            ;;
+        jenkins/jobs/*)
+            # jenkins/jobs/<org>/<repo>/<branch>/<job>/Jenkinsfile
+            rel="${rel#jenkins/jobs/}"
+            # shellcheck disable=SC2206
+            parts=(${rel})
+            n="${#parts[@]}"
+            (( n >= 5 )) || fatal "unexpected job path: ${script_file}"
+            [[ "${parts[n-1]}" == "Jenkinsfile" ]] || fatal "unexpected job file: ${script_file}"
+            org="${parts[0]}"
+            repo="${parts[1]}"
             branch="${parts[2]}"
-        fi
-    elif [[ "$last" == *.groovy ]]; then
-        job="${last%.groovy}"
-        if (( n >= 4 )); then
-            branch="${parts[2]}"
-        fi
-    else
-        fatal "unsupported pipeline file: ${script_file}"
-    fi
+            job="${parts[n-2]}"
+            ;;
+        *)
+            fatal "script path must be under pipelines/ or jenkins/jobs/: ${script_file}"
+            ;;
+    esac
 
     local job_path="job/${org}/job/${repo}"
     if [[ -n "$branch" && "$branch" != "latest" ]]; then
@@ -125,6 +145,15 @@ resolve_pod_template_file() {
     if [[ "$base" == "pipeline.groovy" ]]; then
         printf '%s/pod.yaml' "$dir"
         return 0
+    fi
+
+    if [[ "$base" == "Jenkinsfile" ]]; then
+        # New layout: the pod template lives in the same job folder.
+        if [[ -f "${dir}/pod.yaml" ]]; then
+            printf '%s/pod.yaml' "$dir"
+            return 0
+        fi
+        return 1
     fi
 
     local name="${base%.groovy}"
@@ -159,7 +188,7 @@ build_inline_script_with_pod_yaml() {
         if [[ "$decl_line" =~ $decl_re ]]; then
             var="${BASH_REMATCH[2]}"
             path="${BASH_REMATCH[3]}"
-            if [[ "$path" == pipelines/* && -f "$path" ]]; then
+            if [[ "$path" == pipelines/* || "$path" == jenkins/jobs/* ]] && [[ -f "$path" ]]; then
                 pod_vars+=("$var")
                 pod_b64s+=("$(base64 < "$path" | tr -d '\n')")
             fi
@@ -330,7 +359,7 @@ discover_changed_scripts() {
     log "collect changed pipeline files from ${base_sha}..${head_sha}"
     # Auto replay should only include scripts that still exist in the checkout.
     # Exclude deleted paths to avoid failing on intentional pipeline removals.
-    git diff --name-only --diff-filter=ACMRTUXB "$base_sha" "$head_sha" | rg '^pipelines/.*\.groovy$' || true
+    git diff --name-only --diff-filter=ACMRTUXB "$base_sha" "$head_sha" | rg '^(pipelines/.*\.groovy|jenkins/jobs/.*/Jenkinsfile)$' || true
 }
 
 setup_auth_and_crumb() {
@@ -906,7 +935,7 @@ run_main_flow() {
         done < <(discover_changed_scripts "$BASE_SHA" "$HEAD_SHA")
 
         if (( ${#changed_scripts[@]} == 0 )); then
-            log "no changed pipelines/*.groovy detected; nothing to replay"
+            log "no changed pipeline scripts detected; nothing to replay"
             print_summary
             return 0
         fi

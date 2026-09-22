@@ -15,7 +15,7 @@ while IFS= read -r line; do
   [[ -n "$line" ]] && changed_files+=("$line")
 done < <(
   git diff --name-only "${BASE_SHA}..${HEAD_SHA}" -- \
-    'pipelines/**' 'jobs/**' 'libraries/**' 'prow-jobs/**' \
+    'pipelines/**' 'jobs/**' 'jenkins/**' 'libraries/**' 'prow-jobs/**' \
     | rg -N '\.(groovy|ya?ml)$' || true
 )
 

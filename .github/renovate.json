@@ -27,11 +27,11 @@
   ],
   "customManagers": [
     {
-      "description": "Update container images referenced in pipelines/ and prow-jobs/ YAML files",
+      "description": "Update container images referenced in pipelines/, jenkins/jobs/ and prow-jobs/ YAML files",
       "customType": "regex",
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker",
-      "managerFilePatterns": ["/(^|/)(jobs/pipelines|prow-jobs)/.+\\.ya?ml$/"],
+      "managerFilePatterns": ["/(^|/)(jobs/pipelines|jenkins/jobs|prow-jobs)/.+\\.ya?ml$/"],
       "matchStrings": [
         "(?m)^\\s*image:\\s*(?:&[A-Za-z0-9_-]+\\s+)?[\"']?(?<depName>[^\"'\\s@:]+(?::\\d+)?(?:/[^\"'\\s@:]+)*):(?<currentValue>[^\"'\\s]+)[\"']?(?:\\s+#.*)?$"
       ]
