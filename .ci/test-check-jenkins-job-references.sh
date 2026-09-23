@@ -131,6 +131,22 @@ EOF
     legacy_layout)
       make_legacy_job "${root}" acme widget latest build
       ;;
+    duplicate_job)
+      make_new_job "${root}" acme widget latest build yes
+      make_legacy_job "${root}" acme widget latest build
+      ;;
+    legacy_symlink)
+      # A back-compat symlink from an earlier migration is not a second
+      # definition and must not be reported as a duplicate.
+      make_new_job "${root}" acme widget latest build yes
+      mkdir -p "${root}/jobs/acme/widget/latest"
+      ln -s "${root}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" \
+        "${root}/jobs/acme/widget/latest/build.groovy"
+      ;;
+    missing_jenkinsfile)
+      make_new_job "${root}" acme widget latest build yes
+      rm "${root}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile"
+      ;;
     *)
       echo "unknown case: ${name}" >&2
       exit 1
@@ -173,6 +189,9 @@ check_case job_without_pod 0
 check_case dangling_scriptpath 1
 check_case dangling_pod 1
 check_case legacy_layout 0
+check_case duplicate_job 1
+check_case legacy_symlink 0
+check_case missing_jenkinsfile 1
 check_case orphan_artifact 0
 check_case orphan_artifact 1 --strict
 

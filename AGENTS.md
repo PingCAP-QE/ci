@@ -37,10 +37,15 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 │   └── jobs/                # Job documentation
 ├── prow-jobs/               # Prow job trigger configurations
 │   └── <org>/<repo>/        # Organized by GitHub org/repo
-├── jobs/                    # Jenkins job DSL definitions
+├── jenkins/                 # Jenkins job definitions (one folder per job)
+│   └── jobs/<org>/<repo>/<branch>/<job>/
+│       ├── dsl.groovy       # Jenkins Job DSL (pipelineJob)
+│       ├── Jenkinsfile      # declarative pipeline
+│       └── pod*.yaml        # Kubernetes pod template (optional)
+├── jobs/                    # LEGACY Jenkins job DSL definitions (being retired)
 │   └── <org>/<repo>/
 │       └── <branch>/        # Branch-specific configs
-├── pipelines/               # Jenkins pipeline implementations
+├── pipelines/               # LEGACY Jenkins pipeline implementations (being retired)
 │   └── <org>/<repo>/
 │       └── <branch>/
 ├── tekton/                  # Tekton CI/CD resources
@@ -66,13 +71,15 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 - **Branch specifiers**: `latest` (trunk), `release-x.y` (versions)
 - **Job types**: `presubmits` (PRs), `postsubmits` (merges), `periodics` (scheduled)
 
-### Jenkins Jobs (`/jobs/<org>/<repo>/<branch>/<job-type>_<job-name>.groovy`)
-- **Job types**: `pull` (PR tests), `merged` (post-merge), `periodics` (scheduled)
-- **Naming**: `[a-z][a-z0-9_]*[a-z0-9]`
-
-### Jenkins Pipelines (`/pipelines/<org>/<repo>/<branch>/`)
-- Pipeline scripts: `*.groovy`
-- Pod templates: `pod-*.yaml`
+### Jenkins Jobs (`/jenkins/jobs/<org>/<repo>/<branch>/<job>/`)
+- One folder per job:
+  - `dsl.groovy` — Jenkins Job DSL (`pipelineJob`); its `scriptPath` points at the sibling `Jenkinsfile`.
+  - `Jenkinsfile` — declarative pipeline.
+  - `pod.yaml` — Kubernetes pod template when the job has exactly one; `pod-<purpose>.yaml` when it has several; omitted when it has none.
+  - `aa_folder.groovy` — folder definition, one level above the job folders.
+- All `scriptPath` and pod-template references are repo-root-relative.
+- The legacy `/jobs/**` and `/pipelines/**` trees are being retired by the
+  one-folder-per-job migration; do not add new jobs there.
 
 ## Development Guidelines
 
@@ -127,8 +134,9 @@ Applies to `libraries/*/vars/*.groovy` (Jenkins global variables). Follow these 
 ### 1. Adding/Modifying CI Jobs
 
 1. Update Prow job trigger in `/prow-jobs/<org>/<repo>/`
-2. Update Jenkins job DSL in `/jobs/<org>/<repo>/<branch>/`
-3. Update pipeline script in `/pipelines/<org>/<repo>/<branch>/`
+2. Edit the job folder `/jenkins/jobs/<org>/<repo>/<branch>/<job>/`: `dsl.groovy`
+   (Job DSL), `Jenkinsfile` (pipeline), `pod*.yaml` (pod template)
+3. Run `.ci/check-jenkins-job-references.sh` to confirm the references resolve
 4. Run `.ci/update-prow-job-kustomization.sh` after Prow job changes
 
 ### 2. Pipeline Development Workflow

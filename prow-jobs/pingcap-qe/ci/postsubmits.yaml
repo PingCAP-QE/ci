@@ -4,7 +4,7 @@ postsubmits:
     - name: seed
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^jobs/.*\\.groovy"
+      run_if_changed: "^(jobs/.*\\.groovy|jenkins/jobs/.*\\.groovy)$"
       branches:
         - ^main$
       spec:

@@ -45,13 +45,13 @@ Default behavior: auto-detect changed CI files from current PR diff:
 
 ```bash
 git diff --name-only origin/main...HEAD \
-  | rg '^pipelines/.*(\.groovy|pod(-[^/]+)?\.ya?ml)$|^jobs/.*\.groovy$'
+  | rg '^pipelines/.*(\.groovy|pod(-[^/]+)?\.ya?ml)$|^(jobs/.*\.groovy|jenkins/jobs/.*/(Jenkinsfile|pod.*\.ya?ml))$'
 ```
 
 If the user gives an explicit scope, use that instead of auto scope. Common explicit scopes:
 - specific files (`--script-file <file>` one by one),
 - branch range (`--base-sha <sha> --head-sha <sha>` with `--auto-changed`),
-- path filter (for example only `pipelines/.../latest/...`).
+- path filter (for example only `pipelines/.../latest/...` or `jenkins/jobs/.../<job>/`).
 
 Rule:
 - No explicit scope from user -> use PR auto-detected scope.
@@ -71,11 +71,13 @@ Run replay commands with `PATH="/tmp:$PATH"` for that session.
 
 ## Step 2: Build candidates and deduplicate across branches
 - Candidate source types:
-  - pipeline Groovy: `pipelines/<org>/<repo>/<branch>/...*.groovy`
-  - pod YAML: `pipelines/<org>/<repo>/<branch>/pod*.yaml` (attach to its pipeline candidate)
+  - pipeline Groovy (legacy layout): `pipelines/<org>/<repo>/<branch>/...*.groovy`
+  - pipeline script (job-folder layout): `jenkins/jobs/<org>/<repo>/<branch>/<job>/Jenkinsfile`
+  - pod YAML: `pipelines/<org>/<repo>/<branch>/pod*.yaml` or `jenkins/jobs/.../<job>/pod*.yaml` (attach to its pipeline candidate)
 - Logical job key for grouping:
   - `.../<job>/pipeline.groovy` -> `<org>/<repo>/<job>`
   - `.../<job>.groovy` -> `<org>/<repo>/<job>`
+  - `jenkins/jobs/<org>/<repo>/<branch>/<job>/Jenkinsfile` -> `<org>/<repo>/<job>`
 - For candidates under the same key but different branches, compare their PR-diff change content:
   - if equivalent -> replay only the newest branch candidate,
   - if different -> replay each branch candidate.

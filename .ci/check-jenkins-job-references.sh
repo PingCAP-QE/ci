@@ -264,6 +264,41 @@ elif [[ -d "${root}/pipelines" ]]; then
   done < <(find "${root}/pipelines" -type f \( -name '*.groovy' -o -name '*.yaml' -o -name '*.yml' \) | LC_ALL=C sort)
 fi
 
+# Job folder completeness (new layout): dsl.groovy and Jenkinsfile are required.
+if [[ "${layout}" == "new" ]]; then
+  while IFS= read -r dsl; do
+    [[ -n "${dsl}" ]] || continue
+    [[ "$(basename "${dsl}")" == "dsl.groovy" ]] || continue
+    job_dir="${dsl%/dsl.groovy}"
+    [[ -f "${job_dir}/Jenkinsfile" ]] || error "${dsl#"${root}/"}: job folder has no Jenkinsfile"
+  done < <(find "${jobs_dir}" -type f -name 'dsl.groovy' | LC_ALL=C sort)
+fi
+
+# Dual-tree guard: while both layouts exist, a job must be defined in exactly one
+# of them. Two definitions would generate the same Jenkins job twice with
+# potentially different scriptPath values.
+if [[ -d "${root}/jenkins/jobs" && -d "${root}/jobs" ]]; then
+  new_ids="${work}/new_ids"
+  old_ids="${work}/old_ids"
+  : >"${new_ids}"
+  : >"${old_ids}"
+  find "${root}/jenkins/jobs" -type f -name 'dsl.groovy' | LC_ALL=C sort | while IFS= read -r f; do
+    printf '%s\n' "$(dirname "${f#"${root}/jenkins/jobs/"}")"
+  done >"${new_ids}"
+  # Only regular files count as a second definition: a back-compat symlink left
+  # behind by an earlier migration is not a duplicate.
+  find "${root}/jobs" -type f -name '*.groovy' ! -name 'aa_folder.groovy' | LC_ALL=C sort | while IFS= read -r f; do
+    rel="${f#"${root}/jobs/"}"
+    printf '%s/%s\n' "$(dirname "${rel}")" "$(basename "${rel}" .groovy)"
+  done >"${old_ids}"
+  while IFS= read -r job_id; do
+    [[ -n "${job_id}" ]] || continue
+    if grep -qxF "${job_id}" "${old_ids}"; then
+      error "job defined in both layouts: ${job_id} (legacy jobs/${job_id}.groovy still exists)"
+    fi
+  done <"${new_ids}"
+fi
+
 log "Checked ${jobs_checked} job(s) and ${refs_checked} reference(s) in ${layout} layout."
 
 if [[ "${errors}" -gt 0 ]]; then
