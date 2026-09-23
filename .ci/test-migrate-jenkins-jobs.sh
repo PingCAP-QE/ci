@@ -128,7 +128,10 @@ assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/dedicated/shared_tmpl/pod.yaml
 assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared_tmpl/pipeline.groovy"
 assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared_tmpl/pod.yaml"
 
-assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'scriptPath("jenkins/jobs/acme/widget/latest/build/Jenkinsfile")'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'scriptPath(ciGroovyPath)'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'final ciGroovyPath = "jenkins/jobs/${folder}/${jobName}/Jenkinsfile"'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_tmpl/dsl.groovy" 'final ciGroovyPath = "jenkins/jobs/${fullRepo}/latest/${jobName}/Jenkinsfile"'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/dsl.groovy" 'final ciGroovyPath = "jenkins/jobs/acme/widget/latest/multi/Jenkinsfile"'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/build/pod.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml'
