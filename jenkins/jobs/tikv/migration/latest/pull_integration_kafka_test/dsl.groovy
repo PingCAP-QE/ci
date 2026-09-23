@@ -1,6 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('tikv/migration/pull_integration_test') {
+final ciGroovyPath = "jenkins/jobs/tikv/migration/latest/pull_integration_kafka_test/Jenkinsfile"
+pipelineJob('tikv/migration/pull_integration_kafka_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -14,7 +15,7 @@ pipelineJob('tikv/migration/pull_integration_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/tikv/migration/latest/pull_integration_test.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {
