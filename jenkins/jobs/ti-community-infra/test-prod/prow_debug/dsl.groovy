@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
+final ciGroovyPath = "jenkins/jobs/ti-community-infra/test-prod/prow_debug/Jenkinsfile"
 pipelineJob('ti-community-infra/test-prod/prow_debug') {
     logRotator {
         daysToKeep(30)
@@ -18,7 +19,7 @@ pipelineJob('ti-community-infra/test-prod/prow_debug') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("jenkins/jobs/ti-community-infra/test-prod/prow_debug/Jenkinsfile")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {

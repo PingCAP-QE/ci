@@ -303,6 +303,82 @@ relocate_artifact() {
   fi
 }
 
+# build_ci_groovy_path <dirrel> <job> <declared...>: the value for the DSL's
+# `ciGroovyPath` variable. It is templated from the DSL's own `final` variables
+# when they reproduce the target path (so the reference stays maintainable), and
+# falls back to the literal path otherwise.
+build_ci_groovy_path() {
+  local dirrel="$1" job="$2"
+  shift 2
+  local pairs=("$@")
+  local org repo branch
+  org="$(printf '%s' "${dirrel}" | cut -d/ -f1)"
+  repo="$(printf '%s' "${dirrel}" | cut -d/ -f2)"
+  branch="$(printf '%s' "${dirrel}" | cut -d/ -f3)"
+  local literal="jenkins/jobs/${dirrel}/${job}/Jenkinsfile"
+
+  local fullrepo fullreponame folder branchalias jobname
+  fullrepo="$(lookup_final fullRepo "${pairs[@]}" 2>/dev/null || true)"
+  fullreponame="$(lookup_final fullRepoName "${pairs[@]}" 2>/dev/null || true)"
+  folder="$(lookup_final folder "${pairs[@]}" 2>/dev/null || true)"
+  branchalias="$(lookup_final branchAlias "${pairs[@]}" 2>/dev/null || true)"
+  jobname="$(lookup_final jobName "${pairs[@]}" 2>/dev/null || true)"
+
+  local job_expr branch_expr tmpl
+  if [[ -n "${jobname}" && "${jobname}" == "${job}" ]]; then job_expr='${jobName}'; else job_expr="${job}"; fi
+  if [[ -n "${branchalias}" && "${branchalias}" == "${branch}" ]]; then branch_expr='${branchAlias}'; else branch_expr="${branch}"; fi
+
+  if [[ "${folder}" == "${org}/${repo}/${branch}" ]]; then
+    tmpl="jenkins/jobs/\${folder}/${job_expr}/Jenkinsfile"
+  elif [[ "${folder}" == "${org}/${repo}" ]]; then
+    tmpl="jenkins/jobs/\${folder}/${branch_expr}/${job_expr}/Jenkinsfile"
+  elif [[ "${fullrepo}" == "${org}/${repo}" ]]; then
+    tmpl="jenkins/jobs/\${fullRepo}/${branch_expr}/${job_expr}/Jenkinsfile"
+  elif [[ "${fullreponame}" == "${org}/${repo}" ]]; then
+    tmpl="jenkins/jobs/\${fullRepoName}/${branch_expr}/${job_expr}/Jenkinsfile"
+  else
+    printf '%s' "${literal}"
+    return 0
+  fi
+
+  if [[ "$(expand_vars "${tmpl}" "${pairs[@]}")" == "${literal}" ]]; then
+    printf '%s' "${tmpl}"
+  else
+    printf '%s' "${literal}"
+  fi
+}
+
+# rewrite_dsl_scriptpath <dsl_file> <value>: define/update `final ciGroovyPath`
+# and point `scriptPath(...)` at it, so the job DSL keeps a single maintainable
+# reference to its Jenkinsfile.
+rewrite_dsl_scriptpath() {
+  local dsl="$1" value="$2"
+  local after=-1
+  if ! grep -qE '^final[[:space:]]+ciGroovyPath[[:space:]]*=' "${dsl}"; then
+    after="$(grep -nE '^final[[:space:]]+' "${dsl}" | tail -n1 | cut -d: -f1 || true)"
+    [[ -z "${after}" ]] && after="$(grep -nE '^//' "${dsl}" | tail -n1 | cut -d: -f1 || true)"
+    [[ -z "${after}" ]] && after=0
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  awk -v after="${after}" -v val="${value}" '
+    BEGIN { inserted = 0; if (after == 0) { print "final ciGroovyPath = \"" val "\""; inserted = 1 } }
+    /^final[[:space:]]+ciGroovyPath[[:space:]]*=/ {
+      print "final ciGroovyPath = \"" val "\""
+      inserted = 1
+      next
+    }
+    { print }
+    { if (!inserted && after > 0 && NR == after) { print "final ciGroovyPath = \"" val "\""; inserted = 1 } }
+  ' "${dsl}" >"${tmp}"
+  mv "${tmp}" "${dsl}"
+
+  tmp="$(mktemp)"
+  sed -E 's|scriptPath\([^)]*\)|scriptPath(ciGroovyPath)|' "${dsl}" >"${tmp}"
+  mv "${tmp}" "${dsl}"
+}
+
 # --- cleanup mode ---
 
 if [[ "${mode}" == "cleanup" ]]; then
@@ -397,10 +473,13 @@ migrate_job() {
     log "WARN ${dirrel}/${job}: non-standard path (expected <org>/<repo>/<branch>)"
   fi
 
-  pairs=()
+  # `declared` are the DSL's real `final` variables (safe to reference in the
+  # rewritten scriptPath); `pairs` adds derived names used only for resolution.
+  local declared=() pairs=()
   while IFS= read -r line; do
-    [[ -n "${line}" ]] && pairs+=("${line}")
+    [[ -n "${line}" ]] && declared+=("${line}")
   done < <(collect_finals "${dsl}")
+  pairs=("${declared[@]+"${declared[@]}"}")
   while IFS= read -r line; do
     [[ -n "${line}" ]] && pairs+=("${line}")
   done < <(derive_dsl_pairs "${dsl}")
@@ -487,6 +566,8 @@ migrate_job() {
   done < <(grep -oE 'pipelines/[A-Za-z0-9._/-]+' "${root}/${sp_old}" 2>/dev/null | sort -u || true)
 
   local new_sp="${target_rel}/Jenkinsfile"
+  local cig_value
+  cig_value="$(build_ci_groovy_path "${dirrel}" "${job}" "${declared[@]+"${declared[@]}"}")"
 
   # A source another legacy job still references must be copied, not moved, so
   # that job keeps resolving. An unshared source is moved, so the migration
@@ -516,7 +597,7 @@ migrate_job() {
   for ((i = 0; i < n; i++)); do
     log "  - ${pod_actions[i]} ${pod_olds[i]} -> ${target_rel}/${pod_news[i]}"
   done
-  log "  - rewrite scriptPath -> ${new_sp}"
+  log "  - rewrite scriptPath -> ciGroovyPath = \"${cig_value}\""
   for ((i = 0; i < n; i++)); do
     log "  - rewrite ${pod_vars[i]}"
   done
@@ -540,10 +621,9 @@ migrate_job() {
     relocate_artifact "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}" "${pod_actions[i]}"
   done
 
+  rewrite_dsl_scriptpath "${root}/${target_rel}/dsl.groovy" "${cig_value}"
+
   local tmp base_f base_name
-  tmp="$(mktemp)"
-  sed -E "s|scriptPath\([^)]*\)|scriptPath(\"${new_sp}\")|" "${root}/${target_rel}/dsl.groovy" >"${tmp}"
-  mv "${tmp}" "${root}/${target_rel}/dsl.groovy"
 
   # Move auxiliary files that live in the job directory (nested jobs).
   if [[ -n "${nested_job_dir}" && -d "${root}/${nested_job_dir}" ]]; then
@@ -616,6 +696,32 @@ while IFS= read -r dsl; do
   [[ -n "${dsl}" ]] || continue
   migrate_job "${dsl}"
 done < <(find "${legacy_jobs_dir}" \( -type f -o -type l \) -name '*.groovy' ! -name 'aa_folder.groovy' | LC_ALL=C sort)
+
+# Normalize already-migrated job DSLs (jobs migrated before the ciGroovyPath
+# convention) so every job keeps a single maintainable scriptPath reference.
+while IFS= read -r dsl; do
+  [[ -n "${dsl}" ]] || continue
+  grep -q 'scriptPath(ciGroovyPath)' "${dsl}" && continue
+  local_rel="${dsl#"${new_jobs_dir}/"}"
+  norm_job="$(basename "$(dirname "${local_rel}")")"
+  norm_dirrel="$(dirname "$(dirname "${local_rel}")")"
+  if [[ -n "${only}" ]]; then
+    only_prefix="${only#/}"
+    only_prefix="${only_prefix%/}"
+    if [[ "${norm_dirrel}" != "${only_prefix}" && "${norm_dirrel}" != "${only_prefix}"/* ]]; then
+      continue
+    fi
+  fi
+  norm_declared=()
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] && norm_declared+=("${line}")
+  done < <(collect_finals "${dsl}")
+  norm_cig="$(build_ci_groovy_path "${norm_dirrel}" "${norm_job}" "${norm_declared[@]+"${norm_declared[@]}"}")"
+  log "${mode_upper} normalize: jenkins/jobs/${local_rel} -> ciGroovyPath = \"${norm_cig}\""
+  if [[ "${mode}" == "apply" ]]; then
+    rewrite_dsl_scriptpath "${dsl}" "${norm_cig}"
+  fi
+done < <(find "${new_jobs_dir}" -name 'dsl.groovy' 2>/dev/null | LC_ALL=C sort)
 
 # Folder definition files are not jobs; move them to the mirrored new path.
 while IFS= read -r folder_file; do
