@@ -1,6 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // Triggered by Prow as a manual presubmit.
-pipelineJob('pingcap-inc/tiflash-scripts/pull_schrodinger_test') {
+final ciGroovyPath = "jenkins/jobs/pingcap-inc/tiflash-scripts/latest/pull_regression_test/Jenkinsfile"
+pipelineJob('pingcap-inc/tiflash-scripts/pull_regression_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -14,7 +15,7 @@ pipelineJob('pingcap-inc/tiflash-scripts/pull_schrodinger_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/tiflash-scripts/latest/pull_schrodinger_test/pipeline.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {
