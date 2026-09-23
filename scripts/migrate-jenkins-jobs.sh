@@ -239,14 +239,16 @@ build_ref_index() {
 
   while IFS= read -r dsl; do
     [[ -n "${dsl}" ]] || continue
-    # Sharing is scoped to the slice: a `<repo>` pipeline can only be referenced
-    # by that repo's jobs, so the pre-pass does not need to scan the whole tree.
+    # Sharing is scoped to the repository: a `<repo>` pipeline can be referenced
+    # by any of that repo's branches, so the pre-pass scans the whole repo even
+    # when `--only` selects a single branch (migration may be applied in chunks).
     if [[ -n "${only}" ]]; then
-      local only_norm="${only#/}" rel dirrel
-      only_norm="${only_norm%/}"
+      local scope="${only#/}" rel dirrel
+      scope="${scope%/}"
+      scope="$(printf '%s' "${scope}" | cut -d/ -f1-2)"
       rel="${dsl#"${legacy_jobs_dir}/"}"
       dirrel="$(dirname "${rel}")"
-      if [[ "${dirrel}" != "${only_norm}" && "${dirrel}" != "${only_norm}"/* ]]; then
+      if [[ "${dirrel}" != "${scope}" && "${dirrel}" != "${scope}"/* ]]; then
         continue
       fi
     fi

@@ -148,6 +148,24 @@ else
 fi
 assert_no_symlinks "${TMP_ROOT}"
 
+# --- chunked apply: a source shared across two `--only <branch>` slices ---
+# Two jobs in different branches (latest, dedicated) can share one pipeline; the
+# migration must still copy for the first chunk and move for the last, because
+# the sharing pre-pass is scoped to the repository, not the chunk.
+TMP_ROOT="$(mktemp -d)"
+trap 'rm -rf "${TMP_ROOT}"' EXIT
+cp -R "${FIXTURE}/." "${TMP_ROOT}/"
+bash "${TOOL}" --root "${TMP_ROOT}" --apply --only acme/widget/latest >/dev/null
+bash "${TOOL}" --root "${TMP_ROOT}" --apply --only acme/widget/dedicated >/dev/null
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_tmpl/Jenkinsfile"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/dedicated/shared_tmpl/Jenkinsfile"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared_tmpl/pipeline.groovy"
+if bash "${CHECKER}" --root "${TMP_ROOT}" --quiet; then
+  ok "chunked apply keeps references valid"
+else
+  bad "chunked apply broke references"
+fi
+
 # --- cleanup guard + success ---
 TMP_ROOT="$(mktemp -d)"
 trap 'rm -rf "${TMP_ROOT}"' EXIT
