@@ -68,7 +68,8 @@ fi
 root="$(cd "${root}" && pwd)"
 
 ref_index_file="$(mktemp)"
-trap 'rm -f "${ref_index_file}"' EXIT
+ref_seen_file="$(mktemp)"
+trap 'rm -f "${ref_index_file}" "${ref_seen_file}"' EXIT
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 checker="${script_dir}/../.ci/check-jenkins-job-references.sh"
@@ -238,6 +239,17 @@ build_ref_index() {
 
   while IFS= read -r dsl; do
     [[ -n "${dsl}" ]] || continue
+    # Sharing is scoped to the slice: a `<repo>` pipeline can only be referenced
+    # by that repo's jobs, so the pre-pass does not need to scan the whole tree.
+    if [[ -n "${only}" ]]; then
+      local only_norm="${only#/}" rel dirrel
+      only_norm="${only_norm%/}"
+      rel="${dsl#"${legacy_jobs_dir}/"}"
+      dirrel="$(dirname "${rel}")"
+      if [[ "${dirrel}" != "${only_norm}" && "${dirrel}" != "${only_norm}"/* ]]; then
+        continue
+      fi
+    fi
     pairs=()
     while IFS= read -r line; do [[ -n "${line}" ]] && pairs+=("${line}"); done < <(collect_finals "${dsl}")
     while IFS= read -r line; do [[ -n "${line}" ]] && pairs+=("${line}"); done < <(derive_dsl_pairs "${dsl}")
@@ -260,16 +272,19 @@ build_ref_index() {
   rm -f "${acc}"
 }
 
-# ref_count <path>: remaining references to <path>.
+# ref_count <path>: remaining references to <path>, i.e. the index count minus
+# the references already consumed. Consuming appends, so it is O(1) and does not
+# rewrite the index.
 ref_count() {
-  awk -F'\t' -v p="$1" '$1==p{print $2; found=1} END{if(!found) print 0}' "${ref_index_file}"
+  local p="$1" total seen
+  total="$(awk -F'\t' -v k="$p" '$1==k{print $2; found=1} END{if(!found) print 0}' "${ref_index_file}")"
+  seen="$( { grep -cF -x -- "${p}" "${ref_seen_file}" 2>/dev/null || true; } )"
+  printf '%s' "$(( total - ${seen:-0} ))"
 }
 
-# consume_ref <path>: drop one reference once a job has been migrated.
+# consume_ref <path>: mark one reference as handled.
 consume_ref() {
-  local p="$1" tmp="${ref_index_file}.tmp"
-  awk -F'\t' -v p="$p" -v OFS='\t' '$1==p && $2>0{$2=$2-1} {print}' "${ref_index_file}" >"${tmp}"
-  mv "${tmp}" "${ref_index_file}"
+  printf '%s\n' "$1" >>"${ref_seen_file}"
 }
 
 # relocate_artifact <src> <dst> <move|copy>: move the artifact into the job
