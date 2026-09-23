@@ -100,19 +100,21 @@ assert_absent "${TMP_ROOT}/jobs/acme/widget/latest/build.groovy"
 assert_absent "${TMP_ROOT}/jobs/acme/widget/latest/nopod.groovy"
 assert_no_symlinks "${TMP_ROOT}"
 
-# The legacy pipelines/ tree is left in place until --cleanup, so the previous
-# scriptPath values keep resolving.
-assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
-assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/pod-build.yaml"
-assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/multi/pipeline.groovy"
-assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/nopod.groovy"
+# The migration moves the pipeline/pod into the job folder, so migrated jobs
+# leave no legacy duplicate behind.
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/pod-build.yaml"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/multi/pipeline.groovy"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/nopod.groovy"
 
-# A pipeline shared by two jobs must be copied for each of them, with each copy
-# pointing at its own pod.
+# A pipeline shared by two jobs is copied for the first job and moved for the
+# last one, so each job gets its own copy and the legacy source ends up gone.
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_a/pod.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/pod.yaml"
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_a/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/shared_a/pod.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/shared_b/pod.yaml'
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared/pipeline.groovy"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared/pod.yaml"
 
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'scriptPath("jenkins/jobs/acme/widget/latest/build/Jenkinsfile")'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/build/pod.yaml'

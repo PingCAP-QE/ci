@@ -13,14 +13,16 @@
 #
 # Modes:
 #   --dry-run  (default)  print the plan and change nothing
-#   --apply               move the job DSL into the job folder, copy the pipeline
-#                         and pod templates next to it and rewrite references. No
-#                         back-compat symlinks are created: the Jenkins seed job
-#                         discovers jobs in both `jobs/**` and `jenkins/jobs/**`.
-#                         The legacy pipelines/ tree is left in place so old
-#                         scriptPath values keep resolving until cleanup.
-#   --cleanup             remove the legacy pipelines/ tree and prune the emptied
-#                         jobs/ tree; refuses unless the reference checker is clean.
+#   --apply               move the job DSL, pipeline and pod templates into the
+#                         job folder and rewrite references. A source that a
+#                         not-yet-migrated job still references is copied instead
+#                         of moved. No back-compat symlinks are created: the
+#                         Jenkins seed job discovers jobs in both `jobs/**` and
+#                         `jenkins/jobs/**`. Unshared legacy files are removed, so
+#                         the migration leaves no duplicate behind.
+#   --cleanup             remove any remaining legacy pipelines/ tree and prune
+#                         the emptied jobs/ tree; refuses unless the reference
+#                         checker is clean.
 #
 # Usage: scripts/migrate-jenkins-jobs.sh [--root DIR] [--dry-run|--apply|--cleanup]
 #
@@ -204,9 +206,8 @@ move_file() {
 }
 
 # copy_artifact <src> <dst>: copy a pipeline/pod/auxiliary artifact into the job
-# folder. The legacy copy stays under pipelines/ until --cleanup, which keeps the
-# old scriptPath resolvable and lets several jobs share one source safely (each
-# job gets its own copy of the pristine source).
+# folder, leaving the legacy source in place. Used only when the source is shared
+# by another legacy job that has not been migrated yet.
 copy_artifact() {
   local src="$1" dst="$2"
   if [[ "${src}" == "${dst}" ]]; then
@@ -217,6 +218,35 @@ copy_artifact() {
     cp -L "${src}" "${dst}"
   else
     cp "${src}" "${dst}"
+  fi
+}
+
+# count_refs <path>: how many legacy files reference <path>. A source shared by
+# several jobs appears as a literal path in more than one legacy job DSL (a
+# templated scriptPath embeds the job name, so it cannot be shared). This is the
+# test for whether an artifact can be moved or must be copied.
+count_refs() {
+  local needle="$1" hits=0
+  if [[ -d "${legacy_jobs_dir}" ]]; then
+    hits=$((hits + $(grep -rlF -- "${needle}" "${legacy_jobs_dir}" 2>/dev/null | wc -l | tr -d ' ')))
+  fi
+  if [[ -d "${pipelines_dir}" ]]; then
+    hits=$((hits + $(grep -rlF -- "${needle}" "${pipelines_dir}" 2>/dev/null | wc -l | tr -d ' ')))
+  fi
+  printf '%s' "${hits}"
+}
+
+# relocate_artifact <src> <dst> <move|copy>: move the artifact into the job
+# folder, or copy it when it is shared and must stay for another job.
+relocate_artifact() {
+  local src="$1" dst="$2" action="$3"
+  if [[ "${src}" == "${dst}" ]]; then
+    return 0
+  fi
+  if [[ "${action}" == "move" ]]; then
+    move_file "${src}" "${dst}"
+  else
+    copy_artifact "${src}" "${dst}"
   fi
 }
 
@@ -399,17 +429,32 @@ migrate_job() {
       if [[ "${tok}" == "${aux_old}" ]]; then skip=1; break; fi
     done
     [[ "${skip}" -eq 1 ]] && continue
-    [[ -e "${root}/${tok}" ]] || continue
+    [[ -f "${root}/${tok}" ]] || continue
     aux_refs+=("${tok}")
   done < <(grep -oE 'pipelines/[A-Za-z0-9._/-]+' "${root}/${sp_old}" 2>/dev/null | sort -u || true)
 
   local new_sp="${target_rel}/Jenkinsfile"
 
-  log "${mode_upper} ${dirrel}/${job}:"
-  log "  - ${rel} -> ${target_rel}/dsl.groovy"
-  log "  - ${sp_old} -> ${target_rel}/Jenkinsfile"
+  # A source another legacy job still references must be copied, not moved, so
+  # that job keeps resolving. An unshared source is moved, so the migration
+  # leaves no duplicate behind. Pods of a shared pipeline are copied too.
+  local sp_action="move" pod_actions=() pod_action
+  if [[ "$(count_refs "${sp_old}")" -gt 1 ]]; then
+    sp_action="copy"
+  fi
   for ((i = 0; i < n; i++)); do
-    log "  - ${pod_olds[i]} -> ${target_rel}/${pod_news[i]}"
+    pod_action="copy"
+    if [[ "${sp_action}" == "move" && "$(count_refs "${pod_olds[i]}")" -le 1 ]]; then
+      pod_action="move"
+    fi
+    pod_actions[i]="${pod_action}"
+  done
+
+  log "${mode_upper} ${dirrel}/${job}:"
+  log "  - move ${rel} -> ${target_rel}/dsl.groovy"
+  log "  - ${sp_action} ${sp_old} -> ${target_rel}/Jenkinsfile"
+  for ((i = 0; i < n; i++)); do
+    log "  - ${pod_actions[i]} ${pod_olds[i]} -> ${target_rel}/${pod_news[i]}"
   done
   log "  - rewrite scriptPath -> ${new_sp}"
   for ((i = 0; i < n; i++)); do
@@ -417,10 +462,10 @@ migrate_job() {
   done
   local m
   for m in "${aux_refs[@]+"${aux_refs[@]}"}"; do
-    log "  - ${m} -> jenkins/jobs/${m#pipelines/}"
+    log "  - copy ${m} -> jenkins/jobs/${m#pipelines/}"
   done
   if [[ -n "${nested_job_dir}" ]]; then
-    log "  - copy auxiliary files from ${nested_job_dir}/ -> ${target_rel}/"
+    log "  - ${sp_action} auxiliary files from ${nested_job_dir}/ -> ${target_rel}/"
   fi
 
   if [[ "${mode}" != "apply" ]]; then
@@ -430,9 +475,9 @@ migrate_job() {
 
   mkdir -p "${root}/${target_rel}"
   move_file "${dsl}" "${root}/${target_rel}/dsl.groovy"
-  copy_artifact "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile"
+  relocate_artifact "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile" "${sp_action}"
   for ((i = 0; i < n; i++)); do
-    copy_artifact "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}"
+    relocate_artifact "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}" "${pod_actions[i]}"
   done
 
   local tmp base_f base_name
@@ -452,19 +497,29 @@ migrate_job() {
       [[ "${base_name}" == "$(basename "${sp_old}")" ]] && skip_aux=1
       [[ "${skip_aux}" -eq 1 ]] && continue
       [[ -e "${root}/${target_rel}/${base_name}" ]] && continue
-      copy_artifact "${base_f}" "${root}/${target_rel}/${base_name}"
+      relocate_artifact "${base_f}" "${root}/${target_rel}/${base_name}" "${sp_action}"
     done
   fi
 
-  # Mirror shared referenced files (e.g. a common/ helper script) into the new
-  # layout; the legacy copy is retired with the pipelines/ tree at cleanup.
-  local aux aux_new
+  # Relay shared referenced files (e.g. a common/ helper script) into the new
+  # layout. The first job materializes the shared path; a later job moves the
+  # legacy copy away only once no other legacy pipeline still references it.
+  local aux aux_new aux_action
   for aux in "${aux_refs[@]+"${aux_refs[@]}"}"; do
+    [[ -e "${root}/${aux}" ]] || continue
     aux_new="jenkins/jobs/${aux#pipelines/}"
-    if [[ -e "${root}/${aux}" && ! -e "${root}/${aux_new}" ]]; then
-      mkdir -p "$(dirname "${root}/${aux_new}")"
-      cp "${root}/${aux}" "${root}/${aux_new}"
+    aux_action="copy"
+    if [[ "${sp_action}" == "move" && "$(count_refs "${aux}")" -le 1 ]]; then
+      aux_action="move"
     fi
+    if [[ -e "${root}/${aux_new}" ]]; then
+      if [[ "${aux_action}" == "move" ]]; then
+        rm -f "${root}/${aux}"
+      fi
+      continue
+    fi
+    mkdir -p "$(dirname "${root}/${aux_new}")"
+    relocate_artifact "${root}/${aux}" "${root}/${aux_new}" "${aux_action}"
   done
 
   local sed_args=() new_expr old_base
