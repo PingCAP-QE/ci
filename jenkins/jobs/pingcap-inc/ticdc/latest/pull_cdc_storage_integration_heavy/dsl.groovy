@@ -1,6 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap-inc/ticdc/pull_cdc_pulsar_integration_light') {
+final ciGroovyPath = "jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_storage_integration_heavy/Jenkinsfile"
+pipelineJob('pingcap-inc/ticdc/pull_cdc_storage_integration_heavy') {
     logRotator {
         daysToKeep(30)
     }
@@ -14,7 +15,7 @@ pipelineJob('pingcap-inc/ticdc/pull_cdc_pulsar_integration_light') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/ticdc/latest/pull_cdc_pulsar_integration_light/pipeline.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {
