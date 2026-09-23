@@ -67,6 +67,9 @@ if [[ -z "${root}" || ! -d "${root}" ]]; then
 fi
 root="$(cd "${root}" && pwd)"
 
+ref_index_file="$(mktemp)"
+trap 'rm -f "${ref_index_file}"' EXIT
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 checker="${script_dir}/../.ci/check-jenkins-job-references.sh"
 
@@ -221,19 +224,32 @@ copy_artifact() {
   fi
 }
 
-# count_refs <path>: how many legacy files reference <path>. A source shared by
-# several jobs appears as a literal path in more than one legacy job DSL (a
-# templated scriptPath embeds the job name, so it cannot be shared). This is the
-# test for whether an artifact can be moved or must be copied.
-count_refs() {
-  local needle="$1" hits=0
-  if [[ -d "${legacy_jobs_dir}" ]]; then
-    hits=$((hits + $(grep -rlF -- "${needle}" "${legacy_jobs_dir}" 2>/dev/null | wc -l | tr -d ' ')))
-  fi
-  if [[ -d "${pipelines_dir}" ]]; then
-    hits=$((hits + $(grep -rlF -- "${needle}" "${pipelines_dir}" 2>/dev/null | wc -l | tr -d ' ')))
-  fi
-  printf '%s' "${hits}"
+# The reference index counts, per `pipelines/...` path, how many legacy files
+# mention it. A source shared by several jobs appears as a literal path in more
+# than one legacy job DSL (a templated scriptPath embeds the job name, so it
+# cannot be shared). The index is built once and decremented as jobs migrate, so
+# the last referencing job moves the source away.
+build_ref_index() {
+  {
+    if [[ -d "${legacy_jobs_dir}" ]]; then
+      grep -rHoE 'pipelines/[A-Za-z0-9._/-]+' "${legacy_jobs_dir}" 2>/dev/null || true
+    fi
+    if [[ -d "${pipelines_dir}" ]]; then
+      grep -rHoE 'pipelines/[A-Za-z0-9._/-]+' "${pipelines_dir}" 2>/dev/null || true
+    fi
+  } | sed -E 's/^[^:]+://' | sort | uniq -c | awk '{print $2"\t"$1}' | sort >"${ref_index_file}"
+}
+
+# ref_count <path>: remaining references to <path>.
+ref_count() {
+  awk -F'\t' -v p="$1" '$1==p{print $2; found=1} END{if(!found) print 0}' "${ref_index_file}"
+}
+
+# consume_ref <path>: drop one reference once a job has been migrated.
+consume_ref() {
+  local p="$1" tmp="${ref_index_file}.tmp"
+  awk -F'\t' -v p="$p" -v OFS='\t' '$1==p && $2>0{$2=$2-1} {print}' "${ref_index_file}" >"${tmp}"
+  mv "${tmp}" "${ref_index_file}"
 }
 
 # relocate_artifact <src> <dst> <move|copy>: move the artifact into the job
@@ -439,15 +455,22 @@ migrate_job() {
   # that job keeps resolving. An unshared source is moved, so the migration
   # leaves no duplicate behind. Pods of a shared pipeline are copied too.
   local sp_action="move" pod_actions=() pod_action
-  if [[ "$(count_refs "${sp_old}")" -gt 1 ]]; then
+  if [[ "$(ref_count "${sp_old}")" -gt 1 ]]; then
     sp_action="copy"
   fi
   for ((i = 0; i < n; i++)); do
     pod_action="copy"
-    if [[ "${sp_action}" == "move" && "$(count_refs "${pod_olds[i]}")" -le 1 ]]; then
+    if [[ "${sp_action}" == "move" && "$(ref_count "${pod_olds[i]}")" -le 1 ]]; then
       pod_action="move"
     fi
     pod_actions[i]="${pod_action}"
+  done
+
+  # This job's references are consumed whether the run applies or is a dry-run,
+  # so a later shared reference sees the migrated job as already handled.
+  consume_ref "${sp_old}"
+  for ((i = 0; i < n; i++)); do
+    consume_ref "${pod_olds[i]}"
   done
 
   log "${mode_upper} ${dirrel}/${job}:"
@@ -509,9 +532,10 @@ migrate_job() {
     [[ -e "${root}/${aux}" ]] || continue
     aux_new="jenkins/jobs/${aux#pipelines/}"
     aux_action="copy"
-    if [[ "${sp_action}" == "move" && "$(count_refs "${aux}")" -le 1 ]]; then
+    if [[ "${sp_action}" == "move" && "$(ref_count "${aux}")" -le 1 ]]; then
       aux_action="move"
     fi
+    consume_ref "${aux}"
     if [[ -e "${root}/${aux_new}" ]]; then
       if [[ "${aux_action}" == "move" ]]; then
         rm -f "${root}/${aux}"
@@ -548,6 +572,8 @@ migrate_job() {
   moved=$((moved + 1))
   return 0
 }
+
+build_ref_index
 
 while IFS= read -r dsl; do
   [[ -n "${dsl}" ]] || continue
