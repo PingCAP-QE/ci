@@ -640,27 +640,33 @@ while IFS= read -r folder_file; do
   fi
 done < <(find "${legacy_jobs_dir}" \( -type f -o -type l \) -name 'aa_folder.groovy' | LC_ALL=C sort)
 
-# OWNERS files follow the jobs they describe.
-while IFS= read -r owners_file; do
-  [[ -n "${owners_file}" ]] || continue
-  rel="${owners_file#"${legacy_jobs_dir}/"}"
-  target="${new_jobs_dir}/${rel}"
-  owners_dir="$(dirname "${rel}")"
-  if [[ -n "${only}" ]]; then
-    only_prefix="${only#/}"
-    only_prefix="${only_prefix%/}"
-    if [[ "${owners_dir}" != "${only_prefix}" && "${owners_dir}" != "${only_prefix}"/* ]]; then
+# OWNERS files follow the jobs they describe. Both the `jobs/` and `pipelines/`
+# trees carry OWNERS; after co-location they belong under `jenkins/jobs/`. An
+# OWNERS that already exists in the new tree wins (the legacy duplicate is
+# removed with the retired tree).
+for owners_root in "${legacy_jobs_dir}" "${pipelines_dir}"; do
+  [[ -d "${owners_root}" ]] || continue
+  while IFS= read -r owners_file; do
+    [[ -n "${owners_file}" ]] || continue
+    rel="${owners_file#"${owners_root}/"}"
+    target="${new_jobs_dir}/${rel}"
+    owners_dir="$(dirname "${rel}")"
+    if [[ -n "${only}" ]]; then
+      only_prefix="${only#/}"
+      only_prefix="${only_prefix%/}"
+      if [[ "${owners_dir}" != "${only_prefix}" && "${owners_dir}" != "${only_prefix}"/* ]]; then
+        continue
+      fi
+    fi
+    if [[ -e "${target}" ]]; then
       continue
     fi
-  fi
-  if [[ -e "${target}" ]]; then
-    continue
-  fi
-  log "${mode_upper} owners: ${rel} -> jenkins/jobs/${rel}"
-  if [[ "${mode}" == "apply" ]]; then
-    move_file "${owners_file}" "${target}"
-  fi
-done < <(find "${legacy_jobs_dir}" -type f -name 'OWNERS' | LC_ALL=C sort)
+    log "${mode_upper} owners: ${rel} -> jenkins/jobs/${rel}"
+    if [[ "${mode}" == "apply" ]]; then
+      move_file "${owners_file}" "${target}"
+    fi
+  done < <(find "${owners_root}" -type f -name 'OWNERS' | LC_ALL=C sort)
+done
 
 if [[ "${mode}" == "apply" ]]; then
   log "Migration applied: ${moved} job(s) migrated, ${skipped} skipped."
