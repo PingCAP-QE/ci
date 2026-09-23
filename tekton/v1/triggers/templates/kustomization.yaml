@@ -6,6 +6,7 @@ resources:
   - _/build-component-linux.yaml
   - _/build-component-single-platform.yaml
   - _/ci-helper-for-pr.yaml
+  - _/coderabbit-review-label.yaml
   - _/collect-multi-arch-image.yaml
   # - _/push-oci-artifact-to-fileserver.yaml
   - pingcap/bump-placeholder-version-in-readme.yaml

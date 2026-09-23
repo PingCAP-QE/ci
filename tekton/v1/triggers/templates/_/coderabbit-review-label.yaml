@@ -1,0 +1,28 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: coderabbit-review-label
+spec:
+  params:
+    - name: pr-owner
+    - name: pr-repo
+    - name: pr-number
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: TaskRun
+      metadata:
+        generateName: coderabbit-review-label-
+      spec:
+        params:
+          - name: owner
+            value: $(tt.params.pr-owner)
+          - name: repo
+            value: $(tt.params.pr-repo)
+          - name: number
+            value: $(tt.params.pr-number)
+        taskRef:
+          name: coderabbit-review-label
+        workspaces:
+          - name: github
+            secret:
+              secretName: github
