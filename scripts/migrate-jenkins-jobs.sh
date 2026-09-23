@@ -353,9 +353,8 @@ build_ci_groovy_path() {
 # reference to its Jenkinsfile.
 rewrite_dsl_scriptpath() {
   local dsl="$1" value="$2"
-  local has_cig=0 after=0
-  grep -qE '^final[[:space:]]+ciGroovyPath[[:space:]]*=' "${dsl}" && has_cig=1
-  if [[ "${has_cig}" -eq 0 ]]; then
+  local after=-1
+  if ! grep -qE '^final[[:space:]]+ciGroovyPath[[:space:]]*=' "${dsl}"; then
     after="$(grep -nE '^final[[:space:]]+' "${dsl}" | tail -n1 | cut -d: -f1 || true)"
     [[ -z "${after}" ]] && after="$(grep -nE '^//' "${dsl}" | tail -n1 | cut -d: -f1 || true)"
     [[ -z "${after}" ]] && after=0
@@ -367,6 +366,7 @@ rewrite_dsl_scriptpath() {
     BEGIN { inserted = 0; if (after == 0) { print "final ciGroovyPath = \"" val "\""; inserted = 1 } }
     /^final[[:space:]]+ciGroovyPath[[:space:]]*=/ {
       print "final ciGroovyPath = \"" val "\""
+      inserted = 1
       next
     }
     { print }
