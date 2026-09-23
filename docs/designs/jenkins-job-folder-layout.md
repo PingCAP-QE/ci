@@ -101,15 +101,23 @@ pods; tikv/pd main+test pods). To keep names predictable *and* collision-free:
 ### 5.1 `scriptPath`
 
 `cpsScm.scriptPath` is resolved relative to the repository root, so it can point
-into `jenkins/jobs/`. Examples:
+into `jenkins/jobs/`. Every migrated DSL keeps a single named reference,
+`ciGroovyPath`, and calls `scriptPath(ciGroovyPath)`:
 
 ```groovy
-// literal, flat
-scriptPath("jenkins/jobs/pingcap/tidb/latest/pull_unit_test/Jenkinsfile")
-
-// templated, nested (local final vars)
-scriptPath("jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile")
+final fullRepo = 'pingcap/tidb'
+final branchAlias = 'latest'
+final jobName = 'pull_unit_test'
+final ciGroovyPath = "jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile"
+// ...
+scriptPath(ciGroovyPath)
 ```
+
+The migration templates `ciGroovyPath` from the DSL's own `final` variables when
+they reproduce the target path, and falls back to the literal path when they do
+not (non-standard job names, missing variables). This keeps a single
+maintainable reference instead of a hardcoded string, and removes the stale
+`ciGroovyPath` values that pointed at the old `pipelines/` tree.
 
 ### 5.2 Pod templates
 
