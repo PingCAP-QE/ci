@@ -697,6 +697,32 @@ while IFS= read -r dsl; do
   migrate_job "${dsl}"
 done < <(find "${legacy_jobs_dir}" \( -type f -o -type l \) -name '*.groovy' ! -name 'aa_folder.groovy' | LC_ALL=C sort)
 
+# Normalize already-migrated job DSLs (jobs migrated before the ciGroovyPath
+# convention) so every job keeps a single maintainable scriptPath reference.
+while IFS= read -r dsl; do
+  [[ -n "${dsl}" ]] || continue
+  grep -q 'scriptPath(ciGroovyPath)' "${dsl}" && continue
+  local_rel="${dsl#"${new_jobs_dir}/"}"
+  norm_job="$(basename "$(dirname "${local_rel}")")"
+  norm_dirrel="$(dirname "$(dirname "${local_rel}")")"
+  if [[ -n "${only}" ]]; then
+    only_prefix="${only#/}"
+    only_prefix="${only_prefix%/}"
+    if [[ "${norm_dirrel}" != "${only_prefix}" && "${norm_dirrel}" != "${only_prefix}"/* ]]; then
+      continue
+    fi
+  fi
+  norm_declared=()
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] && norm_declared+=("${line}")
+  done < <(collect_finals "${dsl}")
+  norm_cig="$(build_ci_groovy_path "${norm_dirrel}" "${norm_job}" "${norm_declared[@]+"${norm_declared[@]}"}")"
+  log "${mode_upper} normalize: jenkins/jobs/${local_rel} -> ciGroovyPath = \"${norm_cig}\""
+  if [[ "${mode}" == "apply" ]]; then
+    rewrite_dsl_scriptpath "${dsl}" "${norm_cig}"
+  fi
+done < <(find "${new_jobs_dir}" -name 'dsl.groovy' 2>/dev/null | LC_ALL=C sort)
+
 # Folder definition files are not jobs; move them to the mirrored new path.
 while IFS= read -r folder_file; do
   [[ -n "${folder_file}" ]] || continue
