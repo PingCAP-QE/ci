@@ -8,11 +8,13 @@ and the [Jenkins Job Folder Layout](./jenkins-job-folder-layout.md) guide.
 
 ## Introduction
 
-The migration tool `scripts/migrate-jenkins-jobs.sh` moves each job's DSL into
-`jenkins/jobs/<org>/<repo>/<branch>/<job>/dsl.groovy`, copies the pipeline to
-`Jenkinsfile` and the pod templates next to it, and rewrites the `scriptPath`
-and pod-template references. It runs one slice at a time so each batch is small
-enough to review.
+The migration tool `scripts/migrate-jenkins-jobs.sh` **moves** each job's DSL,
+pipeline and pod templates into
+`jenkins/jobs/<org>/<repo>/<branch>/<job>/` (`dsl.groovy`, `Jenkinsfile`,
+`pod.yaml`/`pod-<purpose>.yaml`) and rewrites the `scriptPath` and pod-template
+references. A source still referenced by a not-yet-migrated job is copied
+instead of moved, and the last referencing job moves it away. It runs one slice
+at a time so each batch is small enough to review.
 
 ## Prerequisites
 
@@ -30,10 +32,13 @@ enough to review.
 
 ## Safety Model
 
-- **No back-compat symlinks.** The DSL is *moved* (so a job is never defined
-  twice); the pipeline and pod templates are *copied*.
-- **Legacy `pipelines/` copies stay** until `--cleanup`, so old `scriptPath`
-  values keep resolving for builds that start before the seed re-indexes.
+- **No back-compat symlinks or copies.** The DSL, pipeline and pod templates are
+  *moved* (so a job is never defined twice and no legacy duplicate is left
+  behind). A source shared by a not-yet-migrated job is copied for the earlier
+  job and moved by the last one.
+- **Accepted trade-off:** moving removes the window in which a build that starts
+  before the seed re-indexes still resolves its old `scriptPath`. The seed
+  re-indexes on merge, so the window is small.
 - **Idempotent.** Re-running `--apply` on a migrated slice is a no-op; it never
   overwrites an existing job folder.
 - **Cleanup is gated** on a clean reference check.
@@ -62,9 +67,10 @@ should be migrated manually or retired, not forced through the tool.
 scripts/migrate-jenkins-jobs.sh --apply --only <org>/<repo>
 ```
 
-This creates the job folders, moves each DSL to `dsl.groovy`, copies the
-pipeline and pod templates, and rewrites the references. Open a PR for the slice
-and merge it bottom-up in the stack before moving to the next slice.
+This creates the job folders, moves each DSL to `dsl.groovy`, the pipeline to
+`Jenkinsfile` and the pod templates next to it, and rewrites the references.
+Open a PR for the slice and merge it bottom-up in the stack before moving to the
+next slice.
 
 ## Step 3: Verify the Slice
 
@@ -114,22 +120,19 @@ Record the pipeline-validation and replay results in the PR. These steps require
 network access to the Jenkins controller and are the blocking precondition for
 cleanup.
 
-### Confirm old `scriptPath` values still resolve
+### Confirm the migrated layout
 
-Before cleanup, the legacy `pipelines/` copies must still be present so old
-`scriptPath` values keep resolving. For a migrated flat job, confirm both files
-exist:
+The migration moves the artifacts, so after `--apply` the new job folder holds
+`dsl.groovy`, `Jenkinsfile` and any pod templates, and the legacy path is gone:
 
 ```bash
-test -f pipelines/<org>/<repo>/<branch>/<job>.groovy && echo "old scriptPath resolves"
 test -f jenkins/jobs/<org>/<repo>/<branch>/<job>/Jenkinsfile && echo "new layout present"
+test ! -e pipelines/<org>/<repo>/<branch>/<job>.groovy && echo "no legacy duplicate"
 ```
 
-For a migrated nested job, the legacy path is
-`pipelines/<org>/<repo>/<branch>/<job>/pipeline.groovy`. (The `test-prod` pilot
-was the exception: its legacy paths were symlinks that were removed by
-PR [PingCAP-QE/ci#5284](https://github.com/PingCAP-QE/ci/pull/5284) once the seed
-change was deployed, so it has no retained copies.)
+For a source shared by several jobs (for example a `latest` pipeline also
+referenced from a `dedicated` job), the earlier job copies it and the last job
+moves it, so the legacy path is gone once every referencing job has migrated.
 
 ## Step 4: Cleanup (after every job is migrated)
 
@@ -170,8 +173,8 @@ Rollback is plain Git history until `--cleanup` runs:
    git commit -m "revert: restore the legacy Jenkins layout for <org>/<repo>"
    ```
 
-   The DSL move and artifact copies are ordinary file changes, so a revert
-   restores the legacy tree exactly.
+   The DSL/pipeline/pod moves are ordinary file changes, so a revert restores
+   the legacy tree exactly.
 
 2. **After cleanup:** restore the deleted `pipelines/` and `jobs/` trees from
    Git history:
@@ -200,7 +203,7 @@ Rollback is plain Git history until `--cleanup` runs:
 | `--apply` reports `UP-TO-DATE` | The job folder already exists | Expected on re-run; verify with the checker |
 | Cleanup refuses to run | The checker found dangling references | Fix the references, then re-run cleanup |
 | A migrated job disappears from Jenkins | The seed job did not discover it | Confirm the seed scans `jenkins/jobs/**`; check the seed output |
-| Old pipeline still builds the pre-migration content | The seed has not re-indexed yet | Expected before cleanup; the legacy copies are retained for this window |
+| A build that started before the seed re-indexed fails on its old `scriptPath` | The pipeline was moved and no legacy copy is kept | Accepted trade-off; the seed re-indexes on merge, so re-run the build |
 
 ## See Also
 

@@ -124,9 +124,10 @@ one-folder-per-job migration. Do not add new jobs there. During the migration:
 - The Jenkins seed job discovers jobs in **both** `jobs/**/*.groovy` and
   `jenkins/jobs/**/*.groovy`, so a partially migrated repository is always fully
   discovered.
-- The migration **moves** the DSL and **copies** the pipeline and pod templates.
-  The legacy `pipelines/` copies are kept until `--cleanup`, which keeps the old
-  `scriptPath` values resolvable while the seed re-indexes.
+- The migration **moves** the DSL, pipeline and pod templates into the job
+  folder, so no legacy duplicate is left behind. A source still referenced by a
+  not-yet-migrated job is copied instead of moved, and the last referencing job
+  moves it away.
 - `.ci/check-jenkins-job-references.sh` fails when a job is defined in both
   trees, so the two layouts can never both own a job.
 
@@ -141,7 +142,7 @@ To convert a slice of jobs, follow the
 | The checker reports a dangling pod reference | `POD_TEMPLATE_FILE` points at a missing file | Fix the constant or add the pod template |
 | The checker reports a job defined in both layouts | The legacy DSL was not moved | Re-run `scripts/migrate-jenkins-jobs.sh --apply` |
 | The checker reports a job folder without a `Jenkinsfile` | Incomplete migration | Restore or add the `Jenkinsfile` |
-| Orphaned artifact warnings | A pipeline/pod file no job references | Expected for retained legacy copies until `--cleanup`; use `--strict` in CI after cleanup |
+| Orphaned artifact warnings | A pipeline/pod file no job references | Expected for pre-existing orphans until `--cleanup` removes the retired tree; use `--strict` in CI after cleanup |
 
 ## See Also
 
