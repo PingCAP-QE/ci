@@ -2,6 +2,7 @@
 final fullRepo = 'tidbcloud/cloud-storage-engine'
 final branchAlias = 'dedicated'
 final jobName = 'pull_integration_realcluster_test_next_gen'
+final ciGroovyPath = "jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile"
 
 pipelineJob("${fullRepo}/${branchAlias}/${jobName}") {
     description("Deprecated historical job. Use ${fullRepo}/${jobName} for new builds.")
@@ -19,7 +20,7 @@ pipelineJob("${fullRepo}/${branchAlias}/${jobName}") {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/${fullRepo}/latest/${jobName}/pipeline.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {
