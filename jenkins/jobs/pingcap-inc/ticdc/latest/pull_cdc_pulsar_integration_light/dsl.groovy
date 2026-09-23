@@ -1,6 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
-pipelineJob('pingcap-inc/ticdc/pull_cdc_mysql_integration_heavy') {
+final ciGroovyPath = "jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_pulsar_integration_light/Jenkinsfile"
+pipelineJob('pingcap-inc/ticdc/pull_cdc_pulsar_integration_light') {
     logRotator {
         daysToKeep(30)
     }
@@ -14,9 +15,9 @@ pipelineJob('pingcap-inc/ticdc/pull_cdc_mysql_integration_heavy') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/ticdc/latest/pull_cdc_mysql_integration_heavy/pipeline.groovy")
+            scriptPath(ciGroovyPath)
             scm {
-                git {
+                git{
                     remote {
                         url('https://github.com/PingCAP-QE/ci.git')
                     }
