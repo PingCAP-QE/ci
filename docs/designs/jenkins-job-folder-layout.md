@@ -41,7 +41,8 @@ Current scale (see the track inventory note for the full breakdown):
    that job.
 2. Predictable, collision-free file names inside the folder.
 3. Machine-checkable references: no dangling `scriptPath` / pod-template paths.
-4. A safe, reversible migration path with back-compat and a cleanup gate.
+4. A safe, reversible migration path with shared-source handling and a cleanup
+   gate.
 
 ## 3. Non-Goals
 
@@ -150,14 +151,16 @@ components, which is what those variables evaluate to for the owning job.
 1. **Dry-run (default):** classify every DSL/pipeline/pod, print planned
    moves/renames and every reference rewrite, and list unrecognized files. No
    filesystem changes.
-2. **Apply:** create job folders, move each job DSL into its folder, copy the
-   referenced pipeline and pod templates next to it, and rewrite references. No
-   back-compat symlinks are created. Idempotent; re-running is a no-op.
+2. **Apply:** create job folders, move each job's DSL, pipeline and pod templates
+   into its folder, and rewrite references. No back-compat symlinks are created
+   and no legacy duplicate is left behind; a source still referenced by a
+   not-yet-migrated job is copied instead of moved. Idempotent; re-running is a
+   no-op.
 3. **Verify:** run the reference-integrity checker, pipeline syntax validation,
    pod-manifest validation, and a staging replay on the migrated slice.
-4. **Cleanup (`--cleanup`):** remove the retired `pipelines/` tree and prune the
-   now-empty legacy `jobs/` tree, only after the checker is clean and the replay
-   passed.
+4. **Cleanup (`--cleanup`):** remove any remaining legacy `pipelines/` tree
+   (unmigrated files and orphans) and prune the now-empty legacy `jobs/` tree,
+   only after the checker is clean and the replay passed.
 
 ### 7.1 No back-compat symlinks; dual-tree discovery
 
@@ -178,13 +181,20 @@ Instead, discovery is made layout-independent:
   `PingCAP-QE/ee-ops` (JCasC). A partially migrated repository is therefore
   always fully discovered, and the legacy pattern degrades to a no-op once the
   migration finishes.
-- The migration **moves** the job DSL (so a job is never defined twice) and
-  **copies** the pipeline and pod templates into the job folder. The legacy
-  `pipelines/` copies stay in place until `--cleanup`, which keeps the previous
-  `scriptPath` values resolvable for builds that start before the seed
-  re-indexes — the same protection the symlinks provided, without symlinks.
+- The migration **moves** the job DSL, pipeline and pod templates into the job
+  folder, so a job is never defined twice and no legacy duplicate is left
+  behind. A source that a not-yet-migrated job still references (a genuinely
+  shared pipeline/pod) is copied instead of moved, and the last job to reference
+  it moves it away.
 - The checker fails when a job is defined in both trees, so the two layouts can
   never both own a job.
+
+**Accepted trade-off.** Moving the pipeline removes the window in which a build
+that starts before the seed re-indexes still resolves its old `scriptPath`. An
+earlier revision copied the pipeline and kept the legacy copy until `--cleanup`;
+that left the entire legacy tree duplicated (797 files on the fully migrated
+tree), which is not worth the short window. The seed re-indexes on merge, so the
+window is small, and no back-compat copy is kept.
 
 ### 7.2 Cleanup gate
 
@@ -218,14 +228,16 @@ Instead, discovery is made layout-independent:
 ### 8.2 Migration tool: `scripts/migrate-jenkins-jobs.sh`
 
 - `--dry-run` (default) / `--apply` / `--cleanup`.
-- Per job: create the job folder, move the DSL to `dsl.groovy`, copy the pipeline
+- Per job: create the job folder, move the DSL to `dsl.groovy`, move the pipeline
   to `Jenkinsfile` and the pod templates next to it, rewrite `scriptPath` and the
-  pod constants, and emit a summary. No symlinks.
+  pod constants, and emit a summary. No symlinks, no residual copy. A pipeline or
+  pod still referenced by an unmigrated job is copied instead of moved.
 - Idempotent and re-run safe: the legacy DSL is moved away, so a second `--apply`
   finds nothing to migrate.
 - Ships with a sandbox fixture repo under `tests/fixtures/` and a test that
   asserts planned moves/renames, reference rewrites, absence of symlinks, the
-  no-pod job case, shared-pipeline copies, idempotency, and cleanup guarding.
+  no-pod job case, shared-source handling (first job copies, last job moves),
+  idempotency, and cleanup guarding.
 
 ### 8.3 Verification script update: `.ci/verify-jenkins-pipelines.sh`
 
@@ -249,7 +261,7 @@ lands before the migration batches, together with the Prow presubmit
 | Risk | Mitigation |
 |---|---|
 | Seed job misses a migrated job and deletes it (`removedJobAction('DELETE')`) | Seed scans both `jobs/**` and `jenkins/jobs/**`, so discovery is independent of migration progress. |
-| Stale `scriptPath` before the seed re-indexes | The legacy `pipelines/` tree is kept (copies, not moves) until `--cleanup`, so old paths keep resolving. |
+| Stale `scriptPath` before the seed re-indexes | Accepted: the seed re-indexes on merge. Pipelines are moved (not copied), so old paths stop resolving once the migration merges; no legacy tree is retained to duplicate the repository. |
 | A job defined in both layouts generates two different configs | The migration moves the DSL, and the checker fails on a job defined in both trees. |
 | Merge conflicts with in-flight PRs touching moved files | Migration runs in small per-repo batches. |
 | Multi-pod jobs mis-mapped to a single `pod.yaml` | Explicit `pod-<purpose>.yaml` rule + checker fails on duplicate/missing targets. |
@@ -259,8 +271,8 @@ lands before the migration batches, together with the Prow presubmit
 ## 10. Rollback
 
 1. Do not run `--cleanup` until verification passes; before cleanup, `git`
-   history is the primary rollback (the DSL move and artifact copies are plain
-   file changes).
+   history is the primary rollback (the DSL/pipeline/pod moves are plain file
+   changes).
 2. Revert the migration commit(s) and the reference rewrites together.
 3. Re-run `.ci/check-jenkins-job-references.sh` to confirm the revert restored a
    consistent state.

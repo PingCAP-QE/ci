@@ -5,7 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb-tools'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb-tools/latest/pod-pull_verify.yaml'
+final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tidb-tools/latest/pull_verify/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 // Server/dumpling binaries are pulled from OCI artifact packages instead of the
