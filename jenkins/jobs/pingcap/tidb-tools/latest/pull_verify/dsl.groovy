@@ -1,5 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 // For trunk and latest release branches.
+final ciGroovyPath = "jenkins/jobs/pingcap/tidb-tools/latest/pull_verify/Jenkinsfile"
 pipelineJob('pingcap/tidb-tools/pull_verify') {
     logRotator {
         daysToKeep(30)
@@ -14,7 +15,7 @@ pipelineJob('pingcap/tidb-tools/pull_verify') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("jenkins/jobs/pingcap/tidb-tools/latest/pull_verify/Jenkinsfile")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {
