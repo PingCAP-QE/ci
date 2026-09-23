@@ -1,7 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 final fullRepoName = 'pingcap-inc/enterprise-extensions'
 final jobName = 'pr-verify'
-final ciGroovyPath = "pipelines/${fullRepoName}/latest/pr-verify.groovy"
+final ciGroovyPath = "jenkins/jobs/${fullRepoName}/latest/pr_verify/Jenkinsfile"
 
 pipelineJob("${fullRepoName}/${jobName}") {
     logRotator {
