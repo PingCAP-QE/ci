@@ -1,0 +1,70 @@
+// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
+// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+// should triggerd for master and latest release branches
+@Library('tipipeline') _
+
+final K8S_NAMESPACE = "jenkins-tidb"
+final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tidb/latest/merged_e2e_test/pod.yaml"
+final REFS = readJSON(text: params.JOB_SPEC).refs
+final GIT_CREDENTIALS_ID = ''
+
+pipeline {
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
+            defaultContainer 'golang'
+        }
+    }
+    environment {
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+    }
+    options {
+        timeout(time: 40, unit: 'MINUTES')
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
+                    }
+                }
+            }
+        }
+        stage('Tests') {
+            steps {
+                dir('tidb/tests/graceshutdown') {
+                    sh label: 'test graceshutdown', script: 'make && ./run-tests.sh'
+                }
+                dir('tidb/tests/globalkilltest') {
+                    dir('bin') {
+                        container('utils') {
+                            retry(3) {
+                                sh label: 'download binary', script: """
+                                    script="\${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh"
+                                    chmod +x \$script
+                                    \$script --pd=${REFS.base_ref} --tikv=${REFS.base_ref}
+                                """
+                            }
+                        }
+                    }
+                    sh label: 'test globalkilltest', script: '''
+                        make && ./run-tests.sh
+                    '''
+                }
+            }
+            post{
+                failure {
+                    script {
+                        println "Test failed, archive the log"
+                        archiveArtifacts artifacts: '/tmp/tidb_globalkilltest/*.log', fingerprint: true
+                        archiveArtifacts artifacts: '/tmp/tidb_gracefulshutdown/*.log', fingerprint: true
+                    }
+                }
+            }
+        }
+    }
+}
