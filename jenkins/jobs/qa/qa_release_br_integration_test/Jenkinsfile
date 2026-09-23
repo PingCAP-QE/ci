@@ -5,7 +5,7 @@
 
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap/tidb'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap/tidb/latest/pod-pull_br_integration_test.yaml'
+final POD_TEMPLATE_FILE = "jenkins/jobs/qa/qa_release_br_integration_test/pod.yaml"
 final OCI_TAG_YCSB = 'v1.0.3'
 final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
 final OCI_TAG_KES = 'v0.14.0'
