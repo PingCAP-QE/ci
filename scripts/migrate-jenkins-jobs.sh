@@ -78,7 +78,7 @@ legacy_jobs_dir="${root}/jobs"
 pipelines_dir="${root}/pipelines"
 new_jobs_dir="${root}/jenkins/jobs"
 
-if [[ ! -d "${legacy_jobs_dir}" ]]; then
+if [[ ! -d "${legacy_jobs_dir}" && "${mode}" != "cleanup" ]]; then
   echo "no legacy jobs/ directory under ${root}; nothing to migrate" >&2
   exit 0
 fi
