@@ -1,18 +1,21 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-pipelineJob('pingcap-inc/tidb/release-8.5/pull_br_integration_test') {
+// For trunk and latest release branches.
+final ciGroovyPath = "jenkins/jobs/pingcap-inc/tidb/release-8.5/pull_build/Jenkinsfile"
+pipelineJob('pingcap-inc/tidb/release-8.5/pull_build') {
     logRotator {
         daysToKeep(30)
     }
     parameters {
+        // Ref: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
         stringParam("BUILD_ID")
         stringParam("PROW_JOB_ID")
-        stringParam("JOB_SPEC", "", "Prow job spec struct data")
+        stringParam("JOB_SPEC")
     }
 
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/tidb/release-8.5/pull_integration_br_test.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {
