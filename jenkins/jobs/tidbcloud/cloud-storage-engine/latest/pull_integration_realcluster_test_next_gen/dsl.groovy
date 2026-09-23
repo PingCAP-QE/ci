@@ -1,6 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
 final fullRepo = 'tidbcloud/cloud-storage-engine'
 final jobName = 'pull_integration_realcluster_test_next_gen'
+final ciGroovyPath = "jenkins/jobs/${fullRepo}/latest/${jobName}/Jenkinsfile"
 
 pipelineJob("${fullRepo}/${jobName}") {
     logRotator {
@@ -16,7 +17,7 @@ pipelineJob("${fullRepo}/${jobName}") {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/${fullRepo}/latest/${jobName}/pipeline.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {
