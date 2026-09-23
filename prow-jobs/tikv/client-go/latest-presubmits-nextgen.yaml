@@ -181,3 +181,23 @@ presubmits:
           - <<: [*sidecar-tikv]
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:release-nextgen-202603
         containers: *containers
+
+    - name: pull-integration-test-release-nextgen-202609
+      agent: kubernetes
+      branches:
+        - ^release-nextgen-202609$
+      decorate: true
+      skip_if_only_changed: *skip_if_only_changed
+      optional: true
+      timeout: 30m
+      spec:
+        affinity: *affinity
+        serviceAccountName: tidbx-puller
+        volumes: *volumes
+        initContainers:
+          - *sidecar-minio
+          - <<: [*sidecar-pd]
+            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:release-nextgen-202609
+          - <<: [*sidecar-tikv]
+            image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:release-nextgen-202609
+        containers: *containers
