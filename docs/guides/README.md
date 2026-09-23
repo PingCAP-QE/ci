@@ -11,6 +11,8 @@ Welcome to the guides section of our CI repository. This directory contains docu
 - [Bazel Workspace Preparation](./bazel-workspace-preparation.md) - How to use the shared bazel workspace helpers (`bazel.prepareWorkspace()`), the `CI_CLOUD_ENV`/`envConfig` multi-cloud cache configuration, and how to onboard a new cloud
 - [Tekton Trigger CEL](./tekton/trigger-CEL.md) - Guide for writing safe, maintainable Common Expression Language (CEL) expressions in Tekton Trigger interceptors (filters and overlays), including regex patterns, JSON parsing, extraction, and validation best practices
 - [Prow Pod Timeouts](./prow-pod-timeouts.md) - Guide to Prow's pod lifecycle timeouts (`pod_pending_timeout` and friends), how to override them per job via `decoration_config`, and how to diagnose slow-clone "Pod pending timeout" failures
+- [Jenkins Job Folder Layout](./jenkins-job-folder-layout.md) - The one-folder-per-job layout for Jenkins jobs: file names, reference rules, and how to add or modify a job
+- [Jenkins Job Folder Migration Runbook](./jenkins-job-folder-migration-runbook.md) - How to migrate the remaining legacy Jenkins jobs to the one-folder-per-job layout and retire the legacy trees
 
 ### Development Workflow
 
