@@ -1,1 +1,0 @@
-../../jenkins/jobs/ti-community-infra/aa_folder.groovy
