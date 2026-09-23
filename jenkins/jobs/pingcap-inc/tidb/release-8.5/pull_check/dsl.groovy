@@ -1,6 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For release-8.5 branches.
-pipelineJob('pingcap-inc/tidb/release-8.5/pull_unit_test_ddlv1') {
+// For trunk and latest release branches.
+final ciGroovyPath = "jenkins/jobs/pingcap-inc/tidb/release-8.5/pull_check/Jenkinsfile"
+pipelineJob('pingcap-inc/tidb/release-8.5/pull_check') {
     logRotator {
         daysToKeep(30)
     }
@@ -13,7 +14,7 @@ pipelineJob('pingcap-inc/tidb/release-8.5/pull_unit_test_ddlv1') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/tidb/release-8.5/pull_unit_test_ddlv1.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {

@@ -6,7 +6,7 @@
 final K8S_NAMESPACE = "jenkins-tidb"
 final GIT_FULL_REPO_NAME = 'pingcap-inc/tidb'
 final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
-final POD_TEMPLATE_FILE = 'pipelines/pingcap-inc/tidb/release-8.5/pod-pull_mysql_test.yaml'
+final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap-inc/tidb/release-8.5/pull_mysql_test/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 
 prow.setPRDescription(REFS)

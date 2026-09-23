@@ -1,6 +1,6 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap-inc/tidb/release-8.5/pull_check2') {
+final ciGroovyPath = "jenkins/jobs/pingcap-inc/tidb/release-8.5/pull_integration_br_test/Jenkinsfile"
+pipelineJob('pingcap-inc/tidb/release-8.5/pull_br_integration_test') {
     logRotator {
         daysToKeep(30)
     }
@@ -13,7 +13,7 @@ pipelineJob('pingcap-inc/tidb/release-8.5/pull_check2') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/tidb/release-8.5/pull_check2.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {

@@ -1,6 +1,7 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-// For trunk and latest release branches.
-pipelineJob('pingcap-inc/tidb/release-8.5/pull_mysql_test') {
+// For release-8.5 branches.
+final ciGroovyPath = "jenkins/jobs/pingcap-inc/tidb/release-8.5/pull_unit_test_ddlv1/Jenkinsfile"
+pipelineJob('pingcap-inc/tidb/release-8.5/pull_unit_test_ddlv1') {
     logRotator {
         daysToKeep(30)
     }
@@ -13,7 +14,7 @@ pipelineJob('pingcap-inc/tidb/release-8.5/pull_mysql_test') {
     definition {
         cpsScm {
             lightweight(true)
-            scriptPath("pipelines/pingcap-inc/tidb/release-8.5/pull_mysql_test.groovy")
+            scriptPath(ciGroovyPath)
             scm {
                 git{
                     remote {
