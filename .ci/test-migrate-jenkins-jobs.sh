@@ -116,6 +116,16 @@ assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/Jenkinsfil
 assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared/pipeline.groovy"
 assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared/pod.yaml"
 
+# A pipeline shared through a templated scriptPath (two jobs resolving to the
+# same target, as with a `<repo>/latest` pipeline referenced from a `dedicated`
+# job) must also be copied for the first job and moved for the last one.
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_tmpl/Jenkinsfile"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_tmpl/pod.yaml"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/dedicated/shared_tmpl/Jenkinsfile"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/dedicated/shared_tmpl/pod.yaml"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared_tmpl/pipeline.groovy"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared_tmpl/pod.yaml"
+
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'scriptPath("jenkins/jobs/acme/widget/latest/build/Jenkinsfile")'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/build/pod.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml'

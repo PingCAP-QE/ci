@@ -224,20 +224,40 @@ copy_artifact() {
   fi
 }
 
-# The reference index counts, per `pipelines/...` path, how many legacy files
-# mention it. A source shared by several jobs appears as a literal path in more
-# than one legacy job DSL (a templated scriptPath embeds the job name, so it
-# cannot be shared). The index is built once and decremented as jobs migrate, so
-# the last referencing job moves the source away.
+# The reference index counts how many legacy jobs/pipelines reference a
+# `pipelines/...` path. Pipeline sharing must be detected from the *resolved*
+# scriptPath (a shared pipeline is often referenced through a `${...}` template,
+# e.g. two jobs pointing at the same `.../latest/...` pipeline), while pod and
+# helper sharing is a literal path inside a pipeline file. The index is built
+# once and decremented as jobs migrate, so the last referencing job moves the
+# source away and no duplicate is left behind.
 build_ref_index() {
-  {
-    if [[ -d "${legacy_jobs_dir}" ]]; then
-      grep -rHoE 'pipelines/[A-Za-z0-9._/-]+' "${legacy_jobs_dir}" 2>/dev/null || true
-    fi
-    if [[ -d "${pipelines_dir}" ]]; then
-      grep -rHoE 'pipelines/[A-Za-z0-9._/-]+' "${pipelines_dir}" 2>/dev/null || true
-    fi
-  } | sed -E 's/^[^:]+://' | sort | uniq -c | awk '{print $2"\t"$1}' | sort >"${ref_index_file}"
+  local dsl pairs sp_raw sp_old line
+  local acc="${ref_index_file}.acc"
+  : >"${acc}"
+
+  while IFS= read -r dsl; do
+    [[ -n "${dsl}" ]] || continue
+    pairs=()
+    while IFS= read -r line; do [[ -n "${line}" ]] && pairs+=("${line}"); done < <(collect_finals "${dsl}")
+    while IFS= read -r line; do [[ -n "${line}" ]] && pairs+=("${line}"); done < <(derive_dsl_pairs "${dsl}")
+    sp_raw="$(grep -oE 'scriptPath\([^)]*\)' "${dsl}" | head -n1 || true)"
+    [[ -n "${sp_raw}" ]] || continue
+    sp_raw="${sp_raw#scriptPath(}"
+    sp_raw="${sp_raw%)}"
+    sp_old="$(resolve_expr "${sp_raw}" "${pairs[@]+"${pairs[@]}"}")"
+    case "${sp_old}" in
+      pipelines/*) [[ "${sp_old}" == *'${'* ]] || printf '%s\n' "${sp_old}" >>"${acc}" ;;
+    esac
+  done < <(find "${legacy_jobs_dir}" \( -type f -o -type l \) -name '*.groovy' ! -name 'aa_folder.groovy' | LC_ALL=C sort)
+
+  # Literal pod/helper paths referenced from the pipeline files.
+  if [[ -d "${pipelines_dir}" ]]; then
+    grep -rHoE 'pipelines/[A-Za-z0-9._/-]+' "${pipelines_dir}" 2>/dev/null | sed -E 's/^[^:]+://' >>"${acc}" || true
+  fi
+
+  sort "${acc}" | uniq -c | awk '{print $2"\t"$1}' | sort >"${ref_index_file}"
+  rm -f "${acc}"
 }
 
 # ref_count <path>: remaining references to <path>.
