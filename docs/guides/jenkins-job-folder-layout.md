@@ -64,14 +64,20 @@ Example: the `pull_unit_test` job lives at
 
 1. Create or open the job folder
    `jenkins/jobs/<org>/<repo>/<branch>/<job>/`.
-2. Put the Job DSL in `dsl.groovy`. Its `scriptPath` must point at the sibling
-   `Jenkinsfile`, using a repository-root-relative path:
+2. Put the Job DSL in `dsl.groovy`. Point `scriptPath` at the sibling
+   `Jenkinsfile` through a `ciGroovyPath` variable, using a
+   repository-root-relative path:
 
    ```groovy
+   final fullRepo = 'pingcap/tidb'
+   final branchAlias = 'latest'
+   final jobName = 'pull_unit_test'
+   final ciGroovyPath = "jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile"
+   // ...
    definition {
        cpsScm {
            lightweight(true)
-           scriptPath("jenkins/jobs/pingcap/tidb/latest/pull_unit_test/Jenkinsfile")
+           scriptPath(ciGroovyPath)
            scm {
                git {
                    remote { url('https://github.com/PingCAP-QE/ci.git') }
@@ -106,10 +112,13 @@ Example: the `pull_unit_test` job lives at
 - All `scriptPath` and pod-template references are **repository-root-relative**;
   never use `../` relative references. The checker resolves them from the
   repository root, and Jenkins resolves `cpsScm.scriptPath` the same way.
-- Both literal and templated forms are supported:
+- Keep a single `ciGroovyPath` variable for `scriptPath`, templated from the
+  DSL's `final` variables where possible so the reference stays maintainable;
+  use the literal path only when the variables do not reproduce the folder:
 
   ```groovy
-  scriptPath("jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile")
+  final ciGroovyPath = "jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile"
+  scriptPath(ciGroovyPath)
   final POD_TEMPLATE_FILE = "jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod.yaml"
   ```
 
