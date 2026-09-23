@@ -17,17 +17,17 @@ postsubmits:
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-staging-url
+                    key: mig-to-ci-job-staging-jenkins-url
               - name: JENKINS_USER
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-staging-user
+                    key: mig-to-ci-job-staging-jenkins-user
               - name: JENKINS_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-staging-token
+                    key: mig-to-ci-job-staging-jenkins-token
               - name: JENKINS_JOB
                 value: seed
               - name: WAIT_BUILD

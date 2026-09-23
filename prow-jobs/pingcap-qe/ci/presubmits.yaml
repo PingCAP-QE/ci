@@ -130,17 +130,17 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-staging-url
+                    key: mig-to-ci-job-staging-jenkins-url
               - name: TO_JENKINS_USER
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-staging-user
+                    key: mig-to-ci-job-staging-jenkins-user
               - name: TO_JENKINS_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-staging-token
+                    key: mig-to-ci-job-staging-jenkins-token
               - name: GITHUB_TOKEN
                 valueFrom:
                   secretKeyRef:
