@@ -1,8 +1,9 @@
 # Jenkins Job Folder Layout
 
 This guide explains the one-folder-per-job layout for Jenkins jobs: where the
-files live, how they reference each other, and how to add or change a job. It
-also points at the migration runbook for converting the remaining legacy jobs.
+files live, how they reference each other, and how to add or change a job. The
+legacy `jobs/` and `pipelines/` trees were retired by the migration; the runbook
+remains for reference on historical slices.
 
 ## Introduction
 
@@ -45,7 +46,9 @@ and `tekton/` (CD).
 Rules:
 
 - A job with a single pod template uses `pod.yaml`.
-- A job with multiple templates uses `pod-<purpose>.yaml`, one per template.
+- A job with multiple templates uses `pod-<purpose>.yaml`, one per template
+  (`pod-build.yaml`, `pod-test.yaml`, `pod-main.yaml`).
+- Never repeat the job name in the pod file name; the job folder already carries it.
 - A job with no pod template omits the file entirely.
 - Job name format: `[a-z][a-z0-9_]*[a-z0-9]`.
 
@@ -125,22 +128,21 @@ Example: the `pull_unit_test` job lives at
 - Constant **names** (`POD_TEMPLATE_FILE`, `MAIN_POD_TEMPLATE_FILE`,
   `TEST_POD_TEMPLATE_FILE`, ...) may stay as they are; only their values change.
 
-## The Legacy Trees
+## The Legacy Trees (retired)
 
-The legacy `/jobs/**` and `/pipelines/**` trees are being retired by the
-one-folder-per-job migration. Do not add new jobs there. During the migration:
+The legacy `/jobs/**` and `/pipelines/**` trees were retired by the
+one-folder-per-job migration (merged 2026-09-24); every job now lives under
+`/jenkins/jobs/**`. Do not add new jobs anywhere else. Notes from the migration:
 
 - The Jenkins seed job discovers jobs in **both** `jobs/**/*.groovy` and
-  `jenkins/jobs/**/*.groovy`, so a partially migrated repository is always fully
-  discovered.
-- The migration **moves** the DSL, pipeline and pod templates into the job
-  folder, so no legacy duplicate is left behind. A source still referenced by a
-  not-yet-migrated job is copied instead of moved, and the last referencing job
-  moves it away.
+  `jenkins/jobs/**/*.groovy`, so a partially migrated repository was always fully
+  discovered; it degrades to a no-op for the retired tree.
+- The migration **moved** the DSL, pipeline and pod templates into the job
+  folder, so no legacy duplicate was left behind.
 - `.ci/check-jenkins-job-references.sh` fails when a job is defined in both
   trees, so the two layouts can never both own a job.
 
-To convert a slice of jobs, follow the
+For the full history of converting a slice of jobs, see the
 [Jenkins Job Folder Migration Runbook](./jenkins-job-folder-migration-runbook.md).
 
 ## Troubleshooting

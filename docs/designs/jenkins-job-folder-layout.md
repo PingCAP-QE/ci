@@ -1,9 +1,13 @@
 # Design: Co-locate Jenkins Job Artifacts in One Folder per Job
 
-- **Status:** Proposed
+- **Status:** Implemented - merged to `main` on 2026-09-24 (`#5254`, `#5255`,
+  `#5257`-`#5275`, `#5283`, `#5284`, `#5288`).
 - **Track:** `jenkins_job_layout_20260916`
-- **Scope:** design + tooling only. The full migration of all jobs is a
-  follow-up track (see [Rollout](#12-rollout-plan)).
+- **Scope:** design + tooling + full migration (see [Rollout](#12-rollout-plan)).
+
+> **Note:** section 1 (Context) describes the state *before* the migration; the
+> migration has since been executed and merged. Sections 4+ describe the
+> implemented target layout.
 
 ## 1. Context
 
@@ -90,7 +94,10 @@ pods; tikv/pd main+test pods). To keep names predictable *and* collision-free:
 
 - A job with a single pod template uses `pod.yaml`.
 - A job with multiple templates uses `pod-<purpose>.yaml`, where `<purpose>` is
-  a short slug (`build`, `test`, `main`, ...).
+  a short role slug (`build`, `test`, `main`). The legacy job/repo prefix is
+  dropped because the job folder already carries it: `pod-<job>-build.yaml` ->
+  `pod-build.yaml`, `pod-<job>-test.yaml` -> `pod-test.yaml`,
+  `pod-<job>.yaml` -> `pod.yaml`.
 - Existing non-conforming names (`main-pod.yaml`, `test-pod.yaml`,
   `pod-*.yaml` from flat jobs) are normalized during migration; the referencing
   constants (`MAIN_POD_TEMPLATE_FILE`, `POD_TEMPLATE_FILE_BUILD`, ...) are

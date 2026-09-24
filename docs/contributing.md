@@ -17,7 +17,7 @@ plan → implement → verify → promote) and use the review checklist in
 
 ## Recommended Checks Before Opening a PR
 
-If your changes include `pipelines/**/*.groovy`, run these checks locally first:
+If your changes include pipeline files under `jenkins/jobs/**` (`Jenkinsfile`), run these checks locally first:
 
 1. Static validation:
    - `JENKINS_URL=https://prow.tidb.net/jenkins .ci/verify-jenkins-pipelines.sh`
