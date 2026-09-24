@@ -179,3 +179,29 @@ periodics:
                 secretKeyRef:
                   key: smtp-password
                   name: ci-smtp
+  - name: periodic-sync-feature-branches-with-release-8.5
+    decorate: true # need add this.
+    cron: "0 2 * * *" # Run daily at 10:00 UTC+8 (02:00 UTC)
+    spec:
+      activeDeadlineSeconds: 900
+      containers:
+        - name: main
+          image: denoland/deno:2.9.6
+          command:
+            - deno
+            - run
+            - --allow-net
+            - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/sync-branch.ts
+          args:
+            - --config=https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/configs/sync-branches.yaml
+            - --github_private_token=$(GITHUB_API_TOKEN)
+          env:
+            - name: GITHUB_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: github-token
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 200m
