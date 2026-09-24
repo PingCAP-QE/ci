@@ -1,0 +1,173 @@
+global_definitions:
+  branches: &branches
+    - ^release-8\.5(\.\d)?$
+  skip_if_only_changed: &skip_if_only_changed "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+
+# struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
+presubmits:
+  pingcap/ticdc:
+    - name: pingcap/ticdc/release-8.5/pull_cdc_mysql_integration_light
+      agent: jenkins
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-mysql-integration-light
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-light|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-light"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-8.5/pull_cdc_mysql_integration_heavy
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-mysql-integration-heavy
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-mysql-integration-heavy|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-mysql-integration-heavy"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-8.5/pull_cdc_kafka_integration_light
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-kafka-integration-light
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-light|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-light"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-8.5/pull_cdc_kafka_integration_heavy
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-kafka-integration-heavy
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-kafka-integration-heavy|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-kafka-integration-heavy"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-8.5/pull_cdc_pulsar_integration_light
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-pulsar-integration-light
+      optional: true # TODO: change this after the job is ready
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-pulsar-integration-light|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-pulsar-integration-light"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-8.5/pull_cdc_storage_integration_light
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-storage-integration-light
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-light|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-light"
+      branches: *branches
+
+    - name: pingcap/ticdc/release-8.5/pull_cdc_storage_integration_heavy
+      agent: jenkins
+      decorate: false # need add this.
+      # skip_if_only_changed: *skip_if_only_changed
+      run_before_merge: true
+      context: pull-cdc-storage-integration-heavy
+      trigger: "(?m)^/test (?:.*? )?(pull-cdc-storage-integration-heavy|all)(?: .*?)?$"
+      rerun_command: "/test pull-cdc-storage-integration-heavy"
+      branches: *branches
+
+    - name: pull-unit-test
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: check
+            image: &image ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            command: [bash, -ce]
+            args:
+              - |
+                make unit_test_in_verify_ci
+            resources:
+              requests:
+                memory: 24Gi
+                cpu: "12"
+              limits:
+                memory: 24Gi
+                cpu: "12"
+
+    - name: pull-build
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: build
+            image: *image
+            command: [bash, -ce]
+            args:
+              - |
+                make cdc
+            resources: &resources
+              requests:
+                memory: 12Gi
+                cpu: "6"
+              limits:
+                memory: 24Gi
+                cpu: "6"
+
+    - name: pull-check
+      decorate: true # need add this.
+      skip_if_only_changed: *skip_if_only_changed
+      branches:
+        - ^master$
+      spec:
+        containers:
+          - name: check
+            image: *image
+            command: [bash, -ce]
+            args:
+              - |
+                make check
+            resources: *resources
+
+    - name: pull-error-log-review
+      branches:
+        - ^master$
+      decorate: true
+      decoration_config:
+        timeout: 20m
+        skip_cloning: true
+      trigger: "(?m)^/test (?:.*? )?pull-error-log-review(?: .*?)?$"
+      rerun_command: "/test pull-error-log-review"
+      skip_if_only_changed: *skip_if_only_changed
+      spec:
+        containers:
+          - name: check
+            image: ghcr.io/pingcap-qe/ci/base:v2024.10.8-32-ge807718-go1.23
+            command: [/bin/bash, -ce]
+            args:
+              - |
+                if [[ "${JOB_TYPE:-}" == "batch" ]]; then
+                  echo "JOB_TYPE is batch, skipping error log review check"
+                  exit 0
+                fi
+                wget -O /tmp/config.yaml https://raw.githubusercontent.com/pingcap-qe/ci/main/configs/error-log-review/config.yaml
+                go run github.com/PingCAP-QE/ci/tools/error-log-review@main \
+                  -config /tmp/config.yaml \
+                  -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
+            env:
+              - name: GITHUB_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    key: token
+                    name: github-token
+            resources:
+              requests:
+                cpu: "1"
+                memory: 2Gi
+              limits:
+                cpu: "1"
+                memory: 2Gi

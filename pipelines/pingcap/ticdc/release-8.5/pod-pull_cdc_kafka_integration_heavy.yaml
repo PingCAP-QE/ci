@@ -1,0 +1,159 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  containers:
+    - image: wurstmeister/zookeeper
+      imagePullPolicy: IfNotPresent
+      name: zookeeper
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 4Gi
+        limits:
+          cpu: 1000m
+          memory: 4Gi
+      tty: true
+      volumeMounts:
+        - mountPath: /tmp
+          name: volume-0
+    - args:
+        - cat
+      image: hub.pingcap.net/jenkins/rocky8_golang-1.23:tini
+      imagePullPolicy: Always
+      name: golang
+      resources:
+        limits:
+          cpu: "12"
+          memory: 16Gi
+      tty: true
+      volumeMounts:
+        - mountPath: /tmp
+          name: volume-0
+    - env:
+        - name: KAFKA_CREATE_TOPICS
+          value: big-message-test:1:1
+        - name: KAFKA_BROKER_ID
+          value: "1"
+        - name: KAFKA_SSL_KEYSTORE_PASSWORD
+          value: test1234
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: localhost:2181
+        - name: KAFKA_MESSAGE_MAX_BYTES
+          value: "11534336"
+        - name: KAFKA_REPLICA_FETCH_MAX_BYTES
+          value: "11534336"
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092
+        - name: ZK
+          value: zk
+        - name: KAFKA_SSL_KEYSTORE_LOCATION
+          value: /tmp/kafka.server.keystore.jks
+        - name: KAFKA_SSL_KEY_PASSWORD
+          value: test1234
+        - name: KAFKA_SSL_TRUSTSTORE_PASSWORD
+          value: test1234
+        - name: KAFKA_LISTENERS
+          value: SSL://127.0.0.1:9093,PLAINTEXT://127.0.0.1:9092
+        - name: KAFKA_SSL_TRUSTSTORE_LOCATION
+          value: /tmp/kafka.server.truststore.jks
+        - name: RACK_COMMAND
+          value: curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks -o /tmp/kafka.server.keystore.jks && curl -sfL https://github.com/pingcap/tiflow/raw/6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks -o /tmp/kafka.server.truststore.jks
+      image: wurstmeister/kafka:2.12-2.4.1
+      imagePullPolicy: IfNotPresent
+      name: kafka
+      resources:
+        requests:
+          cpu: 2000m
+          memory: 6Gi
+        limits:
+          cpu: 2000m
+          memory: 6Gi
+      tty: true
+      volumeMounts:
+        - mountPath: /tmp
+          name: volume-0
+    - env:
+        - name: KAFKA_SERVER
+          value: 127.0.0.1:9092
+        - name: ZOOKEEPER_SERVER
+          value: 127.0.0.1:2181
+        - name: DOWNSTREAM_DB_HOST
+          value: 127.0.0.1
+        - name: USE_FLAT_MESSAGE
+          value: "true"
+        - name: DOWNSTREAM_DB_PORT
+          value: "3306"
+        - name: DB_NAME
+          value: test
+      image: rustinliu/ticdc-canal-json-adapter:latest
+      imagePullPolicy: IfNotPresent
+      name: canal-adapter
+      # TODO: add resource limit
+      # can't add resource limit now, because canal-adapter will OOM
+      # issue: https://github.com/PingCAP-QE/ci/issues/1893
+      resources:
+        requests:
+          cpu: 2000m
+          memory: 4Gi
+      tty: true
+      volumeMounts:
+        - mountPath: /tmp
+          name: volume-0
+    - name: net-tool
+      image: hub.pingcap.net/jenkins/network-multitool
+      tty: true
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 600m
+    - name: mysql
+      image: quay.io/debezium/example-mysql:2.4
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ""
+        - name: MYSQL_USER
+          value: mysqluser
+        - name: MYSQL_PASSWORD
+          value: mysqlpw
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "yes"
+        - name: MYSQL_TCP_PORT
+          value: "3310"
+      resources:
+        requests:
+          cpu: 2000m
+          memory: 4Gi
+    - name: connect
+      image: quay.io/debezium/connect:2.4
+      env:
+        - name: BOOTSTRAP_SERVERS
+          value: "127.0.0.1:9092"
+        - name: GROUP_ID
+          value: "1"
+        - name: CONFIG_STORAGE_TOPIC
+          value: "my_connect_configs"
+        - name: OFFSET_STORAGE_TOPIC
+          value: "my_connect_offsets"
+        - name: STATUS_STORAGE_TOPIC
+          value: "my_connect_statuses"
+        - name: LANG
+          value: "C.UTF-8"
+      resources:
+        requests:
+          cpu: 2000m
+          memory: 4Gi
+  volumes:
+    - emptyDir: {}
+      name: volume-0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
