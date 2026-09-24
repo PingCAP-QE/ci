@@ -6,8 +6,8 @@
 final K8S_NAMESPACE = "jenkins-tiflow"
 final GIT_FULL_REPO_NAME = 'pingcap/tiflow'
 final GIT_CREDENTIALS_ID2 = 'github-pr-diff-token'
-final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflow/release-7.1/pull_dm_integration_test/pod-pull_dm_integration_test.yaml"
-final POD_TEMPLATE_FILE_BUILD = "jenkins/jobs/pingcap/tiflow/release-7.1/pull_dm_integration_test/pod-pull_dm_integration_build.yaml"
+final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflow/release-7.1/pull_dm_integration_test/pod-test.yaml"
+final POD_TEMPLATE_FILE_BUILD = "jenkins/jobs/pingcap/tiflow/release-7.1/pull_dm_integration_test/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
 final OCI_TAG_TIDB = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, REFS.base_ref)

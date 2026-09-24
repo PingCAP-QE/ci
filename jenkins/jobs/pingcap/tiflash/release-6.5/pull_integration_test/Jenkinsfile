@@ -4,8 +4,8 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
-final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/release-6.5/pull_integration_test/pod-pull_build.yaml"
-final POD_INTEGRATIONTEST_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/release-6.5/pull_integration_test/pod-pull_integration_test.yaml"
+final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/release-6.5/pull_integration_test/pod-build.yaml"
+final POD_INTEGRATIONTEST_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/release-6.5/pull_integration_test/pod-test.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final TIFLASH_IT_BASE_IMAGE = 'ghcr.io/pingcap-qe/bases/tiflash-base:v1.9.1'
 final WORKSPACE_STASH_NAME = 'tiflash-release-6.5-it-workspace'
