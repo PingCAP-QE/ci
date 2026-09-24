@@ -1,0 +1,147 @@
+// REF: https://www.jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline
+// Keep small than 400 lines: https://issues.jenkins.io/browse/JENKINS-37984
+// should triggerd for master branches
+@Library('tipipeline') _
+
+final K8S_NAMESPACE = "jenkins-tidb"
+final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tidb/latest/merged_integration_lightning_test/pod.yaml"
+final REFS = readJSON(text: params.JOB_SPEC).refs
+final PR_TITLE = (REFS.pulls?.size() ?: 0) > 0 ? REFS.pulls[0].title : ''
+final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, PR_TITLE, 'master')
+final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, PR_TITLE, 'master')
+final OCI_TAG_TIFLASH = component.computeArtifactOciTagFromPR('tiflash', REFS.base_ref, PR_TITLE, 'master')
+final OCI_TAG_FAKE_GCS_SERVER = 'v1.54.0'
+final OCI_TAG_KES = 'v0.14.0'
+final OCI_TAG_MINIO = 'RELEASE.2020-02-27T00-23-05Z'
+
+pipeline {
+    agent {
+        kubernetes {
+            namespace K8S_NAMESPACE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
+            defaultContainer 'golang'
+        }
+    }
+    environment {
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
+    }
+    options {
+        timeout(time: 60, unit: 'MINUTES')
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID)
+                    }
+                }
+            }
+        }
+        stage('Prepare') {
+            steps {
+                dir("third_party_download") {
+                    dir("bin") {
+                        container("utils") {
+                            retry(2) {
+                                sh label: "download third_party", script: """
+                                    ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                        --pd=${OCI_TAG_PD} \
+                                        --tikv=${OCI_TAG_TIKV} \
+                                        --tiflash=${OCI_TAG_TIFLASH} \
+                                        --fake-gcs-server=${OCI_TAG_FAKE_GCS_SERVER} \
+                                        --kes=${OCI_TAG_KES} \
+                                        --minio=${OCI_TAG_MINIO}
+                                """
+                            }
+                        }
+                        sh label: "verify third_party", script: '''
+                            if [[ -d tiflash && ! -L tiflash ]]; then
+                                rm -rf tiflash_dir
+                                mv tiflash tiflash_dir
+                            fi
+                            if [[ -f tiflash_dir/tiflash ]]; then
+                                # Use a relative link so cache restore in matrix pods keeps tiflash executable resolvable.
+                                ln -sfn "tiflash_dir/tiflash" tiflash
+                            fi
+
+                            ls -alh .
+                            ./pd-server -V
+                            ./tikv-server -V
+                            ./tiflash --version
+                        '''
+                    }
+                }
+                dir(REFS.repo) {
+                    sh label: "check all tests added to group", script: """#!/usr/bin/env bash
+                        chmod +x lightning/tests/*.sh
+                        ./lightning/tests/run_group_lightning_tests.sh others
+                    """
+                    sh label: "prepare build", script: """#!/usr/bin/env bash
+                        [ -f ./bin/tidb-server ] || make
+                        [ -f ./bin/tidb-lightning.test ] || make build_for_lightning_integration_test
+                        ls -alh ./bin
+                        ./bin/tidb-server -V
+                    """
+                    sh label: "prepare cache binary", script: """
+                        cp -r ../third_party_download/bin/* ./bin/
+                        ls -alh ./bin
+                    """
+                    stash name: 'lightning-tests', includes: '**/*'
+                }
+            }
+        }
+        stage('Tests') {
+            matrix {
+                axes {
+                    axis {
+                        name 'TEST_GROUP'
+                        values 'G00', 'G01', 'G02', 'G03', 'G04', 'G05', 'G06',  'G07', 'G08'
+                    }
+                }
+                agent{
+                    kubernetes {
+                        namespace K8S_NAMESPACE
+                        yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+                        retries 2
+                        workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '150Gi', storageClassName: 'ci-rwo')
+                        defaultContainer 'golang'
+                    }
+                }
+                when {
+                    beforeAgent true
+                    expression { return !matrixCache.shouldSkip(REFS, 'Test', [test_group: env.TEST_GROUP]) }
+                }
+                stages {
+                    stage("Test") {
+                        steps {
+                            dir(REFS.repo) {
+                                unstash 'lightning-tests'
+                                sh label: "TEST_GROUP ${TEST_GROUP}", script: """#!/usr/bin/env bash
+                                    chmod +x lightning/tests/*.sh
+                                    ./lightning/tests/run_group_lightning_tests.sh ${TEST_GROUP}
+                                """
+                            }
+
+                        }
+                        post{
+                            failure {
+                                sh label: "collect logs", script: """#!/usr/bin/env bash
+                                    ls /tmp/lightning_test
+                                    tar -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/lightning_test/ -type f -name "*.log")
+                                    ls -alh  log-${TEST_GROUP}.tar.gz
+                                """
+                                archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true
+                            }
+                            success { script { matrixCache.markDone(REFS, 'Test', [test_group: env.TEST_GROUP]) } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

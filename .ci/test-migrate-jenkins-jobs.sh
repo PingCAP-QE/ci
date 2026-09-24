@@ -74,6 +74,8 @@ assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/pod-build.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/pod-test.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aa_folder.groovy"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/OWNERS"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/OWNERS"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/refs/pod.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/auxiliary/dsl.groovy"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/auxiliary/Jenkinsfile"
@@ -100,21 +102,36 @@ assert_absent "${TMP_ROOT}/jobs/acme/widget/latest/build.groovy"
 assert_absent "${TMP_ROOT}/jobs/acme/widget/latest/nopod.groovy"
 assert_no_symlinks "${TMP_ROOT}"
 
-# The legacy pipelines/ tree is left in place until --cleanup, so the previous
-# scriptPath values keep resolving.
-assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
-assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/pod-build.yaml"
-assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/multi/pipeline.groovy"
-assert_file "${TMP_ROOT}/pipelines/acme/widget/latest/nopod.groovy"
+# The migration moves the pipeline/pod into the job folder, so migrated jobs
+# leave no legacy duplicate behind.
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/build.groovy"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/pod-build.yaml"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/multi/pipeline.groovy"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/nopod.groovy"
 
-# A pipeline shared by two jobs must be copied for each of them, with each copy
-# pointing at its own pod.
+# A pipeline shared by two jobs is copied for the first job and moved for the
+# last one, so each job gets its own copy and the legacy source ends up gone.
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_a/pod.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/pod.yaml"
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_a/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/shared_a/pod.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_b/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/shared_b/pod.yaml'
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared/pipeline.groovy"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared/pod.yaml"
 
-assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'scriptPath("jenkins/jobs/acme/widget/latest/build/Jenkinsfile")'
+# A pipeline shared through a templated scriptPath (two jobs resolving to the
+# same target, as with a `<repo>/latest` pipeline referenced from a `dedicated`
+# job) must also be copied for the first job and moved for the last one.
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_tmpl/Jenkinsfile"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_tmpl/pod.yaml"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/dedicated/shared_tmpl/Jenkinsfile"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/dedicated/shared_tmpl/pod.yaml"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared_tmpl/pipeline.groovy"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared_tmpl/pod.yaml"
+
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'scriptPath(ciGroovyPath)'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/dsl.groovy" 'final ciGroovyPath = "jenkins/jobs/${folder}/${jobName}/Jenkinsfile"'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_tmpl/dsl.groovy" 'final ciGroovyPath = "jenkins/jobs/${fullRepo}/latest/${jobName}/Jenkinsfile"'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/dsl.groovy" 'final ciGroovyPath = "jenkins/jobs/acme/widget/latest/multi/Jenkinsfile"'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/build/pod.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml'
@@ -135,6 +152,24 @@ else
   bad "re-running --apply migrated jobs again"
 fi
 assert_no_symlinks "${TMP_ROOT}"
+
+# --- chunked apply: a source shared across two `--only <branch>` slices ---
+# Two jobs in different branches (latest, dedicated) can share one pipeline; the
+# migration must still copy for the first chunk and move for the last, because
+# the sharing pre-pass is scoped to the repository, not the chunk.
+TMP_ROOT="$(mktemp -d)"
+trap 'rm -rf "${TMP_ROOT}"' EXIT
+cp -R "${FIXTURE}/." "${TMP_ROOT}/"
+bash "${TOOL}" --root "${TMP_ROOT}" --apply --only acme/widget/latest >/dev/null
+bash "${TOOL}" --root "${TMP_ROOT}" --apply --only acme/widget/dedicated >/dev/null
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/shared_tmpl/Jenkinsfile"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/dedicated/shared_tmpl/Jenkinsfile"
+assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/shared_tmpl/pipeline.groovy"
+if bash "${CHECKER}" --root "${TMP_ROOT}" --quiet; then
+  ok "chunked apply keeps references valid"
+else
+  bad "chunked apply broke references"
+fi
 
 # --- cleanup guard + success ---
 TMP_ROOT="$(mktemp -d)"

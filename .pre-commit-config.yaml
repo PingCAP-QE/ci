@@ -21,3 +21,11 @@ repos:
     rev: v8.30.1
     hooks:
       - id: gitleaks
+  - repo: local
+    hooks:
+      - id: check-jenkins-job-references
+        name: Check Jenkins job references resolve
+        entry: bash .ci/check-jenkins-job-references.sh --quiet
+        language: system
+        pass_filenames: false
+        files: '^(jobs|jenkins|pipelines)/|^\.ci/(check-jenkins-job-references|test-check-jenkins-job-references|test-migrate-jenkins-jobs)\.sh$|^scripts/migrate-jenkins-jobs\.sh$'

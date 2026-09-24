@@ -13,14 +13,16 @@
 #
 # Modes:
 #   --dry-run  (default)  print the plan and change nothing
-#   --apply               move the job DSL into the job folder, copy the pipeline
-#                         and pod templates next to it and rewrite references. No
-#                         back-compat symlinks are created: the Jenkins seed job
-#                         discovers jobs in both `jobs/**` and `jenkins/jobs/**`.
-#                         The legacy pipelines/ tree is left in place so old
-#                         scriptPath values keep resolving until cleanup.
-#   --cleanup             remove the legacy pipelines/ tree and prune the emptied
-#                         jobs/ tree; refuses unless the reference checker is clean.
+#   --apply               move the job DSL, pipeline and pod templates into the
+#                         job folder and rewrite references. A source that a
+#                         not-yet-migrated job still references is copied instead
+#                         of moved. No back-compat symlinks are created: the
+#                         Jenkins seed job discovers jobs in both `jobs/**` and
+#                         `jenkins/jobs/**`. Unshared legacy files are removed, so
+#                         the migration leaves no duplicate behind.
+#   --cleanup             remove any remaining legacy pipelines/ tree and prune
+#                         the emptied jobs/ tree; refuses unless the reference
+#                         checker is clean.
 #
 # Usage: scripts/migrate-jenkins-jobs.sh [--root DIR] [--dry-run|--apply|--cleanup]
 #
@@ -65,6 +67,10 @@ if [[ -z "${root}" || ! -d "${root}" ]]; then
 fi
 root="$(cd "${root}" && pwd)"
 
+ref_index_file="$(mktemp)"
+ref_seen_file="$(mktemp)"
+trap 'rm -f "${ref_index_file}" "${ref_seen_file}"' EXIT
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 checker="${script_dir}/../.ci/check-jenkins-job-references.sh"
 
@@ -72,7 +78,7 @@ legacy_jobs_dir="${root}/jobs"
 pipelines_dir="${root}/pipelines"
 new_jobs_dir="${root}/jenkins/jobs"
 
-if [[ ! -d "${legacy_jobs_dir}" ]]; then
+if [[ ! -d "${legacy_jobs_dir}" && "${mode}" != "cleanup" ]]; then
   echo "no legacy jobs/ directory under ${root}; nothing to migrate" >&2
   exit 0
 fi
@@ -204,9 +210,8 @@ move_file() {
 }
 
 # copy_artifact <src> <dst>: copy a pipeline/pod/auxiliary artifact into the job
-# folder. The legacy copy stays under pipelines/ until --cleanup, which keeps the
-# old scriptPath resolvable and lets several jobs share one source safely (each
-# job gets its own copy of the pristine source).
+# folder, leaving the legacy source in place. Used only when the source is shared
+# by another legacy job that has not been migrated yet.
 copy_artifact() {
   local src="$1" dst="$2"
   if [[ "${src}" == "${dst}" ]]; then
@@ -218,6 +223,160 @@ copy_artifact() {
   else
     cp "${src}" "${dst}"
   fi
+}
+
+# The reference index counts how many legacy jobs/pipelines reference a
+# `pipelines/...` path. Pipeline sharing must be detected from the *resolved*
+# scriptPath (a shared pipeline is often referenced through a `${...}` template,
+# e.g. two jobs pointing at the same `.../latest/...` pipeline), while pod and
+# helper sharing is a literal path inside a pipeline file. The index is built
+# once and decremented as jobs migrate, so the last referencing job moves the
+# source away and no duplicate is left behind.
+build_ref_index() {
+  local dsl pairs sp_raw sp_old line
+  local acc="${ref_index_file}.acc"
+  : >"${acc}"
+
+  while IFS= read -r dsl; do
+    [[ -n "${dsl}" ]] || continue
+    # Sharing is scoped to the repository: a `<repo>` pipeline can be referenced
+    # by any of that repo's branches, so the pre-pass scans the whole repo even
+    # when `--only` selects a single branch (migration may be applied in chunks).
+    if [[ -n "${only}" ]]; then
+      local scope="${only#/}" rel dirrel
+      scope="${scope%/}"
+      scope="$(printf '%s' "${scope}" | cut -d/ -f1-2)"
+      rel="${dsl#"${legacy_jobs_dir}/"}"
+      dirrel="$(dirname "${rel}")"
+      if [[ "${dirrel}" != "${scope}" && "${dirrel}" != "${scope}"/* ]]; then
+        continue
+      fi
+    fi
+    pairs=()
+    while IFS= read -r line; do [[ -n "${line}" ]] && pairs+=("${line}"); done < <(collect_finals "${dsl}")
+    while IFS= read -r line; do [[ -n "${line}" ]] && pairs+=("${line}"); done < <(derive_dsl_pairs "${dsl}")
+    sp_raw="$(grep -oE 'scriptPath\([^)]*\)' "${dsl}" | head -n1 || true)"
+    [[ -n "${sp_raw}" ]] || continue
+    sp_raw="${sp_raw#scriptPath(}"
+    sp_raw="${sp_raw%)}"
+    sp_old="$(resolve_expr "${sp_raw}" "${pairs[@]+"${pairs[@]}"}")"
+    case "${sp_old}" in
+      pipelines/*) [[ "${sp_old}" == *'${'* ]] || printf '%s\n' "${sp_old}" >>"${acc}" ;;
+    esac
+  done < <(find "${legacy_jobs_dir}" \( -type f -o -type l \) -name '*.groovy' ! -name 'aa_folder.groovy' | LC_ALL=C sort)
+
+  # Literal pod/helper paths referenced from the pipeline files.
+  if [[ -d "${pipelines_dir}" ]]; then
+    grep -rHoE 'pipelines/[A-Za-z0-9._/-]+' "${pipelines_dir}" 2>/dev/null | sed -E 's/^[^:]+://' >>"${acc}" || true
+  fi
+
+  sort "${acc}" | uniq -c | awk '{print $2"\t"$1}' | sort >"${ref_index_file}"
+  rm -f "${acc}"
+}
+
+# ref_count <path>: remaining references to <path>, i.e. the index count minus
+# the references already consumed. Consuming appends, so it is O(1) and does not
+# rewrite the index.
+ref_count() {
+  local p="$1" total seen
+  total="$(awk -F'\t' -v k="$p" '$1==k{print $2; found=1} END{if(!found) print 0}' "${ref_index_file}")"
+  seen="$( { grep -cF -x -- "${p}" "${ref_seen_file}" 2>/dev/null || true; } )"
+  printf '%s' "$(( total - ${seen:-0} ))"
+}
+
+# consume_ref <path>: mark one reference as handled.
+consume_ref() {
+  printf '%s\n' "$1" >>"${ref_seen_file}"
+}
+
+# relocate_artifact <src> <dst> <move|copy>: move the artifact into the job
+# folder, or copy it when it is shared and must stay for another job.
+relocate_artifact() {
+  local src="$1" dst="$2" action="$3"
+  if [[ "${src}" == "${dst}" ]]; then
+    return 0
+  fi
+  if [[ "${action}" == "move" ]]; then
+    move_file "${src}" "${dst}"
+  else
+    copy_artifact "${src}" "${dst}"
+  fi
+}
+
+# build_ci_groovy_path <dirrel> <job> <declared...>: the value for the DSL's
+# `ciGroovyPath` variable. It is templated from the DSL's own `final` variables
+# when they reproduce the target path (so the reference stays maintainable), and
+# falls back to the literal path otherwise.
+build_ci_groovy_path() {
+  local dirrel="$1" job="$2"
+  shift 2
+  local pairs=("$@")
+  local org repo branch
+  org="$(printf '%s' "${dirrel}" | cut -d/ -f1)"
+  repo="$(printf '%s' "${dirrel}" | cut -d/ -f2)"
+  branch="$(printf '%s' "${dirrel}" | cut -d/ -f3)"
+  local literal="jenkins/jobs/${dirrel}/${job}/Jenkinsfile"
+
+  local fullrepo fullreponame folder branchalias jobname
+  fullrepo="$(lookup_final fullRepo "${pairs[@]}" 2>/dev/null || true)"
+  fullreponame="$(lookup_final fullRepoName "${pairs[@]}" 2>/dev/null || true)"
+  folder="$(lookup_final folder "${pairs[@]}" 2>/dev/null || true)"
+  branchalias="$(lookup_final branchAlias "${pairs[@]}" 2>/dev/null || true)"
+  jobname="$(lookup_final jobName "${pairs[@]}" 2>/dev/null || true)"
+
+  local job_expr branch_expr tmpl
+  if [[ -n "${jobname}" && "${jobname}" == "${job}" ]]; then job_expr='${jobName}'; else job_expr="${job}"; fi
+  if [[ -n "${branchalias}" && "${branchalias}" == "${branch}" ]]; then branch_expr='${branchAlias}'; else branch_expr="${branch}"; fi
+
+  if [[ "${folder}" == "${org}/${repo}/${branch}" ]]; then
+    tmpl="jenkins/jobs/\${folder}/${job_expr}/Jenkinsfile"
+  elif [[ "${folder}" == "${org}/${repo}" ]]; then
+    tmpl="jenkins/jobs/\${folder}/${branch_expr}/${job_expr}/Jenkinsfile"
+  elif [[ "${fullrepo}" == "${org}/${repo}" ]]; then
+    tmpl="jenkins/jobs/\${fullRepo}/${branch_expr}/${job_expr}/Jenkinsfile"
+  elif [[ "${fullreponame}" == "${org}/${repo}" ]]; then
+    tmpl="jenkins/jobs/\${fullRepoName}/${branch_expr}/${job_expr}/Jenkinsfile"
+  else
+    printf '%s' "${literal}"
+    return 0
+  fi
+
+  if [[ "$(expand_vars "${tmpl}" "${pairs[@]}")" == "${literal}" ]]; then
+    printf '%s' "${tmpl}"
+  else
+    printf '%s' "${literal}"
+  fi
+}
+
+# rewrite_dsl_scriptpath <dsl_file> <value>: define/update `final ciGroovyPath`
+# and point `scriptPath(...)` at it, so the job DSL keeps a single maintainable
+# reference to its Jenkinsfile.
+rewrite_dsl_scriptpath() {
+  local dsl="$1" value="$2"
+  local after=-1
+  if ! grep -qE '^final[[:space:]]+ciGroovyPath[[:space:]]*=' "${dsl}"; then
+    after="$(grep -nE '^final[[:space:]]+' "${dsl}" | tail -n1 | cut -d: -f1 || true)"
+    [[ -z "${after}" ]] && after="$(grep -nE '^//' "${dsl}" | tail -n1 | cut -d: -f1 || true)"
+    [[ -z "${after}" ]] && after=0
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  awk -v after="${after}" -v val="${value}" '
+    BEGIN { inserted = 0; if (after == 0) { print "final ciGroovyPath = \"" val "\""; inserted = 1 } }
+    /^final[[:space:]]+ciGroovyPath[[:space:]]*=/ {
+      print "final ciGroovyPath = \"" val "\""
+      inserted = 1
+      next
+    }
+    { print }
+    { if (!inserted && after > 0 && NR == after) { print "final ciGroovyPath = \"" val "\""; inserted = 1 } }
+  ' "${dsl}" >"${tmp}"
+  mv "${tmp}" "${dsl}"
+
+  tmp="$(mktemp)"
+  sed -E 's|scriptPath\([^)]*\)|scriptPath(ciGroovyPath)|' "${dsl}" >"${tmp}"
+  mv "${tmp}" "${dsl}"
 }
 
 # --- cleanup mode ---
@@ -314,10 +473,13 @@ migrate_job() {
     log "WARN ${dirrel}/${job}: non-standard path (expected <org>/<repo>/<branch>)"
   fi
 
-  pairs=()
+  # `declared` are the DSL's real `final` variables (safe to reference in the
+  # rewritten scriptPath); `pairs` adds derived names used only for resolution.
+  local declared=() pairs=()
   while IFS= read -r line; do
-    [[ -n "${line}" ]] && pairs+=("${line}")
+    [[ -n "${line}" ]] && declared+=("${line}")
   done < <(collect_finals "${dsl}")
+  pairs=("${declared[@]+"${declared[@]}"}")
   while IFS= read -r line; do
     [[ -n "${line}" ]] && pairs+=("${line}")
   done < <(derive_dsl_pairs "${dsl}")
@@ -399,28 +561,52 @@ migrate_job() {
       if [[ "${tok}" == "${aux_old}" ]]; then skip=1; break; fi
     done
     [[ "${skip}" -eq 1 ]] && continue
-    [[ -e "${root}/${tok}" ]] || continue
+    [[ -f "${root}/${tok}" ]] || continue
     aux_refs+=("${tok}")
   done < <(grep -oE 'pipelines/[A-Za-z0-9._/-]+' "${root}/${sp_old}" 2>/dev/null | sort -u || true)
 
   local new_sp="${target_rel}/Jenkinsfile"
+  local cig_value
+  cig_value="$(build_ci_groovy_path "${dirrel}" "${job}" "${declared[@]+"${declared[@]}"}")"
+
+  # A source another legacy job still references must be copied, not moved, so
+  # that job keeps resolving. An unshared source is moved, so the migration
+  # leaves no duplicate behind. Pods of a shared pipeline are copied too.
+  local sp_action="move" pod_actions=() pod_action
+  if [[ "$(ref_count "${sp_old}")" -gt 1 ]]; then
+    sp_action="copy"
+  fi
+  for ((i = 0; i < n; i++)); do
+    pod_action="copy"
+    if [[ "${sp_action}" == "move" && "$(ref_count "${pod_olds[i]}")" -le 1 ]]; then
+      pod_action="move"
+    fi
+    pod_actions[i]="${pod_action}"
+  done
+
+  # This job's references are consumed whether the run applies or is a dry-run,
+  # so a later shared reference sees the migrated job as already handled.
+  consume_ref "${sp_old}"
+  for ((i = 0; i < n; i++)); do
+    consume_ref "${pod_olds[i]}"
+  done
 
   log "${mode_upper} ${dirrel}/${job}:"
-  log "  - ${rel} -> ${target_rel}/dsl.groovy"
-  log "  - ${sp_old} -> ${target_rel}/Jenkinsfile"
+  log "  - move ${rel} -> ${target_rel}/dsl.groovy"
+  log "  - ${sp_action} ${sp_old} -> ${target_rel}/Jenkinsfile"
   for ((i = 0; i < n; i++)); do
-    log "  - ${pod_olds[i]} -> ${target_rel}/${pod_news[i]}"
+    log "  - ${pod_actions[i]} ${pod_olds[i]} -> ${target_rel}/${pod_news[i]}"
   done
-  log "  - rewrite scriptPath -> ${new_sp}"
+  log "  - rewrite scriptPath -> ciGroovyPath = \"${cig_value}\""
   for ((i = 0; i < n; i++)); do
     log "  - rewrite ${pod_vars[i]}"
   done
   local m
   for m in "${aux_refs[@]+"${aux_refs[@]}"}"; do
-    log "  - ${m} -> jenkins/jobs/${m#pipelines/}"
+    log "  - copy ${m} -> jenkins/jobs/${m#pipelines/}"
   done
   if [[ -n "${nested_job_dir}" ]]; then
-    log "  - copy auxiliary files from ${nested_job_dir}/ -> ${target_rel}/"
+    log "  - ${sp_action} auxiliary files from ${nested_job_dir}/ -> ${target_rel}/"
   fi
 
   if [[ "${mode}" != "apply" ]]; then
@@ -430,15 +616,14 @@ migrate_job() {
 
   mkdir -p "${root}/${target_rel}"
   move_file "${dsl}" "${root}/${target_rel}/dsl.groovy"
-  copy_artifact "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile"
+  relocate_artifact "${root}/${sp_old}" "${root}/${target_rel}/Jenkinsfile" "${sp_action}"
   for ((i = 0; i < n; i++)); do
-    copy_artifact "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}"
+    relocate_artifact "${root}/${pod_olds[i]}" "${root}/${target_rel}/${pod_news[i]}" "${pod_actions[i]}"
   done
 
+  rewrite_dsl_scriptpath "${root}/${target_rel}/dsl.groovy" "${cig_value}"
+
   local tmp base_f base_name
-  tmp="$(mktemp)"
-  sed -E "s|scriptPath\([^)]*\)|scriptPath(\"${new_sp}\")|" "${root}/${target_rel}/dsl.groovy" >"${tmp}"
-  mv "${tmp}" "${root}/${target_rel}/dsl.groovy"
 
   # Move auxiliary files that live in the job directory (nested jobs).
   if [[ -n "${nested_job_dir}" && -d "${root}/${nested_job_dir}" ]]; then
@@ -452,19 +637,30 @@ migrate_job() {
       [[ "${base_name}" == "$(basename "${sp_old}")" ]] && skip_aux=1
       [[ "${skip_aux}" -eq 1 ]] && continue
       [[ -e "${root}/${target_rel}/${base_name}" ]] && continue
-      copy_artifact "${base_f}" "${root}/${target_rel}/${base_name}"
+      relocate_artifact "${base_f}" "${root}/${target_rel}/${base_name}" "${sp_action}"
     done
   fi
 
-  # Mirror shared referenced files (e.g. a common/ helper script) into the new
-  # layout; the legacy copy is retired with the pipelines/ tree at cleanup.
-  local aux aux_new
+  # Relay shared referenced files (e.g. a common/ helper script) into the new
+  # layout. The first job materializes the shared path; a later job moves the
+  # legacy copy away only once no other legacy pipeline still references it.
+  local aux aux_new aux_action
   for aux in "${aux_refs[@]+"${aux_refs[@]}"}"; do
+    [[ -e "${root}/${aux}" ]] || continue
     aux_new="jenkins/jobs/${aux#pipelines/}"
-    if [[ -e "${root}/${aux}" && ! -e "${root}/${aux_new}" ]]; then
-      mkdir -p "$(dirname "${root}/${aux_new}")"
-      cp "${root}/${aux}" "${root}/${aux_new}"
+    aux_action="copy"
+    if [[ "${sp_action}" == "move" && "$(ref_count "${aux}")" -le 1 ]]; then
+      aux_action="move"
     fi
+    consume_ref "${aux}"
+    if [[ -e "${root}/${aux_new}" ]]; then
+      if [[ "${aux_action}" == "move" ]]; then
+        rm -f "${root}/${aux}"
+      fi
+      continue
+    fi
+    mkdir -p "$(dirname "${root}/${aux_new}")"
+    relocate_artifact "${root}/${aux}" "${root}/${aux_new}" "${aux_action}"
   done
 
   local sed_args=() new_expr old_base
@@ -494,10 +690,38 @@ migrate_job() {
   return 0
 }
 
+build_ref_index
+
 while IFS= read -r dsl; do
   [[ -n "${dsl}" ]] || continue
   migrate_job "${dsl}"
 done < <(find "${legacy_jobs_dir}" \( -type f -o -type l \) -name '*.groovy' ! -name 'aa_folder.groovy' | LC_ALL=C sort)
+
+# Normalize already-migrated job DSLs (jobs migrated before the ciGroovyPath
+# convention) so every job keeps a single maintainable scriptPath reference.
+while IFS= read -r dsl; do
+  [[ -n "${dsl}" ]] || continue
+  grep -q 'scriptPath(ciGroovyPath)' "${dsl}" && continue
+  local_rel="${dsl#"${new_jobs_dir}/"}"
+  norm_job="$(basename "$(dirname "${local_rel}")")"
+  norm_dirrel="$(dirname "$(dirname "${local_rel}")")"
+  if [[ -n "${only}" ]]; then
+    only_prefix="${only#/}"
+    only_prefix="${only_prefix%/}"
+    if [[ "${norm_dirrel}" != "${only_prefix}" && "${norm_dirrel}" != "${only_prefix}"/* ]]; then
+      continue
+    fi
+  fi
+  norm_declared=()
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] && norm_declared+=("${line}")
+  done < <(collect_finals "${dsl}")
+  norm_cig="$(build_ci_groovy_path "${norm_dirrel}" "${norm_job}" "${norm_declared[@]+"${norm_declared[@]}"}")"
+  log "${mode_upper} normalize: jenkins/jobs/${local_rel} -> ciGroovyPath = \"${norm_cig}\""
+  if [[ "${mode}" == "apply" ]]; then
+    rewrite_dsl_scriptpath "${dsl}" "${norm_cig}"
+  fi
+done < <(find "${new_jobs_dir}" -name 'dsl.groovy' 2>/dev/null | LC_ALL=C sort)
 
 # Folder definition files are not jobs; move them to the mirrored new path.
 while IFS= read -r folder_file; do
@@ -522,27 +746,33 @@ while IFS= read -r folder_file; do
   fi
 done < <(find "${legacy_jobs_dir}" \( -type f -o -type l \) -name 'aa_folder.groovy' | LC_ALL=C sort)
 
-# OWNERS files follow the jobs they describe.
-while IFS= read -r owners_file; do
-  [[ -n "${owners_file}" ]] || continue
-  rel="${owners_file#"${legacy_jobs_dir}/"}"
-  target="${new_jobs_dir}/${rel}"
-  owners_dir="$(dirname "${rel}")"
-  if [[ -n "${only}" ]]; then
-    only_prefix="${only#/}"
-    only_prefix="${only_prefix%/}"
-    if [[ "${owners_dir}" != "${only_prefix}" && "${owners_dir}" != "${only_prefix}"/* ]]; then
+# OWNERS files follow the jobs they describe. Both the `jobs/` and `pipelines/`
+# trees carry OWNERS; after co-location they belong under `jenkins/jobs/`. An
+# OWNERS that already exists in the new tree wins (the legacy duplicate is
+# removed with the retired tree).
+for owners_root in "${legacy_jobs_dir}" "${pipelines_dir}"; do
+  [[ -d "${owners_root}" ]] || continue
+  while IFS= read -r owners_file; do
+    [[ -n "${owners_file}" ]] || continue
+    rel="${owners_file#"${owners_root}/"}"
+    target="${new_jobs_dir}/${rel}"
+    owners_dir="$(dirname "${rel}")"
+    if [[ -n "${only}" ]]; then
+      only_prefix="${only#/}"
+      only_prefix="${only_prefix%/}"
+      if [[ "${owners_dir}" != "${only_prefix}" && "${owners_dir}" != "${only_prefix}"/* ]]; then
+        continue
+      fi
+    fi
+    if [[ -e "${target}" ]]; then
       continue
     fi
-  fi
-  if [[ -e "${target}" ]]; then
-    continue
-  fi
-  log "${mode_upper} owners: ${rel} -> jenkins/jobs/${rel}"
-  if [[ "${mode}" == "apply" ]]; then
-    move_file "${owners_file}" "${target}"
-  fi
-done < <(find "${legacy_jobs_dir}" -type f -name 'OWNERS' | LC_ALL=C sort)
+    log "${mode_upper} owners: ${rel} -> jenkins/jobs/${rel}"
+    if [[ "${mode}" == "apply" ]]; then
+      move_file "${owners_file}" "${target}"
+    fi
+  done < <(find "${owners_root}" -type f -name 'OWNERS' | LC_ALL=C sort)
+done
 
 if [[ "${mode}" == "apply" ]]; then
   log "Migration applied: ${moved} job(s) migrated, ${skipped} skipped."

@@ -347,6 +347,28 @@ presubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
+    - name: pull-verify-jenkins-job-references
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^(jobs|jenkins|pipelines)/.*|^\\.ci/(check-jenkins-job-references|test-check-jenkins-job-references|test-migrate-jenkins-jobs)\\.sh$|^scripts/migrate-jenkins-jobs\\.sh$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.24
+            command: [sh, -ce]
+            args:
+              - |
+                apk add --no-cache bash git grep sed findutils
+                bash .ci/test-check-jenkins-job-references.sh
+                bash .ci/test-migrate-jenkins-jobs.sh
+                bash .ci/check-jenkins-job-references.sh --quiet
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
     - name: pull-verify-prow-jobs
       labels: *labels
       decorate: true
