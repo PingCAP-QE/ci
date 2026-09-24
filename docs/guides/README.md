@@ -17,7 +17,9 @@ Welcome to the guides section of our CI repository. This directory contains docu
 ### Development Workflow
 
 - [Job and Pipeline Change Governance](./job-change-governance.md) - The lifecycle for proposing, planning, implementing, verifying and promoting a CI job/pipeline change, plus the three-layer consistency rule and review checklist
-- [Branch Support and EOL Governance](./branch-support-and-eol.md) - How supported `release-X.Y` branches are added, synced and retired across `prow-jobs/`, `jobs/` and `pipelines/`, including hotfix and EOL control hooks
+- [Branch Support and EOL Governance](./branch-support-and-eol.md) - How supported `release-X.Y` branches are added, synced and retired across `prow-jobs/` and `jenkins/jobs/`, including hotfix and EOL control hooks
+- [Jenkins Job Folder Layout](./jenkins-job-folder-layout.md) - The one-folder-per-job layout under `jenkins/jobs/` (`dsl.groovy`, `Jenkinsfile`, `pod.yaml` / `pod-<purpose>.yaml`), reference rules and how to add or change a job
+- [Jenkins Job Folder Migration Runbook](./jenkins-job-folder-migration-runbook.md) - How to migrate legacy `jobs/` + `pipelines/` slices to the job-folder layout
 - [Cherry-Pick Pull Request](./cherry-pick-pull-request.md) - How to cherry-pick changes from one pull request to another branch using our helper script, with step-by-step instructions and conflict resolution guidance
 
 ### Testing

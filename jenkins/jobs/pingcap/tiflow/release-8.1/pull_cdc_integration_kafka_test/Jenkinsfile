@@ -4,8 +4,8 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflow/release-8.1/pull_cdc_integration_kafka_test/pod-pull_cdc_integration_kafka_test.yaml"
-final POD_TEMPLATE_FILE_BUILD = "jenkins/jobs/pingcap/tiflow/release-8.1/pull_cdc_integration_kafka_test/pod-pull_cdc_integration_build.yaml"
+final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflow/release-8.1/pull_cdc_integration_kafka_test/pod-test.yaml"
+final POD_TEMPLATE_FILE_BUILD = "jenkins/jobs/pingcap/tiflow/release-8.1/pull_cdc_integration_kafka_test/pod-build.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final HOTFIX_INFO = component.extractHotfixInfo(REFS.base_ref)
 final OCI_TAG_PD = HOTFIX_INFO.isHotfix ? HOTFIX_INFO.versionTag : component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')

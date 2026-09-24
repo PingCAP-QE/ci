@@ -7,10 +7,11 @@ verified and promoted in this repository. It complements
 ## Why governance
 
 CI job and pipeline files are production infrastructure for every PingCAP/TiDB/TiKV
-repository. A single job is represented by several coupled files spread across
-`prow-jobs/`, `jobs/` and `pipelines/`, so an unreviewed or out-of-sync edit can break
-PR feedback for a whole branch. This process makes each change traceable from proposal
-to promotion and records the evidence used to accept it.
+repository. A single job is represented by a Prow trigger plus the coupled files in one
+job folder under `jenkins/jobs/` (`dsl.groovy`, `Jenkinsfile`, optional `pod.yaml`), so
+an unreviewed or out-of-sync edit can break PR feedback for a whole branch. This process
+makes each change traceable from proposal to promotion and records the evidence used to
+accept it.
 
 ## Change lifecycle
 
@@ -45,9 +46,9 @@ names and references consistent:
 | Layer | Location | Key reference |
 |---|---|---|
 | Prow trigger | `prow-jobs/<org>/<repo>/<branch>-<jobtype>.yaml` | Prow job `name`, and `labels.master` for the Jenkins backend |
-| Jenkins Job DSL | `jobs/<org>/<repo>/<branch>/<job>.groovy` | `pipelineJob('<org>/<repo>/<job>')` and `scriptPath(...)` |
-| Jenkins pipeline | `pipelines/<org>/<repo>/<branch>/<job>.groovy` | `POD_TEMPLATE_FILE` |
-| Pod template | `pipelines/<org>/<repo>/<branch>/pod-<job>.yaml` | container images and resource requests |
+| Jenkins Job DSL | `jenkins/jobs/<org>/<repo>/<branch>/<job>/dsl.groovy` | `pipelineJob('<org>/<repo>/<job>')` and `scriptPath(...)` |
+| Jenkins pipeline | `jenkins/jobs/<org>/<repo>/<branch>/<job>/Jenkinsfile` | `POD_TEMPLATE_FILE` |
+| Pod template | `jenkins/jobs/<org>/<repo>/<branch>/<job>/pod.yaml` (or `pod-<purpose>.yaml`) | container images and resource requests |
 
 Rules:
 
@@ -71,10 +72,11 @@ Rules:
 
 Use this checklist when reviewing a job/pipeline change:
 
-- [ ] **Naming**: paths follow `<org>/<repo>/<branch>`; Prow files are named
-  `<branch>-<jobtype>.yaml`; Job DSL files match `[a-z][a-z0-9_]*[a-z0-9].groovy`.
+- [ ] **Naming**: paths follow `<org>/<repo>/<branch>/<job>`; Prow files are named
+  `<branch>-<jobtype>.yaml`; each job folder holds `dsl.groovy`, `Jenkinsfile` and an
+  optional `pod.yaml` / `pod-<purpose>.yaml` (no job name repeated in the file name).
 - [ ] **References**: `scriptPath` resolves to the pipeline file, and every
-  `POD_TEMPLATE_FILE` resolves to an existing `pod-*.yaml`.
+  `POD_TEMPLATE_FILE` resolves to an existing `pod*.yaml` (`pod.yaml` or `pod-<purpose>.yaml`).
 - [ ] **Pod templates and image tags**: pod YAML is a valid Pod manifest, and image tags
   use the intended variant suffix (for example `-dind`, `-alpine`) rather than a
   hand-edited tag.

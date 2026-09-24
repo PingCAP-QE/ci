@@ -196,6 +196,23 @@ normalize_pod_base() {
   esac
 }
 
+# normalize_pod_purpose <basename>: for a job with several pod templates, collapse
+# the legacy name to a short `pod-<purpose>.yaml` so the file name does not repeat
+# the job/repo (the job folder already carries it). `<purpose>` is the role slug
+# (build/main/test); names that carry no known role are left unchanged.
+normalize_pod_purpose() {
+  local b="$1"
+  b="${b%.yaml}"
+  b="${b%.yml}"
+  case "${b}" in
+    pod-build|*-build|*_build) printf 'pod-build.yaml' ;;
+    pod-main|*-main|*_main) printf 'pod-main.yaml' ;;
+    pod-test|*-test|*_test) printf 'pod-test.yaml' ;;
+    pod-*) printf '%s.yaml' "${b}" ;;
+    *) normalize_pod_base "${b}" ;;
+  esac
+}
+
 # move_file <src> <dst>: move src to dst, materializing a pre-existing symlink
 # (from an older, symlink-based tool run) instead of moving the link itself.
 move_file() {
@@ -542,10 +559,7 @@ migrate_job() {
       pod_news[i]="pod.yaml"
     else
       base="$(basename "${pod_olds[i]}")"
-      case "${base}" in
-        pod-*.yaml|pod-*.yml) pod_news[i]="${base}" ;;
-        *) pod_news[i]="$(normalize_pod_base "${base}")" ;;
-      esac
+      pod_news[i]="$(normalize_pod_purpose "${base}")"
     fi
   done
 

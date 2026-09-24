@@ -42,12 +42,6 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 │       ├── dsl.groovy       # Jenkins Job DSL (pipelineJob)
 │       ├── Jenkinsfile      # declarative pipeline
 │       └── pod*.yaml        # Kubernetes pod template (optional)
-├── jobs/                    # LEGACY Jenkins job DSL definitions (being retired)
-│   └── <org>/<repo>/
-│       └── <branch>/        # Branch-specific configs
-├── pipelines/               # LEGACY Jenkins pipeline implementations (being retired)
-│   └── <org>/<repo>/
-│       └── <branch>/
 ├── tekton/                  # Tekton CI/CD resources
 │   └── v<version>/
 ├── libraries/               # Jenkins shared libraries
@@ -75,11 +69,12 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 - One folder per job:
   - `dsl.groovy` — Jenkins Job DSL (`pipelineJob`); its `scriptPath` points at the sibling `Jenkinsfile`.
   - `Jenkinsfile` — declarative pipeline.
-  - `pod.yaml` — Kubernetes pod template when the job has exactly one; `pod-<purpose>.yaml` when it has several; omitted when it has none.
+  - `pod.yaml` — Kubernetes pod template when the job has exactly one; `pod-<purpose>.yaml` (`pod-build.yaml`, `pod-test.yaml`, `pod-main.yaml`) when it has several; omitted when it has none. Do not repeat the job name in the file name — the job folder already carries it.
   - `aa_folder.groovy` — folder definition, one level above the job folders.
 - All `scriptPath` and pod-template references are repo-root-relative.
-- The legacy `/jobs/**` and `/pipelines/**` trees are being retired by the
-  one-folder-per-job migration; do not add new jobs there.
+- The legacy `/jobs/**` and `/pipelines/**` trees were retired by the
+  one-folder-per-job migration (merged 2026-09-24); every job now lives under
+  `/jenkins/jobs/**`.
 
 ## Development Guidelines
 

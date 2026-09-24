@@ -73,6 +73,11 @@ assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/dsl.groovy"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/pod-build.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/pod-test.yaml"
+# Multi-pod legacy names that repeat the job/repo are collapsed to pod-<purpose>.
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/bloated/pod-build.yaml"
+assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/bloated/pod-test.yaml"
+assert_absent "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/bloated/pod-bloated-build.yaml"
+assert_absent "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/bloated/pod-bloated-test.yaml"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/aa_folder.groovy"
 assert_file "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/OWNERS"
 assert_absent "${TMP_ROOT}/pipelines/acme/widget/latest/OWNERS"
@@ -135,6 +140,8 @@ assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/dsl.groovy" '
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/build/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/build/pod.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-build.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/multi/Jenkinsfile" 'jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/bloated/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/bloated/pod-build.yaml'
+assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/bloated/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/bloated/pod-test.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/refs/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/refs/pod.yaml'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/auxiliary/Jenkinsfile" 'jenkins/jobs/acme/widget/latest/common/helper.sh'
 assert_contains "${TMP_ROOT}/jenkins/jobs/acme/widget/latest/auxiliary/Jenkinsfile" 'final SELF_DIR = "jenkins/jobs/acme/widget/latest/auxiliary"'

@@ -4,8 +4,7 @@
 
 - `/docs` - Documentation about CI/CD jobs, tools, and usage guides
 - `/prow-jobs` - Top-level Prow job trigger configurations
-- `/jobs` - Jenkins CI job DSL definition files (called by Prow jobs)
-- `/pipelines` - Jenkins pipeline script implementations
+- `/jenkins/jobs` - Jenkins job definitions, one folder per job (Job DSL, pipeline and pod template co-located)
 - `/tekton` - Tekton CI/CD static resources definitions
 - `/libraries` - Jenkins CI shared libraries
 
@@ -32,7 +31,13 @@ After modifying Prow jobs, update the kustomization file:
 
 ### Jenkins Jobs
 
-Located at `/jobs/<org>/<repo>/<branch-special>/<job-type>_<job-name>.groovy`:
+Located at `/jenkins/jobs/<org>/<repo>/<branch-special>/<job>/`, one folder per job:
+
+- `dsl.groovy` - Jenkins Job DSL (`pipelineJob`); its `scriptPath` points at the sibling `Jenkinsfile`
+- `Jenkinsfile` - declarative pipeline implementation
+- `pod.yaml` - Kubernetes pod template (optional); when the job has several templates use
+  `pod-<purpose>.yaml` (`pod-build.yaml`, `pod-test.yaml`, `pod-main.yaml`, ...). Do not
+  repeat the job name in the file name - the job folder already carries it
 
 - **Branch specifiers**:
   - `latest` - For trunk and feature branches
@@ -40,22 +45,10 @@ Located at `/jobs/<org>/<repo>/<branch-special>/<job-type>_<job-name>.groovy`:
   - `release-x.y.z` - For patch version branches (hotfixes)
   - Omit if all branches use the same configuration
 
-- **Job types**:
-  - `pull` - Run on pull requests (works with Prow `presubmits`)
-  - `merged` - Run on merges (works with Prow `postsubmits`)
-  - `periodics` - Run on schedule (works with Prow `periodics`)
-
 - **Job name format**: `[a-z][a-z0-9_]*[a-z0-9]`
 
-- Special file `aa_folder.groovy` defines folder names (do not modify this filename)
-
-### Jenkins Pipelines
-
-Located at `/pipelines/<org>/<repo>/<branch-special>/`:
-
-- **Pipeline scripts**: `*.groovy` files containing the Jenkins pipeline implementation
-- **Pod templates**: `pod-*.yaml` files defining Kubernetes pod configurations for the pipeline
-
+- Special file `aa_folder.groovy` defines folder names, one level above the job folders
+  (do not modify this filename)
 
 ### Tekton Resources
 
@@ -73,9 +66,9 @@ For a typical pull request test in the TiDB repository:
 
 ```mermaid
 graph TD
-    A["/prow-jobs/pingcap/tidb/latest-presubmits.yaml"] -->|Defines trigger| B["/jobs/pingcap/tidb/latest/pull_integration_test.groovy"]
-    B -->|Executes| C["/pipelines/pingcap/tidb/latest/pull_integration_test.groovy"]
-    C -->|May use| D["/pipelines/pingcap/tidb/latest/pod-integration_test.yaml"]
+    A["/prow-jobs/pingcap/tidb/latest-presubmits.yaml"] -->|Defines trigger| B["/jenkins/jobs/pingcap/tidb/latest/pull_integration_test/dsl.groovy"]
+    B -->|Executes| C["/jenkins/jobs/pingcap/tidb/latest/pull_integration_test/Jenkinsfile"]
+    C -->|May use| D["/jenkins/jobs/pingcap/tidb/latest/pull_integration_test/pod.yaml"]
 
     style A fill:#f9d77e,stroke:#333,stroke-width:2px
     style B fill:#a8d1ff,stroke:#333,stroke-width:2px
