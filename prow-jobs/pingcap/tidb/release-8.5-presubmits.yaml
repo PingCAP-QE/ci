@@ -33,7 +33,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_check2
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/check_dev_2
@@ -55,7 +55,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_unit_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: idc-jenkins-ci-tidb/unit-test
@@ -153,7 +153,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_integration_jdbc_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -192,7 +192,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_integration_common_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true
@@ -205,7 +205,7 @@ presubmits:
       name: pingcap/tidb/release-8.5/pull_sqllogic_test
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       always_run: false
       optional: true

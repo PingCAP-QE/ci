@@ -37,12 +37,11 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 │   └── jobs/                # Job documentation
 ├── prow-jobs/               # Prow job trigger configurations
 │   └── <org>/<repo>/        # Organized by GitHub org/repo
-├── jobs/                    # Jenkins job DSL definitions
-│   └── <org>/<repo>/
-│       └── <branch>/        # Branch-specific configs
-├── pipelines/               # Jenkins pipeline implementations
-│   └── <org>/<repo>/
-│       └── <branch>/
+├── jenkins/                 # Jenkins job definitions (one folder per job)
+│   └── jobs/<org>/<repo>/<branch>/<job>/
+│       ├── dsl.groovy       # Jenkins Job DSL (pipelineJob)
+│       ├── Jenkinsfile      # declarative pipeline
+│       └── pod*.yaml        # Kubernetes pod template (optional)
 ├── tekton/                  # Tekton CI/CD resources
 │   └── v<version>/
 ├── libraries/               # Jenkins shared libraries
@@ -66,13 +65,16 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 - **Branch specifiers**: `latest` (trunk), `release-x.y` (versions)
 - **Job types**: `presubmits` (PRs), `postsubmits` (merges), `periodics` (scheduled)
 
-### Jenkins Jobs (`/jobs/<org>/<repo>/<branch>/<job-type>_<job-name>.groovy`)
-- **Job types**: `pull` (PR tests), `merged` (post-merge), `periodics` (scheduled)
-- **Naming**: `[a-z][a-z0-9_]*[a-z0-9]`
-
-### Jenkins Pipelines (`/pipelines/<org>/<repo>/<branch>/`)
-- Pipeline scripts: `*.groovy`
-- Pod templates: `pod-*.yaml`
+### Jenkins Jobs (`/jenkins/jobs/<org>/<repo>/<branch>/<job>/`)
+- One folder per job:
+  - `dsl.groovy` — Jenkins Job DSL (`pipelineJob`); its `scriptPath` points at the sibling `Jenkinsfile`.
+  - `Jenkinsfile` — declarative pipeline.
+  - `pod.yaml` — Kubernetes pod template when the job has exactly one; `pod-<purpose>.yaml` (`pod-build.yaml`, `pod-test.yaml`, `pod-main.yaml`) when it has several; omitted when it has none. Do not repeat the job name in the file name — the job folder already carries it.
+  - `aa_folder.groovy` — folder definition, one level above the job folders.
+- All `scriptPath` and pod-template references are repo-root-relative.
+- The legacy `/jobs/**` and `/pipelines/**` trees were retired by the
+  one-folder-per-job migration (merged 2026-09-24); every job now lives under
+  `/jenkins/jobs/**`.
 
 ## Development Guidelines
 
@@ -89,7 +91,7 @@ Follow the **Conventional Commits** specification for commit messages:
 - **Language**: All commit messages and PR titles/descriptions must be written in English.
 
 Examples:
-- `ci(prow): add presubmit for tiflow lint`
+- `feat(prow-jobs): add presubmit for tiflow lint`
 - `fix(tiflow): increase pipeline timeout`
 - `docs(agents): document Conventional Commits`
 - `test(libraries): add unit tests for parseCIParamsFromPRTitle`
@@ -103,13 +105,33 @@ Be careful when writing `#NNN`-style references in GitHub PR titles, description
 - When a reference to a GitHub issue/PR *is* intended, prefer the explicit form `<owner>/<repo>#NNN` (or a full URL) over a bare `#NNN` to avoid ambiguity across repos.
 - Review rendered text before posting: a wrong auto-link cannot be seen by readers as plain text.
 
+### Jenkins Shared Library Code Organization
+
+Applies to `libraries/*/vars/*.groovy` (Jenkins global variables). Follow these rules so large files stay navigable:
+
+- Put **file-level fields and constants at the top** of the file (e.g. `@Field` caches and resource paths), before the first function.
+- Group functions by **feature/cohesion**, not by visibility. Do not sort the whole file by `public`/`private`; a `private` helper must stay next to the public entry that uses it.
+- Inside a feature block, put the **public entry first, then its private helpers** (top-down reading).
+- Prefix each feature block with a banner comment:
+
+  ```groovy
+  // ============================================================
+  // <Feature name>
+  // ============================================================
+  ```
+
+- Prefer a **data/config file over hardcoded branches**: special-case mappings live under `libraries/tipipeline/resources/configs/` (e.g. `component-branch-mapping.yaml`) and are read via `libraryResource` (+ `readYaml`), with a defensive fallback so a missing or invalid config never breaks pipelines. Keep scripts under `resources/scripts/` and other resource kinds in their own subdirectories.
+- **Log the branch-resolution reason for every path** — PR-title param, config mapping, or derived/default rule — including the matched rule/source and the resolved branch, so CI logs stay transparent about why a branch was chosen.
+- Add or update tests in `libraries/tipipeline/tests/` for any behavior change; keep a golden/characterization table for behavior that must not regress.
+
 ## Common Tasks for Agents
 
 ### 1. Adding/Modifying CI Jobs
 
 1. Update Prow job trigger in `/prow-jobs/<org>/<repo>/`
-2. Update Jenkins job DSL in `/jobs/<org>/<repo>/<branch>/`
-3. Update pipeline script in `/pipelines/<org>/<repo>/<branch>/`
+2. Edit the job folder `/jenkins/jobs/<org>/<repo>/<branch>/<job>/`: `dsl.groovy`
+   (Job DSL), `Jenkinsfile` (pipeline), `pod*.yaml` (pod template)
+3. Run `.ci/check-jenkins-job-references.sh` to confirm the references resolve
 4. Run `.ci/update-prow-job-kustomization.sh` after Prow job changes
 
 ### 2. Pipeline Development Workflow

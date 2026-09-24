@@ -8,13 +8,11 @@ Welcome to PingCAP's CI guides! This section contains detailed documentation and
 For any repository (e.g., TiDB, TiKV, TiFlash), pipelines are organized in the following locations:
 
 - `/prow-jobs/<org>/<repo>/` - Contains trigger configurations
-- `/jobs/<org>/<repo>/` - Contains Jenkins job definitions
-- `/pipelines/<org>/<repo>/` - Contains pipeline implementation scripts
+- `/jenkins/jobs/<org>/<repo>/` - Contains Jenkins job definitions and pipeline implementations, one folder per job
 
-For example, TiDB pipelines are located at:
+For example, TiDB jobs are located at:
 - `/prow-jobs/pingcap/tidb/`
-- `/jobs/pingcap/tidb/`
-- `/pipelines/pingcap/tidb/`
+- `/jenkins/jobs/pingcap/tidb/`
 
 ## How to Modify and Test a Pipeline
 
@@ -41,16 +39,16 @@ flowchart TD
 
 ### Step-by-Step Guide
 
-1. **Locate the pipeline files**:
-   - Find the Jenkins job definition in `/jobs/<org>/<repo>/<branch-special>/<job-type>_<job-name>.groovy`
-   - Find the pipeline implementation in `/pipelines/<org>/<repo>/<branch-special>/`
+1. **Locate the job files**:
+   - Find the job folder in `/jenkins/jobs/<org>/<repo>/<branch-special>/<job>/`
+     (it contains `dsl.groovy`, `Jenkinsfile`, and an optional `pod.yaml` / `pod-<purpose>.yaml`)
    - Identify the Prow job trigger in `/prow-jobs/<org>/<repo>/<branch-special>-<job-type>.yaml`
 
 2. **Make your changes**:
    - Always place your modifications in the corresponding `/staging` directory first
    - Maintain the same directory structure in staging as in production
-   - For example, if modifying `/jobs/pingcap/tidb/latest/pull_integration_test.groovy`,
-     place your modified version in `/staging/jobs/pingcap/tidb/latest/pull_integration_test.groovy`
+   - For example, if modifying `/jenkins/jobs/pingcap/tidb/latest/pull_integration_test/Jenkinsfile`,
+     place your modified version in `/staging/jenkins/jobs/pingcap/tidb/latest/pull_integration_test/Jenkinsfile`
 
 3. **Test your changes**:
    - After your PR is merged, the seed job (automatically triggered by Prow) will deploy it to the staging CI server
@@ -65,7 +63,7 @@ flowchart TD
 
 ## Pre-PR Verification for Jenkins Pipeline Changes
 
-When your PR modifies files under `pipelines/**/*.groovy`, run both static validation and replay tests before requesting review.
+When your PR modifies pipeline files under `jenkins/jobs/**` (`Jenkinsfile`), run both static validation and replay tests before requesting review.
 
 ### 1. Static Groovy/Jenkinsfile Validation
 
@@ -85,7 +83,7 @@ Replay one historical build with your local pipeline script content:
 JENKINS_USER="<jenkins-user>" \
 JENKINS_TOKEN="<jenkins-token>" \
 .ci/replay-jenkins-build.sh \
-  --script-file pipelines/pingcap/tidb/release-8.5/pull_integration_e2e_test.groovy \
+  --script-file jenkins/jobs/pingcap/tidb/release-8.5/pull_integration_e2e_test/Jenkinsfile \
   --jenkins-url https://prow.tidb.net/jenkins \
   --selector lastSuccessfulBuild \
   --verbose
@@ -97,7 +95,7 @@ Default behavior:
 
 ### 3. Replay All Changed Pipelines in Current Workspace
 
-Use `--auto-changed` to replay all changed `pipelines/*.groovy` files from git diff:
+Use `--auto-changed` to replay all changed pipeline files (`jenkins/jobs/**/Jenkinsfile`) from git diff:
 
 ```bash
 JENKINS_USER="<jenkins-user>" \
@@ -126,10 +124,10 @@ This repository has two related presubmit jobs for pipeline changes:
 - `pull-verify-k8s-pod-yaml`
   - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests.
   - When in-cluster Kubernetes API access is available, injects a test `metadata.name` and also runs both `kubectl --dry-run=client --validate=strict` and `kubectl --dry-run=server --validate=strict`.
-  - Triggered by `pipelines/**/*.yaml` changes.
+  - Triggered by `jenkins/jobs/**/pod*.yaml` changes.
 - `pull-verify-secret-scan`
   - Triggered only when changed files are in the Jenkins credentials-risk surface:
-    `pipelines/**`, `jobs/**`, `libraries/**`, `prow-jobs/**` (`*.groovy|*.yml|*.yaml`).
+    `jenkins/jobs/**`, `libraries/**`, `prow-jobs/**` (`*.groovy|*.yml|*.yaml`).
   - Uses pinned scanner image digest and explicit timeout for predictable operations.
   - Runs two fail-fast checks:
     - Jenkins credential policy check (`bash .ci/verify-jenkins-credential-policy.sh`) to block obvious insecure patterns such as secret-like literal assignments, secret value echo, and secret-like env vars with direct `value:` in Prow YAML.

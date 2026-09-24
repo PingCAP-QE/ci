@@ -94,7 +94,7 @@ def markDone(Map refs, String stageName, Map extraParams = [:]) {
 2. 在 `post { success {} }` 中调用 `markDone()`
 3. 两次调用必须使用完全相同的 `stageName` 和 `extraParams`
 
-ticdc 试点任务 `pipelines/pingcap/ticdc/latest/pull_cdc_storage_integration_light_next_gen/pipeline.groovy` 的接入方式如下：
+ticdc 试点任务 `jenkins/jobs/pingcap/ticdc/latest/pull_cdc_storage_integration_light_next_gen/Jenkinsfile` 的接入方式如下：
 
 ```groovy
 stage("Test") {

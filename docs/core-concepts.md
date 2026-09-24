@@ -22,5 +22,6 @@ graph LR
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | **Prow Job Trigger** | `/prow-jobs/<org>/<repo>/` | Defines when and under what conditions jobs run |
-| **Jenkins Job DSL** | `/jobs/<org>/<repo>/` | Configures the Jenkins job settings and parameters |
-| **Jenkins Pipeline Script** | `/pipelines/<org>/<repo>/` | Contains the actual implementation steps |
+| **Jenkins Job DSL** | `/jenkins/jobs/<org>/<repo>/<branch>/<job>/dsl.groovy` | Configures the Jenkins job settings and parameters |
+| **Jenkins Pipeline Script** | `/jenkins/jobs/<org>/<repo>/<branch>/<job>/Jenkinsfile` | Contains the actual implementation steps |
+| **Pod template** | `/jenkins/jobs/<org>/<repo>/<branch>/<job>/pod.yaml` | Kubernetes pod template (optional; `pod-<purpose>.yaml` when a job has several) |

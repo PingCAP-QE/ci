@@ -4,29 +4,30 @@ postsubmits:
     - name: seed
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^jobs/.*\\.groovy"
+      run_if_changed: "^(jobs/.*\\.groovy|jenkins/jobs/.*\\.groovy)$"
       branches:
         - ^main$
       spec:
         containers:
-          - name: jenkins-master-1
+          - &container
+            name: master-0-staging
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: ci-job-jenkins-url
+                    key: mig-to-ci-job-staging-jenkins-url
               - name: JENKINS_USER
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: ci-job-jenkins-user
+                    key: mig-to-ci-job-staging-jenkins-user
               - name: JENKINS_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: ci-job-jenkins-token
+                    key: mig-to-ci-job-staging-jenkins-token
               - name: JENKINS_JOB
                 value: seed
               - name: WAIT_BUILD
@@ -40,8 +41,8 @@ postsubmits:
               limits:
                 memory: 128Mi
                 cpu: 200m
-          - name: jenkins-master-0
-            image: wbitt/network-multitool
+          - <<: *container
+            name: master-0-prod
             env:
               - name: JENKINS_URL
                 valueFrom:
@@ -62,12 +63,25 @@ postsubmits:
                 value: seed
               - name: WAIT_BUILD
                 value: "true"
-            command: [bash, -ceo, pipefail]
-            args:
-              - |
-                apk add --no-cache jq
-                .ci/trigger-jenkins-job.sh
-            resources:
-              limits:
-                memory: 128Mi
-                cpu: 200m
+          - <<: *container
+            name: master-1
+            env:
+              - name: JENKINS_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-url
+              - name: JENKINS_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-user
+              - name: JENKINS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins-token
+              - name: JENKINS_JOB
+                value: seed
+              - name: WAIT_BUILD
+                value: "true"

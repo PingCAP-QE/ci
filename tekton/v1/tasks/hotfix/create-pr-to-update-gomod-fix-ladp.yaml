@@ -140,7 +140,6 @@ spec:
           exit 0
         else
           # update bazel file
-          echo 'build --remote_cache=http://ats.apps.svc/brc/tidb --remote_timeout="30s"' > ~/.bazelrc
           make bazel_prepare || true
         fi
 

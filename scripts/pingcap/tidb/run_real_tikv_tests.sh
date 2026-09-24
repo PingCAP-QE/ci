@@ -22,6 +22,47 @@ function wait_for_pd_cluster() {
     return 1
 }
 
+function wait_for_pd_leader() {
+    local url="$1"
+    local name="$2"
+    local response
+
+    for attempt in $(seq 1 30); do
+        response="$(curl -fsS --max-time 2 "${url}" 2>/dev/null || true)"
+        if printf '%s' "${response}" | grep -qE '"name"[[:space:]]*:[[:space:]]*"[^"]+"'; then
+            echo "${name} is ready"
+            return 0
+        fi
+        echo "Waiting for ${name}... (attempt ${attempt}/30)"
+        sleep 1
+    done
+
+    echo "${name} did not become ready: ${url}; last response: ${response:-<unavailable>}" >&2
+    return 1
+}
+
+function wait_for_tikv_cluster() {
+    local url="$1"
+    local expected_stores="$2"
+    local name="$3"
+    local response
+    local up_stores
+
+    for attempt in $(seq 1 30); do
+        response="$(curl -fsS --max-time 2 "${url}" 2>/dev/null || true)"
+        up_stores="$(printf '%s' "${response}" | grep -o '"state_name"[[:space:]]*:[[:space:]]*"Up"' | wc -l | tr -d '[:space:]')"
+        if [[ "${up_stores}" -ge "${expected_stores}" ]]; then
+            echo "${name} is ready"
+            return 0
+        fi
+        echo "Waiting for ${name}... (attempt ${attempt}/30)"
+        sleep 1
+    done
+
+    echo "${name} did not become ready: ${url}; last response: ${response:-<unavailable>}" >&2
+    return 1
+}
+
 function main() {
     local test_suite="$1"
     local timeout="$2"
@@ -46,23 +87,31 @@ max-open-files = 20480
 max-open-files = 20480
 EOF
 
-    local pd_data_base_dir=$(mktemp -d)
-    bin/pd-server --name=pd-0 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-0/data --peer-urls=http://127.0.0.1:2380 --advertise-peer-urls=http://127.0.0.1:2380 --client-urls=http://127.0.0.1:2379 --advertise-client-urls=http://127.0.0.1:2379 --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 --force-new-cluster &> pd1.log &
-    bin/pd-server --name=pd-1 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-1/data --peer-urls=http://127.0.0.1:2381 --advertise-peer-urls=http://127.0.0.1:2381 --client-urls=http://127.0.0.1:2382 --advertise-client-urls=http://127.0.0.1:2382 --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 --force-new-cluster &> pd2.log &
-    bin/pd-server --name=pd-2 --data-dir=/home/jenkins/.tiup/data/T9Z9nII/pd-2/data --peer-urls=http://127.0.0.1:2383 --advertise-peer-urls=http://127.0.0.1:2383 --client-urls=http://127.0.0.1:2384 --advertise-client-urls=http://127.0.0.1:2384 --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 --force-new-cluster &> pd3.log &
+    data_base_dir="$(mktemp -d /tmp/tidb-real-tikv-data.XXXXXX)" || { echo "failed to create data dir" >&2; return 1; }
+    mkdir -p "${data_base_dir}"/{pd-0,pd-1,pd-2,tikv-0,tikv-1,tikv-2}
+    bin/pd-server --name=pd-0 --data-dir="${data_base_dir}/pd-0/data" --peer-urls=http://127.0.0.1:2380 --advertise-peer-urls=http://127.0.0.1:2380 --client-urls=http://127.0.0.1:2379 --advertise-client-urls=http://127.0.0.1:2379 --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 --force-new-cluster &> pd1.log &
+    bin/pd-server --name=pd-1 --data-dir="${data_base_dir}/pd-1/data" --peer-urls=http://127.0.0.1:2381 --advertise-peer-urls=http://127.0.0.1:2381 --client-urls=http://127.0.0.1:2382 --advertise-client-urls=http://127.0.0.1:2382 --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 --force-new-cluster &> pd2.log &
+    bin/pd-server --name=pd-2 --data-dir="${data_base_dir}/pd-2/data" --peer-urls=http://127.0.0.1:2383 --advertise-peer-urls=http://127.0.0.1:2383 --client-urls=http://127.0.0.1:2384 --advertise-client-urls=http://127.0.0.1:2384 --initial-cluster=pd-0=http://127.0.0.1:2380,pd-1=http://127.0.0.1:2381,pd-2=http://127.0.0.1:2383 --force-new-cluster &> pd3.log &
     wait_for_pd_cluster "http://127.0.0.1:2379/pd/api/v1/health" 3 "PD cluster" || return 1
+    wait_for_pd_leader "http://127.0.0.1:2379/pd/api/v1/leader" "PD leader" || return 1
+    # Let the freshly elected leader finish bringing up its TSO service. TiKV
+    # requests a timestamp while starting and panics ("Timestamp channel is
+    # dropped") if it races the leader election, which leaves the cluster
+    # unbootstrapped and fails every test with "cluster is not bootstrapped".
+    sleep 5
 
-    bin/tikv-server --addr=127.0.0.1:20160 --advertise-addr=127.0.0.1:20160 --status-addr=127.0.0.1:20180 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-0/data -f tikv1.log &
-    bin/tikv-server --addr=127.0.0.1:20161 --advertise-addr=127.0.0.1:20161 --status-addr=127.0.0.1:20181 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-1/data -f tikv2.log &
-    bin/tikv-server --addr=127.0.0.1:20162 --advertise-addr=127.0.0.1:20162 --status-addr=127.0.0.1:20182 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir=/home/jenkins/.tiup/data/T9Z9nII/tikv-2/data -f tikv3.log &
+    bin/tikv-server --addr=127.0.0.1:20160 --advertise-addr=127.0.0.1:20160 --status-addr=127.0.0.1:20180 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir="${data_base_dir}/tikv-0/data" -f tikv1.log &
+    bin/tikv-server --addr=127.0.0.1:20161 --advertise-addr=127.0.0.1:20161 --status-addr=127.0.0.1:20181 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir="${data_base_dir}/tikv-1/data" -f tikv2.log &
+    bin/tikv-server --addr=127.0.0.1:20162 --advertise-addr=127.0.0.1:20162 --status-addr=127.0.0.1:20182 --pd=http://127.0.0.1:2379,http://127.0.0.1:2382,http://127.0.0.1:2384 --config=tikv.toml --data-dir="${data_base_dir}/tikv-2/data" -f tikv3.log &
 
-    sleep 10
+    wait_for_tikv_cluster "http://127.0.0.1:2379/pd/api/v1/stores" 3 "TiKV cluster" || return 1
     make ${test_suite}
 }
 
 function cleanup() {
     killall -9 -r -q tikv-server
     killall -9 -r -q pd-server
+    [[ -n "${data_base_dir:-}" ]] && rm -rf "${data_base_dir}"
 }
 
 exit_code=0

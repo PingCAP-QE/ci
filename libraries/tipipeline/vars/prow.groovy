@@ -204,6 +204,15 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
             fi
         ) >/dev/null 2>&1 || true
 
+        # Jenkins `stash` archives only files, so an empty directory is dropped.
+        # `git gc` packs all refs and leaves .git/refs empty; without any file in
+        # it, a workspace restored via `unstash` is not recognized as a valid git
+        # repository, and git commands fall back to an ancestor repository (e.g.
+        # the CI checkout at the workspace root). Keep a sentinel so a
+        # transferred .git stays valid.
+        mkdir -p .git/refs
+        touch .git/refs/.keep
+
         echo "✅ ~~~~~All done.~~~~~~"
     """
 }
@@ -226,6 +235,41 @@ def getRestoreKeys(prefixFolder, refs, part = '') {
         return [prefix + refs.base_sha[0..<7], prefix]
     } else {
         return [prefix]
+    }
+}
+
+/**
+ * Run the body only when the cache identified by `key` is missing.
+ *
+ * The `cache` step always executes its body (restore -> body -> save), so an
+ * exact-key hit would still rerun the body. This wrapper stores a marker file
+ * inside the cached path and skips the body when the marker for the same key is
+ * restored, so expensive steps can be skipped on a retest.
+ *
+ * Args:
+ *   - path        (required) directory to cache, absolute or relative to the current dir
+ *   - key         (required) exact cache key
+ *   - restoreKeys (optional) fallback keys; a fallback restore still runs the body
+ *   - includes    (optional) Ant-style include pattern inside path, default '**\/*'
+ *   - name        (optional) label used in log messages, default the key
+ *   - marker      (optional) marker file name inside path, default '.cache-complete'
+ */
+def withCache(Map args, Closure body) {
+    final path = args.path
+    final key = args.key
+    final name = args.name ?: key
+    final marker = args.marker ?: '.cache-complete'
+    final markerFile = path + '/' + marker
+    final includes = [args.includes ?: '**/*', marker].join(',')
+
+    cache(path: path, key: key, includes: includes, restoreKeys: args.restoreKeys ?: []) {
+        if (fileExists(file: markerFile) && readFile(file: markerFile).trim() == key) {
+            echo "[cache] hit '${name}' (key=${key}), skip the body"
+            return
+        }
+        echo "[cache] miss '${name}' (key=${key}), run the body"
+        body()
+        writeFile(file: markerFile, text: key)
     }
 }
 
