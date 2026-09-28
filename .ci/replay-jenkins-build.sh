@@ -26,6 +26,7 @@ Options:
   --base-sha <sha>         Base SHA for --auto-changed.
   --head-sha <sha>         Head SHA for --auto-changed.
   --jenkins-url <url>      Jenkins root URL. Default: $JENKINS_URL or https://prow.tidb.net/jenkins.
+  --route-by-prow-master  Select Jenkins URL and credentials per job from its Prow labels.master.
   --wait                   Wait for replay build to finish.
   --timeout <seconds>      Max wait seconds for queue/build completion. Default: 3600.
   --poll-interval <sec>    Poll interval in seconds. Default: 15.
@@ -42,6 +43,8 @@ Environment:
   JENKINS_URL              Jenkins root URL fallback.
   JENKINS_USER             Jenkins username (required for replay submit).
   JENKINS_TOKEN            Jenkins API token/password paired with JENKINS_USER.
+  JENKINS_MASTER_0_URL/USER/TOKEN  Jenkins credentials for Prow master "0".
+  JENKINS_MASTER_1_URL/USER/TOKEN  Jenkins credentials for Prow master "1".
 USAGE
 }
 
@@ -90,6 +93,59 @@ script_to_job_path() {
     job_path+="/job/${job}"
 
     printf '%s' "$job_path"
+}
+
+route_jenkins_for_script() {
+    local script_file="$1"
+    local rel="${script_file#./}"
+    local job_path job_name org repo config_dir file master masters values="" definitions=""
+    job_path="$(script_to_job_path "$script_file")" || return 1
+    job_name="${job_path#job/}"
+    job_name="$(printf '%s' "$job_name" | sed 's#/job/#/#g')"
+    org="${rel#jenkins/jobs/}"
+    repo="${org#*/}"
+    org="${org%%/*}"
+    repo="${repo%%/*}"
+    config_dir="prow-jobs/${org}/${repo}"
+    [[ -d "$config_dir" ]] || fatal "Prow config directory not found for ${job_name}: ${config_dir}"
+
+    # A job may appear in multiple Prow files, but all definitions must agree.
+    while IFS= read -r file; do
+        masters="$(REPLAY_JOB_NAME="$job_name" yq -r --yaml-fix-merge-anchor-to-spec=true \
+            '.. | select(.name? == strenv(REPLAY_JOB_NAME) and .agent? == "jenkins") | .labels.master // "(missing)"' "$file")" || return 1
+        [[ -n "$masters" ]] || continue
+        while IFS= read -r master; do
+            values+="${master}"$'\n'
+            definitions+="${file}: ${master}"$'\n'
+        done <<< "$masters"
+    done < <(find "$config_dir" -type f \( -name '*.yaml' -o -name '*.yml' \))
+    values="$(printf '%s' "$values" | sort -u)"
+    [[ -n "$values" ]] || fatal "no Jenkins Prow job definition found for ${job_name} in ${config_dir}"
+    [[ "$values" != *$'\n'* ]] || fatal "conflicting Prow labels.master for ${job_name}: ${definitions%$'\n'}"
+    [[ "$values" != "(missing)" ]] || fatal "missing Prow labels.master for ${job_name} in ${definitions%$'\n'}"
+
+    case "$values" in
+        0)
+            JENKINS_URL="${JENKINS_MASTER_0_URL:-}"
+            JENKINS_USER="${JENKINS_MASTER_0_USER:-}"
+            JENKINS_TOKEN="${JENKINS_MASTER_0_TOKEN:-}"
+            ;;
+        1)
+            JENKINS_URL="${JENKINS_MASTER_1_URL:-}"
+            JENKINS_USER="${JENKINS_MASTER_1_USER:-}"
+            JENKINS_TOKEN="${JENKINS_MASTER_1_TOKEN:-}"
+            ;;
+        *)
+            fatal "unsupported Prow labels.master '${values}' for ${job_name}"
+            ;;
+    esac
+    [[ -n "$JENKINS_URL" ]] || fatal "JENKINS_MASTER_${values}_URL is required for ${job_name}; set it for Prow master ${values}"
+    if [[ "$DRY_RUN" != "true" ]]; then
+        [[ -n "$JENKINS_USER" && -n "$JENKINS_TOKEN" ]] || \
+            fatal "JENKINS_MASTER_${values}_USER and JENKINS_MASTER_${values}_TOKEN are required for ${job_name}"
+    fi
+    JENKINS_URL="$(trim_trailing_slash "$JENKINS_URL")"
+    log "route ${job_name}: Prow master=${values} -> ${JENKINS_URL}"
 }
 
 resolve_pod_template_file() {
@@ -505,6 +561,13 @@ replay_one() {
     REPLAY_LAST_RESULT=""
 
     [[ -f "$script_file" ]] || fatal "script file not found: ${script_file}"
+    if [[ "$ROUTE_BY_PROW_MASTER" == "true" ]]; then
+        route_jenkins_for_script "$script_file" || return 1
+        if [[ "$DRY_RUN" != "true" ]]; then
+            setup_auth_and_crumb
+            ensure_auth_for_replay
+        fi
+    fi
     prepare_script_for_replay "$script_file"
     local replay_script_file="$REPLAY_SCRIPT_EFFECTIVE"
 
@@ -608,6 +671,7 @@ init_defaults() {
     FAST_FAIL="false"
     INLINE_POD_YAML="true"
     VERBOSE="false"
+    ROUTE_BY_PROW_MASTER="false"
     JENKINS_URL="${JENKINS_URL:-https://prow.tidb.net/jenkins}"
     JENKINS_USER="${JENKINS_USER:-}"
     JENKINS_TOKEN="${JENKINS_TOKEN:-}"
@@ -652,6 +716,10 @@ parse_args() {
             --jenkins-url)
                 JENKINS_URL="$2"
                 shift 2
+                ;;
+            --route-by-prow-master)
+                ROUTE_BY_PROW_MASTER="true"
+                shift
                 ;;
             --wait)
                 WAIT_BUILD="true"
@@ -710,6 +778,11 @@ validate_inputs() {
         require_bin awk
     fi
     require_bin sed
+    if [[ "$ROUTE_BY_PROW_MASTER" == "true" ]]; then
+        require_bin yq
+        require_bin find
+        [[ -z "$BUILD_URL" && -z "$JOB_URL" ]] || fatal "--route-by-prow-master cannot be combined with --build-url or --job-url"
+    fi
 
     JENKINS_URL="$(trim_trailing_slash "$JENKINS_URL")"
 
@@ -865,8 +938,8 @@ print_summary() {
 run_main_flow() {
     local failed=0
 
-    setup_auth_and_crumb
-    if [[ "$DRY_RUN" != "true" ]]; then
+    if [[ "$ROUTE_BY_PROW_MASTER" != "true" && "$DRY_RUN" != "true" ]]; then
+        setup_auth_and_crumb
         ensure_auth_for_replay
     fi
 

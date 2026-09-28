@@ -22,7 +22,7 @@ If your changes include pipeline files under `jenkins/jobs/**` (`Jenkinsfile`), 
 1. Static validation:
    - `JENKINS_URL=https://prow.tidb.net/jenkins .ci/verify-jenkins-pipelines.sh`
 2. Real replay validation:
-   - `JENKINS_USER=<user> JENKINS_TOKEN=<token> .ci/replay-jenkins-build.sh --auto-changed --jenkins-url https://prow.tidb.net/jenkins --verbose`
+   - `.ci/replay-jenkins-build.sh --auto-changed --route-by-prow-master --verbose` (set `JENKINS_MASTER_0_URL/USER/TOKEN` and `JENKINS_MASTER_1_URL/USER/TOKEN` first)
 
 For full command examples, behavior details (including `404` historical-build skip), and PR trigger workflow, see:
 - `docs/guides/CI.md` -> `Pre-PR Verification for Jenkins Pipeline Changes`

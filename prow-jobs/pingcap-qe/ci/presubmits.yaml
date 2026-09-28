@@ -65,17 +65,32 @@ presubmits:
           - name: main
             image: wbitt/network-multitool
             env:
-              - name: JENKINS_URL
+              - name: JENKINS_MASTER_0_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins0-url
+              - name: JENKINS_MASTER_0_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins0-user
+              - name: JENKINS_MASTER_0_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins0-token
+              - name: JENKINS_MASTER_1_URL
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
                     key: ci-job-jenkins-url
-              - name: JENKINS_USER
+              - name: JENKINS_MASTER_1_USER
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
                     key: ci-job-jenkins-user
-              - name: JENKINS_TOKEN
+              - name: JENKINS_MASTER_1_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
@@ -83,9 +98,10 @@ presubmits:
             command: [bash, -ceo, pipefail]
             args:
               - |
-                apk add --no-cache git jq ripgrep
+                apk add --no-cache git jq ripgrep yq-go
                 .ci/replay-jenkins-build.sh \
                   --auto-changed \
+                  --route-by-prow-master \
                   --base-sha "${PULL_BASE_SHA:-}" \
                   --head-sha "${PULL_PULL_SHA:-}" \
                   --selector lastSuccessfulBuild \
@@ -309,7 +325,10 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://prow.tidb.net/jenkins
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins1-url
             command: [bash, -ceo, pipefail]
             args:
               - |
