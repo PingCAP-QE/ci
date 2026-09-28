@@ -57,7 +57,7 @@ presubmits:
       optional: true
       trigger: "(?m)^/test (?:.*? )?pull-replay-jenkins-pipelines(?: .*?)?$"
       rerun_command: "/test pull-replay-jenkins-pipelines"
-      run_if_changed: "^(pipelines/.*\\.groovy|jenkins/jobs/.*/Jenkinsfile)$"
+      run_if_changed: "^(pipelines/.*\\.groovy|jenkins/jobs/.*/(Jenkinsfile|pod.*\\.ya?ml))$"
       branches:
         - ^main$
       spec:

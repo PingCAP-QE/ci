@@ -13,7 +13,7 @@ Single script replay:
   .ci/replay-jenkins-build.sh --script-file pipelines/.../job.groovy --build-url https://jenkins/job/.../1234 --wait
   .ci/replay-jenkins-build.sh --script-file jenkins/jobs/.../job/Jenkinsfile --build-url https://jenkins/job/.../1234 --wait
 
-Auto replay all changed pipeline Groovy files in current PR/worktree:
+Auto replay pipelines with changed scripts or pod templates in current PR/worktree:
   .ci/replay-jenkins-build.sh --auto-changed --base-sha <base_sha> --head-sha <head_sha> --wait
 
 Options:
@@ -21,8 +21,9 @@ Options:
   --build-url <url>        Historical build URL used as replay source.
   --job-url <url>          Jenkins job URL. Used with --selector to choose historical build.
   --selector <name>        Build selector under job URL. Default: lastSuccessfulBuild.
-  --auto-changed           Replay all changed pipeline scripts (pipelines/*.groovy
-                           and jenkins/jobs/**/Jenkinsfile) from git diff.
+  --auto-changed           Replay changed pipeline scripts (pipelines/*.groovy
+                           and jenkins/jobs/**/Jenkinsfile), plus Jenkinsfiles
+                           whose sibling pod*.yaml files changed, from git diff.
   --base-sha <sha>         Base SHA for --auto-changed.
   --head-sha <sha>         Head SHA for --auto-changed.
   --jenkins-url <url>      Jenkins root URL. Default: $JENKINS_URL or https://prow.tidb.net/jenkins.
@@ -183,14 +184,23 @@ build_inline_script_with_pod_yaml() {
     local with_ci_labels_re="(.*)yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*,[[:space:]]*(.*)\)([[:space:]]*#.*)?[[:space:]]*$"
     local -a pod_vars=()
     local -a pod_b64s=()
-    local decl_line var path
+    local decl_line var path pod_file
     while IFS= read -r decl_line; do
         if [[ "$decl_line" =~ $decl_re ]]; then
             var="${BASH_REMATCH[2]}"
             path="${BASH_REMATCH[3]}"
+            pod_file=""
             if [[ "$path" == pipelines/* || "$path" == jenkins/jobs/* ]] && [[ -f "$path" ]]; then
+                pod_file="$path"
+            elif [[ "${path##*/}" == pod*.yaml || "${path##*/}" == pod*.yml ]] &&
+                [[ -f "$(dirname "$script_file")/${path##*/}" ]]; then
+                # Interpolated paths cannot be resolved here, but job pod files
+                # live beside the Jenkinsfile and keep the same basename.
+                pod_file="$(dirname "$script_file")/${path##*/}"
+            fi
+            if [[ -n "$pod_file" ]]; then
                 pod_vars+=("$var")
-                pod_b64s+=("$(base64 < "$path" | tr -d '\n')")
+                pod_b64s+=("$(base64 < "$pod_file" | tr -d '\n')")
             fi
         fi
     done < "$script_file"
@@ -357,9 +367,17 @@ discover_changed_scripts() {
     fi
 
     log "collect changed pipeline files from ${base_sha}..${head_sha}"
-    # Auto replay should only include scripts that still exist in the checkout.
-    # Exclude deleted paths to avoid failing on intentional pipeline removals.
-    git diff --name-only --diff-filter=ACMRTUXB "$base_sha" "$head_sha" | rg '^(pipelines/.*\.groovy|jenkins/jobs/.*/Jenkinsfile)$' || true
+    # Map changed pod templates to their sibling Jenkinsfile. Replay each job
+    # once even if both its Jenkinsfile and several pod templates changed.
+    # Deleted paths and jobs without a Jenkinsfile cannot be replayed.
+    git diff --name-only --diff-filter=ACMRTUXB "$base_sha" "$head_sha" |
+        rg '^(pipelines/.*\.groovy|jenkins/jobs/.*/(Jenkinsfile|pod.*\.ya?ml))$' |
+        while IFS= read -r path; do
+            if [[ "$path" == jenkins/jobs/*/pod*.yml || "$path" == jenkins/jobs/*/pod*.yaml ]]; then
+                path="${path%/*}/Jenkinsfile"
+            fi
+            [[ -f "$path" ]] && printf '%s\n' "$path"
+        done | awk '!seen[$0]++' || true
 }
 
 setup_auth_and_crumb() {
