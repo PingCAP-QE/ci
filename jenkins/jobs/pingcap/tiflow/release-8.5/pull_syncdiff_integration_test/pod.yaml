@@ -13,17 +13,17 @@ spec:
           cpu: 2000m
         limits:
           memory: 8Gi
-          cpu: 4000m
+          cpu: 2000m
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
+          memory: 1Gi
+          cpu: "1"
         limits:
-          cpu: 1000m
-          memory: 4Gi
+          memory: 1Gi
+          cpu: "1"
     - name: mysql
       image: "us-docker.pkg.dev/pingcap-testing-account/dockerhub-remote/mysql:8.0.43"
       tty: true
@@ -41,7 +41,7 @@ spec:
           cpu: 500m
         limits:
           memory: 2Gi
-          cpu: 1000m
+          cpu: 500m
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

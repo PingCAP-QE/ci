@@ -25,8 +25,8 @@ spec:
           memory: 12Gi
           cpu: "4"
         limits:
-          memory: 16Gi
-          cpu: "6"
+          memory: 12Gi
+          cpu: "4"
       volumeMounts:
         - mountPath: "/home/jenkins/.my.cnf"
           name: "mysql-config-volume"
@@ -36,15 +36,18 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
     - name: mysql1
       image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
+        requests:
+          memory: 4Gi
+          cpu: "2"
         limits:
           memory: 4Gi
           cpu: "2"
@@ -63,6 +66,9 @@ spec:
       image: "docker.io/library/mysql:5.7"
       tty: true
       resources:
+        requests:
+          memory: 4Gi
+          cpu: "2"
         limits:
           memory: 4Gi
           cpu: "2"
