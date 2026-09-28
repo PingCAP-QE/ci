@@ -13,15 +13,20 @@ spec:
       args:
         - "cat"
       env:
-        # tikv 6.5/7.1/7.5 pin rust-toolchain nightly-2022-11-15 (cargo < 1.68),
-        # where a sparse registry requires `-Z sparse-registry`. The CI cluster
-        # injects a sparse crates.io mirror, so enable that unstable flag.
+        # tikv release-6.5/7.1/7.5 pin rust-toolchain nightly-2022-11-15
+        # (cargo 1.67), where a sparse registry needs `-Z sparse-registry`.
+        # The cluster injects a sparse crates.io mirror, so enable it here
+        # via `[unstable] sparse-registry`. Drop once the branch toolchain
+        # is >= 1.68. See PingCAP-QE/ci#5297.
         - name: CARGO_UNSTABLE_SPARSE_REGISTRY
           value: "true"
       resources:
         requests:
           memory: 24Gi
           cpu: "6"
+        # Guaranteed QoS (memory/CPU requests == limits), required by
+        # .ci/verify-pod-resource-policy.sh. Limits are aligned down to the
+        # existing requests (FLA-303), so the scheduled footprint is unchanged.
         limits:
           memory: 24Gi
           cpu: "6"
