@@ -8,6 +8,9 @@ spec:
       image: us-docker.pkg.dev/pingcap-testing-account/ghcr-remote/pingcap-qe/cd/builders/tikv:v2025.4.24-10-g9c32f77-centos7-devtoolset10
       tty: true
       resources:
+        requests:
+          memory: 32Gi
+          cpu: "8"
         limits:
           memory: 32Gi
           cpu: "8"
@@ -16,11 +19,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

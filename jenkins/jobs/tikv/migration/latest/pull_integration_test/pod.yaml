@@ -13,17 +13,17 @@ spec:
           cpu: "3"
         limits:
           memory: 12Gi
-          cpu: "4"
+          cpu: "3"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
-          cpu: "1"
           memory: 1Gi
+          cpu: "1"
+        limits:
+          memory: 1Gi
+          cpu: "1"
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

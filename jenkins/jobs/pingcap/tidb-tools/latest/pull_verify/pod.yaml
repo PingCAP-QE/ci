@@ -8,6 +8,9 @@ spec:
       image: ghcr.io/pingcap-qe/ci/jenkins:v2025.12.7-3-g1c0b8cf-go1.23
       tty: true
       resources:
+        requests:
+          memory: 8Gi
+          cpu: "4"
         limits:
           memory: 8Gi
           cpu: "4"
@@ -16,11 +19,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
     - name: mysql
       image: docker.io/library/mysql:5.7
       tty: true
@@ -29,6 +32,9 @@ spec:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "1"
       resources:
+        requests:
+          memory: 2Gi
+          cpu: "1"
         limits:
           memory: 2Gi
           cpu: "1"
