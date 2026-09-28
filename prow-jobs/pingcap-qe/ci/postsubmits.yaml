@@ -48,17 +48,17 @@ postsubmits:
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-url
+                    key: ci-job-jenkins0-url
               - name: JENKINS_USER
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-user
+                    key: ci-job-jenkins0-user
               - name: JENKINS_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-token
+                    key: ci-job-jenkins0-token
               - name: JENKINS_JOB
                 value: seed
               - name: WAIT_BUILD
