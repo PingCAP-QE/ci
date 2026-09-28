@@ -16,3 +16,10 @@
 ^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_(heavy|light)_next_gen(_legacy_safepoint)?/pod-test\.yaml$	canal-adapter	2027-03-31	canal-adapter OOMs when limited (PingCAP-QE/ci#1893)
 ^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_(heavy|light)_next_gen(_legacy_safepoint)?/pod-test\.yaml$	mysql	2027-03-31	no per-container usage metrics yet; separate strategy pending
 ^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_(heavy|light)_next_gen(_legacy_safepoint)?/pod-test\.yaml$	connect	2027-03-31	no per-container usage metrics yet; separate strategy pending
+
+# pingcap/tidb (latest) `init-mysql-config` only chmods /tmp and writes an
+# empty my.cnf, and declares no resource budget. It has neither a request nor
+# a limit to fall back to (Spec §3), so it is registered as an exception and
+# those Pods stay Burstable until a budget is chosen with evidence.
+^jenkins/jobs/pingcap/tidb/latest/pull_br_integration_test/pod\.yaml$	init-mysql-config	2027-03-31	lightweight init container (chmod/echo) with no resource budget
+^jenkins/jobs/pingcap/tidb/latest/pull_br_integration_test_next_gen/pod\.yaml$	init-mysql-config	2027-03-31	lightweight init container (chmod/echo) with no resource budget

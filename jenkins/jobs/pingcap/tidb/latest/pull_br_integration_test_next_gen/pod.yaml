@@ -24,8 +24,8 @@ spec:
           memory: 12Gi
           cpu: "2"
         limits:
-          memory: 16Gi
-          cpu: "4"
+          memory: 12Gi
+          cpu: "2"
       volumeMounts:
         - mountPath: "/home/jenkins/.my.cnf"
           name: "mysql-config-volume"
@@ -35,11 +35,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
+          memory: 1Gi
+          cpu: "1"
         limits:
           cpu: "1"
-          memory: 4Gi
+          memory: 1Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

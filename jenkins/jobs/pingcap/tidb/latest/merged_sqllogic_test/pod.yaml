@@ -12,8 +12,8 @@ spec:
           memory: 6Gi
           cpu: "2"
         limits:
-          memory: 16Gi
-          cpu: "6"
+          memory: 6Gi
+          cpu: "2"
       volumeMounts:
         - name: test-data
           mountPath: /git
@@ -22,11 +22,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
+          memory: 1Gi
+          cpu: "1"
         limits:
           cpu: "1"
-          memory: 4Gi
+          memory: 1Gi
       volumeMounts:
         - name: test-data
           mountPath: /git
