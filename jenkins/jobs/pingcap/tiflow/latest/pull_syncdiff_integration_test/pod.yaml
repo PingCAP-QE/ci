@@ -20,11 +20,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
     - name: mysql
       image: "docker.io/library/mysql:8.0.43"
       tty: true
@@ -37,6 +37,9 @@ spec:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "1"
       resources:
+        requests:
+          memory: 2Gi
+          cpu: "1"
         limits:
           memory: 2Gi
           cpu: "1"

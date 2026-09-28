@@ -23,3 +23,6 @@
 # those Pods stay Burstable until a budget is chosen with evidence.
 ^jenkins/jobs/pingcap/tidb/latest/pull_br_integration_test/pod\.yaml$	init-mysql-config	2027-03-31	lightweight init container (chmod/echo) with no resource budget
 ^jenkins/jobs/pingcap/tidb/latest/pull_br_integration_test_next_gen/pod\.yaml$	init-mysql-config	2027-03-31	lightweight init container (chmod/echo) with no resource budget
+
+# Same `init-mysql-config` exception for the pingcap/tiflow DM test Pods.
+^jenkins/jobs/pingcap/tiflow/latest/pull_dm_(compatibility_test|integration_test|integration_test_next_gen)/pod\.yaml$	init-mysql-config	2027-03-31	lightweight init container (chmod/echo) with no resource budget

@@ -12,18 +12,18 @@ spec:
           memory: 10Gi
           cpu: 2500m
         limits:
-          memory: 16Gi
-          cpu: 6000m
+          memory: 10Gi
+          cpu: 2500m
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
+          memory: 1Gi
+          cpu: "1"
         limits:
-          memory: 4Gi
-          cpu: 1000m
+          memory: 1Gi
+          cpu: "1"
     - name: mysql1
       image: 'us-docker.pkg.dev/pingcap-testing-account/dockerhub-remote/mysql:5.7'
       tty: true
@@ -32,8 +32,8 @@ spec:
           memory: 2Gi
           cpu: 500m
         limits:
-          memory: 4Gi
-          cpu: 1000m
+          memory: 2Gi
+          cpu: 500m
       env:
         - name: MYSQL_ROOT_PASSWORD
           value: '123456'
@@ -53,8 +53,8 @@ spec:
           memory: 2Gi
           cpu: 500m
         limits:
-          memory: 4Gi
-          cpu: 1000m
+          memory: 2Gi
+          cpu: 500m
       env:
         - name: MYSQL_ROOT_PASSWORD
           value: '123456'
