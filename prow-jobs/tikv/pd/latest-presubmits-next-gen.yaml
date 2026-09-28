@@ -41,11 +41,11 @@ presubmits:
                 NEXT_GEN=1 make             # build for normal mode
             resources:
               requests:
-                memory: "6Gi"
                 cpu: "3"
-              limits:
                 memory: "6Gi"
+              limits:
                 cpu: "6"
+                memory: 12Gi
 
     - <<: [*brancher, *kubernetes_job]
       name: pull-unit-test-next-gen-1
@@ -74,11 +74,11 @@ presubmits:
                 # ls -alh covprofile_*
             resources:
               requests:
-                memory: 12Gi
                 cpu: "6"
-              limits:
                 memory: 12Gi
+              limits:
                 cpu: "12"
+                memory: 24Gi
         affinity: *affinity
 
     - <<: [*brancher, *kubernetes_job]
@@ -108,11 +108,11 @@ presubmits:
                 # ls -alh covprofile_*
             resources:
               requests:
-                memory: 12Gi
                 cpu: "6"
-              limits:
                 memory: 12Gi
+              limits:
                 cpu: "12"
+                memory: 24Gi
         affinity: *affinity
 
     - <<: [*brancher, *kubernetes_job]
@@ -142,11 +142,11 @@ presubmits:
                 # ls -alh covprofile_*
             resources:
               requests:
-                memory: 12Gi
                 cpu: "6"
-              limits:
                 memory: 12Gi
+              limits:
                 cpu: "12"
+                memory: 24Gi
         affinity: *affinity
 
     - <<: [*brancher, *jenkins_job]

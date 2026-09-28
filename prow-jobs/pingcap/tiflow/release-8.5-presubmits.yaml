@@ -25,7 +25,7 @@ presubmits:
                 memory: 12Gi
                 cpu: "3"
               limits:
-                memory: 12Gi
+                memory: 24Gi
                 cpu: "6"
 
     - name: pull-build-8.5

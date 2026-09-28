@@ -35,8 +35,8 @@ presubmits:
                 make             # build for normal mode
             resources:
               requests:
-                memory: "4Gi"
                 cpu: "2"
-              limits:
                 memory: "4Gi"
+              limits:
                 cpu: "4"
+                memory: 8Gi
