@@ -125,6 +125,12 @@ This repository has two related presubmit jobs for pipeline changes:
   - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests.
   - When in-cluster Kubernetes API access is available, injects a test `metadata.name` and also runs both `kubectl --dry-run=client --validate=strict` and `kubectl --dry-run=server --validate=strict`.
   - Triggered by `jenkins/jobs/**/pod*.yaml` changes.
+- `pull-verify-pod-resource-policy`
+  - Fails when a changed `jenkins/jobs/**/pod*.yaml` container declares memory `requests != limits` (or only one of request/limit), enforcing Guaranteed QoS and preventing new OOM/eviction-prone templates.
+  - CPU mismatches are reported as warnings only (the Pod stays Burstable).
+  - Exemptions are registered in `.ci/pod-resource-policy-allowlist.txt` with format `<path-regex><TAB><container><TAB><review-date><TAB><reason>`; expired entries no longer exempt.
+  - Runs `.ci/test-verify-pod-resource-policy.sh` (positive and negative fixtures including allowlist and expiry cases) before the check.
+  - Triggered by `jenkins/jobs/**/pod*.yaml` or the policy script/allowlist changes.
 - `pull-verify-secret-scan`
   - Triggered only when changed files are in the Jenkins credentials-risk surface:
     `jenkins/jobs/**`, `libraries/**`, `prow-jobs/**` (`*.groovy|*.yml|*.yaml`).
