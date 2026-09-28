@@ -35,3 +35,6 @@
 
 # Same `init-mysql-config` exception for the qa BR integration test.
 ^jenkins/jobs/qa/qa_release_br_integration_test/pod\.yaml$	init-mysql-config	2027-03-31	lightweight init container (chmod/echo) with no resource budget
+
+# tiproxy sqllogic download init container has no resource budget.
+^jenkins/jobs/pingcap/tiproxy/latest/(merged|pull)_sqllogic_test/pod\.yaml$	download-sqllogic	2027-03-31	lightweight init container (downloads sqllogic data) with no resource budget
