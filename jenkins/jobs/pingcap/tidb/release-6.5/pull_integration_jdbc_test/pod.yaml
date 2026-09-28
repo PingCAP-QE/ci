@@ -12,8 +12,8 @@ spec:
           memory: 4Gi
           cpu: "2"
         limits:
-          memory: 8Gi
-          cpu: "4"
+          memory: 4Gi
+          cpu: "2"
     - name: java
       image: "ghcr.io/pingcap-qe/ci/jenkins:v2024.10.8-119-g4e56df7-go1.21"
       tty: true
@@ -29,11 +29,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
