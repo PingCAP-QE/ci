@@ -80,11 +80,9 @@ This checks syntax/model validity through Jenkins API and is the fastest baselin
 Replay one historical build with your local pipeline script content:
 
 ```bash
-JENKINS_USER="<jenkins-user>" \
-JENKINS_TOKEN="<jenkins-token>" \
 .ci/replay-jenkins-build.sh \
   --script-file jenkins/jobs/pingcap/tidb/release-8.5/pull_integration_e2e_test/Jenkinsfile \
-  --jenkins-url https://prow.tidb.net/jenkins \
+  --route-by-prow-master \
   --selector lastSuccessfulBuild \
   --verbose
 ```
@@ -98,17 +96,19 @@ Default behavior:
 Use `--auto-changed` to replay Jenkinsfiles changed directly or through their sibling `pod.yaml` or `pod-<purpose>.yaml` files from git diff:
 
 ```bash
-JENKINS_USER="<jenkins-user>" \
-JENKINS_TOKEN="<jenkins-token>" \
 .ci/replay-jenkins-build.sh \
   --auto-changed \
-  --jenkins-url https://prow.tidb.net/jenkins \
+  --route-by-prow-master \
   --selector lastSuccessfulBuild \
   --max-replays 20 \
   --verbose
 ```
 
 Notes:
+- With `--route-by-prow-master`, set `JENKINS_MASTER_0_URL/USER/TOKEN` and
+  `JENKINS_MASTER_1_URL/USER/TOKEN`. Each job uses its Prow `labels.master` to
+  select the matching Jenkins instance. The script fails if the job has no
+  unambiguous master label. This mode requires `yq`.
 - If `--base-sha/--head-sha` are not provided, the script uses `origin/main..HEAD` (or `HEAD~1..HEAD` fallback).
 - If `${job}/lastSuccessfulBuild` returns `404`, the script logs `skip replay (no historical build)` and continues with the next job.
 - At the end, the script prints summary counts, for example:
@@ -151,4 +151,4 @@ This repository has two related presubmit jobs for pipeline changes:
   - Triggered by changes to a job folder’s `Jenkinsfile`, `pod.yaml`, or `pod-<purpose>.yaml`; pod-only changes replay the sibling Jenkinsfile.
   - Trigger manually in PR comments:
     - `/test pull-replay-jenkins-pipelines`
-  - Replays against `https://prow.tidb.net/jenkins`.
+  - Replays each job on the Jenkins instance selected by its Prow `labels.master`.
