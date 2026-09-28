@@ -69,17 +69,17 @@ presubmits:
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-url
+                    key: ci-job-jenkins0-url
               - name: JENKINS_MASTER_0_USER
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-user
+                    key: ci-job-jenkins0-user
               - name: JENKINS_MASTER_0_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: ci-job-params-mono
-                    key: mig-to-ci-job-jenkins-token
+                    key: ci-job-jenkins0-token
               - name: JENKINS_MASTER_1_URL
                 valueFrom:
                   secretKeyRef:
@@ -325,7 +325,10 @@ presubmits:
             image: wbitt/network-multitool
             env:
               - name: JENKINS_URL
-                value: https://prow.tidb.net/jenkins
+                valueFrom:
+                  secretKeyRef:
+                    name: ci-job-params-mono
+                    key: ci-job-jenkins1-url
             command: [bash, -ceo, pipefail]
             args:
               - |
