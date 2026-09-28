@@ -107,7 +107,7 @@ Use this checklist when reviewing a job/pipeline change:
 .ci/update-tekton-kustomizations.sh
 
 # Replay changed pipelines against a Jenkins instance
-.ci/replay-jenkins-build.sh --auto-changed --jenkins-url https://prow.tidb.net/jenkins --verbose
+.ci/replay-jenkins-build.sh --auto-changed --route-by-prow-master --verbose
 ```
 
 See [CI.md](./CI.md#pre-pr-verification-for-jenkins-pipeline-changes) for full examples,

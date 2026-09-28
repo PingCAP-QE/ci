@@ -13,19 +13,11 @@ Replay PR-changed Jenkins pipelines with four core rules:
 - Keep a single PR comment continuously updated with replay planning, progress, and final outcomes.
 
 ## Required Inputs
-- Load Jenkins credentials from `.env` by default (no prompting, no helper scripts):
-  - Read `JENKINS_USER` and `JENKINS_TOKEN` directly from `.env` (supports both `KEY: value` and `KEY=value`).
-  - Only ask the user if `.env` is missing or the keys are not present.
-  - Never paste tokens into PR comments or logs, and avoid printing `.env` contents (don’t `cat` it).
-
-Example (read repo-root `.env`, don’t `source` it):
-
-```bash
-ENV_FILE="$(git rev-parse --show-toplevel)/.env"
-JENKINS_USER="$(rg -m1 '^JENKINS_USER[:=]' "$ENV_FILE" | sed -E 's/^JENKINS_USER[:=][[:space:]]*//')"
-JENKINS_TOKEN="$(rg -m1 '^JENKINS_TOKEN[:=]' "$ENV_FILE" | sed -E 's/^JENKINS_TOKEN[:=][[:space:]]*//')"
-export JENKINS_USER JENKINS_TOKEN
-```
+- Set `JENKINS_MASTER_0_URL/USER/TOKEN` and `JENKINS_MASTER_1_URL/USER/TOKEN`
+  from available credential sources before replaying a batch. Prow
+  `labels.master: "0"` selects the new production Jenkins; `"1"` selects
+  the original Jenkins. Ask for missing credentials only when a selected job
+  needs them. Never print credential files or tokens.
 - Resolve PR number from current branch when not provided:
 
 ```bash
@@ -36,7 +28,7 @@ gh pr view --json number,url,headRefName,baseRefName
 1. Resolve replay scope (default PR diff, or user-specified scope).
 2. Build replay candidates from changed pipeline scripts/pod YAML and group by logical job key.
 3. Compare cross-branch changes for the same logical job and deduplicate identical changes.
-4. Resolve Jenkins job full name from `jobs/<org>/<repo>/<branch>/*.groovy` DSL.
+4. Resolve Jenkins job full name from its `jenkins/jobs/**/dsl.groovy` and find its Prow `labels.master`.
 5. Replay selected candidates and update one PR comment continuously.
 6. Poll run status, retry failures up to limit, and publish final results.
 
@@ -121,16 +113,17 @@ Tip: A pipeline under a `latest` directory does not mean the Jenkins job path co
 Replay each selected candidate with `.ci/replay-jenkins-build.sh`.
 
 ```bash
-# Assumes `JENKINS_USER` and `JENKINS_TOKEN` are already exported (from `.env`)
+# Assumes the JENKINS_MASTER_0_* and JENKINS_MASTER_1_* variables are set.
 .ci/replay-jenkins-build.sh \
-  --script-file <pipeline.groovy> \
-  --job-url <job_url_from_jobs_dsl> \
-  --jenkins-url https://prow.tidb.net/jenkins \
+  --script-file <jenkins/jobs/.../Jenkinsfile> \
+  --route-by-prow-master \
   --selector lastSuccessfulBuild \
   --verbose
 ```
 
 Notes:
+- Match the job's full name against `prow-jobs/<org>/<repo>/*.yaml`; a missing
+  or conflicting `labels.master` must stop replay rather than default to an instance.
 - If candidate includes pod YAML changes, replay must keep inline pod template mode enabled.
 - `.ci/replay-jenkins-build.sh` already enables inline pod YAML by default.
 - Use `--no-inline-pod-yaml` only when explicitly needed and never for pod-YAML-change validation.
@@ -156,15 +149,16 @@ Recommended comment marker/template:
 ## Jenkins Replay Status
 - [ ] `pipelines/...` -> `org/repo/job_name`
   - status: building (attempt 1/4)
-  - replay: https://prow.tidb.net/jenkins/job/.../123
+  - replay: <actual Jenkins build URL>
   - note: dedup target, same diff as release-x.y
 ```
 
 ## Step 6: Track status and mark successes
-Query each replay build URL:
+Query each replay build URL with the username and token for that job's
+`labels.master` (shown below as `SELECTED_JENKINS_USER/TOKEN`):
 
 ```bash
-curl -fsS -u "${JENKINS_USER}:${JENKINS_TOKEN}" '<build_url>/api/json?tree=building,result,url'
+curl -fsS -u "${SELECTED_JENKINS_USER}:${SELECTED_JENKINS_TOKEN}" '<build_url>/api/json?tree=building,result,url'
 ```
 
 ## Step 7: Retry failures
@@ -178,10 +172,10 @@ Before each retry:
 Example retry:
 
 ```bash
-# Assumes `JENKINS_USER` and `JENKINS_TOKEN` are already exported (from `.env`)
+# Assumes the JENKINS_MASTER_0_* and JENKINS_MASTER_1_* variables are set.
 .ci/replay-jenkins-build.sh \
-  --script-file <failed-pipeline.groovy> \
-  --jenkins-url https://prow.tidb.net/jenkins \
+  --script-file <failed-Jenkinsfile> \
+  --route-by-prow-master \
   --selector lastSuccessfulBuild \
   --wait --verbose
 ```
@@ -195,6 +189,7 @@ Record each attempt URL and result in the PR comment.
 
 ## Guardrails
 - Always resolve replay job names from `jobs/` DSL files; path inference alone is insufficient.
+- Route each job using its Prow `labels.master` and the matching Jenkins credentials.
 - Apply cross-branch dedup only when compared diff content is equivalent.
 - Prefer fixing pod template YAML for missing containers; avoid pipeline-groovy workaround when the issue is template drift.
 - Keep PR updates concise and reproducible: include exact Jenkins URLs, attempt counts, dedup decisions, and final summary counts (`success`, `failure`, `skipped`).
