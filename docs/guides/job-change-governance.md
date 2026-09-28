@@ -98,6 +98,10 @@ Use this checklist when reviewing a job/pipeline change:
 # Pod YAML structural validation
 .ci/verify-k8s-pod-yaml.sh
 
+# Pod resource policy: memory requests == limits (Guaranteed QoS) for changed
+# Pod templates; exceptions live in .ci/pod-resource-policy-allowlist.txt
+.ci/verify-pod-resource-policy.sh
+
 # Regenerate generated manifests after Prow/Tekton edits
 .ci/update-prow-job-kustomization.sh
 .ci/update-tekton-kustomizations.sh

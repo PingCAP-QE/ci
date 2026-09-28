@@ -29,3 +29,8 @@ repos:
         language: system
         pass_filenames: false
         files: '^(jobs|jenkins|pipelines)/|^\.ci/(check-jenkins-job-references|test-check-jenkins-job-references|test-migrate-jenkins-jobs)\.sh$|^scripts/migrate-jenkins-jobs\.sh$'
+      - id: verify-pod-resource-policy
+        name: Verify pod resource policy (memory requests == limits)
+        entry: bash .ci/pre-commit-verify-pod-resource-policy.sh
+        language: system
+        files: '^jenkins/jobs/.*/pod[^/]*\.ya?ml$'

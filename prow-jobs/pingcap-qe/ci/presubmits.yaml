@@ -337,7 +337,7 @@ presubmits:
                 wget -qO /tmp/crane.tar.gz "https://github.com/google/go-containerregistry/releases/download/v0.21.5/go-containerregistry_Linux_x86_64.tar.gz"
                 tar xzf /tmp/crane.tar.gz -C /usr/local/bin/ crane
                 rm /tmp/crane.tar.gz
-                changed_files=$(git diff --name-only --diff-filter=d "${PULL_BASE_SHA:?}" -- 'pipelines/**/*.yaml' 'pipelines/**/*.yml' | LC_ALL=C sort)
+                changed_files=$(git diff --name-only --diff-filter=d "${PULL_BASE_SHA:?}" -- 'pipelines/**/*.yaml' 'pipelines/**/*.yml' 'jenkins/jobs/**/pod*.yaml' | LC_ALL=C sort)
                 if [ -z "$changed_files" ]; then
                   echo "No changed pipeline Pod YAML files to verify."
                   exit 0
@@ -346,6 +346,27 @@ presubmits:
             resources:
               limits:
                 memory: 128Mi
+                cpu: 200m
+    - name: pull-verify-pod-resource-policy
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^(jenkins/jobs/.*/pod.*\\.ya?ml|\\.ci/verify-pod-resource-policy\\.sh|\\.ci/test-verify-pod-resource-policy\\.sh|\\.ci/pod-resource-policy-allowlist\\.txt)$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.24
+            command: [sh, -ce]
+            args:
+              - |
+                apk add --no-cache bash git grep sed findutils yq-go
+                bash .ci/test-verify-pod-resource-policy.sh
+                bash .ci/verify-pod-resource-policy.sh
+            resources:
+              limits:
+                memory: 256Mi
                 cpu: 200m
     - name: pull-verify-jenkins-job-references
       labels: *labels
