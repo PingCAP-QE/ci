@@ -23,6 +23,9 @@ spec:
       imagePullPolicy: Always
       name: golang
       resources:
+        requests:
+          cpu: "6"
+          memory: 16Gi
         limits:
           cpu: "6"
           memory: 16Gi

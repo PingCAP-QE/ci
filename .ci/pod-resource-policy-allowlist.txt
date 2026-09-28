@@ -1,0 +1,18 @@
+# Allowlist for the pod resource policy (Guaranteed QoS: every container's
+# memory and CPU requests must equal its limits), enforced by
+# .ci/verify-pod-resource-policy.sh (added in PR3).
+#
+# Format: <path-regex>\t<container-name>\t<review-date>\t<reason>
+# A line whose container-name is '*' matches every container in the file.
+# Entries whose review date has passed must be re-justified (with usage
+# evidence) or removed.
+
+# TiCDC next_gen kafka integration tests run third-party sidecars with requests
+# only and intentionally no limits: canal-adapter OOMs when capped
+# (PingCAP-QE/ci#1893), and mysql/connect have no per-container usage metrics
+# yet. Capping them would risk new OOMKills, so PR1 keeps them unchanged and
+# leaves a separate strategy (raise limit + pin request, or dedicated policy)
+# for a follow-up. These pods therefore remain Burstable.
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_(heavy|light)_next_gen(_legacy_safepoint)?/pod-test\.yaml$	canal-adapter	2027-03-31	canal-adapter OOMs when limited (PingCAP-QE/ci#1893)
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_(heavy|light)_next_gen(_legacy_safepoint)?/pod-test\.yaml$	mysql	2027-03-31	no per-container usage metrics yet; separate strategy pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_(heavy|light)_next_gen(_legacy_safepoint)?/pod-test\.yaml$	connect	2027-03-31	no per-container usage metrics yet; separate strategy pending

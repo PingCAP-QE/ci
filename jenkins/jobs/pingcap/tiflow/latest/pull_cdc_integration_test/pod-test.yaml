@@ -9,10 +9,10 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 12Gi
+          memory: 16Gi
           cpu: "6"
         limits:
-          memory: 32Gi
+          memory: 16Gi
           cpu: "6"
   affinity:
     nodeAffinity:
