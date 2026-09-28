@@ -10,8 +10,17 @@ spec:
         - "-c"
       args:
         - "cat"
+      env:
+        # tikv 6.5/7.1/7.5 pin rust-toolchain nightly-2022-11-15 (cargo < 1.68),
+        # where a sparse registry requires `-Z sparse-registry`. The CI cluster
+        # injects a sparse crates.io mirror, so enable that unstable flag.
+        - name: CARGO_UNSTABLE_SPARSE_REGISTRY
+          value: "true"
       resources:
         requests:
+          memory: 32Gi
+          cpu: "6"
+        limits:
           memory: 32Gi
           cpu: "6"
       securityContext:
