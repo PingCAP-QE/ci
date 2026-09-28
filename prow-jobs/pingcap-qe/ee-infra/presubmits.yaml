@@ -29,8 +29,6 @@ presubmits:
                 echo "📋 tofu plan"
                 tofu plan -input=false
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -72,8 +70,6 @@ presubmits:
                     name: tencentcloud-terraform-creds
                     key: TENCENTCLOUD_SECRET_KEY
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m

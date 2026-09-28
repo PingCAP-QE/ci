@@ -64,11 +64,9 @@ presubmits:
               - name: minio-data
                 mountPath: /data
             resources:
-              requests:
-                memory: 2Gi
               limits:
-                memory: 2Gi
                 cpu: "1"
+                memory: 2Gi
           - &sidecar-pd
             name: sidecar-pd
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:master-nextgen
@@ -80,11 +78,9 @@ presubmits:
               - --config
               - "$(CONFIG_PATH)"
             resources:
-              requests:
-                memory: 2Gi
               limits:
-                memory: 2Gi
                 cpu: "1"
+                memory: 2Gi
             volumeMounts:
               - mountPath: /home/prow/go
                 name: code # from the default prow job source volume
@@ -124,11 +120,9 @@ presubmits:
               - mountPath: /home/prow/go
                 name: code # from the default prow job source volume
             resources:
-              requests:
-                memory: 4Gi
               limits:
-                memory: 4Gi
                 cpu: "2"
+                memory: 4Gi
         containers: &containers
           - name: test
             image: ghcr.io/pingcap-qe/ci/base:v2026.8.23-36-gd6f25768-go1.25
@@ -164,11 +158,9 @@ presubmits:
                 go version
                 go run gotest.tools/gotestsum@v1.13.0 --format short-verbose -- -tags=nextgen --with-tikv --keyspace-name='keyspace1' 2>&1 | tee /logs/test.log
             resources:
-              requests:
-                memory: 4Gi
               limits:
-                memory: 4Gi
                 cpu: "2"
+                memory: 4Gi
 
     - name: pull-integration-test-release-nextgen
       agent: kubernetes

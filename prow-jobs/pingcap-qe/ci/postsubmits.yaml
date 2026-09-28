@@ -38,8 +38,6 @@ postsubmits:
                 apk add --no-cache jq
                 .ci/trigger-jenkins-job.sh
             resources:
-              requests:
-                memory: 128Mi
               limits:
                 memory: 128Mi
                 cpu: 200m

@@ -24,8 +24,6 @@ presubmits:
               - |
                 .ci/check-pr-content-policy.sh --base-sha "${PULL_BASE_SHA:?missing PULL_BASE_SHA}"
             resources:
-              requests:
-                memory: 128Mi
               limits:
                 memory: 128Mi
                 cpu: 200m
@@ -49,8 +47,6 @@ presubmits:
                 apk add --no-cache bash git jq yq-go kubectl
                 bash .ci/verify-prow-jobs-run.sh
             resources:
-              requests:
-                memory: 512Mi
               limits:
                 memory: 512Mi
                 cpu: 500m
@@ -116,8 +112,6 @@ presubmits:
                   --timeout 7200 \
                   --poll-interval 20
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -183,8 +177,6 @@ presubmits:
                   --retries 3 \
                   --verbose
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -207,8 +199,6 @@ presubmits:
                 bash .ci/verify-jenkins-credential-policy.sh
                 sh .ci/verify-secret-scan.sh
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -230,8 +220,6 @@ presubmits:
                 apk add --no-cache bash git ripgrep
                 bash .ci/test-verify-jenkins-credential-policy.sh
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -253,8 +241,6 @@ presubmits:
                 apk add --no-cache bash grep sed
                 bash .ci/verify-storage-class-policy.sh
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -291,8 +277,6 @@ presubmits:
                 fi
                 exit $failed
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -324,8 +308,6 @@ presubmits:
                 done
 
             resources:
-              requests:
-                memory: 512Mi
               limits:
                 memory: 512Mi
                 cpu: 500m
@@ -353,8 +335,6 @@ presubmits:
                 apk add parallel
                 .ci/verify-jenkins-pipelines.sh
             resources:
-              requests:
-                memory: 128Mi
               limits:
                 memory: 128Mi
                 cpu: 200m
@@ -383,8 +363,6 @@ presubmits:
                 fi
                 sh .ci/verify-k8s-pod-yaml.sh $changed_files
             resources:
-              requests:
-                memory: 128Mi
               limits:
                 memory: 128Mi
                 cpu: 200m
@@ -406,8 +384,6 @@ presubmits:
                 bash .ci/test-verify-pod-resource-policy.sh
                 bash .ci/verify-pod-resource-policy.sh
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -430,8 +406,6 @@ presubmits:
                 bash .ci/test-migrate-jenkins-jobs.sh
                 bash .ci/check-jenkins-job-references.sh --quiet
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -482,8 +456,6 @@ presubmits:
               - --kustomization-file=../ee-ops/apps/gcp/prow/pre/prow-jobs.yaml
               - --dry-run
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -498,8 +470,6 @@ presubmits:
                 apk add git
                 .ci/update-prow-job-kustomization.sh
             resources:
-              requests:
-                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m

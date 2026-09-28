@@ -29,8 +29,6 @@ presubmits:
               - |
                 make build
             resources:
-              requests:
-                memory: 8Gi
               limits:
                 memory: 8Gi
                 cpu: "4"
@@ -57,8 +55,6 @@ presubmits:
               - |
                 make check
             resources:
-              requests:
-                memory: 8Gi
               limits:
                 memory: 8Gi
                 cpu: "4"
@@ -85,8 +81,6 @@ presubmits:
               - |
                 make test
             resources:
-              requests:
-                memory: 16Gi
               limits:
                 memory: 16Gi
                 cpu: "8"
@@ -174,8 +168,6 @@ presubmits:
               requests:
                 memory: 4Gi
                 cpu: "2"
-              limits:
-                memory: 4Gi
           - name: kafka
             image: wurstmeister/kafka:2.12-2.4.1
             command: [bash, -ce]
@@ -226,5 +218,3 @@ presubmits:
               requests:
                 memory: 4Gi
                 cpu: "2"
-              limits:
-                memory: 4Gi

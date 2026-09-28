@@ -26,8 +26,6 @@ spec:
         requests:
           memory: 512Mi
           cpu: "100m"
-        limits:
-          memory: 512Mi
       script: |
         #!/bin/sh
         set -e

@@ -120,8 +120,6 @@ spec:
         requests:
           memory: 512Mi
           cpu: "100m"
-        limits:
-          memory: 512Mi
       script: |
 
         # Get the URL of the origin remote of current workspace.

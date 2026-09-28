@@ -67,8 +67,6 @@ periodics:
               # chmod +x codecov
               # ./codecov --flags unit --file test_coverage/tidb_cov.unit_test.out --sha ${COMMIT_SHA} --slug pingcap/tidb
           resources:
-            requests:
-              memory: 24Gi
             limits:
               memory: 24Gi
               cpu: "12"
@@ -94,8 +92,6 @@ periodics:
               git log -1
               make ut-long
           resources:
-            requests:
-              memory: 12Gi
             limits:
               memory: 12Gi
               cpu: "6"

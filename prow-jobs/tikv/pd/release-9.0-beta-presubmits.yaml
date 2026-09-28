@@ -33,11 +33,11 @@ presubmits:
                 make             # build for normal mode
             resources:
               requests:
-                memory: "6Gi"
                 cpu: "3"
-              limits:
                 memory: "6Gi"
+              limits:
                 cpu: "6"
+                memory: 12Gi
 
     - name: tikv/pd/release-9.0-beta/pull_integration_copr_test
       agent: jenkins

@@ -28,8 +28,6 @@ presubmits:
               - |
                 make gotest_in_verify_ci
             resources:
-              requests:
-                memory: 24Gi
               limits:
                 memory: 24Gi
                 cpu: "12"
@@ -55,8 +53,6 @@ presubmits:
               - |
                 make ut-long
             resources:
-              requests:
-                memory: 12Gi
               limits:
                 memory: 12Gi
                 cpu: "6"
