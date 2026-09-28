@@ -86,6 +86,8 @@ spec:
                   requests:
                     memory: $(tt.params.builder-resources-memory)
                     cpu: $(tt.params.builder-resources-cpu)
+                  limits:
+                    memory: $(tt.params.builder-resources-memory)
           - pipelineTaskName: build-images
             taskPodTemplate:
               nodeSelector:
