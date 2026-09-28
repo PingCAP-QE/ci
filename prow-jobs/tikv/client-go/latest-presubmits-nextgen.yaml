@@ -49,7 +49,7 @@ presubmits:
         initContainers:
           - &sidecar-minio
             name: sidecar-minio
-            image: quay.io/minio/aistor/minio:RELEASE.2025-07-30T15-53-03Z
+            image: docker.io/pgsty/minio:RELEASE.2026-02-14T12-00-00Z
             restartPolicy: Always
             command:
               - minio
