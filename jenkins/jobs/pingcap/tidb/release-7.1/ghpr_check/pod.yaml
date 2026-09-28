@@ -14,7 +14,7 @@ spec:
           memory: 8Gi
           cpu: "8"
         limits:
-          memory: 32Gi
+          memory: 8Gi
           cpu: "8"
       volumeMounts:
         - mountPath: /tmp
