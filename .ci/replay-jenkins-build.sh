@@ -10,20 +10,19 @@ usage() {
 Replay Jenkins pipeline scripts from historical builds.
 
 Single script replay:
-  .ci/replay-jenkins-build.sh --script-file pipelines/.../job.groovy --build-url https://jenkins/job/.../1234 --wait
-  .ci/replay-jenkins-build.sh --script-file jenkins/jobs/.../job/Jenkinsfile --build-url https://jenkins/job/.../1234 --wait
+  .ci/replay-jenkins-build.sh --script-file jenkins/jobs/<org>/<repo>/<branch>/<job>/Jenkinsfile --build-url https://jenkins/job/.../1234 --wait
 
 Auto replay pipelines with changed scripts or pod templates in current PR/worktree:
   .ci/replay-jenkins-build.sh --auto-changed --base-sha <base_sha> --head-sha <head_sha> --wait
 
 Options:
-  --script-file <path>     Pipeline Groovy file to replay.
+  --script-file <path>     Jenkinsfile to replay.
   --build-url <url>        Historical build URL used as replay source.
   --job-url <url>          Jenkins job URL. Used with --selector to choose historical build.
   --selector <name>        Build selector under job URL. Default: lastSuccessfulBuild.
-  --auto-changed           Replay changed pipeline scripts (pipelines/*.groovy
-                           and jenkins/jobs/**/Jenkinsfile), plus Jenkinsfiles
-                           whose sibling pod*.yaml files changed, from git diff.
+  --auto-changed           Replay changed job-folder Jenkinsfiles
+                           and Jenkinsfiles with changed sibling pod.yaml or
+                           pod-<purpose>.yaml files, from git diff.
   --base-sha <sha>         Base SHA for --auto-changed.
   --head-sha <sha>         Head SHA for --auto-changed.
   --jenkins-url <url>      Jenkins root URL. Default: $JENKINS_URL or https://prow.tidb.net/jenkins.
@@ -77,58 +76,15 @@ trim_trailing_slash() {
 script_to_job_path() {
     local script_file="$1"
     local rel="${script_file#./}"
+    local job_file_re='^jenkins/jobs/([^/]+)/([^/]+)/([^/]+)/([^/]+)/Jenkinsfile$'
+    [[ "$rel" =~ $job_file_re ]] || fatal "unexpected Jenkinsfile path: ${script_file}"
 
-    local org="" repo="" branch="" job="" last="" n=0
-    local IFS='/'
-    local parts=()
-
-    case "$rel" in
-        pipelines/*)
-            # pipelines/<org>/<repo>/<branch>/<job>.groovy
-            # pipelines/<org>/<repo>/<branch>/<job>/pipeline.groovy
-            rel="${rel#pipelines/}"
-            # shellcheck disable=SC2206
-            parts=(${rel})
-            n="${#parts[@]}"
-            (( n >= 3 )) || fatal "unexpected pipeline path: ${script_file}"
-            org="${parts[0]}"
-            repo="${parts[1]}"
-            last="${parts[n-1]}"
-            if [[ "$last" == "pipeline.groovy" ]]; then
-                (( n >= 4 )) || fatal "unexpected pipeline path: ${script_file}"
-                job="${parts[n-2]}"
-                if (( n >= 5 )); then
-                    branch="${parts[2]}"
-                fi
-            elif [[ "$last" == *.groovy ]]; then
-                job="${last%.groovy}"
-                if (( n >= 4 )); then
-                    branch="${parts[2]}"
-                fi
-            else
-                fatal "unsupported pipeline file: ${script_file}"
-            fi
-            ;;
-        jenkins/jobs/*)
-            # jenkins/jobs/<org>/<repo>/<branch>/<job>/Jenkinsfile
-            rel="${rel#jenkins/jobs/}"
-            # shellcheck disable=SC2206
-            parts=(${rel})
-            n="${#parts[@]}"
-            (( n >= 5 )) || fatal "unexpected job path: ${script_file}"
-            [[ "${parts[n-1]}" == "Jenkinsfile" ]] || fatal "unexpected job file: ${script_file}"
-            org="${parts[0]}"
-            repo="${parts[1]}"
-            branch="${parts[2]}"
-            job="${parts[n-2]}"
-            ;;
-        *)
-            fatal "script path must be under pipelines/ or jenkins/jobs/: ${script_file}"
-            ;;
-    esac
-
+    local org="${BASH_REMATCH[1]}"
+    local repo="${BASH_REMATCH[2]}"
+    local branch="${BASH_REMATCH[3]}"
+    local job="${BASH_REMATCH[4]}"
     local job_path="job/${org}/job/${repo}"
-    if [[ -n "$branch" && "$branch" != "latest" ]]; then
+    if [[ "$branch" != "latest" ]]; then
         job_path+="/job/${branch}"
     fi
     job_path+="/job/${job}"
@@ -137,36 +93,9 @@ script_to_job_path() {
 }
 
 resolve_pod_template_file() {
-    local script_file="$1"
-    local dir
-    dir="$(dirname "$script_file")"
-    local base
-    base="$(basename "$script_file")"
-
-    if [[ "$base" == "pipeline.groovy" ]]; then
-        printf '%s/pod.yaml' "$dir"
-        return 0
-    fi
-
-    if [[ "$base" == "Jenkinsfile" ]]; then
-        # New layout: the pod template lives in the same job folder.
-        if [[ -f "${dir}/pod.yaml" ]]; then
-            printf '%s/pod.yaml' "$dir"
-            return 0
-        fi
-        return 1
-    fi
-
-    local name="${base%.groovy}"
-    if [[ -f "${dir}/pod-${name}.yaml" ]]; then
-        printf '%s/pod-%s.yaml' "$dir" "$name"
-        return 0
-    fi
-    if [[ -f "${dir}/pod.yaml" ]]; then
-        printf '%s/pod.yaml' "$dir"
-        return 0
-    fi
-    return 1
+    local pod_file="$(dirname "$1")/pod.yaml"
+    [[ -f "$pod_file" ]] || return 1
+    printf '%s' "$pod_file"
 }
 
 build_inline_script_with_pod_yaml() {
@@ -174,12 +103,13 @@ build_inline_script_with_pod_yaml() {
     local pod_template_file="$2"
     local out_file="$3"
 
-    # Collect pod template variable declarations (final/def VAR = '<pipeline-relative path>') from the
+    # Collect pod template variable declarations (final/def VAR = '<job pod path>') from the
     # pipeline script, mapping each variable to its declared pod yaml. This handles pipelines that use
     # more than one pod template (e.g. tiflash pull_integration_test uses POD_TEMPLATE_FILE for the
     # build phase and POD_INTEGRATIONTEST_TEMPLATE_FILE for the integration-test phase).
     # Regexes are stored in variables for bash 3.2 compatibility with [[ =~ ]].
-    local decl_re="^[[:space:]]*(final|def)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*[\"']([^\"']+\.ya?ml)[\"'][[:space:]]*$"
+    local decl_re="^[[:space:]]*(final|def)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*[\"']([^\"']+\.yaml)[\"'][[:space:]]*$"
+    local pod_name_re='^(pod|pod-[^/]+)\.yaml$'
     local yaml_file_re="(^|[^A-Za-z0-9_])yamlFile[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*(#.*)?$"
     local with_ci_labels_re="(.*)yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*,[[:space:]]*(.*)\)([[:space:]]*#.*)?[[:space:]]*$"
     local -a pod_vars=()
@@ -190,12 +120,9 @@ build_inline_script_with_pod_yaml() {
             var="${BASH_REMATCH[2]}"
             path="${BASH_REMATCH[3]}"
             pod_file=""
-            if [[ "$path" == pipelines/* || "$path" == jenkins/jobs/* ]] && [[ -f "$path" ]]; then
-                pod_file="$path"
-            elif [[ "${path##*/}" == pod*.yaml || "${path##*/}" == pod*.yml ]] &&
+            if [[ "${path##*/}" =~ $pod_name_re ]] &&
                 [[ -f "$(dirname "$script_file")/${path##*/}" ]]; then
-                # Interpolated paths cannot be resolved here, but job pod files
-                # live beside the Jenkinsfile and keep the same basename.
+                # Resolve interpolated paths through the pod file beside the Jenkinsfile.
                 pod_file="$(dirname "$script_file")/${path##*/}"
             fi
             if [[ -n "$pod_file" ]]; then
@@ -205,8 +132,7 @@ build_inline_script_with_pod_yaml() {
         fi
     done < "$script_file"
 
-    # Fallback b64 for the single-pod-template case (variable declared elsewhere or file missing).
-    # Matches the previous behavior: substitute only POD_TEMPLATE_FILE on the first occurrence.
+    # Handle a single pod.yaml when its path variable is declared elsewhere.
     local fallback_b64=""
     if (( ${#pod_vars[@]} == 0 && ${#pod_template_file} > 0 )); then
         fallback_b64="$(base64 < "$pod_template_file" | tr -d '\n')"
@@ -371,9 +297,9 @@ discover_changed_scripts() {
     # once even if both its Jenkinsfile and several pod templates changed.
     # Deleted paths and jobs without a Jenkinsfile cannot be replayed.
     git diff --name-only --diff-filter=ACMRTUXB "$base_sha" "$head_sha" |
-        rg '^(pipelines/.*\.groovy|jenkins/jobs/.*/(Jenkinsfile|pod.*\.ya?ml))$' |
+        rg '^jenkins/jobs/[^/]+/[^/]+/[^/]+/[^/]+/(Jenkinsfile|pod(-[^/]+)?\.yaml)$' |
         while IFS= read -r path; do
-            if [[ "$path" == jenkins/jobs/*/pod*.yml || "$path" == jenkins/jobs/*/pod*.yaml ]]; then
+            if [[ "$path" != */Jenkinsfile ]]; then
                 path="${path%/*}/Jenkinsfile"
             fi
             [[ -f "$path" ]] && printf '%s\n' "$path"
