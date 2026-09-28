@@ -17,9 +17,9 @@ presubmits:
                   (jq . $f > /dev/null && echo "✅") || exit 1
                 done
             resources:
-              limits:
-                cpu: "200m"
-                memory: 512Mi
               requests:
-                cpu: "100m"
                 memory: 256Mi
+                cpu: "100m"
+              limits:
+                memory: 256Mi
+                cpu: "200m"

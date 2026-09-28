@@ -91,7 +91,7 @@ postsubmits:
                 memory: 1Gi
                 cpu: "500m"
               limits:
-                memory: 2Gi
+                memory: 1Gi
                 cpu: "1"
     - name: sync-owners-to-release-branches
       decorate: true

@@ -201,5 +201,5 @@ presubmits:
                 memory: 12Gi
                 cpu: "6"
               limits:
-                memory: 24Gi
+                memory: 12Gi
                 cpu: "6"

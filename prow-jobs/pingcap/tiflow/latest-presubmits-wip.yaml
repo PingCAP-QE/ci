@@ -38,7 +38,7 @@ presubmits:
                 memory: 12Gi
                 cpu: "3"
               limits:
-                memory: 24Gi
+                memory: 12Gi
                 cpu: "6"
     - name: wip-pull-unit-test-engine
       cluster: default
@@ -77,5 +77,5 @@ presubmits:
                 memory: 12Gi
                 cpu: "3"
               limits:
-                memory: 24Gi
+                memory: 12Gi
                 cpu: "6"

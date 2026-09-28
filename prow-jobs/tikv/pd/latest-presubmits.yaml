@@ -40,11 +40,11 @@ presubmits:
                 make             # build for normal mode
             resources:
               requests:
-                cpu: "3"
                 memory: 6Gi
+                cpu: "3"
               limits:
+                memory: 6Gi
                 cpu: "6"
-                memory: 12Gi
 
     - <<: *brancher
       name: pull-unit-test
@@ -74,9 +74,11 @@ presubmits:
 
                 # ls -alh covprofile_*
             resources:
-              limits:
-                cpu: "6"
+              requests:
                 memory: 12Gi
+              limits:
+                memory: 12Gi
+                cpu: "6"
 
     - <<: *brancher
       name: tikv/pd/pull_integration_copr_test

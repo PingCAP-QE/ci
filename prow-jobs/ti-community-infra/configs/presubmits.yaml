@@ -93,6 +93,8 @@ presubmits:
               - --kustomization-file=../../PingCAP-QE/ee-ops/apps/gcp/prow/pre/prow-configs.yaml
               - --dry-run
             resources:
+              requests:
+                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m
@@ -121,6 +123,8 @@ presubmits:
               - --kustomization-file=../../PingCAP-QE/ee-ops/apps/gcp/prow/post/cronjobs-community.yaml
               - --dry-run
             resources:
+              requests:
+                memory: 256Mi
               limits:
                 memory: 256Mi
                 cpu: 200m

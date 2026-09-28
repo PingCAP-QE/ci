@@ -129,7 +129,7 @@ presubmits:
                 memory: 1Gi
                 cpu: "0.5"
               limits:
-                memory: 8Gi
+                memory: 1Gi
                 cpu: "2"
 
     - name: pull-e2e-kind-dmcluster
@@ -816,7 +816,7 @@ presubmits:
                 memory: 1Gi
                 cpu: "0.5"
               limits:
-                memory: 8Gi
+                memory: 1Gi
                 cpu: "2"
 
     - name: pull-e2e-kind-tngm
