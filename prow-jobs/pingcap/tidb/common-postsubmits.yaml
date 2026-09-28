@@ -78,9 +78,11 @@ postsubmits:
               - |
                 pushd ../../${TARGET_FULL_REPO}
                   git checkout "${PULL_BASE_REF}"
+                  [ -e ../tidb ] || ln -s "../${REPO_OWNER}/${REPO_NAME}" ../tidb
                   for modPath in audit/go.mod whitelist/go.mod; do
                     go run github.com/PingCAP-QE/ci/tools/gomod-sync@main --source=../../${REPO_OWNER}/${REPO_NAME}/go.mod --target=${modPath}
                   done
+                  git add -u audit whitelist
                   if git diff --cached --exit-code --name-status .; then
                     echo "🤷 No changes happened."
                     exit 0
