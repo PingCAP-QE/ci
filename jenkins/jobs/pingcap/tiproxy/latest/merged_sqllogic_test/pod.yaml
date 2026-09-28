@@ -28,8 +28,8 @@ spec:
           memory: 12Gi
           cpu: "3"
         limits:
-          memory: 24Gi
-          cpu: "6"
+          memory: 12Gi
+          cpu: "3"
       volumeMounts:
         - name: test-data
           mountPath: /git
@@ -38,11 +38,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
       volumeMounts:
         - name: test-data
           mountPath: /git
