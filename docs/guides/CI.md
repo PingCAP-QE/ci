@@ -95,7 +95,7 @@ Default behavior:
 
 ### 3. Replay All Changed Pipelines in Current Workspace
 
-Use `--auto-changed` to replay all changed pipeline files (`jenkins/jobs/**/Jenkinsfile`) from git diff:
+Use `--auto-changed` to replay Jenkinsfiles changed directly or through their sibling `pod.yaml` or `pod-<purpose>.yaml` files from git diff:
 
 ```bash
 JENKINS_USER="<jenkins-user>" \
@@ -148,6 +148,7 @@ This repository has two related presubmit jobs for pipeline changes:
   - Triggered when `.ci/verify-jenkins-credential-policy.sh`, `.ci/test-verify-jenkins-credential-policy.sh`, or `.ci/security-policy-allowlist.txt` changes.
 - `pull-replay-jenkins-pipelines`
   - Optional replay validation using `--auto-changed`.
+  - Triggered by changes to a job folder’s `Jenkinsfile`, `pod.yaml`, or `pod-<purpose>.yaml`; pod-only changes replay the sibling Jenkinsfile.
   - Trigger manually in PR comments:
     - `/test pull-replay-jenkins-pipelines`
   - Replays against `https://prow.tidb.net/jenkins`.
