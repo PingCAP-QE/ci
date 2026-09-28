@@ -98,7 +98,7 @@ script_to_job_path() {
 route_jenkins_for_script() {
     local script_file="$1"
     local rel="${script_file#./}"
-    local job_path job_name org repo config_dir file master values=""
+    local job_path job_name org repo config_dir file master masters values="" definitions=""
     job_path="$(script_to_job_path "$script_file")" || return 1
     job_name="${job_path#job/}"
     job_name="$(printf '%s' "$job_name" | sed 's#/job/#/#g')"
@@ -111,12 +111,18 @@ route_jenkins_for_script() {
 
     # A job may appear in multiple Prow files, but all definitions must agree.
     while IFS= read -r file; do
-        master="$(REPLAY_JOB_NAME="$job_name" yq -r --yaml-fix-merge-anchor-to-spec=true \
-            '.. | select(.name? == strenv(REPLAY_JOB_NAME) and .agent? == "jenkins") | .labels.master // ""' "$file")" || return 1
-        [[ -z "$master" ]] || values+="${master}"$'\n'
+        masters="$(REPLAY_JOB_NAME="$job_name" yq -r --yaml-fix-merge-anchor-to-spec=true \
+            '.. | select(.name? == strenv(REPLAY_JOB_NAME) and .agent? == "jenkins") | .labels.master // "(missing)"' "$file")" || return 1
+        [[ -n "$masters" ]] || continue
+        while IFS= read -r master; do
+            values+="${master}"$'\n'
+            definitions+="${file}: ${master}"$'\n'
+        done <<< "$masters"
     done < <(find "$config_dir" -type f \( -name '*.yaml' -o -name '*.yml' \))
     values="$(printf '%s' "$values" | sort -u)"
-    [[ -n "$values" && "$values" != *$'\n'* ]] || fatal "missing or conflicting Prow labels.master for ${job_name}: ${values:-none}"
+    [[ -n "$values" ]] || fatal "no Jenkins Prow job definition found for ${job_name} in ${config_dir}"
+    [[ "$values" != *$'\n'* ]] || fatal "conflicting Prow labels.master for ${job_name}: ${definitions%$'\n'}"
+    [[ "$values" != "(missing)" ]] || fatal "missing Prow labels.master for ${job_name} in ${definitions%$'\n'}"
 
     case "$values" in
         0)
@@ -133,7 +139,11 @@ route_jenkins_for_script() {
             fatal "unsupported Prow labels.master '${values}' for ${job_name}"
             ;;
     esac
-    [[ -n "$JENKINS_URL" ]] || fatal "JENKINS_MASTER_${values}_URL is required for ${job_name}"
+    [[ -n "$JENKINS_URL" ]] || fatal "JENKINS_MASTER_${values}_URL is required for ${job_name}; set it for Prow master ${values}"
+    if [[ "$DRY_RUN" != "true" ]]; then
+        [[ -n "$JENKINS_USER" && -n "$JENKINS_TOKEN" ]] || \
+            fatal "JENKINS_MASTER_${values}_USER and JENKINS_MASTER_${values}_TOKEN are required for ${job_name}"
+    fi
     JENKINS_URL="$(trim_trailing_slash "$JENKINS_URL")"
     log "route ${job_name}: Prow master=${values} -> ${JENKINS_URL}"
 }
