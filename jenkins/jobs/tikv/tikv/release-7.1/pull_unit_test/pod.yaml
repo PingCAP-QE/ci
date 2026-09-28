@@ -22,9 +22,6 @@ spec:
         requests:
           memory: 32Gi
           cpu: "6"
-        # Guaranteed QoS (memory/CPU requests == limits), required by
-        # .ci/verify-pod-resource-policy.sh. Limits are aligned down to the
-        # existing requests (FLA-303), so the scheduled footprint is unchanged.
         limits:
           memory: 32Gi
           cpu: "6"
