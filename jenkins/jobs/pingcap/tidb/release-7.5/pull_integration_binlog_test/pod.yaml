@@ -12,8 +12,8 @@ spec:
           memory: 12Gi
           cpu: "4"
         limits:
-          memory: 16Gi
-          cpu: "6"
+          memory: 12Gi
+          cpu: "4"
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
@@ -22,11 +22,11 @@ spec:
       name: zookeeper
       resources:
           requests:
-            cpu: 2000m
             memory: 4Gi
+            cpu: 2000m
           limits:
-            cpu: 4000m
-            memory: 8Gi
+            memory: 4Gi
+            cpu: 2000m
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -51,11 +51,11 @@ spec:
       name: kafka
       resources:
         requests:
-          cpu: 4000m
           memory: 6Gi
+          cpu: 4000m
         limits:
-          cpu: 4000m
           memory: 6Gi
+          cpu: 4000m
       tty: true
       volumeMounts:
         - mountPath: /tmp
@@ -65,11 +65,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
 
   volumes:
     - emptyDir:
