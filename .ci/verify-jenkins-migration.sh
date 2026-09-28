@@ -155,23 +155,56 @@ extract_jenkins_jobs() {
     yq -r --yaml-fix-merge-anchor-to-spec=true '.. | select(.agent? == "jenkins") | [.name // "", (.labels.master // "")] | @tsv' "$f" 2>/dev/null || true
 }
 
-# job name -> jenkins job path (org/repo/branch/job => job/org/job/repo/job/branch/job/job)
+# Prow names are Jenkins full names. The `latest` directory is only a source
+# layout alias: it is not part of the Jenkins job name.
 job_name_to_path() {
     local name="$1"
     printf 'job/%s' "$(printf '%s' "$name" | sed 's#/#/job/#g')"
 }
 
+# Locate a migrated job in the one-folder-per-job tree. Some DSL job names
+# differ from their source folder name, so also search literal pipelineJob
+# declarations when the conventional folder is absent.
+job_name_to_dsl_file() {
+    local name="$1" candidate file
+    local -a parts=()
+    IFS='/' read -r -a parts <<< "$name"
+    case "${#parts[@]}" in
+        2) candidate="jenkins/jobs/${parts[0]}/${parts[1]}/dsl.groovy" ;;
+        3) candidate="jenkins/jobs/${parts[0]}/${parts[1]}/latest/${parts[2]}/dsl.groovy" ;;
+        4) candidate="jenkins/jobs/${parts[0]}/${parts[1]}/${parts[2]}/${parts[3]}/dsl.groovy" ;;
+        *) return 1 ;;
+    esac
+    if [[ -f "$candidate" ]]; then
+        printf '%s' "$candidate"
+        return 0
+    fi
+    # Literal declarations cover the few jobs whose folder differs from the
+    # Jenkins name. Templated declarations follow the conventional layout.
+    while IFS= read -r file; do
+        if rg -Fq "pipelineJob('${name}')" "$file" || rg -Fq "pipelineJob(\"${name}\")" "$file"; then
+            printf '%s' "$file"
+            return 0
+        fi
+    done < <(rg --files jenkins/jobs | rg '/dsl\.groovy$')
+    return 1
+}
+
 detect_flipped_jobs() {
-    local file="$1" basejobs headjobs bname bmaster hname hmaster btmp base_tmp
+    local file="$1" basejobs headjobs bname bmaster hname hmaster btmp base_tmp head_tmp
     basejobs="$(mktemp)"
     headjobs="$(mktemp)"
     base_tmp="$(mktemp)"
+    head_tmp="$(mktemp)"
     # base version of the file (empty if file is newly added)
     if git show "${BASE_SHA}:${file}" > "$base_tmp" 2>/dev/null; then
         extract_jenkins_jobs "$base_tmp" > "$basejobs"
     fi
     rm -f "$base_tmp"
-    extract_jenkins_jobs "$file" > "$headjobs"
+    if git show "${HEAD_SHA}:${file}" > "$head_tmp" 2>/dev/null; then
+        extract_jenkins_jobs "$head_tmp" > "$headjobs"
+    fi
+    rm -f "$head_tmp"
 
     while IFS=$'\t' read -r hname hmaster; do
         [[ -n "$hname" ]] || continue
@@ -693,7 +726,7 @@ validate_inputs() {
 
 run_main_flow() {
     local names=() src_files=() jobs_list
-    local line name file
+    local line name file dsl_file
     local tmpdir results_dir body_file
 
     setup_auth from
@@ -708,8 +741,11 @@ run_main_flow() {
 
     while IFS=$'\t' read -r name file; do
         [[ -n "$name" ]] || continue
+        dsl_file="$(job_name_to_dsl_file "$name")" || fatal "no Jenkins job DSL found for migrated Prow job ${name} under jenkins/jobs"
+        [[ -f "$(dirname "$dsl_file")/Jenkinsfile" ]] || fatal "missing sibling Jenkinsfile for ${name}: ${dsl_file}"
         names+=("$name")
         src_files+=("$file")
+        vlog "mapped ${name} to ${dsl_file}"
     done <<< "$jobs_list"
 
     SUMMARY_TOTAL="${#names[@]}"
@@ -783,4 +819,6 @@ main() {
     run_main_flow
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi
