@@ -8,6 +8,9 @@ spec:
       image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.6.28-8-g92327eaa-go1.25"
       tty: true
       resources:
+        requests:
+          memory: 24Gi
+          cpu: "6"
         limits:
           memory: 24Gi
           cpu: "6"
