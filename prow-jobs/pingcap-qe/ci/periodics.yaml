@@ -25,6 +25,8 @@ periodics:
             requests:
               memory: 1Gi
               cpu: 200m
+            limits:
+              memory: 1Gi
   - name: periodic-reporter-flaky-tests-tidb
     decorate: true # need add this.
     cron: "5 0 * * *" # Run daily at 8:05 UTC+8 (which is 00:05 UTC)
@@ -117,6 +119,8 @@ periodics:
             requests:
               memory: 1Gi
               cpu: 200m
+            limits:
+              memory: 1Gi
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
     cron: "30 0 * * *" # Run daily at 8:30 UTC+8 (which is 0:30 UTC)

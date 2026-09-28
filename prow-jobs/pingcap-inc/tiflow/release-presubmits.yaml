@@ -43,7 +43,7 @@ presubmits:
                 memory: 12Gi
                 cpu: "3"
               limits:
-                memory: 24Gi
+                memory: 12Gi
                 cpu: "6"
 
     - <<: [*k8s_job, *brancher, *changer]

@@ -168,6 +168,8 @@ presubmits:
               requests:
                 memory: 4Gi
                 cpu: "2"
+              limits:
+                memory: 4Gi
           - name: kafka
             image: wurstmeister/kafka:2.12-2.4.1
             command: [bash, -ce]
@@ -218,3 +220,5 @@ presubmits:
               requests:
                 memory: 4Gi
                 cpu: "2"
+              limits:
+                memory: 4Gi

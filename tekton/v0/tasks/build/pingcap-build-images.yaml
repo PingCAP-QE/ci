@@ -83,7 +83,9 @@ spec:
           value: registry-mirror.pingcap.net
       resources:
         requests:
+          memory: 8Gi
           cpu: "4"
+        limits:
           memory: 8Gi
       script: |
         script="/workspace/build-package-images.sh"
