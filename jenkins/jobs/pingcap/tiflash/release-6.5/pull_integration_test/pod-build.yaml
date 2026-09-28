@@ -16,8 +16,8 @@ spec:
           memory: 24Gi
           cpu: "6"
         limits:
-          memory: 32Gi
-          cpu: "8"
+          memory: 24Gi
+          cpu: "6"
       volumeMounts:
         - mountPath: "/tmp"
           name: "tmp"
@@ -27,11 +27,11 @@ spec:
       args: ["sleep", "infinity"]
       resources:
         requests:
-          cpu: "100m"
           memory: "256Mi"
+          cpu: "100m"
         limits:
-          cpu: "1"
-          memory: "4Gi"
+          memory: "256Mi"
+          cpu: "100m"
   volumes:
     - name: "tmp"
       emptyDir: {}

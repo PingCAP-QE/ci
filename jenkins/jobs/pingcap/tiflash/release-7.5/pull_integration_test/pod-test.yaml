@@ -6,10 +6,10 @@ spec:
       imagePullPolicy: "IfNotPresent"
       name: "dockerd"
       resources:
-        limits:
-          memory: "32Gi"
-          cpu: "16000m"
         requests:
+          memory: "10Gi"
+          cpu: "5000m"
+        limits:
           memory: "10Gi"
           cpu: "5000m"
       securityContext:
@@ -35,6 +35,9 @@ spec:
       name: "docker"
       resources:
         requests:
+          memory: "8Gi"
+          cpu: "5000m"
+        limits:
           memory: "8Gi"
           cpu: "5000m"
       tty: true

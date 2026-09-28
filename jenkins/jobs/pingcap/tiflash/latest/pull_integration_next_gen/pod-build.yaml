@@ -13,6 +13,9 @@ spec:
         - "cat"
       tty: true
       resources:
+        requests:
+          memory: 48Gi
+          cpu: "12"
         limits:
           memory: 48Gi
           cpu: "12"
@@ -25,11 +28,11 @@ spec:
       args: ["sleep", "infinity"]
       resources:
         requests:
-          cpu: "100m"
           memory: "256Mi"
+          cpu: "100m"
         limits:
-          cpu: "1"
-          memory: "4Gi"
+          memory: "256Mi"
+          cpu: "100m"
   volumes:
     - name: "tmp"
       emptyDir: {}
