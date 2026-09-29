@@ -25,32 +25,10 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            parallel {
-                stage('tidb') {
-                    steps {
-                        dir(REFS.repo) {
-                            script {
-                                prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
-                            }
-                        }
-                    }
-                }
-                stage("enterprise-plugin") {
-                    when {
-                        expression {
-                            return REFS.base_ref !=~ /^feature[\/_].*/
-                        }
-                    }
-                    steps {
-                        dir("enterprise-plugin") {
-                            cache(path: "./", includes: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
-                                retry(2) {
-                                    script {
-                                        component.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
-                                    }
-                                }
-                            }
-                        }
+            steps {
+                dir(REFS.repo) {
+                    script {
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
             }
@@ -62,75 +40,49 @@ pipeline {
                 }
             }
         }
-        stage("Build tidb-server and plugin"){
-            parallel {
-                stage("Build tidb-server") {
-                    stages {
-                        stage("Build"){
-                            steps {
-                                dir(REFS.repo) {
-                                    sh "make bazel_build"
-                                }
-                            }
-                            post {
-                                always {
-                                    dir(REFS.repo) {
-                                        archiveArtifacts(
-                                            artifacts: 'importer.log,tidb-server-check.log',
-                                            allowEmptyArchive: true,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+        stage("Build tidb-server community edition"){
+            steps {
+                dir(REFS.repo) {
+                    sh "make bazel_build"
                 }
-                stage("Build plugins") {
-                    when {
-                        expression {
-                            return REFS.base_ref !=~ /^feature[\/_].*/
-                        }
-                    }
-                    steps {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            sh label: 'build pluginpkg tool', script: "cd ${REFS.repo}/cmd/pluginpkg && go build"
-                        }
-                        dir('enterprise-plugin/whitelist') {
-                            sh label: 'build plugin whitelist', script: '''
-                                GO111MODULE=on go mod tidy
-                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                '''
-                        }
-                        dir('enterprise-plugin/audit') {
-                            sh label: 'build plugin: audit', script: '''
-                                GO111MODULE=on go mod tidy
-                                ../../tidb/cmd/pluginpkg/pluginpkg -pkg-dir . -out-dir .
-                                '''
-                        }
+            }
+            post {
+                always {
+                    dir(REFS.repo) {
+                        archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
                     }
                 }
             }
         }
         stage("Test plugin") {
-            when {
-                expression {
-                    return REFS.base_ref !=~ /^feature[\/_].*/
-                }
-            }
+            when { not { expression { REFS.base_ref ==~ /^feature[\/_].*/ } } } // skip for feature branches.
             steps {
-                sh label: 'build tidb-server', script: "make server -C ${REFS.repo}"
+                dir('enterprise-plugin') {
+                    cache(path: "./", includes: '**/*', key: "git/pingcap-inc/enterprise-plugin/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap-inc/enterprise-plugin/rev-']) {
+                        retry(2) {
+                            script {
+                                component.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
+                            }
+                        }
+                    }
+                }
                 sh label: 'Test plugins', script: """
-                    rm -rf /tmp/tidb
-                    rm -rf plugin-so
                     mkdir -p plugin-so
 
-                    cp enterprise-plugin/audit/audit-1.so ./plugin-so/
-                    cp enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
-                    ./${REFS.repo}/bin/tidb-server -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
+                    # compile go plugin: audit
+                    pushd enterprise-plugin/audit && go mod tidy && popd
+                    pushd ${REFS.repo} && go run ./cmd/pluginpkg -pkg-dir ../enterprise-plugin/audit -out-dir ../plugin-so && popd
+
+                    # compile go plugin: whitelist
+                    pushd enterprise-plugin/whitelist && go mod tidy && popd
+                    pushd ${REFS.repo} && go run ./cmd/pluginpkg -pkg-dir ../enterprise-plugin/whitelist -out-dir ../plugin-so && popd
+
+                    # test them.
+                    make server -C ${REFS.repo}
+                    ./${REFS.repo}/bin/tidb-server -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 | tee ./loading-plugin.log &
 
                     sleep 30
                     ps aux | grep tidb-server
-                    cat /tmp/loading-plugin.log
                     killall -9 -r tidb-server
                 """
             }

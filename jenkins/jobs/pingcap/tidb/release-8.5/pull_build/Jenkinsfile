@@ -28,12 +28,11 @@ pipeline {
             steps {
                 dir(REFS.repo) {
                     script {
-                        prow.checkoutRefsWithCacheLock(REFS, 5, GIT_CREDENTIALS_ID, true)
+                        prow.checkoutRefsWithCacheLock(REFS, timeout = 5, credentialsId = GIT_CREDENTIALS_ID, withSubmodule = true)
                     }
                 }
             }
         }
-
         stage('Prepare bazel workspace') {
             steps {
                 dir(REFS.repo) {
@@ -41,7 +40,6 @@ pipeline {
                 }
             }
         }
-
         stage("Build tidb-server community edition"){
             steps {
                 dir(REFS.repo) {
