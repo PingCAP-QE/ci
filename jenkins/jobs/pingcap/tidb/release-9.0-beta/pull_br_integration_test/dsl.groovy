@@ -4,7 +4,7 @@ final branchAlias = 'release-9.0-beta' // For trunk and latest release branches.
 final jobName = 'pull_br_integration_test'
 final ciGroovyPath = "jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile"
 
-pipelineJob("${fullRepo}/${branchAlias}/${jobName}') {
+pipelineJob("${fullRepo}/${branchAlias}/${jobName}") {
     logRotator {
         daysToKeep(30)
     }
