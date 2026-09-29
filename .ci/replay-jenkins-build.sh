@@ -76,23 +76,6 @@ trim_trailing_slash() {
     printf '%s' "$s"
 }
 
-# Print the literal Jenkins job name declared by a job folder's `dsl.groovy`.
-# Most folders match their job name, but a few keep a legacy folder name that
-# differs from the Jenkins name (e.g. folder `pull_integration_br_test` -> job
-# `pull_br_integration_test`). `.ci/verify-jenkins-migration.sh` applies the
-# same literal lookup. Templated names (`pipelineJob("${repo}/${job}")`) are
-# ignored so the caller falls back to the conventional folder-derived name.
-dsl_job_name() {
-    local dsl_file="$1"
-    [[ -f "$dsl_file" ]] || return 1
-
-    local name
-    name="$(rg --no-config -o -r '$1' -m 1 "pipelineJob\(['\"]([^'\"]+)['\"]\)" "${dsl_file}" 2>/dev/null || true)"
-    [[ -n "${name}" && "${name}" != *'$'* ]] || return 1
-
-    printf '%s' "${name}"
-}
-
 script_to_job_path() {
     local script_file="$1"
     local rel="${script_file#./}"
@@ -103,24 +86,13 @@ script_to_job_path() {
     local repo="${BASH_REMATCH[2]}"
     local branch="${BASH_REMATCH[3]}"
     local job="${BASH_REMATCH[4]}"
-
-    local folder_name="${org}/${repo}"
+    local job_path="job/${org}/job/${repo}"
     if [[ "$branch" != "latest" ]]; then
-        folder_name+="/${branch}"
+        job_path+="/job/${branch}"
     fi
-    folder_name+="/${job}"
+    job_path+="/job/${job}"
 
-    # Prefer the name the Job DSL declares; the folder name is only the layout
-    # convention and can drift from the real Jenkins job name.
-    local job_name
-    job_name="$(dsl_job_name "${rel%/Jenkinsfile}/dsl.groovy" || true)"
-    if [[ -z "${job_name}" ]]; then
-        job_name="${folder_name}"
-    elif [[ "${job_name}" != "${folder_name}" ]]; then
-        log "job folder '${folder_name}' declares Jenkins job '${job_name}' in dsl.groovy"
-    fi
-
-    printf 'job/%s' "$(printf '%s' "${job_name}" | sed 's#/#/job/#g')"
+    printf '%s' "$job_path"
 }
 
 route_jenkins_for_script() {

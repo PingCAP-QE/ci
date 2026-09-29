@@ -6,13 +6,9 @@ fixture="$(mktemp -d)"
 trap 'rm -rf "$fixture"' EXIT
 cd "$fixture"
 
-mkdir -p prow-jobs/example/repo jenkins/jobs/example/repo/latest/{old,new,renamed}
+mkdir -p prow-jobs/example/repo jenkins/jobs/example/repo/latest/{old,new}
 printf 'pipeline {}\n' > jenkins/jobs/example/repo/latest/old/Jenkinsfile
 printf 'pipeline {}\n' > jenkins/jobs/example/repo/latest/new/Jenkinsfile
-# Legacy layout: the folder name differs from the Jenkins job name declared in
-# dsl.groovy, so routing must resolve the job from the DSL, not the folder.
-printf 'pipeline {}\n' > jenkins/jobs/example/repo/latest/renamed/Jenkinsfile
-printf "pipelineJob('example/repo/actual') {}\n" > jenkins/jobs/example/repo/latest/renamed/dsl.groovy
 cat > prow-jobs/example/repo/presubmits.yaml <<'YAML'
 presubmits:
   example/repo:
@@ -21,10 +17,6 @@ presubmits:
       labels:
         master: "1"
     - name: example/repo/new
-      agent: jenkins
-      labels:
-        master: "0"
-    - name: example/repo/actual
       agent: jenkins
       labels:
         master: "0"
@@ -46,12 +38,6 @@ old_output="$(replay_dry_run old)"
 new_output="$(replay_dry_run new)"
 [[ "$new_output" == *'master=0 -> https://new.example/jenkins'* ]]
 [[ "$new_output" == *'https://new.example/jenkins/job/example/job/repo/job/new/lastSuccessfulBuild'* ]]
-
-# The folder is `renamed` but dsl.groovy declares `example/repo/actual`.
-renamed_output="$(replay_dry_run renamed)"
-[[ "$renamed_output" == *'master=0 -> https://new.example/jenkins'* ]]
-[[ "$renamed_output" == *'https://new.example/jenkins/job/example/job/repo/job/actual/lastSuccessfulBuild'* ]]
-[[ "$renamed_output" == *"job folder 'example/repo/renamed' declares Jenkins job 'example/repo/actual'"* ]]
 
 if env -u JENKINS_MASTER_0_URL "$repo_root/.ci/replay-jenkins-build.sh" \
     --script-file jenkins/jobs/example/repo/latest/new/Jenkinsfile \
