@@ -9,10 +9,10 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 12Gi
+          memory: 24Gi
           cpu: "3"
         limits:
-          memory: 12Gi
+          memory: 24Gi
           cpu: "3"
       volumeMounts:
         - mountPath: "/tmp/tidb"
