@@ -1,6 +1,10 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-final ciGroovyPath = "jenkins/jobs/pingcap-inc/tidb/release-8.5/pull_integration_br_test/Jenkinsfile"
-pipelineJob('pingcap-inc/tidb/release-8.5/pull_br_integration_test') {
+final fullRepo = 'pingcap-inc/tidb'
+final branchAlias = 'release-8.5' // For trunk and latest release branches.
+final jobName = 'pull_br_integration_test'
+final ciGroovyPath = "jenkins/jobs/${fullRepo}/${branchAlias}/${jobName}/Jenkinsfile"
+
+pipelineJob("${fullRepo}/${branchAlias}/${jobName}') {
     logRotator {
         daysToKeep(30)
     }
