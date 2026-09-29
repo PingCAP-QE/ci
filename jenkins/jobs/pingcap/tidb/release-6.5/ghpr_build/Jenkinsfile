@@ -111,5 +111,29 @@ pipeline {
                 }
             }
         }
+        stage("Test plugin") {
+            when {
+                expression {
+                    return REFS.base_ref !=~ /^feature[\/_].*/
+                }
+            }
+            steps {
+                sh label: 'build tidb-server', script: "make server -C ${REFS.repo}"
+                sh label: 'Test plugins', script: """
+                    rm -rf /tmp/tidb
+                    rm -rf plugin-so
+                    mkdir -p plugin-so
+
+                    cp enterprise-plugin/audit/audit-1.so ./plugin-so/
+                    cp enterprise-plugin/whitelist/whitelist-1.so ./plugin-so/
+                    ./${REFS.repo}/bin/tidb-server -plugin-dir=./plugin-so -plugin-load=audit-1,whitelist-1 > /tmp/loading-plugin.log 2>&1 &
+
+                    sleep 30
+                    ps aux | grep tidb-server
+                    cat /tmp/loading-plugin.log
+                    killall -9 -r tidb-server
+                """
+            }
+        }
     }
 }
