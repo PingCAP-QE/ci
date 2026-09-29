@@ -5,7 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
+      image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12120230809"
       securityContext:
         privileged: true
       tty: true
@@ -35,11 +35,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
   volumes:
     - name: tmp
       ephemeral:

@@ -14,8 +14,8 @@ spec:
           memory: 16Gi
           cpu: "4"
         limits:
-          memory: 32Gi
-          cpu: "8"
+          memory: 16Gi
+          cpu: "4"
       volumeMounts:
         - mountPath: /tmp
           name: tmp
@@ -35,11 +35,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
   volumes:
     - name: tmp
       ephemeral:

@@ -14,8 +14,8 @@ spec:
           memory: 12Gi
           cpu: "3"
         limits:
-          memory: 24Gi
-          cpu: "6"
+          memory: 12Gi
+          cpu: "3"
     - name: mysql-client-test
       image: us-docker.pkg.dev/pingcap-testing-account/internal/test/tiproxy-team/mysql-client-test:latest
       securityContext:
@@ -26,18 +26,18 @@ spec:
           memory: 12Gi
           cpu: "3"
         limits:
-          memory: 24Gi
-          cpu: "6"
+          memory: 12Gi
+          cpu: "3"
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       tty: true
       resources:
         requests:
-          memory: 256Mi
-          cpu: 100m
-        limits:
+          memory: 1Gi
           cpu: "1"
-          memory: 4Gi
+        limits:
+          memory: 1Gi
+          cpu: "1"
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

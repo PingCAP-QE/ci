@@ -10,8 +10,26 @@ spec:
       ref: { name: cel }
       params:
         - name: filter
+          # Filter conditions (all must pass):
+          # 1. The event is a newly created issue comment on the image controller repo
+          # 2. Comment body contains a META JSON block (<!-- META={...} -->)
+          # 3. The delivery succeeded (status=="success", or the legacy success title
+          #    for comments produced before the status field existed)
+          # 4. The META block has a non-empty "images" array
           value: >-
+            body.action == 'created'
+            &&
+            body.repository.full_name == 'tidbcloud/docker-image-controller'
+            &&
+            body.comment.body != null
+            &&
             body.comment.body.matches('<!--\\s*META={.+?\\s*-->')
+            &&
+            (body.comment.body.contains('Fast Image Delivery Results')
+            ||
+            ('status' in body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON()
+            &&
+            body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().status == 'success'))
             &&
             size(body.comment.body.split('<!--')[1].split('-->')[0].replace('META=', '').parseJSON().images) > 0
         - name: overlays
