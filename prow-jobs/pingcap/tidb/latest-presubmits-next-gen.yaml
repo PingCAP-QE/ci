@@ -24,6 +24,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_unit_test_next_gen
+      labels:
+        master: "0"
       skip_if_only_changed: *skip_if_only_changed
       context: pull-unit-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-unit-test-next-gen(?: .*?)?$"
