@@ -1,5 +1,5 @@
 // REF: https://<your-jenkins-server>/plugin/job-dsl/api-viewer/index.html
-final ciGroovyPath = "jenkins/jobs/pingcap-inc/tidb/release-8.5/pull_integration_br_test/Jenkinsfile"
+final ciGroovyPath = "jenkins/jobs/pingcap-inc/tidb/release-8.5/pull_br_integration_test/Jenkinsfile"
 pipelineJob('pingcap-inc/tidb/release-8.5/pull_br_integration_test') {
     logRotator {
         daysToKeep(30)
