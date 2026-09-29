@@ -38,3 +38,12 @@
 
 # tiproxy sqllogic download init container has no resource budget.
 ^jenkins/jobs/pingcap/tiproxy/latest/(merged|pull)_sqllogic_test/pod\.yaml$	download-sqllogic	2027-03-31	lightweight init container (downloads sqllogic data) with no resource budget
+
+# tidb release-6.5 ghpr_build / ghpr_unit_test keep a squeezed memory
+# request (16Gi / 48Gi) under the 64Gi limit so the bazel build/test can
+# burst. bazel derives --jobs/--local_ram_resources from the container
+# limits, so capping the limit to the request would risk slowing or
+# OOMKilling these jobs, and there are no per-container peak metrics yet.
+# The Guaranteed alignment is deferred to a dedicated FLA-303 batch.
+^jenkins/jobs/pingcap/tidb/release-6\.5/ghpr_build/pod\.yaml$	golang	2027-03-31	build pod bursts to 64Gi/16cpu (bazel jobs come from limits); align with metrics in a later FLA-303 batch
+^jenkins/jobs/pingcap/tidb/release-6\.5/ghpr_unit_test/pod\.yaml$	golang	2027-03-31	unit-test pod bursts to 64Gi; align with metrics in a later FLA-303 batch
