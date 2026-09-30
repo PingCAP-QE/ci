@@ -209,7 +209,9 @@ detect_flipped_jobs() {
     while IFS=$'\t' read -r hname hmaster; do
         [[ -n "$hname" ]] || continue
         [[ "$hmaster" == "0" ]] || continue
-        [[ "$hname" =~ next[-_]?gen ]] && continue
+        # nextgen jobs are detected like any other jenkins-agent job. The
+        # previous nextgen exclusion (migration deferred) was removed once the
+        # nextgen migration was scheduled; see PingCAP-QE/ci#5334.
         bmaster=""
         while IFS=$'\t' read -r bname btmp; do
             [[ "$bname" == "$hname" ]] && { bmaster="$btmp"; break; }

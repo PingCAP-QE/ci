@@ -224,6 +224,28 @@ presubmits:
                 memory: 256Mi
                 cpu: 200m
 
+    - name: pull-test-jenkins-migration-scripts
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: '^\.ci/(verify-jenkins-migration|test-verify-jenkins-migration)\.sh$'
+      timeout: 10m
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.24
+            command: [sh, -ce]
+            args:
+              - |
+                apk add --no-cache bash git ripgrep yq-go
+                bash .ci/test-verify-jenkins-migration.sh
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+
     - name: pull-verify-storage-class-policy
       labels: *labels
       decorate: true
