@@ -4,17 +4,7 @@ This directory contains Tekton configuration files for the CI/CD system used by 
 
 ## Version Information
 
-**IMPORTANT DEPRECATION NOTICE:**
-
-- **`v1/`**: Current, actively maintained version. Use this for all new configurations and modifications.
-- **`v0/`**: **DEPRECATED** - Legacy version. Do not use for new development. Existing configurations may still be in use but should be migrated to v1.
-
-### Migration Guidance
-If you are maintaining or updating existing CI/CD workflows, please migrate from v0 to v1. The v1 version includes:
-- Improved trigger configurations
-- Better resource management
-- Enhanced CEL interceptor support
-- Updated template structures
+- **`v1/`**: Current, actively maintained version. Use this for all configurations and modifications.
 
 ## Directory Structure
 
@@ -23,12 +13,7 @@ tekton/
 ├── README.md                   # This file
 ├── OWNERS                      # Approval configuration
 ├── tests/                      # Test files for Tekton configurations
-├── v0/                         # DEPRECATED - Legacy Tekton configurations
-│   ├── pipelines/              # Pipeline definitions
-│   ├── tasks/                  # Task definitions
-│   ├── triggers/               # Trigger definitions and templates
-│   └── ...                     # Other v0 resources
-└── v1/                         # Current Tekton configurations
+└── v1/                         # Tekton configurations
     ├── pipelines/              # Pipeline definitions
     ├── tasks/                  # Task definitions
     ├── triggers/               # Trigger configurations (see triggers/README.md)
@@ -119,4 +104,4 @@ For questions or issues with Tekton configurations:
 
 ---
 
-**Remember**: Always use `v1/` for new development. The `v0/` directory is maintained for legacy compatibility only and should not be modified except for migration purposes.
+**Remember**: Always use `v1/` for Tekton development.
