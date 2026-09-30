@@ -209,7 +209,6 @@ detect_flipped_jobs() {
     while IFS=$'\t' read -r hname hmaster; do
         [[ -n "$hname" ]] || continue
         [[ "$hmaster" == "0" ]] || continue
-        [[ "$hname" =~ next[-_]?gen ]] && continue
         bmaster=""
         while IFS=$'\t' read -r bname btmp; do
             [[ "$bname" == "$hname" ]] && { bmaster="$btmp"; break; }

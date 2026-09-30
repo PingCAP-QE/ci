@@ -20,6 +20,10 @@ presubmits:
       agent: jenkins
       labels:
         master: "1"
+    - name: example/repo/already_migrated
+      agent: jenkins
+      labels:
+        master: "0"
 YAML
 git add .
 git commit -qm base
@@ -40,9 +44,22 @@ printf 'pipeline {}\n' > jenkins/jobs/example/repo/release-8.5/renamed/Jenkinsfi
 source "$repo_root/.ci/verify-jenkins-migration.sh"
 BASE_SHA="$base_sha"
 HEAD_SHA="$head_sha"
-actual="$(collect_flipped_jobs "$BASE_SHA" "$HEAD_SHA" | sort)"
-expected=$'example/repo/build\tprow-jobs/example/repo/presubmits.yaml\nexample/repo/release-8.5/actual\tprow-jobs/example/repo/presubmits.yaml'
-[[ "$actual" == "$expected" ]]
+actual="$(collect_flipped_jobs "$BASE_SHA" "$HEAD_SHA" | LC_ALL=C sort)"
+expected=$(cat <<'EXPECTED'
+example/repo/build	prow-jobs/example/repo/presubmits.yaml
+example/repo/release-8.5/actual	prow-jobs/example/repo/presubmits.yaml
+EXPECTED
+)
+if [[ "$actual" != "$expected" ]]; then
+    echo 'unexpected flipped jobs:' >&2
+    diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") >&2 || true
+    exit 1
+fi
+# A job that was already at master "0" on the base commit is not a migration.
+if grep -q '^example/repo/already_migrated' <<<"$actual"; then
+    echo 'job already at master "0" on base must not be reported' >&2
+    exit 1
+fi
 [[ "$(job_name_to_dsl_file example/repo/build)" == 'jenkins/jobs/example/repo/latest/build/dsl.groovy' ]]
 [[ "$(job_name_to_dsl_file example/repo/release-8.5/actual)" == 'jenkins/jobs/example/repo/release-8.5/renamed/dsl.groovy' ]]
 [[ "$(job_name_to_path example/repo/build)" == 'job/example/job/repo/job/build' ]]
