@@ -28,8 +28,8 @@ presubmits:
       labels:
         master: "0"
 YAML
-# nextgen jobs used to be skipped by the detector; they must now be detected
-# and verified like any other jenkins-agent job (PingCAP-QE/ci#5334).
+# Job names are data, not a category: detection must not special-case any name
+# pattern, so jobs living in a `*-next-gen*` file are asserted like the rest.
 cat > prow-jobs/example/repo/latest-presubmits-next-gen.yaml <<'YAML'
 presubmits:
   example/repo:
