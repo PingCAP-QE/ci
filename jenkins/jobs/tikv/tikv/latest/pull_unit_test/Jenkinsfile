@@ -3,7 +3,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = 'jenkins-tikv'
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID = 'github-bot-ssh'
 final POD_TEMPLATE_FILE = "jenkins/jobs/tikv/tikv/latest/pull_unit_test/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 

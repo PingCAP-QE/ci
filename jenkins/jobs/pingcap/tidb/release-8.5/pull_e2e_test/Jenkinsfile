@@ -8,7 +8,7 @@ final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tidb/release-8.5/pull_e2e_test/p
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID = 'github-bot-ssh'
 
 prow.setPRDescription(REFS)
 pipeline {

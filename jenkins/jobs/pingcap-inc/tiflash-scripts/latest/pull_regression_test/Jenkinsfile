@@ -1,7 +1,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflow"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID = 'github-bot-ssh'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap-inc/tiflash-scripts/latest/pull_regression_test/pod.yaml"
 
