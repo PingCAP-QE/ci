@@ -45,6 +45,38 @@ assert_flaky() {
     rm -rf "$tmpdir2"
 }
 
+# Helper: assert the reason recorded for a test name in new_flaky for a target
+assert_reason() {
+    local fixture="$1" target="$2" test_name="$3" expected="$4"
+    local tmpdir2="$(mktemp -d)"
+    (cd "$tmpdir2" && \
+     bash "$repo_root/scripts/plugins/analyze-go-test-from-bazel-output.sh" \
+         "$repo_root/scripts/plugins/testdata/analyze-go-test-from-bazel-output/$fixture" >/dev/null 2>&1 && \
+     jq -e --arg t "$test_name" --arg r "$expected" \
+        '[.["'"$target"'"].new_flaky // [] | .[] | select(.name == $t) | .reason] | index($r)' \
+        bazel-go-test-problem-cases.json >/dev/null) || \
+        { echo "FAIL: $test_name reason is not '$expected' for $fixture"; rm -rf "$tmpdir2"; return 1; }
+    echo "PASS: $test_name reason == $expected ($fixture)"
+    rm -rf "$tmpdir2"
+}
+
+# Helper: assert the script prints no sed error. A case appearing in several
+# shards/attempts used to yield multiple line numbers and break the sed range,
+# printing "unterminated address regex".
+assert_no_sed_error() {
+    local fixture="$1"
+    local tmpdir2="$(mktemp -d)"
+    local out
+    out=$(cd "$tmpdir2" && bash "$repo_root/scripts/plugins/analyze-go-test-from-bazel-output.sh" \
+        "$repo_root/scripts/plugins/testdata/analyze-go-test-from-bazel-output/$fixture" 2>&1)
+    rm -rf "$tmpdir2"
+    if echo "$out" | grep -qiE "unterminated (address|regular expression)"; then
+        echo "FAIL: script printed a sed error for $fixture"
+        return 1
+    fi
+    echo "PASS: no sed error ($fixture)"
+}
+
 echo "--- TDD tests: flaky detection ---"
 
 failures=0
@@ -58,6 +90,13 @@ assert_flaky "flaky_two_shards.log" "//pkg:flaky_case" "TestFlaky" || failures=$
 # Test 3: Mixed — SKIP test not flagged, flaky test IS flagged
 assert_not_flaky "skip_and_flaky.log" "//pkg:mixed_case" "TestSkipOnly" || failures=$((failures + 1))
 assert_flaky "skip_and_flaky.log" "//pkg:mixed_case" "TestFlaky" || failures=$((failures + 1))
+
+# Test 4: a failing case that shows up in multiple shards and whose race report is
+# printed after "--- FAIL" must be flagged with reason "race" (regression for the
+# multiline sed range and the truncated race-detection window).
+assert_flaky "race_multi_shard.log" "//pkg:race_case" "TestRaceFlaky" || failures=$((failures + 1))
+assert_reason "race_multi_shard.log" "//pkg:race_case" "TestRaceFlaky" "race" || failures=$((failures + 1))
+assert_no_sed_error "race_multi_shard.log" || failures=$((failures + 1))
 
 echo ""
 if [ "$failures" -gt 0 ]; then

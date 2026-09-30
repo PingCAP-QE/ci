@@ -82,14 +82,19 @@ function parse_bazel_go_test_new_flaky_cases() {
         fi
         local ts="${indexes[${p}]}"
         local s=$((ts + 1))
-        target=$(sed -n "${ts},${ts}p" bazel-flaky-summaries.log | grep -Eo "\b//[-_:/a-zA-Z0-9]+\b")
+        target=$(sed -n "${ts},${ts}p" "$BAZEL_FLAKY_SUMMARY_FILE" | grep -Eo "\b//[-_:/a-zA-Z0-9]+\b")
 
         ###### find the new flaky cases #######
-        for targetShardFlag in $(sed -n "${s},${e}p" bazel-flaky-summaries.log | grep -Eo "shard_[0-9]+_of_[0-9]+"); do
+        for targetShardFlag in $(sed -n "${s},${e}p" "$BAZEL_FLAKY_SUMMARY_FILE" | grep -Eo "shard_[0-9]+_of_[0-9]+"); do
             targetShardOutputLineNum=$(grep -E "^[0-9]+:=+ Test output for $target \(${targetShardFlag//_/ }\):" "$DEFAULT_GO_TEST_INDEX_FILE" | grep -Eo "^[0-9]+")
             for n in $targetShardOutputLineNum; do
+                # Slice the shard section once and reuse it below. A case can appear in
+                # several shards/attempts, so locating its RUN/FAIL lines must be scoped
+                # to this section; otherwise the lookup returns multiple line numbers
+                # and the resulting sed range is invalid (unterminated address regex).
+                local shardContent=$(sed -nE "/^${n}:/,/^[0-9]+:=+ Test output for \//p" "$DEFAULT_GO_TEST_INDEX_FILE")
                 local newFlakyCases=($(
-                    sed -nE "/^${n}:/,/^[0-9]+:=+ Test output for \//p" "$DEFAULT_GO_TEST_INDEX_FILE" |
+                    printf '%s\n' "$shardContent" |
                         grep -E "=== RUN|--- (PASS|SKIP)" |
                         grep -Eo "\bTest[[:alnum:]_/]+" | sort | uniq -c |
                         grep "^\s*1\b" |
@@ -98,10 +103,9 @@ function parse_bazel_go_test_new_flaky_cases() {
 
                 ##### verify each candidate has --- FAIL in the same shard section.
                 if [ "${#newFlakyCases[@]}" -gt 0 ]; then
-                    local shardContent=$(sed -nE "/^${n}:/,/^[0-9]+:=+ Test output for \//p" "$DEFAULT_GO_TEST_INDEX_FILE")
                     local verifiedCases=()
                     for c in "${newFlakyCases[@]}"; do
-                        if echo "$shardContent" | grep -qE -e "--- FAIL:\s*${c}\b"; then
+                        if printf '%s\n' "$shardContent" | grep -qE -e "--- FAIL:\s*${c}\b"; then
                             verifiedCases+=("$c")
                         fi
                     done
@@ -111,12 +115,23 @@ function parse_bazel_go_test_new_flaky_cases() {
                 ##### add into result json file.
                 if [ "${#newFlakyCases[@]}" -gt 0 ]; then
                     for c in "${newFlakyCases[@]}"; do
-                        local caseRunStartLine=$(grep -E "=== RUN\s*${c}$" "$DEFAULT_GO_TEST_INDEX_FILE" | cut -d ":" -f 1)
-                        local caseRunEndLine=$(grep -E "(--- FAIL):\s*${c}\b.*$" "$DEFAULT_GO_TEST_INDEX_FILE" | cut -d ":" -f 1)
+                        # Line numbers are relative to $shardContent: this case's output
+                        # starts at its RUN line and ends before the next case's RUN (or
+                        # at the end of the section). Go prints a test's captured log
+                        # *after* its "--- FAIL" line, which is where the race detector
+                        # message shows up, so the window must not stop at FAIL.
+                        local caseStartLine=$(printf '%s\n' "$shardContent" | grep -nE "=== RUN\s*${c}$" | head -n1 | cut -d ":" -f 1)
+                        local caseEndLine=""
+                        if [ -n "$caseStartLine" ]; then
+                            caseEndLine=$(printf '%s\n' "$shardContent" | awk -v start="$caseStartLine" '
+                                NR > start && /=== RUN/ { print NR - 1; found = 1; exit }
+                                END { if (!found) print NR }')
+                        fi
                         local failReason="unknow"
 
                         # failed reason: race detected.
-                        if sed -n "/^${caseRunStartLine}:/,/^${caseRunEndLine}:/p" "$DEFAULT_GO_TEST_INDEX_FILE" | grep "race detected during execution of test" >/dev/null; then
+                        if [ -n "$caseStartLine" ] && [ -n "$caseEndLine" ] &&
+                            printf '%s\n' "$shardContent" | sed -n "${caseStartLine},${caseEndLine}p" | grep "race detected during execution of test" >/dev/null; then
                             echo "race detected case: ${c}"
                             failReason="race"
                         else
