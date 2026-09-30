@@ -17,6 +17,8 @@ presubmits:
   pingcap/tidb:
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_build_next_gen
+      labels:
+        master: "0"
       skip_if_only_changed: *skip_if_only_changed
       context: pull-build-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-build-next-gen(?: .*?)?$"
@@ -40,6 +42,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_mysql_client_test_next_gen
+      labels:
+        master: "0"
       skip_if_only_changed: *skip_if_only_changed
       context: pull-mysql-client-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-client-test-next-gen(?: .*?)?$"
