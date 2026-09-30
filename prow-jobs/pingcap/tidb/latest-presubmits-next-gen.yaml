@@ -33,6 +33,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_realcluster_test_next_gen
+      labels:
+        master: "0"
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
@@ -47,6 +49,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_mysql_test_next_gen
+      labels:
+        master: "0"
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-mysql-test-next-gen
@@ -55,6 +59,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_e2e_test_next_gen
+      labels:
+        master: "0"
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
       context: non-block/pull-integration-e2e-test-next-gen
@@ -63,6 +69,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_br_integration_test_next_gen
+      labels:
+        master: "0"
       # never run before
       # run_if_changed: "(br|pkg/(ddl|domain|infoschema))/.*"
       optional: true
@@ -72,6 +80,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: pingcap/tidb/pull_integration_ddl_test_next_gen
+      labels:
+        master: "0"
       # never run before
       # skip_if_only_changed: *skip_if_only_changed
       optional: true
