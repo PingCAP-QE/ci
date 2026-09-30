@@ -3,7 +3,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
-final GIT_CREDENTIALS_ID = 'github-sre-bot-ssh'
+final GIT_CREDENTIALS_ID = 'github-bot-ssh'
 final POD_TEMPLATE_FILE_BUILD = "jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod-build.yaml"
 final POD_TEMPLATE_FILE_TEST = "jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod-test.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
