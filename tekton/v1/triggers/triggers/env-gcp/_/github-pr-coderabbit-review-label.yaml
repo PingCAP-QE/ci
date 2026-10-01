@@ -1,0 +1,24 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-pr-coderabbit-review-label
+  labels:
+    type: github-pr
+spec:
+  interceptors:
+    - name: filter rollout repositories and review events
+      ref: { name: cel }
+      params:
+        - name: filter
+          # Pilot scope: only PRs targeting this repository and base branch.
+          value: >-
+            body.repository.full_name in ['ti-community-infra/configs']
+            && body.pull_request.base.ref == 'test_ai_review'
+            && header.match('X-GitHub-Event', 'pull_request_review')
+            && body.action in ['submitted', 'dismissed']
+            && body.review.user.login == 'coderabbitai[bot]'
+            && body.review.user.type == 'Bot'
+  bindings:
+    - ref: github-pr
+  template:
+    ref: coderabbit-review-label
