@@ -15,7 +15,7 @@ spec:
           memory: 32Gi
           cpu: 8000m
     - name: pulsar
-      image: "apachepulsar/pulsar:2.10.4"
+      image: "apachepulsar/pulsar:2.10.6"
       imagePullPolicy: IfNotPresent
       tty: true
       resources:
