@@ -1,7 +1,7 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: fake-github-branch-push
+  name: fake-github-branch-push-darwin
   labels:
     type: fake-github-branch-push
 spec:
@@ -30,12 +30,10 @@ spec:
               'tikv/tikv'
             ])
             &&
-            ! (header.canonical('ce-paramPlatform') in [
-              'linux/amd64',
-              'linux/arm64',
+            header.canonical('ce-paramPlatform') in [
               'darwin/amd64',
               'darwin/arm64'
-            ])
+            ]
         - name: overlays
           value:
             - key: resource-config
@@ -90,7 +88,7 @@ spec:
                     'memory': '16Gi'
                   },
                   'tiflash': {
-                    'timeout': '2h',
+                    'timeout': '5h',
                     'sourceWsSize': '100Gi',
                     'cpu': '12',
                     'memory': '48Gi'
@@ -137,6 +135,8 @@ spec:
                 {
                   'builder-image': header.canonical('ce-paramBuilderImage'),
                   'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
+                  'os': header.canonical('ce-paramPlatform').split('/')[0],
+                  'arch': header.canonical('ce-paramPlatform').split('/')[1],
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
                   'fetch-external': (body.repository.name == 'tidb' && header.canonical('ce-paramProfile') == 'enterprise') ? 'true' : 'false',
                 }
@@ -152,9 +152,12 @@ spec:
                 header.canonical('ce-type').startsWith('net.pingcap.tibuild.hotfix.') ?
                 'us-docker.pkg.dev/pingcap-testing-account/hotfix' :
                 'us-docker.pkg.dev/pingcap-testing-account/dev'
+
   bindings:
     - ref: github-branch-push
     - ref: gcp-dev-build-params
+    - { name: os, value: $(extensions.custom-params.os) }
+    - { name: arch, value: $(extensions.custom-params.arch) }
 
   template:
-    ref: build-component-linux
+    ref: build-component-darwin-mac

@@ -20,6 +20,7 @@ resources:
   - ks3utils.yaml
   - multi-arch-image-collect.yaml
   - multi-arch-image-push.yaml
+  - pingcap-build-binaries-darwin.yaml
   - pingcap-build-binaries-linux.yaml
   - pingcap-build-images.yaml
   - pingcap-get-builder-image.yaml

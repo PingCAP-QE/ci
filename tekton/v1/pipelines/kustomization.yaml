@@ -2,5 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - pingcap-build-package-darwin.yaml
+  - pingcap-build-package-darwin-mac.yaml
   - pingcap-build-package-linux.yaml
   - pingcap-release-ga.yaml

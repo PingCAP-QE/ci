@@ -1,0 +1,85 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: build-component-darwin-mac
+spec:
+  params:
+    - name: git-url
+      description: The git repository full url
+    - name: git-refspec
+      default: +refs/heads/*:refs/heads/*
+    - name: git-revision
+      description: The git revision
+    - name: git-ref
+      description: The git branch
+    - name: component
+      description: component name
+    - name: os
+      default: darwin
+    - name: arch
+      default: amd64
+    - name: profile
+      default: release
+    - name: registry
+    - name: timeout
+      description: pipeline run timeout
+      default: 2h
+    - name: ce-context
+      description: cloud event context.
+      default: "{}"
+    - name: publisher-url
+    - name: builder-resources-memory
+      default: 16Gi
+    - name: builder-resources-cpu
+      default: "4"
+    - name: source-ws-size
+      default: 20Gi
+    - name: force-builder-image
+      default: ""
+    - name: boskos-server-url
+      default: "http://boskos"
+    - name: git-instead-of
+      default: ""
+    - name: external-git-ref
+      default: ""
+    - name: fetch-external
+      default: "false"
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-$(tt.params.arch)-
+        annotations:
+          "tekton.dev/ce-context": $(tt.params.ce-context)
+          "tibuild.pingcap.net/git-repo": $(tt.params.git-url)
+          "tibuild.pingcap.net/git-ref": $(tt.params.git-ref)
+          "tibuild.pingcap.net/git-revision": $(tt.params.git-revision)
+          "tibuild.pingcap.net/component": $(tt.params.component)
+          "tibuild.pingcap.net/profile": $(tt.params.profile)
+          "tibuild.pingcap.net/platform": $(tt.params.os)/$(tt.params.arch)
+      spec:
+        pipelineRef:
+          name: pingcap-build-package-darwin-mac
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: git-refspec
+            value: $(tt.params.git-refspec)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: git-ref
+            value: $(tt.params.git-ref)
+          - name: component
+            value: $(tt.params.component)
+          - name: os
+            value: $(tt.params.os)
+          - name: arch
+            value: $(tt.params.arch)
+          - name: profile
+            value: $(tt.params.profile)
+          - name: registry
+            value: $(tt.params.registry)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
+        timeouts:
+          pipeline: $(tt.params.timeout)
