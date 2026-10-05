@@ -123,59 +123,35 @@ spec:
         - name: source
           workspace: source
           subPath: $(params.component)
-    - name: get-binaries-builder
-      retries: 2
-      taskRef:
-        name: pingcap-get-builder-image
-      params:
-        - name: component
-          value: "$(params.component)"
-        - name: os
-          value: "$(params.os)"
-        - name: arch
-          value: "$(params.arch)"
-        - name: profile
-          value: "$(params.profile)"
-        - name: version
-          value: "$(tasks.get-release-ver.results.version)"
-        - name: force-builder-image
-          value: "$(params.force-builder-image)"
     - name: build-binaries
-      retries: 2
       taskRef:
-        name: pingcap-build-binaries-darwin
+        apiVersion: tibuild.pingcap.net/v1alpha1
+        kind: MacBuild
       params:
-        - name: os
-          value: "$(params.os)"
-        - name: arch
-          value: "$(params.arch)"
-        - name: profile
-          value: "$(params.profile)"
-        - name: component
-          value: "$(params.component)"
-        - name: version
-          value: "$(tasks.get-release-ver.results.version)"
         - name: git-url
           value: "$(params.git-url)"
         - name: git-ref
-          value: "$(tasks.get-release-ver.results.build-ref)"
-        - name: git-sha
-          value: $(tasks.checkout.results.commit)
-        - name: builder-image
-          value: "$(tasks.get-binaries-builder.results.image-url)"
-        - name: release-dir
-          value: build
+          value: "$(params.git-ref)"
+        - name: git-revision
+          value: "$(tasks.checkout.results.commit)"
+        - name: git-refspec
+          value: "$(params.git-refspec)"
+        - name: component
+          value: "$(params.component)"
+        - name: version
+          value: "$(tasks.get-release-ver.results.version)"
+        - name: os
+          value: "$(params.os)"
+        - name: arch
+          value: "$(params.arch)"
+        - name: profile
+          value: "$(params.profile)"
         - name: push
           value: "$(params.push)"
         - name: registry
           value: "$(params.registry)"
-        - name: boskos-server-url
-          value: $(params.boskos-server-url)
-      workspaces:
-        - name: source
-          workspace: source
-        - name: ssh-directory
-          workspace: mac-ssh-credentials
+        - name: ttl-seconds-after-finished
+          value: "86400"
     - name: build-images
       when:
         - input: "$(params.push)"
