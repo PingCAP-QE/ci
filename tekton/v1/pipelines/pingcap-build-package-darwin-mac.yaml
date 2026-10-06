@@ -62,8 +62,8 @@ spec:
           value: "$(params.push)"
         - name: registry
           value: "$(params.registry)"
-        - name: ttl-seconds-after-finished
-          value: "86400"
+        - name: ttl
+          value: "24h"
     - name: deliver-binaries
       retries: 2
       when:
