@@ -56,7 +56,7 @@ presubmits:
                 make clippy
                 ENABLE_FEATURES="test-engines-panic nortcheck" NO_DEFAULT_TEST_ENGINES=1 make clippy
             resources: &resources
-              request:
+              requests:
                 memory: 8Gi
                 cpu: "4"
               limits:

@@ -48,7 +48,7 @@ presubmits:
 
                 ## add more on demand...
             resources:
-              request:
+              requests:
                 memory: 128Mi
                 cpu: "50m"
               limits:
