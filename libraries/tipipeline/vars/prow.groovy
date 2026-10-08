@@ -205,13 +205,16 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
         ) >/dev/null 2>&1 || true
 
         # Jenkins `stash` archives only files, so an empty directory is dropped.
-        # `git gc` packs all refs and leaves .git/refs empty; without any file in
-        # it, a workspace restored via `unstash` is not recognized as a valid git
-        # repository, and git commands fall back to an ancestor repository (e.g.
-        # the CI checkout at the workspace root). Keep a sentinel so a
-        # transferred .git stays valid.
-        mkdir -p .git/refs
-        touch .git/refs/.keep
+        # `git gc` packs all refs and leaves the refs directory empty; without
+        # any file in it, a workspace restored via `unstash` is not recognized
+        # as a valid git repository, and git commands fall back to an ancestor
+        # repository (e.g. the CI checkout at the workspace root). Keep a
+        # sentinel so a transferred git directory stays valid. Resolve the real
+        # git dir because `.git` is a file for submodule/worktree checkouts
+        # (e.g. tidb/pkg/extension/enterprise).
+        refs_dir="\$(git rev-parse --git-path refs)"
+        mkdir -p "\$refs_dir"
+        touch "\$refs_dir/.keep"
 
         echo "✅ ~~~~~All done.~~~~~~"
     """
