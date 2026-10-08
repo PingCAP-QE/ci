@@ -107,11 +107,14 @@ class TestProw {
 
             def checkoutScript = shCalls[0].script
             assertTrue(
-                'checkout must leave a file under .git/refs so the directory survives stash/unstash',
-                checkoutScript.contains('mkdir -p .git/refs'))
+                'checkout must resolve the real git refs path for submodule/worktree checkouts',
+                checkoutScript.contains('git rev-parse --git-path refs'))
             assertTrue(
-                'checkout must leave a file under .git/refs so the directory survives stash/unstash',
-                checkoutScript.contains('touch .git/refs/.keep'))
+                'checkout must leave a file under the resolved refs directory so it survives stash/unstash',
+                checkoutScript.contains('mkdir -p "$refs_dir"'))
+            assertTrue(
+                'checkout must leave a file under the resolved refs directory so it survives stash/unstash',
+                checkoutScript.contains('touch "$refs_dir/.keep"'))
         }
     }
 
