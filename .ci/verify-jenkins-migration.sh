@@ -128,6 +128,12 @@ setup_auth() {
     else
         crumb_json="$(curl -sS "${CURL_AUTH_TO[@]}" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
     fi
+    # curl without -f also returns the body of 4xx/5xx responses (login or proxy
+    # error pages, i.e. HTML). Treat anything that is not a JSON object as "no
+    # crumb": feeding HTML to jq aborts the whole run with the jq exit code.
+    if [[ -n "$crumb_json" ]] && ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$crumb_json"; then
+        crumb_json=""
+    fi
     if [[ -n "$crumb_json" ]]; then
         field="$(jq -r '.crumbRequestField // empty' <<<"$crumb_json")"
         value="$(jq -r '.crumb // empty' <<<"$crumb_json")"
@@ -728,15 +734,18 @@ run_main_flow() {
     local line name file dsl_file
     local tmpdir results_dir body_file
 
-    setup_auth from
-    setup_auth to
-
     log "detecting jenkins-agent job migration flips in ${BASE_SHA}..${HEAD_SHA}"
     jobs_list="$(collect_flipped_jobs "$BASE_SHA" "$HEAD_SHA" || true)"
     if [[ -z "$jobs_list" ]]; then
         log "no migrated jobs detected (labels.master 1 -> 0); nothing to verify"
         return 0
     fi
+
+    # Authenticate lazily: only a PR that actually migrates a jenkins-agent job
+    # needs the Jenkins endpoints. This keeps unrelated prow-jobs changes from
+    # failing on Jenkins availability or credentials.
+    setup_auth from
+    setup_auth to
 
     while IFS=$'\t' read -r name file; do
         [[ -n "$name" ]] || continue
