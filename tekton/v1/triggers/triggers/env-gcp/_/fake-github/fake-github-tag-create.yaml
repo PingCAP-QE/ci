@@ -158,4 +158,4 @@ spec:
     - ref: gcp-dev-build-params
 
   template:
-    ref: build-component-linux
+    ref: build-component-all-platforms-mac
