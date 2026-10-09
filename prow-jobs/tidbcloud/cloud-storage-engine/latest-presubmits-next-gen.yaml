@@ -17,6 +17,8 @@ presubmits:
   tidbcloud/cloud-storage-engine:
     - <<: [*brancher, *jenkins_job]
       name: tidbcloud/cloud-storage-engine/pull_integration_realcluster_test_next_gen
+      labels:
+        master: "0"
       optional: true
       skip_if_only_changed: *skip_if_only_changed
       context: pull-integration-realcluster-test-next-gen
