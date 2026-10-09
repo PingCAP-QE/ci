@@ -122,12 +122,14 @@ setup_auth() {
             ;;
     esac
 
-    local crumb_json field value
-    if [[ "$kind" == "from" ]]; then
-        crumb_json="$(curl -sS "${CURL_AUTH_FROM[@]}" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
-    else
-        crumb_json="$(curl -sS "${CURL_AUTH_TO[@]}" "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
-    fi
+    local crumb_json crumb_status crumb_body field value
+    local -a auth=()
+    if [[ "$kind" == "from" ]]; then auth=("${CURL_AUTH_FROM[@]}"); else auth=("${CURL_AUTH_TO[@]}"); fi
+
+    crumb_body="$(mktemp)"
+    crumb_status="$(curl -sS "${auth[@]}" -o "$crumb_body" -w '%{http_code}' "${url}/crumbIssuer/api/json" 2>/dev/null || true)"
+    crumb_json="$(cat "$crumb_body" 2>/dev/null || true)"
+    rm -f "$crumb_body"
     # curl without -f also returns the body of 4xx/5xx responses (login or proxy
     # error pages, i.e. HTML). Treat anything that is not a JSON object as "no
     # crumb": feeding HTML to jq aborts the whole run with the jq exit code.
@@ -142,10 +144,27 @@ setup_auth() {
                 from) CURL_HEADERS_FROM=(-H "${field}: ${value}"); ;;
                 to) CURL_HEADERS_TO=(-H "${field}: ${value}"); ;;
             esac
+            return 0
         fi
-    else
-        vlog "crumb issuer unavailable for ${kind} jenkins, continuing without crumb header"
     fi
+
+    # A controller without CSRF protection answers 404 here and accepts
+    # crumb-less POSTs, so "no crumb" is only fine then. A rejected credential
+    # (401/403) means nothing below can work: stop with the real reason instead
+    # of firing N doomed triggers that each report a bare "HTTP error".
+    case "$crumb_status" in
+        401 | 403)
+            local token_env
+            case "$kind" in
+                from) token_env="FROM_JENKINS_TOKEN" ;;
+                to) token_env="TO_JENKINS_TOKEN" ;;
+            esac
+            fatal "${kind} jenkins rejected the credentials (HTTP ${crumb_status} from ${url}/crumbIssuer/api/json). Refresh ${token_env} and re-run."
+            ;;
+        *)
+            vlog "no crumb issuer on ${kind} jenkins (HTTP ${crumb_status:-000}), continuing without crumb header"
+            ;;
+    esac
 }
 
 api_get_with_status() {
@@ -328,7 +347,12 @@ trigger_job_build() {
             printf '%s' "$(trim_trailing_slash "$loc")"
             return 0
         fi
+        # Keep the status: a bare "HTTP error" sent readers hunting in the wrong
+        # place when this was really a rejected credential or enabled CSRF
+        # protection on the to Jenkins.
+        log "trigger failed: POST ${TO_JENKINS_URL}/${job_path}/${endpoint} -> HTTP ${status:-000}"
     done
+
     local tf
     for tf in "${tmpfiles[@]}"; do
         rm -f "$tf"
@@ -482,7 +506,7 @@ verify_one() {
         if queue_url="$(trigger_job_build "$job_path" "$params_b64")"; then
             log "triggered ${name} (attempt ${attempt}): queue ${queue_url}"
         else
-            log "trigger failed for ${name} (attempt ${attempt}/${RETRIES}): HTTP error"
+            log "trigger failed for ${name} (attempt ${attempt}/${RETRIES})"
             [[ $attempt -lt RETRIES ]] && sleep 10
             continue
         fi
