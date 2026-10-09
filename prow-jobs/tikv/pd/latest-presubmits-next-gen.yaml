@@ -151,6 +151,8 @@ presubmits:
 
     - <<: [*brancher, *jenkins_job]
       name: tikv/pd/pull_integration_realcluster_test_next_gen
+      labels:
+        master: "0"
       skip_if_only_changed: *skip_if_only_changed
       skip_report: true # delete this line when it's stable
       optional: true # delete this line when it's stable
