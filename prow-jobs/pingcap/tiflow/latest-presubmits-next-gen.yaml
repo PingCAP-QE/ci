@@ -10,7 +10,7 @@ presubmits:
     - name: pingcap/tiflow/pull_dm_integration_test_next_gen
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       decorate: false # need add this.
       run_if_changed: "^(dm/.*|pkg/.*|sync_diff_inspector/.*|go\\.mod)$"
       context: pull-dm-integration-test-next-gen
