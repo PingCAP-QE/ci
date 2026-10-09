@@ -46,9 +46,12 @@ environment variables, and repository/PR identifiers are validated.
    The selected release image must provide bash, gh (with `gh pr view --json`
    support for the fields above and automatic review pagination), and jq.
 3. Verify the authenticated webhook/EventListener route and its trigger selector.
-   This Trigger uses the existing `type: github-pr` label but also needs delivery
-   of `pull_request_review` events. EventListener definitions are not in this
-   change; do not assume the pull_request selector accepts review events.
+   This Trigger uses `type: github-pr-review`. First deploy the matching
+   EventListener group in PingCAP-QE/ee-ops at
+   `apps/gcp/tekton/configs/triggers/event-listeners/el-github.yaml`, accepting
+   `pull_request_review` events with action `submitted` or `dismissed` and
+   selecting `type: github-pr-review`. The `github-pr` TriggerBinding is reused
+   only for parameter extraction; it does not select the event group.
 4. In configs/prow/config/plugins.yaml, add `pull_request_review` to exactly the
    external-plugin endpoint serving this deployment for the pilot repository
    `ti-community-infra/configs`. This Task only requires `pull_request_review`;

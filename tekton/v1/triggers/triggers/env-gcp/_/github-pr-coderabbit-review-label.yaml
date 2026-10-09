@@ -3,7 +3,7 @@ kind: Trigger
 metadata:
   name: github-pr-coderabbit-review-label
   labels:
-    type: github-pr
+    type: github-pr-review
 spec:
   interceptors:
     - name: filter rollout repositories and review events
