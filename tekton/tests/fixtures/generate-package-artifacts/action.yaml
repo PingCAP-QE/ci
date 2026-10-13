@@ -1,0 +1,78 @@
+# P1 candidate only. Keep outside tekton/v1 and all deployment kustomizations.
+apiVersion: tekton.dev/v1beta1
+kind: StepAction
+metadata:
+  name: generate-package-artifacts-v1-0-0
+spec:
+  params:
+    - name: component
+      type: string
+    - name: os
+      type: string
+    - name: arch
+      type: string
+    - name: version
+      type: string
+    - name: profile
+      type: string
+    - name: git-ref
+      type: string
+    - name: git-sha
+      type: string
+    - name: registry
+      type: string
+    - name: pushed-result-path
+      type: string
+  image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+  env:
+    - name: INPUT_COMPONENT
+      value: $(params.component)
+    - name: INPUT_OS
+      value: $(params.os)
+    - name: INPUT_ARCH
+      value: $(params.arch)
+    - name: INPUT_VERSION
+      value: $(params.version)
+    - name: INPUT_PROFILE
+      value: $(params.profile)
+    - name: INPUT_GIT_REF
+      value: $(params.git-ref)
+    - name: INPUT_GIT_SHA
+      value: $(params.git-sha)
+    - name: INPUT_REGISTRY
+      value: $(params.registry)
+  args: ["$(params.pushed-result-path)"]
+  results:
+    - name: generated
+      type: string
+  script: |
+    pushed_result_path="$1"
+    git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
+
+    git_ref="${INPUT_GIT_REF}"
+    git_sha="${INPUT_GIT_SHA}"
+    if [ "$git_sha" == "$git_ref" ]; then
+      git_sha=""
+    fi
+
+    out_script="/workspace/build-package-artifacts.sh"
+    /workspace/artifacts/packages/scripts/gen-package-artifacts-with-config.sh \
+      ${INPUT_COMPONENT} \
+      ${INPUT_OS} \
+      ${INPUT_ARCH} \
+      ${INPUT_VERSION} \
+      ${INPUT_PROFILE} \
+      $git_ref \
+      "$git_sha" \
+      /workspace/artifacts/packages/packages.yaml.tmpl \
+      "$out_script" \
+      ${INPUT_REGISTRY}
+
+    if [ -f "$out_script" ]; then
+      echo -n "true" > $(step.results.generated.path)
+      cat "$out_script"
+    else
+      echo -n "false" > $(step.results.generated.path)
+      echo "🤷 no output script generated!"
+      printf '"{}"' > "$pushed_result_path"
+    fi
