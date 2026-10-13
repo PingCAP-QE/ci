@@ -1,0 +1,60 @@
+# Scheduled sync of a release branch into the matching feature branch.
+#
+# For every entry the scheduled job merges `source_branch` into each branch in
+# `target_branches` with a regular merge commit, so the target branch keeps its
+# own commits and git tags (for example `v8.5.*-fts`).
+#
+# The mapping is intentionally kept next to the job so adding a repository only
+# requires editing this file.
+syncs:
+  - owner: pingcap
+    repository: tidb
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: pingcap
+    repository: tiflash
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: pingcap
+    repository: ticdc
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: pingcap
+    repository: kvproto
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: pingcap
+    repository: tipb
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: PingCAP-QE
+    repository: tidb-test
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: tikv
+    repository: tikv
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: tikv
+    repository: pd
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: tikv
+    repository: client-c
+    source_branch: release-8.5
+    target_branches:
+      - feature/release-8.5-fts
+  - owner: tikv
+    repository: client-go
+    # client-go tracks the TiDB release series with a `tidb-` prefix.
+    source_branch: tidb-8.5
+    target_branches:
+      - feature/release-8.5-fts
