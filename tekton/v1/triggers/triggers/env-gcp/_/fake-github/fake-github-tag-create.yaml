@@ -139,6 +139,7 @@ spec:
                   'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
                   'fetch-external': (body.repository.name == 'tidb' && header.canonical('ce-paramProfile') == 'enterprise') ? 'true' : 'false',
+                  'git-secret-ref': body.repository.full_name == 'pingcap-inc/tici' ? 'github-git-credentials' : '',
                 }
             - key: component
               expression: >-
@@ -156,6 +157,7 @@ spec:
   bindings:
     - ref: github-tag-create
     - ref: gcp-dev-build-params
+    - { name: git-secret-ref, value: $(extensions.custom-params.git-secret-ref) }
 
   template:
     ref: build-component-all-platforms-mac
