@@ -141,6 +141,7 @@ spec:
                   'arch': header.canonical('ce-paramPlatform').split('/')[1],
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
                   'fetch-external': (body.repository.name == 'tidb' && header.canonical('ce-paramProfile') == 'enterprise') ? 'true' : 'false',
+                  'git-secret-ref': body.repository.full_name == 'pingcap-inc/tici' ? 'github-pat-secret' : '',
                 }
             - key: component
               expression: >-
@@ -160,6 +161,7 @@ spec:
     - ref: gcp-dev-build-params
     - { name: os, value: $(extensions.custom-params.os) }
     - { name: arch, value: $(extensions.custom-params.arch) }
+    - { name: git-secret-ref, value: $(extensions.custom-params.git-secret-ref) }
 
   template:
     ref: build-component-darwin-mac

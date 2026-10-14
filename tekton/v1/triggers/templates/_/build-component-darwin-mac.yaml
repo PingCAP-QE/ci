@@ -44,6 +44,9 @@ spec:
       default: ""
     - name: fetch-external
       default: "false"
+    - name: git-secret-ref
+      description: Secret in the MacBuild namespace with git credentials for private-repo clones; empty clones anonymously.
+      default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -81,5 +84,7 @@ spec:
             value: $(tt.params.registry)
           - name: publisher-url
             value: $(tt.params.publisher-url)
+          - name: git-secret-ref
+            value: $(tt.params.git-secret-ref)
         timeouts:
           pipeline: $(tt.params.timeout)

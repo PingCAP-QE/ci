@@ -30,6 +30,13 @@ spec:
       description: the base OCI registry server for store artifacts, it can be set with prefix repo path.
     - name: publisher-url
       description: The URL of the running publisher server
+    - name: git-secret-ref
+      description: >-
+        Secret in the MacBuild namespace with git credentials for private-repo
+        clones (kubernetes.io/basic-auth or kubernetes.io/ssh-auth). Empty
+        keeps the clone anonymous.
+      type: string
+      default: ""
   results:
     - name: pushed-binaries
       description: pushed binaries.
@@ -64,6 +71,8 @@ spec:
           value: "$(params.registry)"
         - name: ttl
           value: "24h"
+        - name: git-secret-ref
+          value: "$(params.git-secret-ref)"
     - name: deliver-binaries
       retries: 2
       when:
