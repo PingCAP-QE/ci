@@ -14,7 +14,7 @@ spec:
       type: string
   workspaces:
     - name: github
-      description: GitHub token with pull request read and issue label write permissions.
+      description: GitHub token with pull request read and issue label/comment write permissions.
   steps:
     - name: reconcile
       image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
@@ -90,6 +90,10 @@ spec:
             if [ "$(jq -c '{head, review}' <<< "$current")" != \
               "$(jq -c '{head, review}' <<< "$after")" ]; then
               continue
+            fi
+            if ! jq -e '.blocked' >/dev/null <<< "$current"; then
+              gh pr comment "$pr_url" --body \
+                'Merging is blocked because CodeRabbit requested changes. Resolve the concerns or reach agreement with CodeRabbit to dismiss them, then wait for CodeRabbit to approve the latest commit. To override, comment `/remove-label do-not-merge/request-change`.'
             fi
             echo 'CodeRabbit requested changes; blocking Tide.'
             exit 0
