@@ -91,7 +91,7 @@ spec:
               "$(jq -c '{head, review}' <<< "$after")" ]; then
               continue
             fi
-            if ! jq -e '.blocked == true' >/dev/null <<< "$current"; then
+            if ! jq -e '.blocked' >/dev/null <<< "$current"; then
               comment_body=$(printf '%s\n' \
                 'Merging is blocked because CodeRabbit requested changes. Fix the code and resolve the comments, or mention coderabbitai in the review thread and request dismissal with:' \
                 '' \
