@@ -91,16 +91,15 @@ spec:
               "$(jq -c '{head, review}' <<< "$after")" ]; then
               continue
             fi
-            if ! jq -e '.blocked' >/dev/null <<< "$current"; then
-              gh pr comment "$pr_url" --body "$(cat <<'EOF'
-              Merging is blocked because CodeRabbit requested changes. Fix the code and resolve the comments, or mention coderabbitai in the review thread and request dismissal with:
-
-              dismiss review
-              Reason: <optional reason>
-
-              Then wait for CodeRabbit to approve the latest commit.
-              EOF
-              )"
+            if ! jq -e '.blocked == true' >/dev/null <<< "$current"; then
+              comment_body=$(printf '%s\n' \
+                'Merging is blocked because CodeRabbit requested changes. Fix the code and resolve the comments, or mention coderabbitai in the review thread and request dismissal with:' \
+                '' \
+                'dismiss review' \
+                'Reason: <optional reason>' \
+                '' \
+                'Then wait for CodeRabbit to approve the latest commit.')
+              gh pr comment "$pr_url" --body "$comment_body"
             fi
             echo 'CodeRabbit requested changes; blocking Tide.'
             exit 0
