@@ -95,8 +95,8 @@ spec:
               gh pr comment "$pr_url" --body "$(cat <<'EOF'
               Merging is blocked because CodeRabbit requested changes. Fix the code and resolve the comments, or mention coderabbitai in the review thread and request dismissal with:
 
-                  @coderabbitai dismiss review
-                  Reason: <optional reason>
+              dismiss review
+              Reason: <optional reason>
 
               Then wait for CodeRabbit to approve the latest commit.
               EOF
