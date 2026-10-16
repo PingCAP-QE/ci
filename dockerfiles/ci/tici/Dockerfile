@@ -7,9 +7,9 @@ ARG OS=linux
 
 # MinIO
 RUN ARCH=$([ "$(arch)" = "x86_64" ] && echo amd64 || echo arm64); \
-    wget -q -O minio https://dl.min.io/server/minio/release/${OS}-${ARCH}/archive/minio.RELEASE.2025-02-07T23-21-09Z && \
+    wget -q -O minio https://github.com/minio/minio/releases/download/RELEASE.2025-02-07T23-21-09Z/minio.${OS}-${ARCH}.RELEASE.2025-02-07T23-21-09Z && \
     chmod +x minio && \
-    wget -q -O mc https://dl.min.io/client/mc/release/${OS}-${ARCH}/archive/mc.RELEASE.2025-02-08T19-14-21Z && \
+    wget -q -O mc https://github.com/minio/mc/releases/download/RELEASE.2025-02-08T19-14-21Z/mc.${OS}-${ARCH}.RELEASE.2025-02-08T19-14-21Z && \
     chmod +x mc && \
     mv minio /usr/local/bin/minio && \
     mv mc /usr/local/bin/mc
