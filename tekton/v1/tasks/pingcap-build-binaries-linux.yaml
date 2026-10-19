@@ -106,12 +106,6 @@ spec:
           values: ["true"]
       workingDir: $(workspaces.source.path)/$(params.component)
       env:
-        - name: GIT_BRANCH
-          value: $(params.git-ref)
-        - name: GOPRIVATE
-          value: github.com/tidbcloud/*,github.com/pingcap-inc/*
-        - name: GIT_TERMINAL_PROMPT
-          value: "0"
         - name: CARGO_NET_GIT_FETCH_WITH_CLI
           value: "true"
         - name: GIT_SSH_COMMAND
@@ -130,6 +124,9 @@ spec:
       script: |
         set -eu
         if [ "$(workspaces.git-credentials.bound)" = "true" ]; then
+          export GIT_BRANCH="$(params.git-ref)"
+          export GOPRIVATE=github.com/tidbcloud/*,github.com/pingcap-inc/*
+          export GIT_TERMINAL_PROMPT=0
           credential_dir="$(workspaces.git-credentials.path)"
           test -s "$credential_dir/username" && test -s "$credential_dir/password"
           export SERVERLESS_GIT_CREDENTIAL_DIR="$credential_dir"
