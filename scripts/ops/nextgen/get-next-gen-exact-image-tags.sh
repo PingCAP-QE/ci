@@ -20,7 +20,9 @@ fetch_next_gen_exact_tags() {
     local short_commit_sha=$(echo $commit_sha | cut -c1-7)
     local commit_img_tag=""
     if [[ $repo == */tiproxy ]]; then
-        commit_img_tag="$(crane ls $repo | grep -E "\-g${short_commit_sha}[0-9a-f]*$" | head -1)"
+        # tiproxy images use either a git-describe suffix (e.g. `...-gd13142d`)
+        # or a plain commit suffix (e.g. `...-6be06eb`), depending on the pipeline.
+        commit_img_tag="$(crane ls $repo | grep -E "\-g?${short_commit_sha}[0-9a-f]*$" | head -1)"
     else
         commit_img_tag="$(crane ls $repo | grep -E "\-${short_commit_sha}[0-9a-f]*" | grep -E "\bnext(-)?gen\b" | head -1)"
     fi
