@@ -10,6 +10,9 @@ spec:
   description: >-
     Build binaries for the component.
   workspaces:
+    - name: git-credentials
+      optional: true
+      description: Runtime GitHub basic-auth secret for private Go and Cargo dependencies.
     - name: source
       description: source code.
     - name: cargo-home
@@ -24,6 +27,11 @@ spec:
     - description: Just built and pushed artifacts, it will be a yaml content.
       name: pushed
   params:
+    - name: artifacts-revision
+      default: main
+      description: Artifacts configuration revision; pin to a commit during validation.
+    - name: require-artifacts
+      default: "false"
     - name: component
     - name: os
       default: linux
@@ -57,7 +65,10 @@ spec:
       args: ["$(results.pushed.path)"]
       script: |
         pushed_result_path="$1"
-        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
+        git init /workspace/artifacts
+        git -C /workspace/artifacts remote add origin https://github.com/PingCAP-QE/artifacts.git
+        git -C /workspace/artifacts fetch --depth=1 origin "$(params.artifacts-revision)"
+        git -C /workspace/artifacts checkout --detach FETCH_HEAD
 
         git_ref="$(params.git-ref)"
         git_sha="$(params.git-sha)"
@@ -84,6 +95,7 @@ spec:
         else
           echo -n "false" > $(step.results.generated.path)
           echo "🤷 no output script generated!"
+          [ "$(params.require-artifacts)" != "true" ] || exit 1
           printf '"{}"' > "$pushed_result_path"
         fi
     - name: build
@@ -94,6 +106,12 @@ spec:
           values: ["true"]
       workingDir: $(workspaces.source.path)/$(params.component)
       env:
+        - name: GIT_BRANCH
+          value: $(params.git-ref)
+        - name: GOPRIVATE
+          value: github.com/tidbcloud/*,github.com/pingcap-inc/*
+        - name: GIT_TERMINAL_PROMPT
+          value: "0"
         - name: CARGO_NET_GIT_FETCH_WITH_CLI
           value: "true"
         - name: GIT_SSH_COMMAND
@@ -110,6 +128,24 @@ spec:
         # - name: CYPRESS_CACHE_FOLDER
         #   value: /workspace/.cache/Cypress
       script: |
+        set -eu
+        if [ "$(workspaces.git-credentials.bound)" = "true" ]; then
+          credential_dir="$(workspaces.git-credentials.path)"
+          test -s "$credential_dir/username" && test -s "$credential_dir/password"
+          export SERVERLESS_GIT_CREDENTIAL_DIR="$credential_dir"
+          cat > /workspace/serverless-git-credential <<'HELPER'
+        #!/bin/sh
+        [ "$1" = get ] || exit 0
+        printf 'username=%s\n' "$(cat "$SERVERLESS_GIT_CREDENTIAL_DIR/username")"
+        printf 'password=%s\n' "$(cat "$SERVERLESS_GIT_CREDENTIAL_DIR/password")"
+        HELPER
+          chmod 700 /workspace/serverless-git-credential
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0=credential.https://github.com.helper
+          export GIT_CONFIG_VALUE_0=/workspace/serverless-git-credential
+          export GIT_CONFIG_KEY_1=url.https://github.com/.insteadOf
+          export GIT_CONFIG_VALUE_1=git@github.com:
+        fi
         script="/workspace/build-package-artifacts.sh"
         "$script" -b -a -w "$(params.release-dir)"
     - name: publish
@@ -133,3 +169,6 @@ spec:
         # try 2 times.
         "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || \
         "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path)
+        if [ "$(params.require-artifacts)" = "true" ]; then
+          yq -e '.oci.repo != null and .oci.digest != null and (.files | length > 0)'  $(results.pushed.path) >/dev/null
+        fi

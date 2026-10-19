@@ -68,7 +68,38 @@ function isGaVer(version: semver.SemVer): boolean {
 export function compute(
   rawVersion: string,
   commitInBranches: string[],
+  component = "",
+  gitRef = "",
 ): builtControl {
+  // Scope Serverless branch aliases and explicit release tags to these products.
+  // Existing products retain their exact historical versioning behavior.
+  const serverless = [
+    "tidb-cse",
+    "pd-cse",
+    "tidb-operator-cse",
+    "cassandra-on-mysql",
+    "qdrant-on-tidb",
+  ].includes(component);
+  if (
+    serverless &&
+    /^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|rc|release)[.][0-9]+)?$/.test(
+      gitRef,
+    ) && rawVersion.trim() === gitRef
+  ) {
+    return { releaseVersion: gitRef };
+  }
+  if (serverless) {
+    commitInBranches = commitInBranches.map((branch) =>
+      branch.trim()
+        .replace(/^\* /, "")
+        .replace(/^remotes\/origin\//, "")
+        .replace(
+          /^(main|release)-([0-9]+[.][0-9]+)-keyspace(?:-[0-9]{6,8})?$/,
+          "release-$2",
+        )
+        .replace(/^serverless-on-release-([0-9]+[.][0-9]+)$/, "release-$1")
+    );
+  }
   const normalizedRawVersion = rawVersion.trim();
   const rv = semver.parse(normalizedRawVersion);
   const hasNextgenReleaseBranch = commitInBranches.some(isNextgenReleaseBranch);
@@ -216,6 +247,8 @@ export function compute(
 function main() {
   const flags = parseArgs(Deno.args, {
     string: [
+      "component",
+      "git_ref",
       "git_version",
       "git_version_file",
       "contain_branches",
@@ -253,7 +286,12 @@ function main() {
     Deno.readTextFileSync(flags.git_version_file!);
   const currentBranch = flags.contain_branches ||
     Deno.readTextFileSync(flags.contain_branches_file!);
-  const ret = compute(rawVersion, currentBranch.split("\n"));
+  const ret = compute(
+    rawVersion,
+    currentBranch.split("\n"),
+    flags.component || "",
+    flags.git_ref || "",
+  );
 
   // Save results for next step
   Deno.writeTextFileSync(flags.save_release_version_file, ret.releaseVersion);

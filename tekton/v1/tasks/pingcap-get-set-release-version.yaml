@@ -5,6 +5,10 @@ metadata:
   name: pingcap-get-set-release-version
 spec:
   params:
+    - name: versioning-strategy-url
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/build/versioning-strategy.ts
+    - name: component
+      default: ""
     - name: git-ref
       type: string
       default: ""
@@ -55,7 +59,13 @@ spec:
         cat /workspace/raw-version.txt
 
         echo "🍴Get the branches which contained the commits:"
-        git branch --contains > /workspace/branches.txt
+        case "$(params.component)" in
+          tidb-cse|pd-cse|tidb-operator-cse|cassandra-on-mysql|qdrant-on-tidb)
+            git branch --all --contains > /workspace/branches.txt
+            printf '%s\n' "$(params.git-ref)" >> /workspace/branches.txt
+            ;;
+          *) git branch --contains > /workspace/branches.txt ;;
+        esac
         cat /workspace/branches.txt
     - name: compute-version
       image: denoland/deno:2.9.7
@@ -64,8 +74,10 @@ spec:
         - run
         - --allow-read
         - --allow-write
-        - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/build/versioning-strategy.ts
+        - $(params.versioning-strategy-url)
       args:
+        - --component=$(params.component)
+        - --git_ref=$(params.git-ref)
         - --git_version_file=/workspace/raw-version.txt
         - --contain_branches_file=/workspace/branches.txt
         - --save_build_git_tag_file=/workspace/new-tag

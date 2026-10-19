@@ -1,0 +1,70 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: serverless-devbuild-branch-push
+  labels:
+    type: fake-github-branch-push
+spec:
+  interceptors:
+  - ref:
+      name: cel
+    params:
+    - name: filter
+      value: header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.push' && (header.canonical('ce-paramProduct')
+        in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct')
+        == '' && body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
+        'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) && header.canonical('ce-paramPlatform') in
+        ['linux/amd64', 'linux/arm64']
+    - name: overlays
+      value:
+      - key: product
+        expression: 'header.canonical(''ce-paramProduct'') != '''' ? header.canonical(''ce-paramProduct'') : body.repository.name'
+      - key: resource-config
+        expression: '{''tidb-cse'': {''timeout'': ''90m'', ''sourceWsSize'': ''80Gi'', ''cpu'': ''8'', ''memory'':
+          ''32Gi''}, ''pd-cse'': {''timeout'': ''90m'', ''sourceWsSize'': ''30Gi'', ''cpu'': ''4'', ''memory'':
+          ''16Gi''}, ''tidb-operator-cse'': {''timeout'': ''90m'', ''sourceWsSize'': ''30Gi'', ''cpu'': ''4'', ''memory'':
+          ''16Gi''}, ''cassandra-on-mysql'': {''timeout'': ''90m'', ''sourceWsSize'': ''30Gi'', ''cpu'': ''4'',
+          ''memory'': ''16Gi''}, ''qdrant-on-tidb'': {''timeout'': ''3h'', ''sourceWsSize'': ''80Gi'', ''cpu'':
+          ''8'', ''memory'': ''32Gi''}}[header.canonical(''ce-paramProduct'') != '''' ? header.canonical(''ce-paramProduct'')
+          : body.repository.name]'
+      - key: os
+        expression: header.canonical('ce-paramPlatform').split('/')[0]
+      - key: arch
+        expression: header.canonical('ce-paramPlatform').split('/')[1]
+      - key: revision
+        expression: 'header.canonical(''ce-paramGitRevision'') != '''' ? header.canonical(''ce-paramGitRevision'')
+          : body.after'
+      - key: ref
+        expression: body.ref.replace('refs/heads/', '')
+      - key: refspec
+        expression: 'header.canonical(''ce-paramGitRevision'') != '''' ? ''+'' + header.canonical(''ce-paramGitRevision'')
+          + '':refs/devbuild/source'' : ''+'' + body.ref + '':refs/devbuild/source'''
+  bindings:
+  - name: git-url
+    value: $(body.repository.clone_url)
+  - name: git-ref
+    value: $(extensions.ref)
+  - name: git-refspec
+    value: $(extensions.refspec)
+  - name: git-revision
+    value: $(extensions.revision)
+  - name: component
+    value: $(extensions.product)
+  - name: os
+    value: $(extensions.os)
+  - name: arch
+    value: $(extensions.arch)
+  - name: registry
+    value: us-docker.pkg.dev/pingcap-testing-account/dev
+  - name: ce-context
+    value: $(extensions.ce-context)
+  - name: timeout
+    value: $(extensions.resource-config.timeout)
+  - name: source-ws-size
+    value: $(extensions.resource-config.sourceWsSize)
+  - name: builder-resources-cpu
+    value: $(extensions.resource-config.cpu)
+  - name: builder-resources-memory
+    value: $(extensions.resource-config.memory)
+  template:
+    ref: build-serverless-single-platform
