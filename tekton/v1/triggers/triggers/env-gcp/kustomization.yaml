@@ -15,6 +15,7 @@ resources:
   - _/git-create-branch.yaml
   - _/git-create-tag-build-ng.yaml
   - _/git-create-tag.yaml
+  - _/git-push-branch-build-community-darwin.yaml
   - _/git-push-branch-build-community-linux.yaml
   - _/git-push-branch-build-enterprise.yaml
   - _/git-push-branch-build-failpoint.yaml
