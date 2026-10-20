@@ -10,10 +10,18 @@ spec:
       ref: { name: cel }
       params:
         - name: filter
-          # Pilot scope: only PRs targeting this repository and base branch.
+          # Keep the pilot branch; production repositories rely on CodeRabbit's branch configuration.
+          # Add production repositories to the list below.
           value: >-
-            body.repository.full_name in ['ti-community-infra/configs']
-            && body.pull_request.base.ref == 'test_ai_review'
+            (
+              (
+                body.repository.full_name == 'ti-community-infra/configs'
+                && body.pull_request.base.ref == 'test_ai_review'
+              )
+              || body.repository.full_name in [
+                'tikv/pd'
+              ]
+            )
             && header.match('X-GitHub-Event', 'pull_request_review')
             && body.action in ['submitted', 'dismissed']
             && body.review.user.login == 'coderabbitai[bot]'
