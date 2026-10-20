@@ -19,6 +19,133 @@ const sha = "0123456789abcdef0123456789abcdef01234567"
 
 var products = []string{"tidb-cse", "pd-cse", "tidb-operator-cse", "cassandra-on-mysql", "qdrant-on-tidb"}
 
+func TestServerlessUsesGitVersionAndPreservesLegacyCLI(t *testing.T) {
+	var task struct {
+		Spec struct {
+			Steps []struct {
+				Name, Script  string
+				Command, Args []string
+				When          []struct {
+					Input, Operator string
+					Values          []string
+				}
+			}
+		}
+	}
+	load(t, "tekton/v1/tasks/pingcap-get-set-release-version.yaml", &task)
+	var cleanup string
+	var cleanupArgs []string
+	for _, step := range task.Spec.Steps {
+		switch step.Name {
+		case "cleanup-tags":
+			cleanup = step.Script
+			cleanupArgs = step.Args
+		case "compute-version":
+			wantCommand := "deno run --allow-read --allow-write https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/build/versioning-strategy.ts"
+			wantArgs := "--git_version_file=/workspace/raw-version.txt --contain_branches_file=/workspace/branches.txt --save_build_git_tag_file=/workspace/new-tag --save_release_version_file=$(results.version.path)"
+			if strings.Join(step.Command, " ") != wantCommand || strings.Join(step.Args, " ") != wantArgs {
+				t.Fatal("the shared version script invocation must remain unchanged")
+			}
+			if len(step.When) != 1 || step.When[0].Input != "$(params.component)" || step.When[0].Operator != "notin" || strings.Join(step.When[0].Values, ",") != strings.Join(products, ",") {
+				t.Fatal("only Serverless must bypass the shared branch-based version strategy")
+			}
+		}
+	}
+	if cleanup == "" {
+		t.Fatal("missing version input preparation")
+	}
+	type versionCase struct {
+		product, branch, baseline, ref, remote, version, tag string
+		commit                                               bool
+	}
+	cases := []versionCase{}
+	for _, input := range []struct{ product, branch, baseline string }{
+		{"tidb-cse", "main-8.5-keyspace", "v8.5.3-alpha.0"},
+		{"pd-cse", "release-8.5-keyspace", "v8.5.0-alpha.0"},
+		{"tidb-operator-cse", "serverless-on-release-1.4", "v1.4.0-alpha.0"},
+		{"cassandra-on-mysql", "master", "v0.1.0-alpha.0"},
+		{"qdrant-on-tidb", "main", "v1.3.4-alpha.0"},
+	} {
+		cases = append(cases, versionCase{product: input.product, branch: input.branch, baseline: input.baseline, ref: input.baseline, version: input.baseline})
+		cases = append(cases, versionCase{product: input.product, branch: input.branch, baseline: input.baseline, ref: input.branch, version: "raw", commit: true})
+	}
+	for _, date := range []string{"20260206", "202603", "202604", "202605", "202607"} {
+		branch := "release-8.5-keyspace-" + date
+		cases = append(cases, versionCase{product: "tidb-cse", branch: branch, baseline: "v8.5.3-alpha." + date, ref: branch, version: "raw", commit: true})
+	}
+	cases = append(cases,
+		versionCase{product: "tidb-cse", branch: "validation", baseline: "v8.5.3-alpha.0", ref: "pull/42", remote: "release-8.5-keyspace-202603", version: "raw", commit: true},
+		versionCase{product: "tidb-cse", branch: "main-8.5-keyspace", baseline: "v8.5.3-rc.1", ref: "v8.5.3-rc.1", version: "v8.5.3-rc.1"},
+		versionCase{product: "tidb", branch: "main-8.5-keyspace", baseline: "v8.5.3-alpha.0", ref: "main-8.5-keyspace", version: "raw", commit: true},
+		versionCase{product: "tidb", branch: "release-8.5", baseline: "v8.5.3-alpha.0", ref: "v8.5.3-alpha.0", version: "v8.5.3-pre", tag: "v8.5.3"},
+	)
+	deno, _ := exec.LookPath("deno")
+	for _, tc := range cases {
+		t.Run(tc.product+"/"+tc.ref, func(t *testing.T) {
+			dir := t.TempDir()
+			git := func(args ...string) {
+				cmd := exec.Command("git", append([]string{"-c", "user.name=Version Test", "-c", "user.email=version@example.invalid", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"}, args...)...)
+				cmd.Dir, cmd.Env = dir, append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1")
+				if output, err := cmd.CombinedOutput(); err != nil {
+					t.Fatalf("git %v: %v: %s", args, err, output)
+				}
+			}
+			git("init", "--initial-branch="+tc.branch)
+			git("commit", "--allow-empty", "-m", "baseline")
+			git("tag", "-a", tc.baseline, "-m", "baseline")
+			if tc.commit {
+				git("commit", "--allow-empty", "-m", "next")
+			}
+			if tc.remote != "" {
+				git("update-ref", "refs/remotes/origin/"+tc.remote, "HEAD")
+			}
+			outputDir := t.TempDir()
+			args := []string{"-c", strings.ReplaceAll(cleanup, "/workspace/", outputDir+"/"), "version-task"}
+			replace := strings.NewReplacer("$(params.component)", tc.product, "$(results.version.path)", filepath.Join(outputDir, "version"))
+			for _, arg := range cleanupArgs {
+				args = append(args, replace.Replace(arg))
+			}
+			cmd := exec.Command("sh", args...)
+			cmd.Dir, cmd.Env = dir, append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1")
+			if output, err := cmd.CombinedOutput(); err != nil {
+				t.Fatalf("prepare version inputs: %v: %s", err, output)
+			}
+			branches, _ := os.ReadFile(filepath.Join(outputDir, "branches.txt"))
+			if tc.product != "tidb" {
+				if _, err := os.Stat(filepath.Join(outputDir, "branches.txt")); !os.IsNotExist(err) {
+					t.Fatal("Serverless must not collect branch classification inputs")
+				}
+			}
+			if tc.product == "tidb" && tc.branch == "main-8.5-keyspace" && !strings.Contains(string(branches), tc.branch) {
+				t.Fatal("legacy product branch input changed")
+			}
+			if tc.product == "tidb" {
+				if deno == "" {
+					t.Log("Deno unavailable: legacy input preparation checked; compute tests run separately")
+					return
+				}
+				script, _ := filepath.Abs(filepath.Join(root, "scripts/flow/build/versioning-strategy.ts"))
+				cmd = exec.Command(deno, "run", "--allow-read", "--allow-write", script,
+					"--git_version_file="+filepath.Join(outputDir, "raw-version.txt"), "--contain_branches_file="+filepath.Join(outputDir, "branches.txt"),
+					"--save_build_git_tag_file="+filepath.Join(outputDir, "new-tag"), "--save_release_version_file="+filepath.Join(outputDir, "version"))
+				if output, err := cmd.CombinedOutput(); err != nil {
+					t.Fatalf("original version CLI: %v: %s", err, output)
+				}
+			}
+			want := tc.version
+			if want == "raw" {
+				raw, _ := os.ReadFile(filepath.Join(outputDir, "raw-version.txt"))
+				want = strings.TrimSpace(string(raw))
+			}
+			version, _ := os.ReadFile(filepath.Join(outputDir, "version"))
+			tag, err := os.ReadFile(filepath.Join(outputDir, "new-tag"))
+			if string(version) != want || string(tag) != tc.tag || (tc.tag == "" && !os.IsNotExist(err)) {
+				t.Fatalf("version/tag: %s/%s, want %s/%s", version, tag, want, tc.tag)
+			}
+		})
+	}
+}
+
 func TestMountedGitCredentials(t *testing.T) {
 	var task struct {
 		Spec struct {
