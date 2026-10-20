@@ -24,9 +24,6 @@ spec:
       name: pushed
       type: string
   params:
-    - name: artifacts-revision
-      default: main
-      description: Artifacts configuration revision; pin to a commit during validation.
     - name: require-artifacts
       default: "false"
     - name: component
@@ -61,10 +58,7 @@ spec:
       args: ["$(results.pushed.path)"]
       script: |
         pushed_result_path="$1"
-        git init /workspace/artifacts
-        git -C /workspace/artifacts remote add origin https://github.com/PingCAP-QE/artifacts.git
-        git -C /workspace/artifacts fetch --depth=1 origin "$(params.artifacts-revision)"
-        git -C /workspace/artifacts checkout --detach FETCH_HEAD
+        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
 
         git_ref="$(params.git-ref)"
         git_sha="$(params.git-sha)"
@@ -163,11 +157,9 @@ spec:
           values: ["true"]
       script: |
         script="/workspace/build-package-images.sh"
-        "$script" -P -m -o $(results.pushed.path) # -P means disable build and push the image.
-    - name: verify-required-images
-      script: |
-        set -eu
+        "$script" -P -m -o $(results.pushed.path) || exit $? # -P means disable build and push the image.
         if [ "$(params.require-artifacts)" = "true" ]; then
+          set -e
           yq -e '.images | length > 0' $(results.pushed.path) >/dev/null
           yq -e '.images[] | .digest != null and .digest != ""' $(results.pushed.path) >/dev/null
         fi

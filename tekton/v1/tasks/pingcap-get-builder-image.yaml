@@ -15,9 +15,6 @@ spec:
       name: image-url
       type: string
   params:
-    - name: artifacts-revision
-      default: main
-      description: Artifacts configuration revision; pin to a commit during validation.
     - name: component
       type: string
     - name: os
@@ -48,10 +45,7 @@ spec:
           exit 0
         fi
 
-        git init /workspace/artifacts
-        git -C /workspace/artifacts remote add origin https://github.com/PingCAP-QE/artifacts.git
-        git -C /workspace/artifacts fetch --depth=1 origin "$(params.artifacts-revision)"
-        git -C /workspace/artifacts checkout --detach FETCH_HEAD
+        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
 
         out="/workspace/builder-package-artifacts.txt"
         /workspace/artifacts/packages/scripts/get-package-builder-with-config.sh \

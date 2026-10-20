@@ -48,9 +48,10 @@ After the private formal GAR exists and the five source cutover PRs are merged:
 The single-platform template disables binary/image delivery and requires package,
 checksum and image results. It mounts runtime GitHub credentials for compilation;
 checkout uses github-bot. Product identity, not fork repo basename, chooses the
-artifacts component. All tasks in a run share `artifacts-revision` (use a full
-commit SHA when pinning); `versioning-strategy-url` is overridable for isolated PR
-validation. Neither receives the API's compatibility request version.
+artifacts component. Builder selection, package generation and image generation
+use the existing artifacts main-branch checkout. Isolated validation pins its
+resource copies rather than extending the production Task/Pipeline interfaces.
+The API compatibility request version does not participate in Git version inference.
 
 ## Validation records
 

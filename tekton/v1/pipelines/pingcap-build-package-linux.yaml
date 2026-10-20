@@ -5,10 +5,6 @@ metadata:
   name: pingcap-build-package-linux
 spec:
   params:
-    - name: versioning-strategy-url
-      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/build/versioning-strategy.ts
-    - name: artifacts-revision
-      default: main
     - name: require-artifacts
       default: "false"
     - name: deliver-artifacts
@@ -77,10 +73,6 @@ spec:
       type: string
       default: "false"
   results:
-    - name: release-version
-      value: "$(tasks.get-release-ver.results.version)"
-    - name: git-revision
-      value: "$(tasks.checkout.results.commit)"
     - name: pushed-binaries
       description: pushed binaries.
       value: "$(tasks.build-binaries.results.pushed)"
@@ -132,8 +124,6 @@ spec:
       taskRef:
         name: pingcap-get-set-release-version
       params:
-        - name: versioning-strategy-url
-          value: $(params.versioning-strategy-url)
         - name: component
           value: $(params.component)
         - name: git-ref
@@ -149,8 +139,6 @@ spec:
       taskRef:
         name: pingcap-get-builder-image
       params:
-        - name: artifacts-revision
-          value: $(params.artifacts-revision)
         - name: component
           value: "$(params.component)"
         - name: os
@@ -168,8 +156,6 @@ spec:
       taskRef:
         name: pingcap-build-binaries-linux
       params:
-        - name: artifacts-revision
-          value: $(params.artifacts-revision)
         - name: require-artifacts
           value: $(params.require-artifacts)
         - name: os
@@ -216,8 +202,6 @@ spec:
       runAfter:
         - build-binaries
       params:
-        - name: artifacts-revision
-          value: $(params.artifacts-revision)
         - name: require-artifacts
           value: $(params.require-artifacts)
         - name: os
