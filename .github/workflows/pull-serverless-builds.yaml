@@ -3,12 +3,11 @@ on:
   pull_request:
     paths:
       - .github/workflows/pull-serverless-builds.yaml
-      - tools/serverless-trigger-tests/**
+      - tekton/tests/**
       - scripts/flow/build/versioning-strategy*
       - tekton/v1/pipelines/pingcap-build-package-linux.yaml
       - tekton/v1/tasks/pingcap-*.yaml
       - tekton/v1/triggers/**
-      - tekton/staging/serverless/**
 permissions:
   contents: read
 jobs:
@@ -18,11 +17,11 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
         with:
-          go-version-file: tools/serverless-trigger-tests/go.mod
-      - name: Validate CEL routes, template counts and task contracts
-        working-directory: tools/serverless-trigger-tests
-        run: go test ./...
-      - name: Test version inference and legacy compatibility
-        run: docker run --rm -v "$PWD:/work" -w /work denoland/deno:2.9.7 test scripts/flow/build/versioning-strategy.test.ts
+          deno-version: v2.9.7
+      - name: Validate CEL routes, Git versions and Pipeline/Task contracts
+        run: >-
+          deno test --frozen --lock=tekton/tests/deno.lock
+          --allow-read --allow-write --allow-env --allow-run=git,sh,deno
+          tekton/tests/*.test.ts scripts/flow/build/versioning-strategy.test.ts
