@@ -141,7 +141,7 @@ spec:
                   'arch': header.canonical('ce-paramPlatform').split('/')[1],
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
                   'fetch-external': (body.repository.name == 'tidb' && header.canonical('ce-paramProfile') == 'enterprise') ? 'true' : 'false',
-                  'git-secret-ref': body.repository.full_name == 'pingcap-inc/tici' ? 'github-pat-secret' : '',
+                  'git-secret-ref': body.repository.full_name == 'pingcap-inc/tici' ? 'github-pat-secret' : (body.repository.name == 'tidb' ? 'github-ssh-secret' : ''),
                 }
             - key: component
               expression: >-
