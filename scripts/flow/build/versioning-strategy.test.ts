@@ -445,30 +445,3 @@ Deno.test("compute", () => {
     console.groupEnd();
   }
 });
-
-Deno.test("Serverless aliases are scoped and explicit baseline tags survive", () => {
-  for (
-    const [product, branch] of [["tidb-cse", "main-8.5-keyspace"], [
-      "pd-cse",
-      "release-8.5-keyspace",
-    ], ["tidb-operator-cse", "serverless-on-release-1.4"]]
-  ) {
-    assertEquals(
-      compute("v8.5.3-alpha.0-2-g1234567", [branch], product).releaseVersion,
-      "v8.5.3-pre",
-    );
-    assertEquals(
-      compute("v8.5.3-alpha.0", [branch], product, "v8.5.3-alpha.0"),
-      { releaseVersion: "v8.5.3-alpha.0" },
-    );
-  }
-  assertEquals(
-    compute("v8.5.3-alpha.0-2-g1234567", ["main-8.5-keyspace"]).releaseVersion,
-    "v8.5.3-alpha.0-2-g1234567",
-  );
-  assertEquals(
-    compute("v1.3.4-alpha.0-2-g1234567", ["main"], "qdrant-on-tidb")
-      .releaseVersion,
-    "v1.3.4-alpha.0-2-g1234567",
-  );
-});

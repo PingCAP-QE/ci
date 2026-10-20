@@ -28,6 +28,7 @@ spec:
         requests:
           memory: 512Mi
           cpu: "100m"
+      args: ["$(params.component)", "$(results.version.path)"]
       script: |
         #!/bin/sh
         set -e
@@ -56,17 +57,23 @@ spec:
         git describe --tags --always --dirty > /workspace/raw-version.txt
         cat /workspace/raw-version.txt
 
-        echo "🍴Get the branches which contained the commits:"
-        case "$(params.component)" in
+        case "$1" in
           tidb-cse|pd-cse|tidb-operator-cse|cassandra-on-mysql|qdrant-on-tidb)
-            git branch --all --contains > /workspace/branches.txt
-            printf '%s\n' "$(params.git-ref)" >> /workspace/branches.txt
+            # Serverless uses Git describe directly, with no branch-based version inference.
+            tr -d '\n' < /workspace/raw-version.txt > "$2"
+            exit 0
             ;;
-          *) git branch --contains > /workspace/branches.txt ;;
         esac
+
+        echo "🍴Get the branches which contained the commits:"
+        git branch --contains > /workspace/branches.txt
         cat /workspace/branches.txt
     - name: compute-version
       image: denoland/deno:2.9.7
+      when:
+        - input: $(params.component)
+          operator: notin
+          values: [tidb-cse, pd-cse, tidb-operator-cse, cassandra-on-mysql, qdrant-on-tidb]
       command:
         - deno
         - run
@@ -74,8 +81,6 @@ spec:
         - --allow-write
         - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/build/versioning-strategy.ts
       args:
-        - --component=$(params.component)
-        - --git_ref=$(params.git-ref)
         - --git_version_file=/workspace/raw-version.txt
         - --contain_branches_file=/workspace/branches.txt
         - --save_build_git_tag_file=/workspace/new-tag

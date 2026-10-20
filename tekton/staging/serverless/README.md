@@ -52,6 +52,10 @@ artifacts component. Builder selection, package generation and image generation
 use the existing artifacts main-branch checkout. Isolated validation pins its
 resource copies rather than extending the production Task/Pipeline interfaces.
 The API compatibility request version does not participate in Git version inference.
+Serverless uses `git describe --tags --always --dirty` directly for its version,
+without classifying branches or computing `pre` versions. The shared
+`versioning-strategy.ts` script and its command-line invocation remain unchanged
+for existing products.
 
 ## Validation records
 
