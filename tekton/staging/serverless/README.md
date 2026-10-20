@@ -12,6 +12,24 @@ After the private formal GAR exists and the five source cutover PRs are merged:
    move a pre-existing tag to a different commit. Verify reachable semantic Git
    tags on every enabled maintenance branch; do not use a request version as a
    substitute for missing Git history.
+   Divergent TiDB maintenance histories require independent reachable tags on
+   their own merged cutover commits; the primary tag cannot be moved to cover
+   them:
+
+   | TiDB branch | Reserved cutover baseline |
+   | --- | --- |
+   | main-8.5-keyspace | v8.5.3-alpha.0 |
+   | release-8.5-keyspace-20260206 | v8.5.3-alpha.20260206 |
+   | release-8.5-keyspace-202603 | v8.5.3-alpha.202603 |
+   | release-8.5-keyspace-202604 | v8.5.3-alpha.202604 |
+   | release-8.5-keyspace-202605 | v8.5.3-alpha.202605 |
+   | release-8.5-keyspace-202607 | v8.5.3-alpha.202607 |
+
+   Merge the publisher-removal cutover for **each** enabled branch before
+   activating its allowlist entry. Otherwise its old Actions continue to publish
+   alongside Tekton. Keep a line disabled until its cutover, baseline and native
+   validation are ready. The repository's initial primary baseline stays as
+   specified above; these additional prereleases only establish branch ancestry.
 2. Confirm each repository's GitHub push/create webhook reaches the existing
    GitHub EventListener, including the route's `short-ref` overlay. The explicit
    allowlist covers main-8.5-keyspace and the enumerated current 8.5 release lines,
