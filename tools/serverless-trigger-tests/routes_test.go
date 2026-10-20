@@ -317,8 +317,9 @@ func TestTemplatesAndPipelineContracts(t *testing.T) {
 	}
 	var pipeline struct {
 		Spec struct {
-			Params []struct{ Name, Default string }
-			Tasks  []struct {
+			Params  []struct{ Name, Default string }
+			Results []struct{ Name, Value string }
+			Tasks   []struct {
 				Name    string
 				TaskRef struct{ Name string } `yaml:"taskRef"`
 				Params  []struct{ Name, Value string }
@@ -327,6 +328,23 @@ func TestTemplatesAndPipelineContracts(t *testing.T) {
 		}
 	}
 	load(t, "tekton/v1/pipelines/pingcap-build-package-linux.yaml", &pipeline)
+	if len(pipeline.Spec.Results) != 2 {
+		t.Fatal("the existing Pipeline results contract must stay unchanged")
+	}
+	wantResults := map[string]string{
+		"pushed-binaries": "$(tasks.build-binaries.results.pushed)",
+		"pushed-images":   "$(tasks.build-images.results.pushed)",
+	}
+	for _, result := range pipeline.Spec.Results {
+		if value, ok := wantResults[result.Name]; !ok || value != result.Value {
+			t.Fatalf("changed Pipeline result: %+v", result)
+		}
+	}
+	for _, param := range pipeline.Spec.Params {
+		if param.Name == "artifacts-revision" || param.Name == "versioning-strategy-url" {
+			t.Fatalf("validation-only parameter in the production Pipeline: %s", param.Name)
+		}
+	}
 	for _, task := range pipeline.Spec.Tasks {
 		var definition struct {
 			Spec struct{ Params []struct{ Name string } }

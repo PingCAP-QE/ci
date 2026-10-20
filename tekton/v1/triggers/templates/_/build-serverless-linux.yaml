@@ -46,8 +46,6 @@ spec:
 
       '
     default: ''
-  - name: artifacts-revision
-    default: main
   resourcetemplates:
   - apiVersion: tekton.dev/v1
     kind: PipelineRun
@@ -93,8 +91,6 @@ spec:
         value: 'false'
       - name: require-artifacts
         value: 'true'
-      - name: artifacts-revision
-        value: $(tt.params.artifacts-revision)
       taskRunTemplate:
         podTemplate:
           nodeSelector:
@@ -176,8 +172,6 @@ spec:
         value: 'false'
       - name: require-artifacts
         value: 'true'
-      - name: artifacts-revision
-        value: $(tt.params.artifacts-revision)
       taskRunTemplate:
         podTemplate:
           nodeSelector:
