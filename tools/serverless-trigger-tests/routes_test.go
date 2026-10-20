@@ -2,6 +2,7 @@ package routes_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,6 +18,65 @@ const root = "../../"
 const sha = "0123456789abcdef0123456789abcdef01234567"
 
 var products = []string{"tidb-cse", "pd-cse", "tidb-operator-cse", "cassandra-on-mysql", "qdrant-on-tidb"}
+
+func TestMountedGitCredentials(t *testing.T) {
+	var task struct {
+		Spec struct {
+			Steps []struct{ Name, Script string }
+		}
+	}
+	load(t, "tekton/v1/tasks/pingcap-build-binaries-linux.yaml", &task)
+	var script string
+	for _, step := range task.Spec.Steps {
+		if step.Name == "build" {
+			script = strings.Split(step.Script, "script=\"/workspace/build-package-artifacts.sh\"")[0]
+		}
+	}
+	if script == "" {
+		t.Fatal("missing credential setup")
+	}
+	tmp := t.TempDir()
+	credentials := filepath.Join(tmp, "credentials")
+	if err := os.Mkdir(credentials, 0700); err != nil {
+		t.Fatal(err)
+	}
+	for name, value := range map[string]string{"username": "test-user", "password": "test-password"} {
+		if err := os.WriteFile(filepath.Join(credentials, name), []byte(value), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	script = strings.NewReplacer(
+		"$(workspaces.git-credentials.bound)", "true",
+		"$(workspaces.git-credentials.path)", credentials,
+		"$(params.git-ref)", "feature/test",
+		"/workspace/serverless-git-credential", filepath.Join(tmp, "git-credential"),
+	).Replace(script)
+	script += "printf 'protocol=https\\nhost=github.com\\n\\n' | git credential fill\n"
+	cmd := exec.Command("sh", "-c", script)
+	cmd.Env = append(os.Environ(), "HOME="+tmp, "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+filepath.Join(tmp, ".gitconfig"))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("credential helper: %v: %s", err, output)
+	}
+	if !strings.Contains(string(output), "username=test-user\n") || !strings.Contains(string(output), "password=test-password\n") {
+		t.Fatal("mounted credentials were not returned")
+	}
+	config, err := os.ReadFile(filepath.Join(tmp, ".gitconfig"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(config), "test-password") {
+		t.Fatal("secret copied into Git config")
+	}
+	for _, remote := range []string{"git@github.com:tidbcloud/private.git", "ssh://git@github.com/tidbcloud/private.git"} {
+		cmd := exec.Command("git", "ls-remote", "--get-url", remote)
+		cmd.Env = append(os.Environ(), "HOME="+tmp, "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+filepath.Join(tmp, ".gitconfig"))
+		output, err := cmd.CombinedOutput()
+		if err != nil || strings.TrimSpace(string(output)) != "https://github.com/tidbcloud/private.git" {
+			t.Fatalf("SSH rewrite: %v: %s", err, output)
+		}
+	}
+}
 
 type expression struct {
 	Name  string

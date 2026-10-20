@@ -137,11 +137,17 @@ spec:
         printf 'password=%s\n' "$(cat "$SERVERLESS_GIT_CREDENTIAL_DIR/password")"
         HELPER
           chmod 700 /workspace/serverless-git-credential
-          export GIT_CONFIG_COUNT=2
-          export GIT_CONFIG_KEY_0=credential.https://github.com.helper
-          export GIT_CONFIG_VALUE_0=/workspace/serverless-git-credential
-          export GIT_CONFIG_KEY_1=url.https://github.com/.insteadOf
-          export GIT_CONFIG_VALUE_1=git@github.com:
+          # Bullseye builders use Git 2.30, before GIT_CONFIG_COUNT support.
+          # The config contains only a helper path; secrets stay in the mount.
+          mkdir -p "$HOME"
+          cat >> "$HOME/.gitconfig" <<'CONFIG'
+        [credential "https://github.com"]
+          helper =
+          helper = /workspace/serverless-git-credential
+        [url "https://github.com/"]
+          insteadOf = git@github.com:
+          insteadOf = ssh://git@github.com/
+        CONFIG
         fi
         script="/workspace/build-package-artifacts.sh"
         "$script" -b -a -w "$(params.release-dir)"
