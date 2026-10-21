@@ -4,13 +4,12 @@ metadata:
   name: build-component-single-platform
 spec:
   params:
-    - name: git-credentials-secret
-      description: Optional dependency credential Secret; the default is absent for public builds.
-      default: no-build-credentials
-    - name: deliver-artifacts
-      default: "true"
-    - name: require-artifacts
-      default: "false"
+    - name: credentials-workspace
+      description: Workspace for build credentials; keep the existing binding by default.
+      default: mac-ssh-credentials
+    - name: credentials-secret
+      description: Credential Secret bound to the selected workspace.
+      default: mac-ssh-credentials
     - name: git-url
       description: The git repository full url
     - name: git-refspec
@@ -76,10 +75,6 @@ spec:
         pipelineRef:
           name: pingcap-build-package-$(tt.params.os)
         params:
-          - name: deliver-artifacts
-            value: $(tt.params.deliver-artifacts)
-          - name: require-artifacts
-            value: $(tt.params.require-artifacts)
           - name: git-url
             value: $(tt.params.git-url)
           - name: git-refspec
@@ -150,7 +145,6 @@ spec:
           # - name: cypress-cache # for linux platforms
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-          - name: git-credentials
+          - name: $(tt.params.credentials-workspace)
             secret:
-              secretName: $(tt.params.git-credentials-secret)
-              optional: true
+              secretName: $(tt.params.credentials-secret)

@@ -137,9 +137,8 @@ spec:
             - key: custom-params
               expression: >-
                 {
-                  'git-credentials-secret': extensions.build.serverless ? 'github-pat-secret' : 'no-build-credentials',
-                  'deliver-artifacts': extensions.build.serverless ? 'false' : 'true',
-                  'require-artifacts': extensions.build.serverless ? 'true' : 'false',
+                  'credentials-workspace': extensions.build.serverless ? 'git-credentials' : 'mac-ssh-credentials',
+                  'credentials-secret': extensions.build.serverless ? 'github-pat-secret' : 'mac-ssh-credentials',
                   'builder-image': header.canonical('ce-paramBuilderImage'),
                   'profile': extensions.build.serverless ? 'release' : header.canonical('ce-paramProfile') == '' ?
                   'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
@@ -178,9 +177,8 @@ spec:
     - { name: git-refspec, value: $(extensions.source.refspec) }
     - ref: gcp-dev-build-params
     - { name: ce-context, value: $(extensions.ce-context) }
-    - { name: git-credentials-secret, value: $(extensions.custom-params.git-credentials-secret) }
-    - { name: deliver-artifacts, value: $(extensions.custom-params.deliver-artifacts) }
-    - { name: require-artifacts, value: $(extensions.custom-params.require-artifacts) }
+    - { name: credentials-workspace, value: $(extensions.custom-params.credentials-workspace) }
+    - { name: credentials-secret, value: $(extensions.custom-params.credentials-secret) }
     - { name: os, value: $(extensions.custom-params.os) }
     - { name: arch, value: $(extensions.custom-params.arch) }
 

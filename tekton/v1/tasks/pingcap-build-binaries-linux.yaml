@@ -27,8 +27,6 @@ spec:
     - description: Just built and pushed artifacts, it will be a yaml content.
       name: pushed
   params:
-    - name: require-artifacts
-      default: "false"
     - name: component
     - name: os
       default: linux
@@ -89,7 +87,6 @@ spec:
         else
           echo -n "false" > $(step.results.generated.path)
           echo "🤷 no output script generated!"
-          [ "$(params.require-artifacts)" != "true" ] || exit 1
           printf '"{}"' > "$pushed_result_path"
         fi
     - name: build
@@ -116,8 +113,6 @@ spec:
         # - name: CYPRESS_CACHE_FOLDER
         #   value: /workspace/.cache/Cypress
       script: |
-        case "$(params.component)" in
-          tidb-cse|pd-cse|tidb-operator-cse|cassandra-on-mysql|qdrant-on-tidb)
         if [ "$(workspaces.git-credentials.bound)" = "true" ]; then
           set -eu
           export GIT_BRANCH="$(params.git-ref)"
@@ -145,8 +140,6 @@ spec:
           insteadOf = ssh://git@github.com/
         CONFIG
         fi
-          ;;
-        esac
         script="/workspace/build-package-artifacts.sh"
         "$script" -b -a -w "$(params.release-dir)"
     - name: publish
@@ -169,7 +162,4 @@ spec:
         oras version
         # try 2 times.
         "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || \
-        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || exit $?
-        if [ "$(params.require-artifacts)" = "true" ]; then
-          yq -e '.oci.repo != null and .oci.digest != null and (.files | length > 0)'  $(results.pushed.path) >/dev/null
-        fi
+        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path)

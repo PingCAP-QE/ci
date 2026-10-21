@@ -5,10 +5,6 @@ metadata:
   name: pingcap-build-package-linux
 spec:
   params:
-    - name: require-artifacts
-      default: "false"
-    - name: deliver-artifacts
-      default: "true"
     - name: git-url
       type: string
     - name: git-ref
@@ -156,8 +152,6 @@ spec:
       taskRef:
         name: pingcap-build-binaries-linux
       params:
-        - name: require-artifacts
-          value: $(params.require-artifacts)
         - name: os
           value: "$(params.os)"
         - name: arch
@@ -202,8 +196,6 @@ spec:
       runAfter:
         - build-binaries
       params:
-        - name: require-artifacts
-          value: $(params.require-artifacts)
         - name: os
           value: "$(params.os)"
         - name: arch
@@ -232,9 +224,6 @@ spec:
     - name: deliver-binaries
       retries: 2
       when:
-        - input: $(params.deliver-artifacts)
-          operator: in
-          values: ["true"]
         - input: $(tasks.build-binaries.results.pushed)
           operator: notin
           values: ["{}", '"{}"']
@@ -252,9 +241,6 @@ spec:
     - name: deliver-images
       retries: 2
       when:
-        - input: $(params.deliver-artifacts)
-          operator: in
-          values: ["true"]
         - input: $(tasks.build-images.results.pushed)
           operator: notin
           values: ["{}", '"{}"']

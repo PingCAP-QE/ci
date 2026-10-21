@@ -241,20 +241,22 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
     });
     for (
       const [from, to] of [
-        ["$(workspaces.git-credentials.bound)", "true"],
         ["$(workspaces.git-credentials.path)", credentials],
         ["$(params.git-ref)", "feature/test"],
         ["/workspace/serverless-git-credential", `${tmp}/git-credential`],
       ]
     ) script = script.replaceAll(from, to);
-    const legacy = script.replaceAll("$(params.component)", "tidb");
+    const legacy = script.replaceAll(
+      "$(workspaces.git-credentials.bound)",
+      "false",
+    );
     const legacyHome = `${tmp}/legacy`;
     Deno.mkdirSync(legacyHome);
     command("sh", ["-c", legacy], {
       env: { HOME: legacyHome, GIT_CONFIG_GLOBAL: `${legacyHome}/.gitconfig` },
     });
     assertEquals(optionalText(`${legacyHome}/.gitconfig`), undefined);
-    script = script.replaceAll("$(params.component)", "tidb-cse");
+    script = script.replaceAll("$(workspaces.git-credentials.bound)", "true");
     script +=
       "printf 'protocol=https\\nhost=github.com\\n\\n' | git credential fill\n";
     const env = {
@@ -281,6 +283,43 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
     }
   } finally {
     Deno.removeSync(tmp, { recursive: true });
+  }
+});
+
+Deno.test("components without binary or image configuration keep the empty-result skip", () => {
+  for (const kind of ["binaries-linux", "images"]) {
+    const task = load<{ spec: { steps: Step[] } }>(
+      `tekton/v1/tasks/pingcap-build-${kind}.yaml`,
+    );
+    const step = task.spec.steps.find((step) => step.name === "generate")!;
+    const tmp = Deno.makeTempDirSync();
+    try {
+      Deno.mkdirSync(`${tmp}/artifacts/packages/scripts`, { recursive: true });
+      const generator = kind === "images"
+        ? "gen-package-images-with-config.sh"
+        : "gen-package-artifacts-with-config.sh";
+      Deno.writeTextFileSync(
+        `${tmp}/artifacts/packages/scripts/${generator}`,
+        "#!/bin/sh\nexit 0\n",
+        { mode: 0o700 },
+      );
+      const script = step.script.replaceAll("/workspace/", `${tmp}/`)
+        .replaceAll("$(step.results.generated.path)", `${tmp}/generated`)
+        .replaceAll(/\$\(params\.[^)]+\)/g, "test")
+        // macOS /bin/sh prints -n literally; use the portable equivalent in this fixture.
+        .replaceAll("echo -n ", 'printf "%s" ');
+      // No network checkout: the fixture provides a generator with no matching output.
+      command("sh", [
+        "-c",
+        "git() { :; }\n" + script,
+        "generate-task",
+        `${tmp}/pushed`,
+      ]);
+      assertEquals(Deno.readTextFileSync(`${tmp}/generated`), "false");
+      assertEquals(Deno.readTextFileSync(`${tmp}/pushed`), '"{}"');
+    } finally {
+      Deno.removeSync(tmp, { recursive: true });
+    }
   }
 });
 
@@ -382,26 +421,7 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
                 overlay(trigger, "source", body, header, "refspec"),
                 `+${sha}:refs/devbuild/source`,
               );
-              assertEquals(
-                overlay(
-                  trigger,
-                  "custom-params",
-                  body,
-                  header,
-                  "deliver-artifacts",
-                ),
-                "false",
-              );
-              assertEquals(
-                overlay(
-                  trigger,
-                  "custom-params",
-                  body,
-                  header,
-                  "require-artifacts",
-                ),
-                "true",
-              );
+
               assertEquals(
                 overlay(trigger, "custom-params", body, header, "profile"),
                 "release",
@@ -416,7 +436,7 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
                   "custom-params",
                   body,
                   header,
-                  "git-credentials-secret",
+                  "credentials-secret",
                 ),
                 "github-pat-secret",
               );
@@ -427,6 +447,16 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
               assertEquals(
                 overlay(trigger, "custom-params", body, header, "arch"),
                 arch,
+              );
+              assertEquals(
+                overlay(
+                  trigger,
+                  "custom-params",
+                  body,
+                  header,
+                  "credentials-workspace",
+                ),
+                "git-credentials",
               );
               const resource =
                 product === "tidb-cse" || product === "qdrant-on-tidb"
@@ -510,23 +540,16 @@ Deno.test("legacy canonical events and old products retain shared route behavior
           overlay(trigger, "resource-config", body, header, "timeout"),
           timeout,
         );
-        assertEquals(
-          overlay(trigger, "custom-params", body, header, "deliver-artifacts"),
-          "true",
-        );
-        assertEquals(
-          overlay(trigger, "custom-params", body, header, "require-artifacts"),
-          "false",
-        );
+
         assertEquals(
           overlay(
             trigger,
             "custom-params",
             body,
             header,
-            "git-credentials-secret",
+            "credentials-secret",
           ),
-          "no-build-credentials",
+          "mac-ssh-credentials",
         );
         assertEquals(
           overlay(trigger, "registry", body, header),
@@ -600,7 +623,10 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
           params: { name: string; default?: string }[];
           resourcetemplates: {
             metadata: { annotations: Record<string, string> };
-            spec: { params: Param[]; workspaces: { name: string }[] };
+            spec: {
+              params: Param[];
+              workspaces: { name: string; secret?: { secretName: string } }[];
+            };
           }[];
         };
       }
@@ -610,9 +636,9 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
       const defaults = Object.fromEntries(
         template.spec.params.map((param) => [param.name, param.default]),
       );
-      assertEquals(defaults["deliver-artifacts"], "true");
-      assertEquals(defaults["require-artifacts"], "false");
-      assertEquals(defaults["git-credentials-secret"], "no-build-credentials");
+
+      assertEquals(defaults["credentials-secret"], "mac-ssh-credentials");
+      assertEquals(defaults["credentials-workspace"], "mac-ssh-credentials");
     }
     for (const run of template.spec.resourcetemplates) {
       assertEquals(
@@ -622,19 +648,22 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
       const params = Object.fromEntries(
         run.spec.params.map((param) => [param.name, param.value]),
       );
-      assertEquals(
-        params["deliver-artifacts"],
-        name === "serverless-linux"
-          ? "false"
-          : "$(tt.params.deliver-artifacts)",
-      );
-      assertEquals(
-        params["require-artifacts"],
-        name === "serverless-linux" ? "true" : "$(tt.params.require-artifacts)",
-      );
+
+      assertFalse("deliver-artifacts" in params);
+      assertFalse("require-artifacts" in params);
       const workspaces = run.spec.workspaces.map((workspace) => workspace.name);
-      assert(workspaces.includes("git-credentials"));
-      assertFalse(workspaces.includes("mac-ssh-credentials"));
+      if (name === "serverless-linux") {
+        assert(workspaces.includes("git-credentials"));
+        assertFalse(workspaces.includes("mac-ssh-credentials"));
+      } else {
+        assert(workspaces.includes("$(tt.params.credentials-workspace)"));
+        assertEquals(
+          run.spec.workspaces.find((workspace) =>
+            workspace.name === "$(tt.params.credentials-workspace)"
+          )?.secret?.secretName,
+          "$(tt.params.credentials-secret)",
+        );
+      }
     }
   }
   const pipeline = load<
@@ -662,7 +691,12 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
   );
   for (const param of pipeline.spec.params) {
     assertFalse(
-      ["artifacts-revision", "versioning-strategy-url"].includes(param.name),
+      [
+        "artifacts-revision",
+        "versioning-strategy-url",
+        "deliver-artifacts",
+        "require-artifacts",
+      ].includes(param.name),
     );
   }
   const definitions = [
@@ -685,9 +719,7 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
       );
     }
     if (task.name.startsWith("deliver-")) {
-      assert(
-        task.when?.some((when) => when.input === "$(params.deliver-artifacts)"),
-      );
+      assertEquals(task.when?.length, 1);
     }
   }
 });

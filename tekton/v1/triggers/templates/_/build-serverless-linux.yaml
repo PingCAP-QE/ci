@@ -81,10 +81,6 @@ spec:
         value: $(tt.params.publisher-url)
       - name: git-instead-of
         value: $(tt.params.git-instead-of)
-      - name: deliver-artifacts
-        value: 'false'
-      - name: require-artifacts
-        value: 'true'
       taskRunTemplate:
         podTemplate:
           nodeSelector:
@@ -156,10 +152,6 @@ spec:
         value: $(tt.params.publisher-url)
       - name: git-instead-of
         value: $(tt.params.git-instead-of)
-      - name: deliver-artifacts
-        value: 'false'
-      - name: require-artifacts
-        value: 'true'
       taskRunTemplate:
         podTemplate:
           nodeSelector:
