@@ -56,6 +56,15 @@ Trigger bindings extract and transform event data into pipeline parameters.
 - `failpoint` - Build with failpoint enabled
 - `fips` - FIPS compliant build
 
+## Environment Status (2026-10-21)
+
+- **`env-gcp/`** is the active trigger environment for the gcp and tencentcloud
+  clusters. Darwin targets use the gcp macbuild path
+  (`build-component-darwin-mac` / `build-component-all-platforms-mac`).
+- **`env-prod2/`** is being retired. Do not add new triggers there; new CI
+  should target `env-gcp/`. The prod2 Tekton deployment is tracked in the
+  `prod2_tekton_decommission_20261021` Conductor track.
+
 ## Getting Started
 
 ### For New Component CI
