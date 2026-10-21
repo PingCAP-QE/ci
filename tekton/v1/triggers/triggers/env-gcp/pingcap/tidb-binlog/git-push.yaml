@@ -12,13 +12,12 @@ spec:
       ref: { name: cel }
       params:
         - name: filter
-          # NOTE: preserved from env-prod2. The original regex looks malformed
-          # (`7[.][15]8[.]1`); confirm the intended release branches before
-          # relying on this trigger.
+          # Supported release branches: release-6.5, release-7.1,
+          # release-7.5, release-8.1. tidb-binlog is deprecated at release-8.4.
           value: >-
             body.repository.full_name == 'pingcap/tidb-binlog'
             &&
-            body.ref.matches('^refs/heads/release-(6[.]5|7[.][15]8[.]1)$')
+            body.ref.matches('^refs/heads/release-(6[.]5|7[.][15]|8[.]1)$')
   bindings:
     - ref: github-branch-push
     - ref: gcp-classic-build-params
