@@ -143,6 +143,7 @@ spec:
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
                   'fetch-external': (body.repository.name == 'tidb' && header.canonical('ce-paramProfile') == 'enterprise') ? 'true' : 'false',
                   'git-secret-ref': body.repository.full_name == 'pingcap-inc/tici' ? 'github-pat-secret' : '',
+                  'submodules': (body.repository.name == 'tidb' && header.canonical('ce-paramProfile') != 'enterprise') ? 'false' : 'true',
                 }
             - key: component
               expression: >-
@@ -163,6 +164,7 @@ spec:
     - { name: os, value: $(extensions.custom-params.os) }
     - { name: arch, value: $(extensions.custom-params.arch) }
     - { name: git-secret-ref, value: $(extensions.custom-params.git-secret-ref) }
+    - { name: submodules, value: $(extensions.custom-params.submodules) }
 
   template:
     ref: build-component-darwin-mac

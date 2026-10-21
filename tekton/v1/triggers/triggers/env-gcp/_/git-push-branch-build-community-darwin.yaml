@@ -1,3 +1,14 @@
+# Community darwin builds on GCP via macbuild (MacBuild custom task).
+#
+# Migrated from env-prod2 (`_/git-push-branch-build-community-darwin.yaml`),
+# which ran them on KSY through boskos + SSH (`build-component-darwin`).
+# prod2's Tekton is being retired, and macOS targets move to the gcp mac
+# workers (mac-builder-operator). Mirrors the repo/branch filters and resource
+# overlays of the prod2 triggers; only the binding set and the template differ.
+#
+# NOTE (dependency): `PingCAP-QE/artifacts` removes tiflow's inline nvm/node
+# install only *after* this trigger is deployed — the declarative `macos.tools`
+# toolchain is provided by the mac agent on this (gcp/macbuild) path.
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
@@ -33,6 +44,9 @@ spec:
             )
         - name: overlays
           value:
+            - key: submodules
+              expression: >-
+                body.repository.name == 'tidb' ? 'false' : 'true'
             - key: timeout
               expression: >-
                 {
@@ -91,23 +105,24 @@ spec:
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: timeout, value: $(extensions.timeout) }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - { name: submodules, value: $(extensions.submodules) }
     - name: builder-resources-cpu
       value: $(extensions.builder-resources-cpu)
     - name: builder-resources-memory
       value: $(extensions.builder-resources-memory)
 
   template:
-    ref: build-component-darwin
+    ref: build-component-darwin-mac
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: github-push-build-community-fts-darwin # linux builds are migrated to GCP.
+  name: github-push-build-community-fts-darwin # migrated from prod2 along with the linux builds.
   labels:
     type: github-branch-push
     profile: community
@@ -123,6 +138,9 @@ spec:
             body.ref.matches('^refs/heads/(feature/fts|release-fts-[0-9]+)$')
         - name: overlays
           value:
+            - key: submodules
+              expression: >-
+                body.repository.name == 'tidb' ? 'false' : 'true'
             - key: timeout
               expression: >-
                 {
@@ -153,14 +171,15 @@ spec:
                 }[body.repository.full_name]
   bindings:
     - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: timeout, value: $(extensions.timeout) }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - { name: submodules, value: $(extensions.submodules) }
     - name: builder-resources-cpu
       value: $(extensions.builder-resources-cpu)
     - name: builder-resources-memory
       value: $(extensions.builder-resources-memory)
   template:
-    ref: build-component-darwin
+    ref: build-component-darwin-mac

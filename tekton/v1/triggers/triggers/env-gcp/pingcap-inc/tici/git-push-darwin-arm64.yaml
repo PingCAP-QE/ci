@@ -1,36 +1,32 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-tidb-binlog
+  name: git-push-pingcap-inc-tici-darwin-arm64
   labels:
     type: github-branch-push
-    github-owner: pingcap
-    github-repo: tidb-binlog
+    github-owner: pingcap-inc
+    github-repo: tici
 spec:
   interceptors:
     - name: filter on repo owner and name and branches
       ref: { name: cel }
       params:
         - name: filter
-          # support branches:
-          # - release-6.5
-          # - release-7.1
-          # - release-7.5
-          # - release-7.1
-          # Deprecated at: release-8.4
           value: >-
-            body.repository.full_name == 'pingcap/tidb-binlog'
+            body.repository.full_name == 'pingcap-inc/tici'
             &&
-            body.ref.matches('^refs/heads/release-(6[.]5|7[.][15]8[.]1)$')
-
+            body.ref.matches('^refs/heads/master$')
   bindings:
     - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
+    - { name: os, value: darwin }
+    - { name: arch, value: arm64 }
+    - { name: git-secret-ref, value: github-pat-secret }
     - { name: timeout, value: 2h }
-    - { name: source-ws-size, value: 100Gi }
+    - { name: source-ws-size, value: 50Gi }
     - { name: builder-resources-memory, value: 32Gi }
     - { name: builder-resources-cpu, value: "8" }
   template:
-    ref: build-component-all-platforms
+    ref: build-component-darwin-mac

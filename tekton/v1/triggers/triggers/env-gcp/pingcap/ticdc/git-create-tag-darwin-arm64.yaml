@@ -1,0 +1,31 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: tag-create-pingcap-ticdc-darwin-arm64
+  labels:
+    type: github-tag-create
+    github-owner: pingcap
+    github-repo: ticdc
+spec:
+  interceptors:
+    - name: filter on repo owner and name and tags
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name == 'pingcap/ticdc'
+            &&
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+-release[.][0-9]+$')
+  bindings:
+    - ref: github-tag-create
+    - ref: gcp-classic-build-params
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: release }
+    - { name: os, value: darwin }
+    - { name: arch, value: arm64 }
+    - { name: timeout, value: 60m }
+    - { name: source-ws-size, value: 50Gi }
+    - { name: builder-resources-memory, value: 16Gi }
+    - { name: builder-resources-cpu, value: "4" }
+  template:
+    ref: build-component-darwin-mac

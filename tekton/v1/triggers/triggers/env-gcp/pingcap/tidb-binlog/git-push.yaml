@@ -1,29 +1,32 @@
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-push-pingcap-inc-tici-darwin
+  name: git-push-pingcap-tidb-binlog
   labels:
     type: github-branch-push
-    github-owner: pingcap-inc
-    github-repo: tici
+    github-owner: pingcap
+    github-repo: tidb-binlog
 spec:
   interceptors:
     - name: filter on repo owner and name and branches
       ref: { name: cel }
       params:
         - name: filter
+          # NOTE: preserved from env-prod2. The original regex looks malformed
+          # (`7[.][15]8[.]1`); confirm the intended release branches before
+          # relying on this trigger.
           value: >-
-            body.repository.full_name == 'pingcap-inc/tici'
+            body.repository.full_name == 'pingcap/tidb-binlog'
             &&
-            body.ref.matches('^refs/heads/master$')
+            body.ref.matches('^refs/heads/release-(6[.]5|7[.][15]8[.]1)$')
   bindings:
     - ref: github-branch-push
-    - ref: ksy-classic-build-params
+    - ref: gcp-classic-build-params
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: timeout, value: 2h }
-    - { name: source-ws-size, value: 50Gi }
+    - { name: source-ws-size, value: 100Gi }
     - { name: builder-resources-memory, value: 32Gi }
     - { name: builder-resources-cpu, value: "8" }
   template:
-    ref: build-component-darwin
+    ref: build-component-all-platforms-mac

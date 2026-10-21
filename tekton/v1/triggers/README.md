@@ -9,11 +9,11 @@ triggers/
 ├── bindings/                  # Trigger bindings
 ├── templates/                 # Trigger templates
 ├── triggers/                  # Trigger definitions
-│   ├── env-gcp/               # Triggers for GCP environment
-│   │   ├── _/                 # Common triggers for GCP
+│   ├── env-gcp/               # Active triggers for gcp + tencentcloud
+│   │   ├── _/                 # Common triggers (incl. darwin macbuild)
 │   │   ├── pingcap-inc/       # pingcap-inc org specific triggers
 │   │   ├── tikv/              # TiKV org specific triggers
-│   ├── env-prod2/             # Triggers for prod2 environment
+│   ├── env-prod2/             # Legacy prod2 triggers (being retired)
 │   │   ├── _/                 # Common triggers for prod2
 │   │   ├── PingCAP-QE/        # PingCAP-QE org specific triggers
 │   │   ├── ctl/               # ctl TiUP PKG related triggers
@@ -21,6 +21,10 @@ triggers/
 │   │   ├── pingcap/           # PingCAP ORG repositories triggers
 │   │   ├── pingcap-inc/       # pingcap-inc org specific triggers
 ```
+
+> **Environment status (2026-10-21):** `env-gcp/` is the active environment for
+> gcp and tencentcloud; darwin builds use the gcp macbuild path. `env-prod2/`
+> is being retired — do not add new triggers there.
 
 ## How to test CEL interceptors
 
