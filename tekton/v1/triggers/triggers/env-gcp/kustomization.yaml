@@ -29,9 +29,6 @@ resources:
   - _/notify/notified-successful-image-delivery-tidbx.yaml
   - _/notify/update-ops-when-tidbx-image-distributed-to-clouds.yaml
   - _/notify/update-tcms-when-tidbx-image-distributed-to-clouds.yaml
-  - _/serverless/devbuild-branch-push.yaml
-  - _/serverless/devbuild-pr.yaml
-  - _/serverless/devbuild-tag-create.yaml
   - pingcap-inc/ticdc/git-create-tag.yaml
   - pingcap-inc/ticdc/git-push.yaml
   - pingcap-inc/tici/git-create-tag-darwin-amd64.yaml

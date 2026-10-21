@@ -11,37 +11,29 @@ spec:
       params:
         - name: filter
           value: >-
-            !(header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb']) &&
-            (header.canonical('ce-paramGithubRepo') != '' ||
-            body.repository.full_name in [
-              'pingcap-inc/tici',
-              'pingcap/ng-monitoring',
-              'pingcap/ticdc',
-              'pingcap/tidb',
-              'pingcap/tidb-binlog',
-              'pingcap/tidb-dashboard',
-              'pingcap/tidb-operator',
-              'pingcap/tidb-tools',
-              'pingcap/tiflash',
-              'pingcap/tiflow',
-              'pingcap/tiproxy',
-              'tidbcloud/cloud-storage-engine',
-              'tidbcloud/tiflash-cse',
-              'tikv/pd',
-              'tikv/tikv'
-            ])
-            &&
-            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$')
-            &&
-            header.canonical('ce-paramPlatform') in [
-              'linux/amd64',
-              'linux/arm64'
-            ]
+            (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql',
+            'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' && body.repository.full_name in ['tidbcloud/tidb-cse',
+            'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ?
+            (header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.create' && header.canonical('ce-paramPlatform') in ['linux/amd64',
+            'linux/arm64']) : (((header.canonical('ce-paramGithubRepo') != '' && (header.canonical('ce-paramProduct') != '' ?
+            header.canonical('ce-paramProduct') : body.repository.name) in ['tici', 'ng-monitoring',
+            'ticdc', 'tidb', 'tidb-binlog', 'tidb-dashboard', 'tidb-operator', 'tidb-tools', 'tiflash',
+            'tiflow', 'tiproxy', 'cloud-storage-engine', 'tiflash-cse', 'pd', 'tikv']) || body.repository.full_name in [ 'pingcap-inc/tici',
+            'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard',
+            'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy',
+            'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv' ]) &&
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$') && header.canonical('ce-paramPlatform') in [ 'linux/amd64',
+            'linux/arm64' ])
         - name: overlays
           value:
             - key: resource-config
               expression: >-
                 {
+                  'tidb-cse': {'timeout': '90m', 'sourceWsSize': '80Gi', 'cpu': '8', 'memory': '32Gi'},
+                  'pd-cse': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'},
+                  'tidb-operator-cse': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'},
+                  'cassandra-on-mysql': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'},
+                  'qdrant-on-tidb': {'timeout': '3h', 'sourceWsSize': '80Gi', 'cpu': '8', 'memory': '32Gi'},
                   'tici': {
                     'timeout': '2h',
                     'sourceWsSize': '50Gi',
@@ -132,12 +124,32 @@ spec:
                     'cpu': '12',
                     'memory': '56Gi'
                   }
-                }[body.repository.name]
+                }[(header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
+                'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
+                body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
+                'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? (header.canonical('ce-paramProduct') != '' ?
+                header.canonical('ce-paramProduct') : body.repository.name) : body.repository.name]
             - key: custom-params
               expression: >-
                 {
+                  'git-credentials-secret': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
+                  'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
+                  body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
+                  'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? 'github-pat-secret' : 'no-build-credentials',
+                  'deliver-artifacts': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
+                  'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
+                  body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
+                  'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? 'false' : 'true',
+                  'require-artifacts': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
+                  'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
+                  body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
+                  'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? 'true' : 'false',
                   'builder-image': header.canonical('ce-paramBuilderImage'),
-                  'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
+                  'profile': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
+                  'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
+                  body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
+                  'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? 'release' : header.canonical('ce-paramProfile') == '' ?
+                  'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
                   'os': header.canonical('ce-paramPlatform').split('/')[0],
                   'arch': header.canonical('ce-paramPlatform').split('/')[1],
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
@@ -145,6 +157,10 @@ spec:
                 }
             - key: component
               expression: >-
+                (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql',
+                'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' && body.repository.full_name in ['tidbcloud/tidb-cse',
+                'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ?
+                (header.canonical('ce-paramProduct') != '' ? header.canonical('ce-paramProduct') : body.repository.name) :
                 body.repository.full_name.startsWith('tidbcloud/') ? {
                   'tidbcloud/tiflash-cse': 'tiflash',
                   'tidbcloud/cloud-storage-engine': 'tikv',
@@ -156,9 +172,28 @@ spec:
                 'us-docker.pkg.dev/pingcap-testing-account/hotfix' :
                 'us-docker.pkg.dev/pingcap-testing-account/dev'
 
+            - key: source
+              expression: >-
+                {'ref': body.ref, 'revision': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse',
+                'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
+                body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
+                'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) && header.canonical('ce-paramGitRevision') != '' ?
+                header.canonical('ce-paramGitRevision') : body.ref, 'refspec': (header.canonical('ce-paramProduct') in ['tidb-cse',
+                'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
+                body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
+                'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? (header.canonical('ce-paramGitRevision') != '' ?
+                '+' + header.canonical('ce-paramGitRevision') + ':refs/devbuild/source' : '+refs/tags/' + body.ref + ':refs/tags/' + body.ref) :
+                '+refs/heads/*:refs/heads/*'}
+
   bindings:
-    - ref: github-tag-create
+    - { name: git-url, value: $(body.repository.clone_url) }
+    - { name: git-ref, value: $(extensions.source.ref) }
+    - { name: git-revision, value: $(extensions.source.revision) }
+    - { name: git-refspec, value: $(extensions.source.refspec) }
     - ref: gcp-dev-build-params
+    - { name: git-credentials-secret, value: $(extensions.custom-params.git-credentials-secret) }
+    - { name: deliver-artifacts, value: $(extensions.custom-params.deliver-artifacts) }
+    - { name: require-artifacts, value: $(extensions.custom-params.require-artifacts) }
     - { name: os, value: $(extensions.custom-params.os) }
     - { name: arch, value: $(extensions.custom-params.arch) }
 

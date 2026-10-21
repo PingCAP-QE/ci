@@ -116,6 +116,8 @@ spec:
         # - name: CYPRESS_CACHE_FOLDER
         #   value: /workspace/.cache/Cypress
       script: |
+        case "$(params.component)" in
+          tidb-cse|pd-cse|tidb-operator-cse|cassandra-on-mysql|qdrant-on-tidb)
         if [ "$(workspaces.git-credentials.bound)" = "true" ]; then
           set -eu
           export GIT_BRANCH="$(params.git-ref)"
@@ -143,6 +145,8 @@ spec:
           insteadOf = ssh://git@github.com/
         CONFIG
         fi
+          ;;
+        esac
         script="/workspace/build-package-artifacts.sh"
         "$script" -b -a -w "$(params.release-dir)"
     - name: publish

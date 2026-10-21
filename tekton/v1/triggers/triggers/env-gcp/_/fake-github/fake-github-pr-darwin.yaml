@@ -11,8 +11,10 @@ spec:
       params:
         - name: filter
           value: >-
-            !(header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb']) &&
-            (header.canonical('ce-paramGithubRepo') != '' ||
+            ((header.canonical('ce-paramGithubRepo') != '' && (header.canonical('ce-paramProduct') != '' ?
+            header.canonical('ce-paramProduct') : body.repository.name) in ['tici', 'ng-monitoring',
+            'ticdc', 'tidb', 'tidb-binlog', 'tidb-dashboard', 'tidb-operator', 'tidb-tools', 'tiflash',
+            'tiflow', 'tiproxy', 'cloud-storage-engine', 'tiflash-cse', 'pd', 'tikv']) ||
             body.repository.full_name in [
               'pingcap-inc/tici',
               'pingcap/ng-monitoring',
@@ -135,7 +137,8 @@ spec:
               expression: >-
                 {
                   'builder-image': header.canonical('ce-paramBuilderImage'),
-                  'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
+                  'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ?
+                  'release' : header.canonical('ce-paramProfile')),
                   'os': header.canonical('ce-paramPlatform').split('/')[0],
                   'arch': header.canonical('ce-paramPlatform').split('/')[1],
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),

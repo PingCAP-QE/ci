@@ -246,6 +246,14 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
         ["/workspace/serverless-git-credential", `${tmp}/git-credential`],
       ]
     ) script = script.replaceAll(from, to);
+    const legacy = script.replaceAll("$(params.component)", "tidb");
+    const legacyHome = `${tmp}/legacy`;
+    Deno.mkdirSync(legacyHome);
+    command("sh", ["-c", legacy], {
+      env: { HOME: legacyHome, GIT_CONFIG_GLOBAL: `${legacyHome}/.gitconfig` },
+    });
+    assertEquals(optionalText(`${legacyHome}/.gitconfig`), undefined);
+    script = script.replaceAll("$(params.component)", "tidb-cse");
     script +=
       "printf 'protocol=https\\nhost=github.com\\n\\n' | git credential fill\n";
     const env = {
@@ -275,19 +283,44 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
   }
 });
 
-Deno.test("Devbuild routes pin product/revision and exclude generic routes", async (t) => {
-  const generic = [
-    ...expandGlobSync(
-      "tekton/v1/triggers/triggers/env-gcp/_/fake-github/*.yaml",
-      { root: root.pathname },
-    ),
-  ].map((entry) => load<Trigger>(entry.path));
+const routeDirectory = "tekton/v1/triggers/triggers/env-gcp/_/fake-github/";
+function overlay(
+  trigger: Trigger,
+  key: string,
+  body: ReturnType<typeof payload>,
+  header: Header,
+  field = "",
+) {
+  const expressions =
+    trigger.spec.interceptors.flatMap((interceptor) => interceptor.params)
+      .find((param) => param.name === "overlays")!.value;
+  assert(typeof expressions !== "string");
+  const expression =
+    expressions.find((overlay) => overlay.key === key)!.expression;
+  return evaluate(
+    `(${expression})${field ? `["${field}"]` : ""}`,
+    body,
+    header,
+  );
+}
+
+Deno.test("shared Devbuild routes pin product/revision and select one platform run", async (t) => {
+  const routes = [
+    ...expandGlobSync(`${routeDirectory}*.yaml`, { root: root.pathname }),
+  ]
+    .map((entry) => ({
+      path: entry.path,
+      trigger: load<Trigger & { metadata: { labels: { type: string } } }>(
+        entry.path,
+      ),
+    }));
   for (const product of products) {
     for (
       const [kind, event] of Object.entries({
         "branch-push": "push",
         "tag-create": "create",
         pr: "pull_request",
+        commit: "push",
       })
     ) {
       for (const arch of ["amd64", "arm64"]) {
@@ -295,10 +328,14 @@ Deno.test("Devbuild routes pin product/revision and exclude generic routes", asy
           await t.step(
             `${product}/${kind}/${arch}${fork ? "/fork" : ""}`,
             () => {
+              const routeKind = kind === "commit" ? "branch-push" : kind;
               const repo = fork
                 ? "custom-owner/custom-fork"
                 : `tidbcloud/${product}`;
-              const body = payload(repo, kind);
+              const body = payload(repo, routeKind);
+              if (kind === "commit") body.ref = sha;
+              // The tag name need not be a formal release version for Devbuild.
+              if (kind === "tag-create") body.ref = "custom-build-tag";
               const header: Header = {
                 "ce-type": `net.pingcap.tibuild.devbuild.${event}`,
                 "ce-paramproduct": product,
@@ -307,44 +344,113 @@ Deno.test("Devbuild routes pin product/revision and exclude generic routes", asy
                 "ce-paramgithubrepo": repo,
               };
               const trigger = load<Trigger>(
-                `tekton/v1/triggers/triggers/env-gcp/_/serverless/devbuild-${kind}.yaml`,
+                `${routeDirectory}fake-github-${routeKind}-single-platform.yaml`,
               );
-              assert(filter(trigger, body, header));
+              const candidates = routes.filter((route) =>
+                route.trigger.metadata.labels.type ===
+                  `fake-github-${routeKind}`
+              );
+              assertEquals(
+                candidates.filter((route) =>
+                  filter(route.trigger, body, header)
+                ).length,
+                1,
+              );
               assertEquals(
                 trigger.spec.template.ref,
-                "build-serverless-single-platform",
+                "build-component-single-platform",
               );
-              for (const interceptor of trigger.spec.interceptors) {
-                for (const param of interceptor.params) {
-                  if (
-                    param.name !== "overlays" || typeof param.value === "string"
-                  ) continue;
-                  for (const overlay of param.value) {
-                    const value = evaluate(overlay.expression, body, header);
-                    if (overlay.key === "product") assertEquals(value, product);
-                    if (overlay.key === "revision") assertEquals(value, sha);
-                    if (overlay.key === "refspec") {
-                      assertEquals(value, `+${sha}:refs/devbuild/source`);
-                    }
-                  }
-                }
-              }
-              for (const old of generic) {
-                assertFalse(
-                  filter(old, body, header),
-                  "duplicate legacy route",
-                );
-              }
-              for (const platform of ["linux", "darwin/arm64"]) {
+              assertEquals(
+                overlay(trigger, "component", body, header),
+                product,
+              );
+              assertEquals(
+                overlay(trigger, "source", body, header, "revision"),
+                sha,
+              );
+              assertEquals(
+                overlay(trigger, "source", body, header, "refspec"),
+                `+${sha}:refs/devbuild/source`,
+              );
+              assertEquals(
+                overlay(
+                  trigger,
+                  "custom-params",
+                  body,
+                  header,
+                  "deliver-artifacts",
+                ),
+                "false",
+              );
+              assertEquals(
+                overlay(
+                  trigger,
+                  "custom-params",
+                  body,
+                  header,
+                  "require-artifacts",
+                ),
+                "true",
+              );
+              assertEquals(
+                overlay(trigger, "custom-params", body, header, "profile"),
+                "release",
+              );
+              assertEquals(
+                overlay(trigger, "registry", body, header),
+                "us-docker.pkg.dev/pingcap-testing-account/dev",
+              );
+              assertEquals(
+                overlay(
+                  trigger,
+                  "custom-params",
+                  body,
+                  header,
+                  "git-credentials-secret",
+                ),
+                "github-pat-secret",
+              );
+              assertEquals(
+                overlay(trigger, "custom-params", body, header, "os"),
+                "linux",
+              );
+              assertEquals(
+                overlay(trigger, "custom-params", body, header, "arch"),
+                arch,
+              );
+              const resource =
+                product === "tidb-cse" || product === "qdrant-on-tidb"
+                  ? "80Gi"
+                  : "30Gi";
+              assertEquals(
+                overlay(
+                  trigger,
+                  "resource-config",
+                  body,
+                  header,
+                  "sourceWsSize",
+                ),
+                resource,
+              );
+              for (
+                const platform of ["linux", "darwin/amd64", "darwin/arm64"]
+              ) {
                 header["ce-paramplatform"] = platform;
-                assertFalse(
-                  filter(trigger, body, header),
-                  `unsupported platform: ${platform}`,
+                assertEquals(
+                  candidates.filter((route) =>
+                    filter(route.trigger, body, header)
+                  ).length,
+                  0,
                 );
               }
               header["ce-paramplatform"] = `linux/${arch}`;
               header["ce-type"] = `net.pingcap.tibuild.hotfix.${event}`;
-              assertFalse(filter(trigger, body, header));
+              assertEquals(
+                candidates.filter((route) =>
+                  filter(route.trigger, body, header)
+                ).length,
+                0,
+              );
             },
           );
         }
@@ -353,40 +459,151 @@ Deno.test("Devbuild routes pin product/revision and exclude generic routes", asy
   }
 });
 
-Deno.test("legacy canonical events and old products retain their routes", () => {
-  const trigger = load<Trigger>(
-    "tekton/v1/triggers/triggers/env-gcp/_/serverless/devbuild-branch-push.yaml",
-  );
-  const header = {
-    "ce-type": "net.pingcap.tibuild.devbuild.push",
-    "ce-paramplatform": "linux/amd64",
-  };
-  for (const product of products) {
-    assert(
-      filter(trigger, payload(`tidbcloud/${product}`, "branch-push"), header),
+Deno.test("legacy canonical events and old products retain shared route behavior", () => {
+  for (const kind of ["branch-push", "pr", "tag-create"]) {
+    const trigger = load<Trigger>(
+      `${routeDirectory}fake-github-${kind}-single-platform.yaml`,
     );
+    const header: Header = {
+      "ce-type": "net.pingcap.tibuild.devbuild.push",
+      "ce-paramplatform": "linux/amd64",
+    };
+    for (const product of products) {
+      const body = payload(`tidbcloud/${product}`, kind);
+      header["ce-type"] = "net.pingcap.tibuild.devbuild." +
+        ({
+          "branch-push": "push",
+          pr: "pull_request",
+          "tag-create": "create",
+        }[kind]);
+      assert(filter(trigger, body, header));
+      assertEquals(overlay(trigger, "component", body, header), product);
+      assertEquals(
+        overlay(trigger, "source", body, header, "revision"),
+        kind === "tag-create" ? body.ref : sha,
+      );
+    }
+    for (
+      const [repo, component, timeout] of [["pingcap/tidb", "tidb", "40m"], [
+        "tidbcloud/cloud-storage-engine",
+        "tikv",
+        "2h30m",
+      ], ["tidbcloud/tiflash-cse", "tiflash", "2h"]]
+    ) {
+      const body = payload(repo, kind);
+      header["ce-paramproduct"] = component;
+      for (const engine of ["devbuild", "hotfix"]) {
+        header["ce-type"] = `net.pingcap.tibuild.${engine}.push`;
+        assert(filter(trigger, body, header));
+        assertEquals(overlay(trigger, "component", body, header), component);
+        assertEquals(
+          overlay(trigger, "resource-config", body, header, "timeout"),
+          timeout,
+        );
+        assertEquals(
+          overlay(trigger, "custom-params", body, header, "deliver-artifacts"),
+          "true",
+        );
+        assertEquals(
+          overlay(trigger, "custom-params", body, header, "require-artifacts"),
+          "false",
+        );
+        assertEquals(
+          overlay(
+            trigger,
+            "custom-params",
+            body,
+            header,
+            "git-credentials-secret",
+          ),
+          "no-build-credentials",
+        );
+        assertEquals(
+          overlay(trigger, "registry", body, header),
+          `us-docker.pkg.dev/pingcap-testing-account/${
+            engine === "hotfix" ? "hotfix" : "dev"
+          }`,
+        );
+        assertEquals(
+          overlay(trigger, "source", body, header, "revision"),
+          kind === "tag-create" ? body.ref : sha,
+        );
+        assertEquals(
+          overlay(trigger, "source", body, header, "ref"),
+          kind === "pr"
+            ? "main"
+            : kind === "branch-push"
+            ? "feature/test"
+            : body.ref,
+        );
+      }
+    }
+    delete header["ce-paramproduct"];
   }
-  const body = payload("pingcap/tidb", "branch-push");
-  assertFalse(filter(trigger, body, header));
-  const old = load<Trigger>(
-    "tekton/v1/triggers/triggers/env-gcp/_/fake-github/fake-github-branch-push-single-platform.yaml",
-  );
-  assert(filter(old, body, header));
+});
+
+Deno.test("old products retain multi-platform and Darwin routing", () => {
+  for (const kind of ["branch-push", "pr", "tag-create"]) {
+    const routes = [
+      ...expandGlobSync(`${routeDirectory}fake-github-${kind}*.yaml`, {
+        root: root.pathname,
+      }),
+    ]
+      .map((entry) => load<Trigger>(entry.path));
+    for (const repo of ["pingcap/tidb", "custom-owner/tidb"]) {
+      const body = payload(repo, kind);
+      const header: Header = {
+        "ce-type": "net.pingcap.tibuild.devbuild.push",
+        "ce-paramproduct": "tidb",
+        "ce-paramgithubrepo": repo,
+      };
+      for (
+        const platform of [
+          "linux/amd64",
+          "linux/arm64",
+          "linux",
+          "darwin/amd64",
+          "darwin/arm64",
+        ]
+      ) {
+        header["ce-paramplatform"] = platform;
+        assertEquals(
+          routes.filter((route) => filter(route, body, header)).length,
+          1,
+          `${kind}/${repo}/${platform}`,
+        );
+      }
+    }
+  }
 });
 
 Deno.test("template run counts and existing Pipeline/Task contracts are preserved", () => {
-  for (const [name, count] of [["single-platform", 1], ["linux", 2]] as const) {
+  for (
+    const [name, count] of [["component-single-platform", 1], [
+      "serverless-linux",
+      2,
+    ]] as const
+  ) {
     const template = load<
       {
         spec: {
+          params: { name: string; default?: string }[];
           resourcetemplates: {
             metadata: { annotations: Record<string, string> };
             spec: { params: Param[]; workspaces: { name: string }[] };
           }[];
         };
       }
-    >(`tekton/v1/triggers/templates/_/build-serverless-${name}.yaml`);
+    >(`tekton/v1/triggers/templates/_/build-${name}.yaml`);
     assertEquals(template.spec.resourcetemplates.length, count);
+    if (name === "component-single-platform") {
+      const defaults = Object.fromEntries(
+        template.spec.params.map((param) => [param.name, param.default]),
+      );
+      assertEquals(defaults["deliver-artifacts"], "true");
+      assertEquals(defaults["require-artifacts"], "false");
+      assertEquals(defaults["git-credentials-secret"], "no-build-credentials");
+    }
     for (const run of template.spec.resourcetemplates) {
       assertEquals(
         run.metadata.annotations["tekton.dev/ce-context"],
@@ -395,8 +612,16 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
       const params = Object.fromEntries(
         run.spec.params.map((param) => [param.name, param.value]),
       );
-      assertEquals(params["deliver-artifacts"], "false");
-      assertEquals(params["require-artifacts"], "true");
+      assertEquals(
+        params["deliver-artifacts"],
+        name === "serverless-linux"
+          ? "false"
+          : "$(tt.params.deliver-artifacts)",
+      );
+      assertEquals(
+        params["require-artifacts"],
+        name === "serverless-linux" ? "true" : "$(tt.params.require-artifacts)",
+      );
       const workspaces = run.spec.workspaces.map((workspace) => workspace.name);
       assert(workspaces.includes("git-credentials"));
       assertFalse(workspaces.includes("mac-ssh-credentials"));
