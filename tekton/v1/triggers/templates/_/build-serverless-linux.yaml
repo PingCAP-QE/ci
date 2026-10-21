@@ -53,12 +53,6 @@ spec:
       generateName: serverless-$(tt.params.component)-amd64-
       annotations:
         tekton.dev/ce-context: $(tt.params.ce-context)
-        tibuild.pingcap.net/git-repo: $(tt.params.git-url)
-        tibuild.pingcap.net/git-ref: $(tt.params.git-ref)
-        tibuild.pingcap.net/git-revision: $(tt.params.git-revision)
-        tibuild.pingcap.net/component: $(tt.params.component)
-        tibuild.pingcap.net/profile: $(tt.params.profile)
-        tibuild.pingcap.net/platform: $(tt.params.os)/amd64
     spec:
       pipelineRef:
         name: pingcap-build-package-$(tt.params.os)
@@ -134,12 +128,6 @@ spec:
       generateName: serverless-$(tt.params.component)-arm64-
       annotations:
         tekton.dev/ce-context: $(tt.params.ce-context)
-        tibuild.pingcap.net/git-repo: $(tt.params.git-url)
-        tibuild.pingcap.net/git-ref: $(tt.params.git-ref)
-        tibuild.pingcap.net/git-revision: $(tt.params.git-revision)
-        tibuild.pingcap.net/component: $(tt.params.component)
-        tibuild.pingcap.net/profile: $(tt.params.profile)
-        tibuild.pingcap.net/platform: $(tt.params.os)/arm64
     spec:
       pipelineRef:
         name: pingcap-build-package-$(tt.params.os)

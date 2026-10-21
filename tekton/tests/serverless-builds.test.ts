@@ -380,6 +380,7 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
       {
         spec: {
           resourcetemplates: {
+            metadata: { annotations: Record<string, string> };
             spec: { params: Param[]; workspaces: { name: string }[] };
           }[];
         };
@@ -387,6 +388,10 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
     >(`tekton/v1/triggers/templates/_/build-serverless-${name}.yaml`);
     assertEquals(template.spec.resourcetemplates.length, count);
     for (const run of template.spec.resourcetemplates) {
+      assertEquals(
+        run.metadata.annotations["tekton.dev/ce-context"],
+        "$(tt.params.ce-context)",
+      );
       const params = Object.fromEntries(
         run.spec.params.map((param) => [param.name, param.value]),
       );
