@@ -47,6 +47,9 @@ spec:
     - name: git-secret-ref
       description: Secret in the MacBuild namespace with git credentials for private-repo clones; empty clones anonymously.
       default: ""
+    - name: submodules
+      description: Initialize git submodules after checkout; set "false" for repositories whose submodules are not needed (e.g. tidb community builds).
+      default: "true"
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -86,5 +89,7 @@ spec:
             value: $(tt.params.publisher-url)
           - name: git-secret-ref
             value: $(tt.params.git-secret-ref)
+          - name: submodules
+            value: $(tt.params.submodules)
         timeouts:
           pipeline: $(tt.params.timeout)

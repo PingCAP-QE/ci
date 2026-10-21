@@ -37,6 +37,13 @@ spec:
         keeps the clone anonymous.
       type: string
       default: ""
+    - name: submodules
+      description: >-
+        Initialize git submodules after checkout. Defaults to true; set to
+        "false" for repositories whose submodules are not needed (e.g. tidb
+        community builds).
+      type: string
+      default: "true"
   results:
     - name: pushed-binaries
       description: pushed binaries.
@@ -73,6 +80,8 @@ spec:
           value: "24h"
         - name: git-secret-ref
           value: "$(params.git-secret-ref)"
+        - name: submodules
+          value: "$(params.submodules)"
     - name: deliver-binaries
       retries: 2
       when:

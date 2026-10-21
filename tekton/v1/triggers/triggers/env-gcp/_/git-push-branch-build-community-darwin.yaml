@@ -44,6 +44,9 @@ spec:
             )
         - name: overlays
           value:
+            - key: submodules
+              expression: >-
+                body.repository.name == 'tidb' ? 'false' : 'true'
             - key: timeout
               expression: >-
                 {
@@ -107,6 +110,7 @@ spec:
     - { name: profile, value: release }
     - { name: timeout, value: $(extensions.timeout) }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - { name: submodules, value: $(extensions.submodules) }
     - name: builder-resources-cpu
       value: $(extensions.builder-resources-cpu)
     - name: builder-resources-memory
@@ -134,6 +138,9 @@ spec:
             body.ref.matches('^refs/heads/(feature/fts|release-fts-[0-9]+)$')
         - name: overlays
           value:
+            - key: submodules
+              expression: >-
+                body.repository.name == 'tidb' ? 'false' : 'true'
             - key: timeout
               expression: >-
                 {
@@ -169,6 +176,7 @@ spec:
     - { name: profile, value: release }
     - { name: timeout, value: $(extensions.timeout) }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
+    - { name: submodules, value: $(extensions.submodules) }
     - name: builder-resources-cpu
       value: $(extensions.builder-resources-cpu)
     - name: builder-resources-memory
