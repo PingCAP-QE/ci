@@ -1,6 +1,6 @@
 ---
 name: tekton-cd-backend-worker
-description: "Handle Tekton v1 backend CD work in PingCAP-QE/ci, including delivery and release Tasks, Pipelines, TriggerBindings, TriggerTemplates, and env-gcp/env-prod2 Triggers under tekton/v1. Use when adding or modifying publisher, artifact delivery, Harbor or GitHub event routing, RC-to-GA release flows, or Tekton trigger-to-pipeline wiring."
+description: "Handle Tekton v1 backend CD work in PingCAP-QE/ci, including delivery and release Tasks, Pipelines, TriggerBindings, TriggerTemplates, and env-gcp Triggers under tekton/v1. Use when adding or modifying publisher, artifact delivery, Harbor or GitHub event routing, RC-to-GA release flows, or Tekton trigger-to-pipeline wiring."
 ---
 
 # Tekton CD Backend Worker
@@ -31,9 +31,7 @@ Do not edit Jenkins, Prow, or non-Tekton CI paths unless the user explicitly ask
 - `tekton/v1/triggers/templates/`
   - shared PipelineRun or TaskRun wiring.
 - `tekton/v1/triggers/triggers/env-gcp/`
-  - GCP-facing trigger definitions.
-- `tekton/v1/triggers/triggers/env-prod2/`
-  - prod2-facing trigger definitions.
+  - Active trigger definitions for gcp and tencentcloud (prod2 is retired).
 
 ## Workflow
 1. Classify the change surface first.
@@ -51,7 +49,7 @@ Do not edit Jenkins, Prow, or non-Tekton CI paths unless the user explicitly ask
    - Prefer cloning an adjacent file in the same environment and component.
    - Reuse shared templates under `tekton/v1/triggers/templates/_/` before creating repo-specific copies.
 4. Keep environment-specific intent intact.
-   - `env-gcp` and `env-prod2` are not interchangeable.
+   - `env-gcp` is the active environment; `env-prod2` was retired in 2026-10.
    - Preserve existing routing, repo allowlists, and endpoint choices unless the request explicitly changes them.
 
 ## CD-Specific Guardrails
@@ -92,7 +90,6 @@ kubectl kustomize tekton/v1/tasks >/dev/null
 kubectl kustomize tekton/v1/pipelines >/dev/null
 kubectl kustomize tekton/v1/triggers/templates >/dev/null
 kubectl kustomize tekton/v1/triggers/triggers/env-gcp >/dev/null
-kubectl kustomize tekton/v1/triggers/triggers/env-prod2 >/dev/null
 ```
 
 - For CEL changes, use `cel-eval` if it is installed. If not, validate by staying close to an adjacent working trigger and citing any unverified assumptions.

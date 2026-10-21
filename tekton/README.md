@@ -86,7 +86,7 @@ cel-eval --filename test-event.json --expression "your_cel_expression"
 ## Development Guidelines
 
 ### Adding New Triggers
-1. Place trigger YAML in appropriate environment directory (`env-prod2/`, `env-gcp/`, etc.)
+1. Place trigger YAML in the active environment directory (`env-gcp/`); `env-prod2/` is retired.
 2. Use consistent naming conventions
 3. Include comprehensive CEL filters
 4. Add test HTTP files for validation
