@@ -6,17 +6,26 @@ metadata:
     type: fake-github-branch-push
 spec:
   interceptors:
+    - name: resolve product
+      ref: { name: cel }
+      params:
+        - name: overlays
+          value:
+            - key: build
+              expression: >-
+                {
+                  'product': (header.canonical('ce-paramProduct') != '' ? header.canonical('ce-paramProduct') : body.repository.name),
+                  'serverless': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] ||
+                  (header.canonical('ce-paramProduct') == '' && body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb']))
+                }
     - name: filter on repo
       ref: { name: cel }
       params:
         - name: filter
           value: >-
-            (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql',
-            'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' && body.repository.full_name in ['tidbcloud/tidb-cse',
-            'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ?
+            extensions.build.serverless ?
             (header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.push' && header.canonical('ce-paramPlatform') in ['linux/amd64',
-            'linux/arm64']) : (((header.canonical('ce-paramGithubRepo') != '' && (header.canonical('ce-paramProduct') != '' ?
-            header.canonical('ce-paramProduct') : body.repository.name) in ['tici', 'ng-monitoring',
+            'linux/arm64']) : (((header.canonical('ce-paramGithubRepo') != '' && extensions.build.product in ['tici', 'ng-monitoring',
             'ticdc', 'tidb', 'tidb-binlog', 'tidb-dashboard', 'tidb-operator', 'tidb-tools', 'tiflash',
             'tiflow', 'tiproxy', 'cloud-storage-engine', 'tiflash-cse', 'pd', 'tikv']) || body.repository.full_name in [ 'pingcap-inc/tici',
             'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard',
@@ -123,31 +132,15 @@ spec:
                     'cpu': '12',
                     'memory': '56Gi'
                   }
-                }[(header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
-                'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
-                body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
-                'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? (header.canonical('ce-paramProduct') != '' ?
-                header.canonical('ce-paramProduct') : body.repository.name) : body.repository.name]
+                }[extensions.build.serverless ? extensions.build.product : body.repository.name]
             - key: custom-params
               expression: >-
                 {
-                  'git-credentials-secret': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
-                  'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
-                  body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
-                  'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? 'github-pat-secret' : 'no-build-credentials',
-                  'deliver-artifacts': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
-                  'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
-                  body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
-                  'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? 'false' : 'true',
-                  'require-artifacts': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
-                  'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
-                  body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
-                  'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? 'true' : 'false',
+                  'git-credentials-secret': extensions.build.serverless ? 'github-pat-secret' : 'no-build-credentials',
+                  'deliver-artifacts': extensions.build.serverless ? 'false' : 'true',
+                  'require-artifacts': extensions.build.serverless ? 'true' : 'false',
                   'builder-image': header.canonical('ce-paramBuilderImage'),
-                  'profile': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse',
-                  'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
-                  body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
-                  'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? 'release' : header.canonical('ce-paramProfile') == '' ?
+                  'profile': extensions.build.serverless ? 'release' : header.canonical('ce-paramProfile') == '' ?
                   'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
                   'os': header.canonical('ce-paramPlatform').split('/')[0],
                   'arch': header.canonical('ce-paramPlatform').split('/')[1],
@@ -156,10 +149,8 @@ spec:
                 }
             - key: component
               expression: >-
-                (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql',
-                'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' && body.repository.full_name in ['tidbcloud/tidb-cse',
-                'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ?
-                (header.canonical('ce-paramProduct') != '' ? header.canonical('ce-paramProduct') : body.repository.name) :
+                extensions.build.serverless ?
+                extensions.build.product :
                 body.repository.full_name.startsWith('tidbcloud/') ? {
                   'tidbcloud/tiflash-cse': 'tiflash',
                   'tidbcloud/cloud-storage-engine': 'tikv',
@@ -173,16 +164,11 @@ spec:
 
             - key: source
               expression: >-
-                {'ref': body.ref.replace('refs/heads/', ''), 'revision': (header.canonical('ce-paramProduct') in ['tidb-cse',
-                'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
-                body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
-                'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) && header.canonical('ce-paramGitRevision') != '' ?
-                header.canonical('ce-paramGitRevision') : body.after, 'refspec': (header.canonical('ce-paramProduct') in ['tidb-cse',
-                'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || (header.canonical('ce-paramProduct') == '' &&
-                body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse',
-                'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'])) ? (header.canonical('ce-paramGitRevision') != '' ?
-                '+' + header.canonical('ce-paramGitRevision') + ':refs/devbuild/source' : '+' + body.ref + ':refs/devbuild/source') :
-                '+' + body.ref + ':' + body.ref}
+                {
+                  'ref': body.ref.replace('refs/heads/', ''),
+                  'revision': extensions.build.serverless && header.canonical('ce-paramGitRevision') != '' ? header.canonical('ce-paramGitRevision') : body.after,
+                  'refspec': extensions.build.serverless ? (header.canonical('ce-paramGitRevision') != '' ? '+' + header.canonical('ce-paramGitRevision') + ':refs/devbuild/source' : '+' + body.ref + ':refs/devbuild/source') : '+' + body.ref + ':' + body.ref
+                }
 
   bindings:
     - { name: git-url, value: $(body.repository.clone_url) }

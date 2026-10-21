@@ -35,7 +35,12 @@ export function load<T>(path: string): T {
   return parseYaml(Deno.readTextFileSync(new URL(path, root))) as T;
 }
 
-export function evaluate(expression: string, body: Body, header: Header = {}) {
+export function evaluate(
+  expression: string,
+  body: Body,
+  header: Header = {},
+  extensions: Body = {},
+) {
   // Tekton canonicalizes HTTP header names and returns an empty string if absent.
   const canonical = celMethod(
     "canonical",
@@ -44,7 +49,7 @@ export function evaluate(expression: string, body: Body, header: Header = {}) {
     CelScalar.STRING,
     (key) => header[key.toLowerCase()] ?? "",
   );
-  const value = run(expression, { body, header }, {
+  const value = run(expression, { body, header, extensions }, {
     funcs: [...strings, canonical],
   });
   if (isCelError(value)) throw new Error(`CEL ${expression}: ${value.message}`);
@@ -56,11 +61,52 @@ export function filter(
   body: Body,
   header: Header = {},
 ): boolean {
-  for (const interceptor of trigger.spec.interceptors) {
+  const extensions: Body = {};
+  for (const [index, interceptor] of trigger.spec.interceptors.entries()) {
     const param = interceptor.params.find((param) => param.name === "filter");
-    if (param) return evaluate(param.value as string, body, header) === true;
+    if (
+      param &&
+      evaluate(param.value as string, body, header, extensions) !== true
+    ) return false;
+    if (index < trigger.spec.interceptors.length - 1) {
+      applyOverlays(interceptor, body, header, extensions);
+    }
   }
-  throw new Error("Missing CEL filter");
+  return true;
+}
+
+function applyOverlays(
+  interceptor: Trigger["spec"]["interceptors"][number],
+  body: Body,
+  header: Header,
+  extensions: Body,
+) {
+  const overlays = interceptor.params.find((param) => param.name === "overlays")
+    ?.value;
+  if (typeof overlays !== "object") return;
+  // Each interceptor evaluates against the extensions received from its predecessor.
+  const result: Body = {};
+  for (const overlay of overlays) {
+    result[overlay.key] = evaluate(
+      overlay.expression,
+      body,
+      header,
+      extensions,
+    );
+  }
+  Object.assign(extensions, result);
+}
+
+export function precedingExtensions(
+  trigger: Trigger,
+  body: Body,
+  header: Header,
+): Body {
+  const extensions: Body = {};
+  for (const interceptor of trigger.spec.interceptors.slice(0, -1)) {
+    applyOverlays(interceptor, body, header, extensions);
+  }
+  return extensions;
 }
 
 export function payload(repo: string, kind: string): Body {

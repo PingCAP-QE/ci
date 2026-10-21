@@ -6,6 +6,7 @@ import {
   type Header,
   load,
   payload,
+  precedingExtensions,
   products,
   root,
   sha,
@@ -292,7 +293,9 @@ function overlay(
   field = "",
 ) {
   const expressions =
-    trigger.spec.interceptors.flatMap((interceptor) => interceptor.params)
+    trigger.spec.interceptors.slice(-1).flatMap((interceptor) =>
+      interceptor.params
+    )
       .find((param) => param.name === "overlays")!.value;
   assert(typeof expressions !== "string");
   const expression =
@@ -301,6 +304,7 @@ function overlay(
     `(${expression})${field ? `["${field}"]` : ""}`,
     body,
     header,
+    precedingExtensions(trigger, body, header),
   );
 }
 
