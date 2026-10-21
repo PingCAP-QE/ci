@@ -1,0 +1,27 @@
+name: Pull - verify Serverless builds
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pull-serverless-builds.yaml
+      - tekton/tests/**
+      - scripts/flow/build/versioning-strategy*
+      - tekton/v1/pipelines/pingcap-build-package-linux.yaml
+      - tekton/v1/tasks/pingcap-*.yaml
+      - tekton/v1/triggers/**
+permissions:
+  contents: read
+jobs:
+  routing-and-versioning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.9.7
+      - name: Validate CEL routes, Git versions and Pipeline/Task contracts
+        run: >-
+          deno test --frozen --lock=tekton/tests/deno.lock
+          --allow-read --allow-write --allow-env --allow-run=git,sh,deno
+          tekton/tests/*.test.ts scripts/flow/build/versioning-strategy.test.ts

@@ -5,6 +5,8 @@ metadata:
   name: pingcap-get-set-release-version
 spec:
   params:
+    - name: component
+      default: ""
     - name: git-ref
       type: string
       default: ""
@@ -26,6 +28,7 @@ spec:
         requests:
           memory: 512Mi
           cpu: "100m"
+      args: ["$(params.component)", "$(results.version.path)"]
       script: |
         #!/bin/sh
         set -e
@@ -54,11 +57,23 @@ spec:
         git describe --tags --always --dirty > /workspace/raw-version.txt
         cat /workspace/raw-version.txt
 
+        case "$1" in
+          tidb-cse|pd-cse|tidb-operator-cse|cassandra-on-mysql|qdrant-on-tidb)
+            # Serverless uses Git describe directly, with no branch-based version inference.
+            tr -d '\n' < /workspace/raw-version.txt > "$2"
+            exit 0
+            ;;
+        esac
+
         echo "🍴Get the branches which contained the commits:"
         git branch --contains > /workspace/branches.txt
         cat /workspace/branches.txt
     - name: compute-version
       image: denoland/deno:2.9.7
+      when:
+        - input: $(params.component)
+          operator: notin
+          values: [tidb-cse, pd-cse, tidb-operator-cse, cassandra-on-mysql, qdrant-on-tidb]
       command:
         - deno
         - run

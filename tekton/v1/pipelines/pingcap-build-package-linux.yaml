@@ -5,6 +5,10 @@ metadata:
   name: pingcap-build-package-linux
 spec:
   params:
+    - name: require-artifacts
+      default: "false"
+    - name: deliver-artifacts
+      default: "true"
     - name: git-url
       type: string
     - name: git-ref
@@ -76,6 +80,8 @@ spec:
       description: pushed single images.
       value: "$(tasks.build-images.results.pushed)"
   workspaces:
+    - name: git-credentials
+      optional: true
     - name: source
       description: The workspace where the git repo will be cloned.
     - name: cargo-home
@@ -118,6 +124,8 @@ spec:
       taskRef:
         name: pingcap-get-set-release-version
       params:
+        - name: component
+          value: $(params.component)
         - name: git-ref
           value: $(params.git-ref)
         - name: git-refspec
@@ -148,6 +156,8 @@ spec:
       taskRef:
         name: pingcap-build-binaries-linux
       params:
+        - name: require-artifacts
+          value: $(params.require-artifacts)
         - name: os
           value: "$(params.os)"
         - name: arch
@@ -173,6 +183,8 @@ spec:
         - name: registry
           value: "$(params.registry)"
       workspaces:
+        - name: git-credentials
+          workspace: git-credentials
         - name: source
           workspace: source
         - name: cargo-home
@@ -190,6 +202,8 @@ spec:
       runAfter:
         - build-binaries
       params:
+        - name: require-artifacts
+          value: $(params.require-artifacts)
         - name: os
           value: "$(params.os)"
         - name: arch
@@ -218,6 +232,9 @@ spec:
     - name: deliver-binaries
       retries: 2
       when:
+        - input: $(params.deliver-artifacts)
+          operator: in
+          values: ["true"]
         - input: $(tasks.build-binaries.results.pushed)
           operator: notin
           values: ["{}", '"{}"']
@@ -235,6 +252,9 @@ spec:
     - name: deliver-images
       retries: 2
       when:
+        - input: $(params.deliver-artifacts)
+          operator: in
+          values: ["true"]
         - input: $(tasks.build-images.results.pushed)
           operator: notin
           values: ["{}", '"{}"']

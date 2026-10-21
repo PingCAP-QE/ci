@@ -1,0 +1,38 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: serverless-github-tag-create
+  labels:
+    type: github-tag-create
+    github-owner: tidbcloud
+spec:
+  interceptors:
+    - ref:
+        name: cel
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'] && body.ref_type == 'tag' && body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-(alpha|beta|rc|release)[.][0-9]+)?$')
+        - name: overlays
+          value:
+            - key: resource-config
+              expression: >-
+                {'tidb-cse': {'timeout': '90m', 'sourceWsSize': '80Gi', 'cpu': '8', 'memory': '32Gi'}, 'pd-cse': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'}, 'tidb-operator-cse': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'}, 'cassandra-on-mysql': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'}, 'qdrant-on-tidb': {'timeout': '3h', 'sourceWsSize': '80Gi', 'cpu': '8', 'memory': '32Gi'}}[body.repository.name]
+  bindings:
+    - ref: github-tag-create
+    - name: git-refspec
+      value: +refs/tags/$(body.ref):refs/tags/$(body.ref)
+    - name: component
+      value: $(body.repository.name)
+    - name: registry
+      value: us-docker.pkg.dev/pingcap-testing-account/serverless
+    - name: timeout
+      value: $(extensions.resource-config.timeout)
+    - name: source-ws-size
+      value: $(extensions.resource-config.sourceWsSize)
+    - name: builder-resources-cpu
+      value: $(extensions.resource-config.cpu)
+    - name: builder-resources-memory
+      value: $(extensions.resource-config.memory)
+  template:
+    ref: build-serverless-linux

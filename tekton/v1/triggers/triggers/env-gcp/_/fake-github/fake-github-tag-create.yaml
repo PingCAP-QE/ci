@@ -11,6 +11,7 @@ spec:
       params:
         - name: filter
           value: >-
+            !(header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb']) &&
             (header.canonical('ce-paramGithubRepo') != '' ||
             body.repository.full_name in [
               'pingcap-inc/tici',

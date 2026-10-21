@@ -74,6 +74,18 @@ Trigger bindings extract and transform event data into pipeline parameters.
 4. Test using the CEL evaluation tools
 5. Add to kustomization files
 
+### Automated Configuration Tests
+
+Tests use Deno/TypeScript in `tests/`, alongside the existing GitHub event helper.
+Run from the repository root:
+
+```bash
+deno test --frozen --lock=tekton/tests/deno.lock --allow-read --allow-write --allow-env --allow-run=git,sh,deno tekton/tests/*.test.ts scripts/flow/build/versioning-strategy.test.ts
+```
+
+Routing tests evaluate the YAML's actual CEL filters and overlays. Git/credential
+fixtures run locally and do not submit builds or publish artifacts.
+
 ### Testing CEL Interceptors
 ```bash
 # Install the CEL evaluation tool

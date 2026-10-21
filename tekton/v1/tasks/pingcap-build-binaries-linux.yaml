@@ -10,6 +10,9 @@ spec:
   description: >-
     Build binaries for the component.
   workspaces:
+    - name: git-credentials
+      optional: true
+      description: Runtime GitHub basic-auth secret for private Go and Cargo dependencies.
     - name: source
       description: source code.
     - name: cargo-home
@@ -24,6 +27,8 @@ spec:
     - description: Just built and pushed artifacts, it will be a yaml content.
       name: pushed
   params:
+    - name: require-artifacts
+      default: "false"
     - name: component
     - name: os
       default: linux
@@ -84,6 +89,7 @@ spec:
         else
           echo -n "false" > $(step.results.generated.path)
           echo "🤷 no output script generated!"
+          [ "$(params.require-artifacts)" != "true" ] || exit 1
           printf '"{}"' > "$pushed_result_path"
         fi
     - name: build
@@ -110,6 +116,33 @@ spec:
         # - name: CYPRESS_CACHE_FOLDER
         #   value: /workspace/.cache/Cypress
       script: |
+        if [ "$(workspaces.git-credentials.bound)" = "true" ]; then
+          set -eu
+          export GIT_BRANCH="$(params.git-ref)"
+          export GOPRIVATE=github.com/tidbcloud/*,github.com/pingcap-inc/*
+          export GIT_TERMINAL_PROMPT=0
+          credential_dir="$(workspaces.git-credentials.path)"
+          test -s "$credential_dir/username" && test -s "$credential_dir/password"
+          export SERVERLESS_GIT_CREDENTIAL_DIR="$credential_dir"
+          cat > /workspace/serverless-git-credential <<'HELPER'
+        #!/bin/sh
+        [ "$1" = get ] || exit 0
+        printf 'username=%s\n' "$(cat "$SERVERLESS_GIT_CREDENTIAL_DIR/username")"
+        printf 'password=%s\n' "$(cat "$SERVERLESS_GIT_CREDENTIAL_DIR/password")"
+        HELPER
+          chmod 700 /workspace/serverless-git-credential
+          # Bullseye builders use Git 2.30, before GIT_CONFIG_COUNT support.
+          # The config contains only a helper path; secrets stay in the mount.
+          mkdir -p "$HOME"
+          cat >> "$HOME/.gitconfig" <<'CONFIG'
+        [credential "https://github.com"]
+          helper =
+          helper = /workspace/serverless-git-credential
+        [url "https://github.com/"]
+          insteadOf = git@github.com:
+          insteadOf = ssh://git@github.com/
+        CONFIG
+        fi
         script="/workspace/build-package-artifacts.sh"
         "$script" -b -a -w "$(params.release-dir)"
     - name: publish
@@ -132,4 +165,7 @@ spec:
         oras version
         # try 2 times.
         "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || \
-        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path)
+        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || exit $?
+        if [ "$(params.require-artifacts)" = "true" ]; then
+          yq -e '.oci.repo != null and .oci.digest != null and (.files | length > 0)'  $(results.pushed.path) >/dev/null
+        fi
