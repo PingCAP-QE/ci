@@ -26,7 +26,6 @@ resources:
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
   - _/github-pr-synchronized-remove-hold.yaml
   - _/github-tag-build-community-linux-fts.yaml
-  - _/harbor/image-push-on-harbor-for-pingkai.yaml
   - _/notify/notified-successful-image-delivery-tidbx.yaml
   - _/notify/update-ops-when-tidbx-image-distributed-to-clouds.yaml
   - _/notify/update-tcms-when-tidbx-image-distributed-to-clouds.yaml
