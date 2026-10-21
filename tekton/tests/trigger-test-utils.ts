@@ -21,6 +21,7 @@ export type Body = Record<string, CelInput>;
 export type Header = Record<string, string>;
 export interface Trigger {
   spec: {
+    bindings?: { name?: string; value?: string; ref?: string }[];
     interceptors: {
       params: {
         name: string;

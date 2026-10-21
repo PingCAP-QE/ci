@@ -350,6 +350,12 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
               const trigger = load<Trigger>(
                 `${routeDirectory}fake-github-${routeKind}-single-platform.yaml`,
               );
+              assertEquals(
+                trigger.spec.bindings?.find((binding) =>
+                  binding.name === "ce-context"
+                )?.value,
+                "$(extensions.ce-context)",
+              );
               const candidates = routes.filter((route) =>
                 route.trigger.metadata.labels.type ===
                   `fake-github-${routeKind}`

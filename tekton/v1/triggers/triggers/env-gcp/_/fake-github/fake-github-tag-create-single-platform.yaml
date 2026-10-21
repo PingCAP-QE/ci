@@ -177,6 +177,7 @@ spec:
     - { name: git-revision, value: $(extensions.source.revision) }
     - { name: git-refspec, value: $(extensions.source.refspec) }
     - ref: gcp-dev-build-params
+    - { name: ce-context, value: $(extensions.ce-context) }
     - { name: git-credentials-secret, value: $(extensions.custom-params.git-credentials-secret) }
     - { name: deliver-artifacts, value: $(extensions.custom-params.deliver-artifacts) }
     - { name: require-artifacts, value: $(extensions.custom-params.require-artifacts) }
