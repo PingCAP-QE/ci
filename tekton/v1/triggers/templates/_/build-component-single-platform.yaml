@@ -4,6 +4,12 @@ metadata:
   name: build-component-single-platform
 spec:
   params:
+    - name: credentials-workspace
+      description: Workspace for build credentials; keep the existing binding by default.
+      default: mac-ssh-credentials
+    - name: credentials-secret
+      description: Credential Secret bound to the selected workspace.
+      default: mac-ssh-credentials
     - name: git-url
       description: The git repository full url
     - name: git-refspec
@@ -139,6 +145,6 @@ spec:
           # - name: cypress-cache # for linux platforms
           #   persistentVolumeClaim:
           #     claimName: cypress-cache
-          - name: mac-ssh-credentials # for darwin platforms
+          - name: $(tt.params.credentials-workspace)
             secret:
-              secretName: mac-ssh-credentials
+              secretName: $(tt.params.credentials-secret)

@@ -6,40 +6,42 @@ metadata:
     type: fake-github-pr
 spec:
   interceptors:
+    - name: resolve product
+      ref: { name: cel }
+      params:
+        - name: overlays
+          value:
+            - key: build
+              expression: >-
+                {
+                  'product': (header.canonical('ce-paramProduct') != '' ? header.canonical('ce-paramProduct') : body.repository.name),
+                  'serverless': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] ||
+                  (header.canonical('ce-paramProduct') == '' && body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb']))
+                }
     - name: filter on repo
       ref: { name: cel }
       params:
         - name: filter
           value: >-
-            !(header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] || body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb']) &&
-            (header.canonical('ce-paramGithubRepo') != '' ||
-            body.repository.full_name in [
-              'pingcap-inc/tici',
-              'pingcap/ng-monitoring',
-              'pingcap/ticdc',
-              'pingcap/tidb',
-              'pingcap/tidb-binlog',
-              'pingcap/tidb-dashboard',
-              'pingcap/tidb-operator',
-              'pingcap/tidb-tools',
-              'pingcap/tiflash',
-              'pingcap/tiflow',
-              'pingcap/tiproxy',
-              'tidbcloud/cloud-storage-engine',
-              'tidbcloud/tiflash-cse',
-              'tikv/pd',
-              'tikv/tikv'
-            ])
-            &&
-            header.canonical('ce-paramPlatform') in [
-              'linux/amd64',
-              'linux/arm64'
-            ]
+            extensions.build.serverless ?
+            (header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.pull_request' && header.canonical('ce-paramPlatform') in ['linux/amd64',
+            'linux/arm64']) : (((header.canonical('ce-paramGithubRepo') != '' && extensions.build.product in ['tici', 'ng-monitoring',
+            'ticdc', 'tidb', 'tidb-binlog', 'tidb-dashboard', 'tidb-operator', 'tidb-tools', 'tiflash',
+            'tiflow', 'tiproxy', 'cloud-storage-engine', 'tiflash-cse', 'pd', 'tikv']) || body.repository.full_name in [ 'pingcap-inc/tici',
+            'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard',
+            'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy',
+            'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv' ]) &&
+            header.canonical('ce-paramPlatform') in [ 'linux/amd64', 'linux/arm64' ])
         - name: overlays
           value:
             - key: resource-config
               expression: >-
                 {
+                  'tidb-cse': {'timeout': '90m', 'sourceWsSize': '80Gi', 'cpu': '8', 'memory': '32Gi'},
+                  'pd-cse': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'},
+                  'tidb-operator-cse': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'},
+                  'cassandra-on-mysql': {'timeout': '90m', 'sourceWsSize': '30Gi', 'cpu': '4', 'memory': '16Gi'},
+                  'qdrant-on-tidb': {'timeout': '3h', 'sourceWsSize': '80Gi', 'cpu': '8', 'memory': '32Gi'},
                   'tici': {
                     'timeout': '2h',
                     'sourceWsSize': '50Gi',
@@ -130,12 +132,15 @@ spec:
                     'cpu': '12',
                     'memory': '56Gi'
                   }
-                }[body.repository.name]
+                }[extensions.build.serverless ? extensions.build.product : body.repository.name]
             - key: custom-params
               expression: >-
                 {
+                  'credentials-workspace': extensions.build.serverless ? 'git-credentials' : 'mac-ssh-credentials',
+                  'credentials-secret': extensions.build.serverless ? 'github-pat-secret' : 'mac-ssh-credentials',
                   'builder-image': header.canonical('ce-paramBuilderImage'),
-                  'profile': header.canonical('ce-paramProfile') == '' ? 'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
+                  'profile': extensions.build.serverless ? 'release' : header.canonical('ce-paramProfile') == '' ?
+                  'release' : (header.canonical('ce-paramProfile') == 'community' ? 'release' : header.canonical('ce-paramProfile')),
                   'os': header.canonical('ce-paramPlatform').split('/')[0],
                   'arch': header.canonical('ce-paramPlatform').split('/')[1],
                   'external-git-ref': header.canonical('ce-paramPluginGitRef').replace('branch/', '').replace('tag/', ''),
@@ -143,6 +148,8 @@ spec:
                 }
             - key: component
               expression: >-
+                extensions.build.serverless ?
+                extensions.build.product :
                 body.repository.full_name.startsWith('tidbcloud/') ? {
                   'tidbcloud/tiflash-cse': 'tiflash',
                   'tidbcloud/cloud-storage-engine': 'tikv',
@@ -154,9 +161,23 @@ spec:
                 'us-docker.pkg.dev/pingcap-testing-account/hotfix' :
                 'us-docker.pkg.dev/pingcap-testing-account/dev'
 
+            - key: source
+              expression: >-
+                {
+                  'ref': extensions.build.serverless ? 'pull/' + string(body.pull_request.number) : body.pull_request.base.ref,
+                  'revision': extensions.build.serverless && header.canonical('ce-paramGitRevision') != '' ? header.canonical('ce-paramGitRevision') : body.pull_request.head.sha,
+                  'refspec': extensions.build.serverless ? (header.canonical('ce-paramGitRevision') != '' ? '+' + header.canonical('ce-paramGitRevision') + ':refs/devbuild/source' : '+refs/pull/' + string(body.pull_request.number) + '/head:refs/devbuild/source') : 'refs/pull/' + string(body.pull_request.number) + '/head:pull/' + string(body.pull_request.number)
+                }
+
   bindings:
-    - ref: github-pr
+    - { name: git-url, value: $(body.repository.clone_url) }
+    - { name: git-ref, value: $(extensions.source.ref) }
+    - { name: git-revision, value: $(extensions.source.revision) }
+    - { name: git-refspec, value: $(extensions.source.refspec) }
     - ref: gcp-dev-build-params
+    - { name: ce-context, value: $(extensions.ce-context) }
+    - { name: credentials-workspace, value: $(extensions.custom-params.credentials-workspace) }
+    - { name: credentials-secret, value: $(extensions.custom-params.credentials-secret) }
     - { name: os, value: $(extensions.custom-params.os) }
     - { name: arch, value: $(extensions.custom-params.arch) }
 

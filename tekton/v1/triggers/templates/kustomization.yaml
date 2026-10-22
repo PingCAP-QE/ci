@@ -8,7 +8,6 @@ resources:
   - _/build-component-linux.yaml
   - _/build-component-single-platform.yaml
   - _/build-serverless-linux.yaml
-  - _/build-serverless-single-platform.yaml
   - _/ci-helper-for-pr.yaml
   - _/coderabbit-review-label.yaml
   - _/collect-multi-arch-image.yaml

@@ -27,8 +27,6 @@ spec:
     - description: Just built and pushed artifacts, it will be a yaml content.
       name: pushed
   params:
-    - name: require-artifacts
-      default: "false"
     - name: component
     - name: os
       default: linux
@@ -89,7 +87,6 @@ spec:
         else
           echo -n "false" > $(step.results.generated.path)
           echo "🤷 no output script generated!"
-          [ "$(params.require-artifacts)" != "true" ] || exit 1
           printf '"{}"' > "$pushed_result_path"
         fi
     - name: build
@@ -165,7 +162,4 @@ spec:
         oras version
         # try 2 times.
         "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || \
-        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || exit $?
-        if [ "$(params.require-artifacts)" = "true" ]; then
-          yq -e '.oci.repo != null and .oci.digest != null and (.files | length > 0)'  $(results.pushed.path) >/dev/null
-        fi
+        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path)

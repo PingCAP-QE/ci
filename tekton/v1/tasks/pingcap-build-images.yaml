@@ -24,8 +24,6 @@ spec:
       name: pushed
       type: string
   params:
-    - name: require-artifacts
-      default: "false"
     - name: component
     - name: os
       default: linux
@@ -77,9 +75,7 @@ spec:
           "$git_sha" \
           /workspace/artifacts/packages/packages.yaml.tmpl \
           "$out_script" \
-          $(params.registry) || {
-            [ "$(params.require-artifacts)" != "true" ] || exit 1
-          }
+          $(params.registry) || true
 
         if [ -f "$out_script" ]; then
           echo -n "true" > $(step.results.generated.path)
@@ -87,7 +83,6 @@ spec:
         else
           echo -n "false" > $(step.results.generated.path)
           echo "🤷 no output script generated!"
-          [ "$(params.require-artifacts)" != "true" ] || exit 1
           printf '"{}"' > "$pushed_result_path"
         fi
     - name: build-and-publish
@@ -157,9 +152,4 @@ spec:
           values: ["true"]
       script: |
         script="/workspace/build-package-images.sh"
-        "$script" -P -m -o $(results.pushed.path) || exit $? # -P means disable build and push the image.
-        if [ "$(params.require-artifacts)" = "true" ]; then
-          set -e
-          yq -e '.images | length > 0' $(results.pushed.path) >/dev/null
-          yq -e '.images[] | .digest != null and .digest != ""' $(results.pushed.path) >/dev/null
-        fi
+        "$script" -P -m -o $(results.pushed.path) # -P means disable build and push the image.
