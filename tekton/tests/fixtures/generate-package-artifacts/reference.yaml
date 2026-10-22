@@ -1,0 +1,23 @@
+# Proposed replacement for only the generate step in either binary build Task.
+name: generate
+ref:
+  name: generate-package-artifacts-v1-0-0
+params:
+  - name: component
+    value: $(params.component)
+  - name: os
+    value: $(params.os)
+  - name: arch
+    value: $(params.arch)
+  - name: version
+    value: $(params.version)
+  - name: profile
+    value: $(params.profile)
+  - name: git-ref
+    value: $(params.git-ref)
+  - name: git-sha
+    value: $(params.git-sha)
+  - name: registry
+    value: $(params.registry)
+  - name: pushed-result-path
+    value: $(results.pushed.path)
