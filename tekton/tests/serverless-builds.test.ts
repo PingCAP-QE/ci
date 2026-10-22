@@ -719,7 +719,50 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
       );
     }
     if (task.name.startsWith("deliver-")) {
-      assertEquals(task.when?.length, 1);
+      assertEquals(task.when?.length, task.name === "deliver-binaries" ? 2 : 1);
     }
+  }
+});
+
+Deno.test("Serverless skips the binary delivery task and keeps legacy delivery", async (t) => {
+  const pipeline = load<{
+    spec: {
+      tasks: {
+        name: string;
+        when?: { input: string; operator: string; values: string[] }[];
+      }[];
+    };
+  }>("tekton/v1/pipelines/pingcap-build-package-linux.yaml");
+  const delivery = pipeline.spec.tasks.find((task) =>
+    task.name === "deliver-binaries"
+  )!;
+  const matches = (component: string, pushed: string) =>
+    delivery.when!.every((condition) => {
+      const input = condition.input
+        .replace("$(params.component)", component)
+        .replace("$(tasks.build-binaries.results.pushed)", pushed);
+      assertEquals(condition.operator, "notin");
+      return !condition.values.includes(input);
+    });
+  for (const product of products) {
+    await t.step(product, () => {
+      for (const registry of ["serverless", "dev"]) {
+        const pushed =
+          `oci:\n  repo: us-docker.pkg.dev/pingcap-testing-account/${registry}/tidbcloud/${product}/package\n  tag: main-0123456_linux_amd64`;
+        assertFalse(matches(product, pushed));
+      }
+    });
+  }
+  for (const component of ["tidb", "pd", "tikv", "tiflow", "tiflash"]) {
+    await t.step(component, () => {
+      assert(
+        matches(
+          component,
+          "oci:\n  repo: test/package\n  tag: v8.5.3_linux_amd64",
+        ),
+      );
+      assertFalse(matches(component, "{}"));
+      assertFalse(matches(component, '"{}"'));
+    });
   }
 });

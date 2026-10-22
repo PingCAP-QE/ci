@@ -227,6 +227,9 @@ spec:
         - input: $(tasks.build-binaries.results.pushed)
           operator: notin
           values: ["{}", '"{}"']
+        - input: $(params.component)
+          operator: notin
+          values: [tidb-cse, pd-cse, tidb-operator-cse, cassandra-on-mysql, qdrant-on-tidb]
       taskRef:
         name: pingcap-deliver-binaries
       runAfter:
