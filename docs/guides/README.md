@@ -21,6 +21,7 @@ Welcome to the guides section of our CI repository. This directory contains docu
 - [Jenkins Job Folder Layout](./jenkins-job-folder-layout.md) - The one-folder-per-job layout under `jenkins/jobs/` (`dsl.groovy`, `Jenkinsfile`, `pod.yaml` / `pod-<purpose>.yaml`), reference rules and how to add or change a job
 - [Jenkins Job Folder Migration Runbook](./jenkins-job-folder-migration-runbook.md) - How to migrate legacy `jobs/` + `pipelines/` slices to the job-folder layout
 - [Cherry-Pick Pull Request](./cherry-pick-pull-request.md) - How to cherry-pick changes from one pull request to another branch using our helper script, with step-by-step instructions and conflict resolution guidance
+- [Feature Branch Sync](./feature-branch-sync.md) - How a feature branch (e.g. `feature/release-8.5-fts`) is kept up to date with its base release branch automatically, and why the sync uses a merge commit to preserve the feature branch's git tags
 
 ### Testing
 
