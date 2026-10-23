@@ -23,11 +23,17 @@ function pipelineRuns(path: string): PipelineRun[] {
   return load<Template>(path).spec.resourcetemplates;
 }
 
+function platformOf(run: PipelineRun): string | undefined {
+  const annotations = run.metadata.annotations ?? {};
+  const key = Object.keys(annotations).find((name) =>
+    name.endsWith("/platform")
+  );
+  return key ? annotations[key] : undefined;
+}
+
 function isDarwinRun(run: PipelineRun): boolean {
   return run.spec.pipelineRef?.name?.includes("darwin") === true ||
-    run.metadata.annotations?.["tibuild.pingcap.net/platform"]?.startsWith(
-        "darwin/",
-      ) === true;
+    platformOf(run)?.startsWith("darwin/") === true;
 }
 
 Deno.test("darwin build pipelines use a fixed 6h timeout", async (t) => {
@@ -40,7 +46,7 @@ Deno.test("darwin build pipelines use a fixed 6h timeout", async (t) => {
   await t.step("all-platforms template only fixes darwin runs", () => {
     const timeoutsByPlatform = new Map(
       pipelineRuns(allPlatformsTemplatePath).map((run) => [
-        run.metadata.annotations?.["tibuild.pingcap.net/platform"],
+        platformOf(run),
         run.spec.timeouts?.pipeline,
       ]),
     );
