@@ -31,16 +31,8 @@ spec:
       description: cloud event context.
       default: "{}"
     - name: publisher-url
-    - name: builder-resources-memory
-      default: 16Gi
-    - name: builder-resources-cpu
-      default: "4"
-    - name: source-ws-size
-      default: 20Gi
-    - name: force-builder-image
-      default: ""
-    - name: boskos-server-url
-      default: "http://boskos"
+    # Retained for future darwin enterprise builds (git insteadOf / external
+    # enterprise plugin); the current MacBuild pipeline does not consume them.
     - name: git-instead-of
       default: ""
     - name: external-git-ref

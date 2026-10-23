@@ -33,8 +33,6 @@ spec:
       default: "{}"
     - name: force-builder-image
       default: ""
-    - name: boskos-server-url
-      default: "http://boskos"
     - name: publisher-url
     - name: git-instead-of
       description: |
