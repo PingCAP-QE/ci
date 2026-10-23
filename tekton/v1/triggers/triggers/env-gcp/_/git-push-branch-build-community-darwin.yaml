@@ -47,6 +47,9 @@ spec:
             - key: submodules
               expression: >-
                 body.repository.name == 'tidb' ? 'false' : 'true'
+            - key: git-secret-ref
+              expression: >-
+                body.repository.full_name == 'pingcap/tiflash' ? 'github-ssh-secret' : ''
             - key: timeout
               expression: >-
                 {
@@ -111,6 +114,7 @@ spec:
     - { name: timeout, value: $(extensions.timeout) }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
     - { name: submodules, value: $(extensions.submodules) }
+    - { name: git-secret-ref, value: $(extensions.git-secret-ref) }
     - name: builder-resources-cpu
       value: $(extensions.builder-resources-cpu)
     - name: builder-resources-memory
@@ -141,6 +145,9 @@ spec:
             - key: submodules
               expression: >-
                 body.repository.name == 'tidb' ? 'false' : 'true'
+            - key: git-secret-ref
+              expression: >-
+                body.repository.full_name == 'pingcap/tiflash' ? 'github-ssh-secret' : ''
             - key: timeout
               expression: >-
                 {
@@ -177,6 +184,7 @@ spec:
     - { name: timeout, value: $(extensions.timeout) }
     - { name: source-ws-size, value: $(extensions.source-ws-size) }
     - { name: submodules, value: $(extensions.submodules) }
+    - { name: git-secret-ref, value: $(extensions.git-secret-ref) }
     - name: builder-resources-cpu
       value: $(extensions.builder-resources-cpu)
     - name: builder-resources-memory
