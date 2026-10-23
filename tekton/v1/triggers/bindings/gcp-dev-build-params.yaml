@@ -4,10 +4,9 @@ metadata:
   name: gcp-dev-build-params # only use in GCP clusters for dev-builds
 spec:
   params:
-    # linux and mac/darwin builds are supported; platforms are routed by the gcp
-    # fake-github triggers (single-platform for linux/*,darwin/*; all-platforms
-    # for the multi-platform case).
-    - { name: boskos-server-url, value: http://boskos.test-pods.svc.cluster.local }
+    # linux builds use the single-platform trigger; darwin builds use the
+    # dedicated `-darwin` triggers and the MacBuild path; all-platforms covers
+    # the linux + darwin multi-platform case.
     - { name: builder-resources-cpu, value: $(extensions.resource-config.cpu) }
     - { name: builder-resources-memory, value: $(extensions.resource-config.memory) }
     - { name: component, value: $(extensions.component) }

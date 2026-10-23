@@ -20,14 +20,11 @@ spec:
   bindings:
     - ref: github-tag-create
     - ref: gcp-classic-build-params
-    - { name: builder-resources-cpu, value: "8" }
-    - { name: builder-resources-memory, value: 32Gi }
     - { name: component, value: $(body.repository.name) }
     - { name: profile, value: release }
     - { name: os, value: darwin }
     - { name: arch, value: amd64 }
     - { name: git-secret-ref, value: github-pat-secret }
-    - { name: source-ws-size, value: 50Gi }
     - { name: timeout, value: 2h }
   template:
     ref: build-component-darwin-mac

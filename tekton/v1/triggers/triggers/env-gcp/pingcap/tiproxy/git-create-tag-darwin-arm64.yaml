@@ -24,8 +24,5 @@ spec:
     - { name: os, value: darwin }
     - { name: arch, value: arm64 }
     - { name: timeout, value: 30m }
-    - { name: source-ws-size, value: 10Gi }
-    - { name: builder-resources-memory, value: 32Gi }
-    - { name: builder-resources-cpu, value: "8" }
   template:
     ref: build-component-darwin-mac
