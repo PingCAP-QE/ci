@@ -25,8 +25,5 @@ spec:
     - { name: arch, value: arm64 }
     - { name: git-secret-ref, value: github-pat-secret }
     - { name: timeout, value: 2h }
-    - { name: source-ws-size, value: 50Gi }
-    - { name: builder-resources-memory, value: 32Gi }
-    - { name: builder-resources-cpu, value: "8" }
   template:
     ref: build-component-darwin-mac

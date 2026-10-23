@@ -43,8 +43,6 @@ spec:
       default: "{}"
     - name: force-builder-image
       default: ""
-    - name: boskos-server-url
-      default: "http://boskos"
     - name: publisher-url
     - name: git-instead-of
       description: |
@@ -95,8 +93,6 @@ spec:
             value: $(tt.params.registry)
           - name: force-builder-image
             value: $(tt.params.force-builder-image)
-          - name: boskos-server-url # for darwin platforms
-            value: $(tt.params.boskos-server-url)
           - name: publisher-url
             value: $(tt.params.publisher-url)
           - name: git-instead-of
