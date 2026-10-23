@@ -22,7 +22,10 @@ spec:
       default: release
     - name: registry
     - name: timeout
-      description: pipeline run timeout
+      description: |-
+        Kept for compatibility with existing triggers. Ignored for darwin:
+        macOS workers are scarce and builds queue, so the pipeline timeout is
+        fixed to 6h below regardless of this value.
       default: 2h
     - name: ce-context
       description: cloud event context.
@@ -91,5 +94,8 @@ spec:
             value: $(tt.params.git-secret-ref)
           - name: submodules
             value: $(tt.params.submodules)
+        # Fixed for darwin: the 6h covers time queued for a macOS worker plus
+        # the build itself. Do not switch this back to the trigger's timeout
+        # parameter, or queueing will again be mistaken for a build timeout.
         timeouts:
-          pipeline: $(tt.params.timeout)
+          pipeline: 6h
