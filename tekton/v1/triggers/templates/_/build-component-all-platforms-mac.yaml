@@ -263,8 +263,10 @@ spec:
             value: $(tt.params.git-secret-ref)
           - name: submodules
             value: $(tt.params.submodules)
+        # Fixed for darwin: 6h covers time queued for a macOS worker plus the
+        # build itself; the trigger's timeout parameter must not apply here.
         timeouts:
-          pipeline: $(tt.params.timeout)
+          pipeline: 6h
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
@@ -305,5 +307,7 @@ spec:
             value: $(tt.params.git-secret-ref)
           - name: submodules
             value: $(tt.params.submodules)
+        # Fixed for darwin: 6h covers time queued for a macOS worker plus the
+        # build itself; the trigger's timeout parameter must not apply here.
         timeouts:
-          pipeline: $(tt.params.timeout)
+          pipeline: 6h
