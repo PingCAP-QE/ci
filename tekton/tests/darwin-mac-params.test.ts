@@ -130,3 +130,57 @@ Deno.test("single-platform template no longer declares boskos", () => {
   ).spec.params.map((param) => param.name);
   assertEquals(names.includes("boskos-server-url"), false);
 });
+
+const removedResources = [
+  "tekton/v1/triggers/templates/_/build-component-darwin.yaml",
+  "tekton/v1/triggers/templates/_/build-component-all-platforms.yaml",
+  "tekton/v1/pipelines/pingcap-build-package-darwin.yaml",
+  "tekton/v1/tasks/pingcap-build-binaries-darwin.yaml",
+];
+
+function exists(path: string): boolean {
+  try {
+    Deno.statSync(new URL(path, root));
+    return true;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return false;
+    throw error;
+  }
+}
+
+Deno.test("obsolete darwin resources are removed", () => {
+  for (const path of removedResources) {
+    assertEquals(exists(path), false, path);
+  }
+});
+
+Deno.test("kustomizations no longer reference obsolete resources", () => {
+  const pattern =
+    /build-component-darwin\.yaml|build-component-all-platforms\.yaml|pingcap-build-package-darwin\.yaml|pingcap-build-binaries-darwin\.yaml/;
+  for (
+    const path of [
+      "tekton/v1/triggers/templates/kustomization.yaml",
+      "tekton/v1/pipelines/kustomization.yaml",
+      "tekton/v1/tasks/kustomization.yaml",
+    ]
+  ) {
+    const text = Deno.readTextFileSync(new URL(path, root));
+    assertEquals(pattern.test(text), false, path);
+  }
+});
+
+Deno.test("live templates no longer declare boskos-server-url", () => {
+  for (const path of [darwinTemplate, allPlatformsTemplate]) {
+    const text = Deno.readTextFileSync(new URL(path, root));
+    assertEquals(text.includes("boskos-server-url"), false, path);
+  }
+  const singlePlatform =
+    "tekton/v1/triggers/templates/_/build-component-single-platform.yaml";
+  assertEquals(
+    Deno.readTextFileSync(new URL(singlePlatform, root)).includes(
+      "boskos-server-url",
+    ),
+    false,
+    singlePlatform,
+  );
+});
