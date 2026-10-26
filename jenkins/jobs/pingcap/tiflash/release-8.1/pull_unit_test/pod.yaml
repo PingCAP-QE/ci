@@ -10,28 +10,18 @@ spec:
       resources:
         requests:
           memory: "32Gi"
-          cpu: "12000m"
+          cpu: "12"
         limits:
           memory: "32Gi"
-          cpu: "12000m"
+          cpu: "12"
       volumeMounts:
-        - mountPath: "/tmp"
-          name: "volume-6"
-          readOnly: false
         - mountPath: "/tmp-memfs"
-          name: "volume-7"
-          readOnly: false
-        - mountPath: "/home/jenkins"
-          name: "volume-8"
+          name: "tmp-memfs"
           readOnly: false
   volumes:
-    - name: "volume-6"
-      emptyDir: {}
-    - name: "volume-7"
+    - name: "tmp-memfs"
       emptyDir:
         medium: Memory
-    - name: "volume-8"
-      emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
