@@ -9,7 +9,11 @@ final GIT_CREDENTIALS_ID = 'github-bot-ssh'
 final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/release-7.1/pull_integration_test/pod-build.yaml"
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/release-7.1/pull_integration_test/pod-test.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v20231106'
+// tiflash-ci-base only exists on hub.pingcap.net, which is not routable from TKE.
+// This is the image the ci-base Dockerfile is built FROM (release-linux-llvm/
+// dockerfiles/Dockerfile-tiflash-ci-base) and it ships the `mysql` client the
+// integration tests use inside the tiflash container.
+final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/ci/jenkins/tiflash:v2024.10.8-24-gfd2cff2'
 final PARALLELISM = 16
 String tiflash_commit_hash = null
 
