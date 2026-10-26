@@ -20,10 +20,10 @@ spec:
           cpu: "16000m"
       volumeMounts:
         - mountPath: "/tmp"
-          name: "volume-6"
+          name: "tmp"
           readOnly: false
         - mountPath: "/tmp-memfs"
-          name: "volume-7"
+          name: "tmp-memfs"
           readOnly: false
     - name: utils
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
@@ -36,9 +36,9 @@ spec:
           memory: 1Gi
           cpu: "1"
   volumes:
-    - name: "volume-6"
+    - name: "tmp"
       emptyDir: {}
-    - name: "volume-7"
+    - name: "tmp-memfs"
       emptyDir:
         medium: Memory
   affinity:
