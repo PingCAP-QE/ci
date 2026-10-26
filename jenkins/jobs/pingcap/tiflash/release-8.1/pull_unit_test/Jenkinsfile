@@ -15,17 +15,14 @@ pipeline {
     agent {
         kubernetes {
             namespace K8S_NAMESPACE
-            yamlFile POD_TEMPLATE_FILE
+            yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '300Gi', storageClassName: 'ci-rwo')
             defaultContainer 'runner'
             retries 2
-            customWorkspace "/home/jenkins/agent/workspace/tiflash-build-common"
         }
     }
-    environment {
-        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
-    }
     options {
-        timeout(time: 90, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -37,10 +34,10 @@ pipeline {
                         sh """
                         git config --global --add safe.directory "*"
                         git version
-                        git status
                         """
+                        prow.checkoutRefs(REFS, GIT_CREDENTIALS_ID, 30, true, 'https://github.com')
                         retry(2) {
-                            prow.checkoutRefs(REFS, credentialsId = '', timeout = 5, withSubmodule = true, gitBaseUrl = 'https://github.com')
+                            sh "git status"
                             sh """
                             chown 1000:1000 -R ./
                             """
@@ -53,16 +50,15 @@ pipeline {
             steps {
                 script {
                     dir("tiflash") {
-                        // The shared cache volumes are gone; ccache only lives inside the pod now.
-                        sh label: "config ccache", script: """
-                        ccache -o cache_dir="/tmp/.ccache"
-                        ccache -o max_size=2G
-                        ccache -o hash_dir=false
-                        ccache -o compression=true
-                        ccache -o compression_level=6
-                        ccache -o read_only=false
-                        ccache -z
-                        """
+                        sh label: "config ccache", script: '''
+                            ccache -o cache_dir="$WORKSPACE/.ccache"
+                            ccache -o max_size=2G
+                            ccache -o hash_dir=false
+                            ccache -o compression=true
+                            ccache -o compression_level=6
+                            ccache -o read_only=false
+                            ccache -z
+                        '''
                     }
                 }
             }
@@ -71,13 +67,7 @@ pipeline {
             // TODO: need to simplify this part, all config and build logic should be in script in tiflash repo
             steps {
                 script {
-                    def toolchain = "llvm"
                     def generator = 'Ninja'
-                    def coverage_flag = ""
-                    def diagnostic_flag = ""
-                    def compatible_flag = ""
-                    def openssl_root_dir = ""
-                    def prebuilt_dir_flag = ""
                     // create build dir and install dir
                     sh label: "create build & install dir", script: """
                     mkdir -p ${WORKSPACE}/build
@@ -85,7 +75,7 @@ pipeline {
                     """
                     dir("${WORKSPACE}/build") {
                         sh label: "configure project", script: """
-                        cmake '${WORKSPACE}/tiflash' ${prebuilt_dir_flag} ${coverage_flag} ${diagnostic_flag} ${compatible_flag} ${openssl_root_dir} \\
+                        cmake '${WORKSPACE}/tiflash' \\
                             -G '${generator}' \\
                             -DENABLE_FAILPOINTS=true \\
                             -DCMAKE_BUILD_TYPE=Debug \\
@@ -128,58 +118,35 @@ pipeline {
             }
         }
 
-        stage("Post Build") {
-            parallel {
-                stage("Upload Build Artifacts") {
-                    steps {
-                        dir("${WORKSPACE}/install") {
-                            sh """
-                            tar -czf 'tiflash.tar.gz' 'tiflash'
-                            """
-                            archiveArtifacts artifacts: "tiflash.tar.gz"
-                        }
-                    }
-                }
-                stage("Upload Build Data") {
-                    steps {
-                        dir("${WORKSPACE}/build") {
-                            sh """
-                            tar -cavf build-data.tar.xz \$(find . -name "*.h" -o -name "*.cpp" -o -name "*.cc" -o -name "*.hpp" -o -name "*.gcno" -o -name "*.gcna")
-                            """
-                            archiveArtifacts artifacts: "build-data.tar.xz", allowEmptyArchive: true
-                        }
-                        dir("${WORKSPACE}/tiflash") {
-                            sh """
-                            tar -cavf source-patch.tar.xz \$(find . -name "*.pb.h" -o -name "*.pb.cc")
-                            """
-                            archiveArtifacts artifacts: "source-patch.tar.xz", allowEmptyArchive: true
-                        }
-                    }
-                }
-            }
-        }
-
         stage("Unit Test Prepare") {
             steps {
-                sh """
-                ln -sf ${WORKSPACE}/install/tiflash /tiflash
-                """
-                sh """
+                script {
+                    dir("${WORKSPACE}/tiflash") {
+                        sh label: "change permission", script: """
+                            chown -R 1000:1000 ./
+                        """
+                        sh label: "copy build artifacts", script: """
+                            git status
+                            git show --oneline -s
+                            rm -rf tests/.build
+                            mkdir -p tests/.build
+                            cp -r ${WORKSPACE}/install/* tests/.build/
+                            ls -alh tests/.build/
+                            du -sh tests/.build/
+                        """
+                    }
+                }
+                sh label: "link tiflash and tests", script: """
                 ls -lha ${WORKSPACE}/tiflash
+                ln -sf ${WORKSPACE}/tiflash/tests/.build/tiflash /tiflash
                 ln -sf ${WORKSPACE}/tiflash/tests /tests
                 """
-                dir("${WORKSPACE}/tiflash") {
-                    echo "temp skip here"
-                }
-                dir("${WORKSPACE}/build") {
-                    echo "temp skip here"
-                }
             }
         }
         stage("Run Tests") {
             steps {
                 dir("${WORKSPACE}/tiflash") {
-                    sh """
+                    sh label: "run tests", script: """
                     parallelism=${PARALLELISM}
                     rm -rf /tmp-memfs/tiflash-tests
                     mkdir -p /tmp-memfs/tiflash-tests
