@@ -215,7 +215,7 @@ pipeline {
                 agent{
                     kubernetes {
                         namespace K8S_NAMESPACE
-                        yamlFile POD_INTEGRATIONTEST_TEMPLATE_FILE
+                        yaml pod_label.withCiLabels(POD_INTEGRATIONTEST_TEMPLATE_FILE, REFS)
                         defaultContainer 'docker'
                         retries 2
                         customWorkspace "/home/jenkins/agent/workspace/tiflash-integration-test"
