@@ -34,6 +34,12 @@ Options:
   --parallel <count>       Max concurrent replays in --auto-changed mode. Default: 1.
   --fast-fail              Exit with failure as soon as one replay fails, instead
                            of waiting for all of them.
+  --strict-prow-jobs       Fail when a changed job has no Prow definition, instead
+                           of skipping it. Jobs without a Prow definition cannot be
+                           routed to a Jenkins master, so they are skipped by
+                           default (with --route-by-prow-master).
+  --skip-unknown-prow-jobs Explicitly skip jobs that Prow does not manage
+                           (default).
   --no-inline-pod-yaml     Keep yamlFile in replay script (default: inline local pod yaml).
   --verbose                Print detailed mapping and resolution logs.
   --dry-run                Print actions only.
@@ -107,7 +113,13 @@ route_jenkins_for_script() {
     org="${org%%/*}"
     repo="${repo%%/*}"
     config_dir="prow-jobs/${org}/${repo}"
-    [[ -d "$config_dir" ]] || fatal "Prow config directory not found for ${job_name}: ${config_dir}"
+    if [[ ! -d "$config_dir" ]]; then
+        if [[ "$SKIP_UNKNOWN_PROWS" == "true" ]]; then
+            log "skip replay (Prow config directory not found for ${job_name}: ${config_dir})"
+            return 3
+        fi
+        fatal "Prow config directory not found for ${job_name}: ${config_dir}"
+    fi
 
     # A job may appear in multiple Prow files, but all definitions must agree.
     while IFS= read -r file; do
@@ -120,7 +132,13 @@ route_jenkins_for_script() {
         done <<< "$masters"
     done < <(find "$config_dir" -type f \( -name '*.yaml' -o -name '*.yml' \))
     values="$(printf '%s' "$values" | sort -u)"
-    [[ -n "$values" ]] || fatal "no Jenkins Prow job definition found for ${job_name} in ${config_dir}"
+    if [[ -z "$values" ]]; then
+        if [[ "$SKIP_UNKNOWN_PROWS" == "true" ]]; then
+            log "skip replay (no Jenkins Prow job definition found for ${job_name} in ${config_dir})"
+            return 3
+        fi
+        fatal "no Jenkins Prow job definition found for ${job_name} in ${config_dir}"
+    fi
     [[ "$values" != *$'\n'* ]] || fatal "conflicting Prow labels.master for ${job_name}: ${definitions%$'\n'}"
     [[ "$values" != "(missing)" ]] || fatal "missing Prow labels.master for ${job_name} in ${definitions%$'\n'}"
 
@@ -562,7 +580,13 @@ replay_one() {
 
     [[ -f "$script_file" ]] || fatal "script file not found: ${script_file}"
     if [[ "$ROUTE_BY_PROW_MASTER" == "true" ]]; then
-        route_jenkins_for_script "$script_file" || return 1
+        local route_rc=0
+        route_jenkins_for_script "$script_file" || route_rc=$?
+        if [[ "$route_rc" == "3" ]]; then
+            REPLAY_LAST_RESULT="skipped"
+            return 0
+        fi
+        [[ "$route_rc" == "0" ]] || return 1
         if [[ "$DRY_RUN" != "true" ]]; then
             setup_auth_and_crumb
             ensure_auth_for_replay
@@ -672,6 +696,7 @@ init_defaults() {
     INLINE_POD_YAML="true"
     VERBOSE="false"
     ROUTE_BY_PROW_MASTER="false"
+    SKIP_UNKNOWN_PROWS="true"
     JENKINS_URL="${JENKINS_URL:-https://prow.tidb.net/jenkins}"
     JENKINS_USER="${JENKINS_USER:-}"
     JENKINS_TOKEN="${JENKINS_TOKEN:-}"
@@ -719,6 +744,14 @@ parse_args() {
                 ;;
             --route-by-prow-master)
                 ROUTE_BY_PROW_MASTER="true"
+                shift
+                ;;
+            --strict-prow-jobs)
+                SKIP_UNKNOWN_PROWS="false"
+                shift
+                ;;
+            --skip-unknown-prow-jobs)
+                SKIP_UNKNOWN_PROWS="true"
                 shift
                 ;;
             --wait)

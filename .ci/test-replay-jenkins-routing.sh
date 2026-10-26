@@ -80,4 +80,25 @@ fi
 rg -q 'missing Prow labels.master' output.log
 rg -Fq 'presubmits.yaml: (missing)' output.log
 
+# Jobs that Prow does not manage cannot be routed; they are skipped by default.
+mkdir -p jenkins/jobs/example/repo/latest/unmanaged jenkins/jobs/unmanaged/repo/latest/job1
+printf 'pipeline {}\n' > jenkins/jobs/example/repo/latest/unmanaged/Jenkinsfile
+printf 'pipeline {}\n' > jenkins/jobs/unmanaged/repo/latest/job1/Jenkinsfile
+
+unmanaged_output="$(replay_dry_run unmanaged)"
+[[ "$unmanaged_output" == *'skip replay (no Jenkins Prow job definition found for example/repo/unmanaged'* ]]
+
+no_config_output="$("$repo_root/.ci/replay-jenkins-build.sh" \
+    --script-file jenkins/jobs/unmanaged/repo/latest/job1/Jenkinsfile \
+    --route-by-prow-master --dry-run --no-inline-pod-yaml 2>&1)"
+[[ "$no_config_output" == *'skip replay (Prow config directory not found for unmanaged/repo/job1'* ]]
+
+if "$repo_root/.ci/replay-jenkins-build.sh" \
+    --script-file jenkins/jobs/example/repo/latest/unmanaged/Jenkinsfile \
+    --route-by-prow-master --dry-run --no-inline-pod-yaml --strict-prow-jobs > output.log 2>&1; then
+    echo 'expected --strict-prow-jobs to fail for an unmanaged job' >&2
+    exit 1
+fi
+rg -q 'no Jenkins Prow job definition found for example/repo/unmanaged' output.log
+
 echo 'Jenkins replay routing tests passed.'
