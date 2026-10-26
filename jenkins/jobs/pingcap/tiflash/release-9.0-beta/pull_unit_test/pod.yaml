@@ -12,6 +12,9 @@ spec:
         requests:
           memory: "32Gi"
           cpu: "12000m"
+        limits:
+          memory: "32Gi"
+          cpu: "12000m"
       volumeMounts:
         - mountPath: "/home/jenkins/agent/rust"
           name: "volume-0"
@@ -39,30 +42,15 @@ spec:
           readOnly: false
   volumes:
     - name: "volume-0"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/rust"
-        readOnly: false
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-2"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/dependency"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-1"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/ccache"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-4"
-      nfs:
-        path: "/data/nvme1n1/nfs/git"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-5"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-6"
       emptyDir: {}
     - name: "volume-7"

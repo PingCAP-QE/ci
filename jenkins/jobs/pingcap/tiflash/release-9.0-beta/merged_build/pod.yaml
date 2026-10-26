@@ -52,30 +52,15 @@ spec:
           cpu: "1"
   volumes:
     - name: "volume-0"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/rust"
-        readOnly: false
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-2"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/dependency"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-1"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/ccache"
-        readOnly: false
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-4"
-      nfs:
-        path: "/data/nvme1n1/nfs/git"
-        readOnly: true
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-5"
-      nfs:
-        path: "/data/nvme1n1/nfs/tiflash/proxy-cache"
-        readOnly: false
-        server: "10.2.12.82"
+      emptyDir: {}
     - name: "volume-6"
       emptyDir: {}
     - name: "volume-7"
