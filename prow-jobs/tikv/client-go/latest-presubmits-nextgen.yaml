@@ -15,6 +15,7 @@ presubmits:
   tikv/client-go:
     - name: pull-integration-test-nextgen
       agent: kubernetes
+      cluster: tke-pingcap-cicd
       branches:
         - ^master$
         - ^feature/.*$
@@ -164,6 +165,7 @@ presubmits:
 
     - name: pull-integration-test-release-nextgen
       agent: kubernetes
+      cluster: tke-pingcap-cicd
       branches:
         - ^release-nextgen-202603$
       decorate: true
@@ -184,6 +186,7 @@ presubmits:
 
     - name: pull-integration-test-release-nextgen-202609
       agent: kubernetes
+      cluster: tke-pingcap-cicd
       branches:
         - ^release-nextgen-202609$
       decorate: true
