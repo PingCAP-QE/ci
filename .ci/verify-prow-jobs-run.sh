@@ -198,10 +198,11 @@ resolve_default_branch() {
 
 create_prowjob() {
   local job="$1"
-  local name repo kind job_type
+  local name repo kind job_type cluster
   name="$(jq -r '.name' <<<"${job}")"
   repo="$(jq -r '.repo' <<<"${job}")"
   kind="$(jq -r '.kind' <<<"${job}")"
+  cluster="$(jq -r '.cluster // ""' <<<"${job}")"
   job_type="presubmit"
   [[ "${kind}" == "postsubmit" ]] && job_type="postsubmit"
 
@@ -234,6 +235,7 @@ create_prowjob() {
     --arg repo "${repo_name}" \
     --arg branch "${branch}" \
     --arg sha "${base_sha}" \
+    --arg cluster "${cluster}" \
     --argjson deco "${deco}" \
     --arg timeout "${timeout_min}" \
     --argjson podspec "${podspec}" \
@@ -241,7 +243,7 @@ create_prowjob() {
       apiVersion: "prow.k8s.io/v1",
       kind: "ProwJob",
       metadata: { name: $name, namespace: $ns },
-      spec: {
+      spec: ({
         type: $type,
         agent: "kubernetes",
         job: $job,
@@ -249,7 +251,7 @@ create_prowjob() {
         decorate: true,
         decoration_config: ($deco + { timeout: $timeout }),
         pod_spec: $podspec
-      }
+      } + (if $cluster != "" then { cluster: $cluster } else {} end))
     }' | yq -P > "${workdir}/${pjname}.yaml"
 
   echo "    creating ProwJob ${pjname} in ${PJOB_NAMESPACE} (${repo}@${branch})"
@@ -315,8 +317,8 @@ for f in "${files[@]}"; do
   [[ -f "${REPO_ROOT}/${f}" ]] || continue
   echo "== validating ${f}"
   jobs="$(
-    yq -o=json '[.presubmits // {} | to_entries[] | .key as $repo | .value[] | select(.spec != null) | {"kind":"presubmit", "repo":$repo, "name":.name, "branches":.branches, "decorate":(.decorate // false), "decoration_config":(.decoration_config // {}), "spec":.spec}]' "${REPO_ROOT}/${f}" 2>/dev/null
-    yq -o=json '[.postsubmits // {} | to_entries[] | .key as $repo | .value[] | select(.spec != null) | {"kind":"postsubmit", "repo":$repo, "name":.name, "branches":.branches, "decorate":(.decorate // false), "decoration_config":(.decoration_config // {}), "spec":.spec}]' "${REPO_ROOT}/${f}" 2>/dev/null
+    yq -o=json '[.presubmits // {} | to_entries[] | .key as $repo | .value[] | select(.spec != null) | {"kind":"presubmit", "repo":$repo, "name":.name, "cluster":(.cluster // ""), "branches":.branches, "decorate":(.decorate // false), "decoration_config":(.decoration_config // {}), "spec":.spec}]' "${REPO_ROOT}/${f}" 2>/dev/null
+    yq -o=json '[.postsubmits // {} | to_entries[] | .key as $repo | .value[] | select(.spec != null) | {"kind":"postsubmit", "repo":$repo, "name":.name, "cluster":(.cluster // ""), "branches":.branches, "decorate":(.decorate // false), "decoration_config":(.decoration_config // {}), "spec":.spec}]' "${REPO_ROOT}/${f}" 2>/dev/null
   )"
   jobs="$(jq -s 'add' <<<"${jobs}" 2>/dev/null || echo '[]')"
   while read -r job; do
