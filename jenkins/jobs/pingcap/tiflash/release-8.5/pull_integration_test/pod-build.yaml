@@ -13,11 +13,11 @@ spec:
       tty: true
       resources:
         requests:
-          memory: 24Gi
-          cpu: "6"
+          memory: 32Gi
+          cpu: "12"
         limits:
-          memory: 24Gi
-          cpu: "6"
+          memory: 32Gi
+          cpu: "12"
       volumeMounts:
         - mountPath: "/tmp"
           name: "tmp"

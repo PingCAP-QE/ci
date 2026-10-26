@@ -11,6 +11,9 @@ spec:
         requests:
           memory: "24Gi"
           cpu: "6"
+        limits:
+          memory: "24Gi"
+          cpu: "6"
       volumeMounts:
         - mountPath: "/tmp-memfs"
           name: "tmp-memfs"

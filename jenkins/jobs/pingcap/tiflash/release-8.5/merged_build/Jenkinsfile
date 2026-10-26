@@ -4,6 +4,7 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tiflash"
+final GIT_CREDENTIALS_ID = 'github-bot-ssh'
 final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/release-8.5/merged_build/pod.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final PARALLELISM = 12
@@ -32,7 +33,7 @@ pipeline {
                         git config --global --add safe.directory "*"
                         git version
                         """
-                        prow.checkoutRefs(REFS, '', 30, true, 'https://github.com')
+                        prow.checkoutRefs(REFS, GIT_CREDENTIALS_ID, 30, true, 'https://github.com')
                         retry(2) {
                             sh """
                             git status
