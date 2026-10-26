@@ -7,7 +7,6 @@ spec:
       command:
         - "cat"
       tty: true
-      # Notice: not set the resources limit, because limit will make unit test failed
       resources:
         requests:
           memory: "32Gi"
