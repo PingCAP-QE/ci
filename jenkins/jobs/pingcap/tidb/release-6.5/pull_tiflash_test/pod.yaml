@@ -15,7 +15,7 @@ spec:
           memory: 8Gi
           cpu: "4"
     - name: dockerd
-      image: "docker:20.10.17-dind"
+      image: "docker:20.10.24-dind"
       tty: true
       env:
         - name: DOCKER_TLS_CERTDIR
