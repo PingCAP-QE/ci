@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: Pod
 spec:
+  securityContext:
+    fsGroup: 1000
   containers:
     - name: runner
       image: "ghcr.io/pingcap-qe/cd/builders/tiflash:v20231106"
