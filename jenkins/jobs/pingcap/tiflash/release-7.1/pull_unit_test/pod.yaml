@@ -16,21 +16,21 @@ spec:
           cpu: "12000m"
       volumeMounts:
         - mountPath: "/tmp"
-          name: "volume-6"
+          name: "tmp"
           readOnly: false
         - mountPath: "/tmp-memfs"
-          name: "volume-7"
+          name: "tmp-memfs"
           readOnly: false
         - mountPath: "/home/jenkins"
-          name: "volume-8"
+          name: "jenkins-home"
           readOnly: false
   volumes:
-    - name: "volume-6"
+    - name: "tmp"
       emptyDir: {}
-    - name: "volume-7"
+    - name: "tmp-memfs"
       emptyDir:
         medium: Memory
-    - name: "volume-8"
+    - name: "jenkins-home"
       emptyDir: {}
   affinity:
     nodeAffinity:
