@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: Pod
 spec:
+  securityContext:
+    fsGroup: 1000
   containers:
     - name: runner
       image: "ghcr.io/pingcap-qe/cd/builders/tiflash:v20231106"
@@ -21,17 +23,12 @@ spec:
         - mountPath: "/tmp-memfs"
           name: "tmp-memfs"
           readOnly: false
-        - mountPath: "/home/jenkins"
-          name: "jenkins-home"
-          readOnly: false
   volumes:
     - name: "tmp"
       emptyDir: {}
     - name: "tmp-memfs"
       emptyDir:
         medium: Memory
-    - name: "jenkins-home"
-      emptyDir: {}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
