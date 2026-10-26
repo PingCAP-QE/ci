@@ -2,6 +2,59 @@
 
 set -eo pipefail
 
+# Registry pulls go through the Envoy front door of cr-qcloud/cr, which
+# occasionally resets a stream mid-download ("stream error: stream ID 3;
+# NO_ERROR; received from peer"). A retry succeeds, but without one the whole
+# pipeline fails and every downstream stage is skipped, so retry the individual
+# `oras` calls instead of the surrounding download step.
+OCI_FETCH_ATTEMPTS="${OCI_FETCH_ATTEMPTS:-3}"
+OCI_FETCH_RETRY_DELAY_SECONDS="${OCI_FETCH_RETRY_DELAY_SECONDS:-5}"
+
+function retry_oci_fetch() {
+    # $1: description for the log, $2...: command to run
+    local description="$1"
+    shift
+    local attempt=1
+    local delay="${OCI_FETCH_RETRY_DELAY_SECONDS}"
+    while true; do
+        if "$@"; then
+            return 0
+        fi
+        if ((attempt >= OCI_FETCH_ATTEMPTS)); then
+            echo "Error: ${description} failed after ${attempt} attempts" >&2
+            return 1
+        fi
+        echo "⚠️ ${description} failed (attempt ${attempt}/${OCI_FETCH_ATTEMPTS}), retrying in ${delay}s" >&2
+        sleep "${delay}"
+        delay=$((delay * 2))
+        attempt=$((attempt + 1))
+    done
+}
+
+function fetch_oci_artifact_manifest() {
+    # $1: oci url, $2: layer title regex, $3: output file
+    local oci_url="$1"
+    local to_match_file="$2"
+    local output="$3"
+    oras manifest fetch "${oci_url}" |
+        yq --prettyPrint -oy ".layers | filter(.annotations[\"org.opencontainers.image.title\"] | test \"${to_match_file}\") | .[0]" >"${output}"
+}
+
+function fetch_oci_artifact_blob() {
+    # $1: blob url, $2: output file. Every attempt downloads into its own
+    # temporary file, so a truncated body from a failed attempt is never reused.
+    local blob="$1"
+    local output="$2"
+    local partial
+    partial="$(mktemp ".${output}.partial.XXXXXX")"
+    if oras blob fetch --output "${partial}" "${blob}"; then
+        mv -f "${partial}" "${output}"
+        return 0
+    fi
+    rm -f "${partial}"
+    return 1
+}
+
 function fetch_file_from_oci_artifact() {
     local oci_url="$1"
     local to_match_file="$2"
@@ -11,7 +64,8 @@ function fetch_file_from_oci_artifact() {
     manifest_file="$(mktemp .oci-manifest.XXXXXX)"
 
     # get the file blob digest.
-    if ! oras manifest fetch "${oci_url}" | yq --prettyPrint -oy ".layers | filter(.annotations[\"org.opencontainers.image.title\"] | test \"$to_match_file\") | .[0]" >"${manifest_file}"; then
+    if ! retry_oci_fetch "manifest fetch of ${oci_url}" \
+        fetch_oci_artifact_manifest "${oci_url}" "${to_match_file}" "${manifest_file}"; then
         rm -f "${manifest_file}"
         return 1
     fi
@@ -19,7 +73,6 @@ function fetch_file_from_oci_artifact() {
     # download file
     local file
     local blob
-    local temporary_file
     file="$(yq .annotations[\"org.opencontainers.image.title\"] "${manifest_file}")"
     blob="$repo@$(yq .digest "${manifest_file}")"
     rm -f "${manifest_file}"
@@ -28,13 +81,10 @@ function fetch_file_from_oci_artifact() {
         return 1
     fi
 
-    temporary_file="$(mktemp ".${file}.partial.XXXXXX")"
     echo "🔗 blob fetching url: ${blob}" >&2
-    if ! oras blob fetch --output "${temporary_file}" "${blob}"; then
-        rm -f "${temporary_file}"
+    if ! retry_oci_fetch "blob fetch of ${blob}" fetch_oci_artifact_blob "${blob}" "${file}"; then
         return 1
     fi
-    mv -f "${temporary_file}" "${file}"
     echo "$file"
 }
 
