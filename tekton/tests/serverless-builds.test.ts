@@ -244,6 +244,10 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
         ["$(workspaces.git-credentials.path)", credentials],
         ["$(params.git-ref)", "feature/test"],
         ["/workspace/serverless-git-credential", `${tmp}/git-credential`],
+        // This test covers the rollback path: git-auth-app=false keeps using
+        // the PAT workspace.
+        ["$(params.git-auth-app)", "false"],
+        ["$(params.git-auth-home)", `${tmp}/app-home`],
       ]
     ) script = script.replaceAll(from, to);
     const legacy = script.replaceAll(
@@ -281,6 +285,72 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
         "https://github.com/tidbcloud/private.git",
       );
     }
+  } finally {
+    Deno.removeSync(tmp, { recursive: true });
+  }
+});
+
+Deno.test("git-auth-app installs the broker helper instead of the PAT workspace", () => {
+  const task = load<{ spec: { steps: Step[] } }>(
+    "tekton/v1/tasks/pingcap-build-binaries-linux.yaml",
+  );
+  let script =
+    task.spec.steps.find((step) => step.name === "build")!.script.split(
+      'script="/workspace/build-package-artifacts.sh"',
+    )[0];
+  assert(script);
+  const tmp = Deno.makeTempDirSync();
+  try {
+    const credentials = `${tmp}/credentials`;
+    Deno.mkdirSync(credentials, { mode: 0o700 });
+    Deno.writeTextFileSync(`${credentials}/username`, "test-user", {
+      mode: 0o600,
+    });
+    Deno.writeTextFileSync(`${credentials}/password`, "test-password", {
+      mode: 0o600,
+    });
+    // Simulate what the setup-git-auth step leaves in the shared home.
+    const sharedHome = `${tmp}/shared-home`;
+    Deno.mkdirSync(`${sharedHome}/.git-auth`, { recursive: true });
+    const marker = `[credential "https://github.com"]\n\thelper =\n\thelper = ${sharedHome}/.git-auth/bin/git-credential\n`;
+    Deno.writeTextFileSync(
+      `${sharedHome}/.git-auth/gitconfig.fragment`,
+      marker,
+    );
+    for (
+      const [from, to] of [
+        ["$(workspaces.git-credentials.path)", credentials],
+        ["$(params.git-ref)", "feature/test"],
+        // The workspace stays bound in the rollback templates: app mode must
+        // ignore it.
+        ["$(workspaces.git-credentials.bound)", "true"],
+        ["$(params.git-auth-app)", "true"],
+        ["$(params.git-auth-home)", sharedHome],
+      ]
+    ) script = script.replaceAll(from, to);
+
+    const home = `${tmp}/builder-home`;
+    Deno.mkdirSync(home);
+    command("sh", ["-c", script], {
+      env: { HOME: home, GIT_CONFIG_NOSYSTEM: "1" },
+    });
+    const gitconfig = Deno.readTextFileSync(`${home}/.gitconfig`);
+    assert(
+      gitconfig.includes(`${sharedHome}/.git-auth/bin/git-credential`),
+      gitconfig,
+    );
+    assertFalse(gitconfig.includes("test-password"));
+    // The PAT helper script must not be generated in app mode.
+    assertFalse(
+      (() => {
+        try {
+          Deno.statSync(`${tmp}/git-credential`);
+          return true;
+        } catch {
+          return false;
+        }
+      })(),
+    );
   } finally {
     Deno.removeSync(tmp, { recursive: true });
   }
@@ -685,6 +755,7 @@ Deno.test("template run counts and existing Pipeline/Task contracts are preserve
       pipeline.spec.results.map((result) => [result.name, result.value]),
     ),
     {
+      "git-auth-mode": "$(tasks.checkout.results.git-auth-mode)",
       "pushed-binaries": "$(tasks.build-binaries.results.pushed)",
       "pushed-images": "$(tasks.build-images.results.pushed)",
     },

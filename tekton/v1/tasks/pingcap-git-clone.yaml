@@ -139,6 +139,30 @@ spec:
       description: Subdirectory inside the `output` Workspace to clone the external repo into. Defaults to the external repo name.
       type: string
       default: ""
+    - name: git-auth-app
+      description: >-
+        Authenticate git with GitHub App installation tokens minted by the
+        in-cluster token broker. Set to "false" to fall back to
+        workspace-provided credentials only.
+      type: string
+      default: "true"
+    - name: git-auth-broker-url
+      description: Base URL of the in-cluster token broker.
+      type: string
+      default: "http://github-token-broker.github-token-broker.svc"
+    - name: git-auth-permissions
+      description: >-
+        Permissions requested from the broker, as name=level pairs separated by
+        semicolons. Checkout only needs read access.
+      type: string
+      default: "contents=read"
+    - name: git-auth-fallback-credentials
+      description: >-
+        Path to a .git-credentials file used when the broker denies the request,
+        for repositories outside the App installation. Empty disables the
+        fallback, so git fails with the broker error instead of prompting.
+      type: string
+      default: ""
   results:
     - name: commit
       description: The precise commit SHA that was fetched by this Task.
@@ -152,7 +176,28 @@ spec:
       description: The precise URL of the fetched external repository, or empty when skipped.
     - name: external-committer-date
       description: The epoch timestamp of the fetched external repository commit, or empty when skipped.
+    - name: git-auth-mode
+      description: >-
+        Credential source used by the checkout: app (broker minted a token), pat
+        (fallback credentials file), unused (no authentication was requested) or
+        disabled (git-auth-app=false).
   steps:
+    - name: setup-git-auth
+      when:
+        - input: "$(params.git-auth-app)"
+          operator: in
+          values: ["true"]
+      ref:
+        name: setup-git-auth
+      params:
+        - name: broker-url
+          value: $(params.git-auth-broker-url)
+        - name: permissions
+          value: $(params.git-auth-permissions)
+        - name: fallback-credentials-path
+          value: $(params.git-auth-fallback-credentials)
+        - name: user-home
+          value: $(params.userHome)
     - name: clone
       image: "$(params.gitInitImage)"
       env:
@@ -190,6 +235,8 @@ spec:
           value: $(params.userHome)
         - name: PARAM_GIT_INSTEAD_OF
           value: $(params.gitInsteadOf)
+        - name: PARAM_GIT_AUTH_APP
+          value: $(params.git-auth-app)
         - name: WORKSPACE_OUTPUT_PATH
           value: $(workspaces.output.path)
         - name: WORKSPACE_SSH_DIRECTORY_BOUND
@@ -219,6 +266,13 @@ spec:
           cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.gitconfig" "${PARAM_USER_HOME}/.gitconfig"
           chmod 400 "${PARAM_USER_HOME}/.git-credentials"
           chmod 400 "${PARAM_USER_HOME}/.gitconfig"
+        fi
+
+        # The setup-git-auth step installed a broker-backed credential helper in
+        # the shared home; append it after any workspace credentials so both
+        # helpers stay available and the broker is tried first.
+        if [ -f "${PARAM_USER_HOME}/.git-auth/gitconfig.fragment" ] ; then
+          cat "${PARAM_USER_HOME}/.git-auth/gitconfig.fragment" >> "${PARAM_USER_HOME}/.gitconfig"
         fi
 
         if [ "${WORKSPACE_SSH_DIRECTORY_BOUND}" = "true" ] ; then
@@ -278,6 +332,16 @@ spec:
         printf "%s" "${RESULT_COMMITTER_DATE}" > "$(results.committer-date.path)"
         printf "%s" "${RESULT_SHA}" > "$(results.commit.path)"
         printf "%s" "${PARAM_URL}" > "$(results.url.path)"
+
+        # Audit which credential source the checkout used. An empty state file
+        # means git never asked for credentials (public repository).
+        if [ "${PARAM_GIT_AUTH_APP}" != "true" ] ; then
+          printf "%s" "disabled" > "$(results.git-auth-mode.path)"
+        elif [ -s "${PARAM_USER_HOME}/.git-auth/source" ] ; then
+          printf "%s" "$(cat "${PARAM_USER_HOME}/.git-auth/source")" > "$(results.git-auth-mode.path)"
+        else
+          printf "%s" "unused" > "$(results.git-auth-mode.path)"
+        fi
     - name: init-external
       image: alpine:3.24
       when:
@@ -511,6 +575,13 @@ spec:
           cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.gitconfig" "${PARAM_USER_HOME}/.gitconfig"
           chmod 400 "${PARAM_USER_HOME}/.git-credentials"
           chmod 400 "${PARAM_USER_HOME}/.gitconfig"
+        fi
+
+        # The setup-git-auth step installed a broker-backed credential helper in
+        # the shared home; append it after any workspace credentials so both
+        # helpers stay available and the broker is tried first.
+        if [ -f "${PARAM_USER_HOME}/.git-auth/gitconfig.fragment" ] ; then
+          cat "${PARAM_USER_HOME}/.git-auth/gitconfig.fragment" >> "${PARAM_USER_HOME}/.gitconfig"
         fi
 
         if [ "${WORKSPACE_SSH_DIRECTORY_BOUND}" = "true" ] ; then

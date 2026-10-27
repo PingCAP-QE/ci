@@ -51,7 +51,45 @@ spec:
       type: string
       default: "false"
     - name: registry
+    - name: git-auth-app
+      description: >-
+        Authenticate git with GitHub App installation tokens minted by the
+        in-cluster token broker, so the build pod needs no PAT for private Go
+        and Cargo dependencies. Set to "false" to use the legacy
+        git-credentials workspace.
+      type: string
+      default: "true"
+    - name: git-auth-broker-url
+      description: Base URL of the in-cluster token broker.
+      type: string
+      default: "http://github-token-broker.github-token-broker.svc"
+    - name: git-auth-home
+      description: >-
+        Shared home directory of the pod where the credential helper is
+        installed. Tekton mounts it in every step, but steps keep the HOME of
+        their own image, so the path must be absolute.
+      type: string
+      default: "/tekton/home"
+    - name: git-auth-permissions
+      description: Permissions requested from the broker, as name=level pairs separated by semicolons.
+      type: string
+      default: "contents=read"
   steps:
+    - name: setup-git-auth
+      when:
+        - input: "$(params.git-auth-app)"
+          operator: in
+          values: ["true"]
+      ref:
+        name: setup-git-auth
+      params:
+        - name: broker-url
+          value: $(params.git-auth-broker-url)
+        - name: permissions
+          value: $(params.git-auth-permissions)
+        - name: user-home
+          value: $(params.git-auth-home)
+
     - name: generate
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       results:
@@ -101,6 +139,12 @@ spec:
           value: "true"
         - name: GIT_SSH_COMMAND
           value: "ssh -o StrictHostKeyChecking=no"
+        # Fail fast instead of prompting when no credential helper can answer.
+        - name: GIT_TERMINAL_PROMPT
+          value: "0"
+        # Go and Cargo resolve private modules through the git credential helper.
+        - name: GOPRIVATE
+          value: "github.com/tidbcloud/*,github.com/pingcap-inc/*"
         # - name: RUSTUP_DIST_SERVER
         #   value: https://rsproxy.cn
         # - name: RUSTUP_UPDATE_ROOT
@@ -113,7 +157,10 @@ spec:
         # - name: CYPRESS_CACHE_FOLDER
         #   value: /workspace/.cache/Cypress
       script: |
-        if [ "$(workspaces.git-credentials.bound)" = "true" ]; then
+        # With git-auth-app the broker helper replaces the PAT workspace, so the
+        # build pod holds no long-lived GitHub credential. The workspace branch
+        # stays as the rollback path.
+        if [ "$(params.git-auth-app)" != "true" ] && [ "$(workspaces.git-credentials.bound)" = "true" ]; then
           set -eu
           export GIT_BRANCH="$(params.git-ref)"
           export GOPRIVATE=github.com/tidbcloud/*,github.com/pingcap-inc/*
@@ -139,6 +186,13 @@ spec:
           insteadOf = git@github.com:
           insteadOf = ssh://git@github.com/
         CONFIG
+        fi
+        # The setup step installs the helper in the shared home; this step keeps
+        # the HOME of the builder image, so read the fragment by absolute path.
+        git_auth_fragment="$(params.git-auth-home)/.git-auth/gitconfig.fragment"
+        if [ -f "${git_auth_fragment}" ]; then
+          mkdir -p "$HOME"
+          cat "${git_auth_fragment}" >> "$HOME/.gitconfig"
         fi
         script="/workspace/build-package-artifacts.sh"
         "$script" -b -a -w "$(params.release-dir)"
