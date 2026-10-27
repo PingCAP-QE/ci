@@ -23,6 +23,21 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
     final cdnEnabled = env.GIT_CDN_ENABLED?.trim()?.toBoolean()
     final httpCredentialsId = env.GIT_HTTP_CREDENTIALS_ID?.trim()
 
+    // Repositories owned by an App-installed organization can authenticate with
+    // broker-minted installation tokens instead of the ti-chi-bot SSH key/PAT.
+    // Keep the URL form unchanged (SSH on TKE so git-cdn still applies, HTTPS on
+    // GCP where agents talk to GitHub directly) and only swap the credential
+    // source, so the checkout cache keys and CDN behaviour stay identical.
+    if (useBrokerCredentials(refs)) {
+        final remoteUrl = cdnEnabled
+            ? "git@github.com:${refs.org}/${refs.repo}.git"
+            : publicRemoteUrl(refs, gitBaseUrl)
+        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}"]) {
+            _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
+        }
+        return
+    }
+
     // Keep the existing URL selection: an explicit credential means that the
     // main repository uses SSH. TKE can rewrite that URL to the CDN, while
     // GCP continues to use the SSH agent directly.
@@ -51,6 +66,54 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
         }
     } else {
         checkoutWithHttpCredentials()
+    }
+}
+
+/*
+ * Let Git try an anonymous request first and provide a GitHub App installation
+ * token minted by the in-cluster token broker only after the server asks for
+ * credentials. The App private key stays in the broker; the agent only proves
+ * its identity with the pod ServiceAccount token.
+ *
+ * Works for both transports the library uses: direct HTTPS to GitHub, and the
+ * TKE git-cdn rewrite, because git-cdn forwards the BasicAuth header to GitHub.
+ *
+ * cfg:
+ *   repo        owner/repository used when the git prompt carries no path.
+ *   permissions JSON permission set, default {"contents":"read"}.
+ *   brokerUrl   overrides GIT_BROKER_URL.
+ */
+def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
+    final brokerUrl = cfg.brokerUrl?.toString()?.trim() ?: env.GIT_BROKER_URL?.toString()?.trim()
+    if (!brokerUrl) {
+        throw new IllegalArgumentException(
+            'withGitAskPassFromBroker requires cfg.brokerUrl or the GIT_BROKER_URL environment variable')
+    }
+    final repo = cfg.repo?.toString()?.trim() ?: ''
+    final permissions = cfg.permissions ?: '{"contents":"read"}'
+    final suffix = UUID.randomUUID().toString()
+    final askPassScript = "${env.WORKSPACE}/git-askpass-broker-${suffix}"
+    final cacheFile = "${env.WORKSPACE}/git-broker-token-${suffix}"
+
+    try {
+        writeFile(file: askPassScript, text: libraryResource('scripts/git_askpass_broker.sh'))
+        sh label: 'Prepare Git HTTP credential helper (token broker)', script: "chmod 700 '${askPassScript}'"
+        withEnv([
+            "GIT_ASKPASS=${askPassScript}",
+            'GIT_TERMINAL_PROMPT=0',
+            "TIPIPELINE_BROKER_URL=${brokerUrl}",
+            "TIPIPELINE_BROKER_REPO=${repo}",
+            "TIPIPELINE_BROKER_PERMISSIONS=${permissions}",
+            "TIPIPELINE_BROKER_CACHE=${cacheFile}",
+            // Rewrite SSH dependency URLs to HTTPS, which the token can authenticate.
+            'GIT_CONFIG_COUNT=1',
+            'GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf',
+            'GIT_CONFIG_VALUE_0=git@github.com:',
+        ]) {
+            body()
+        }
+    } finally {
+        sh label: 'Remove Git HTTP credential helper (token broker)', script: "rm -f '${askPassScript}' '${cacheFile}'"
     }
 }
 
@@ -84,15 +147,33 @@ def withGitAskPass(String credentialsId, Closure body) {
 }
 
 def checkoutPublicRefs(refs, timeout = 5, withSubmodule = false, gitBaseUrl = 'https://github.com') {
-    def remoteUrl = ""
-    // Whether the git base url param is a full URL or a hostname.
-    if (gitBaseUrl?.trim()?.startsWith('http')) {
-        remoteUrl = "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
-    } else {
-        remoteUrl = "https://${gitBaseUrl}/${refs.org}/${refs.repo}.git"
-    }
+    _checkoutRefsImpl(refs, publicRemoteUrl(refs, gitBaseUrl), timeout, withSubmodule)
+}
 
-    _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
+// Whether the git base url param is a full URL or a hostname.
+def publicRemoteUrl(refs, gitBaseUrl = 'https://github.com') {
+    if (gitBaseUrl?.trim()?.startsWith('http')) {
+        return "${gitBaseUrl}/${refs.org}/${refs.repo}.git"
+    }
+    return "https://${gitBaseUrl}/${refs.org}/${refs.repo}.git"
+}
+
+// Whether the repository should authenticate through the token broker. The
+// organization allowlist defaults to the SAML-enforcing tidbcloud org; other
+// organizations keep the SSH key/PAT until they are migrated deliberately.
+def useBrokerCredentials(refs) {
+    if (!env.GIT_BROKER_ENABLED?.trim()?.toBoolean()) {
+        return false
+    }
+    final org = refs?.org?.toString()?.trim()?.toLowerCase()
+    if (!org) {
+        return false
+    }
+    final allowlist = (env.GIT_BROKER_ORGS ?: 'tidbcloud')
+        .split(',')
+        .collect { it.trim().toLowerCase() }
+        .findAll { it }
+    return allowlist.contains(org)
 }
 
 /*

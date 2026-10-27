@@ -41,6 +41,13 @@ class TestProw {
                 'Git askpass helper must be under the Jenkins library resources directory',
                 new File('libraries/tipipeline/resources/scripts/git_askpass.sh').isFile())
         }
+
+        @Test
+        void shouldProvideBrokerAskPassAsLibraryResource() {
+            assertTrue(
+                'Token broker askpass helper must be under the Jenkins library resources directory',
+                new File('libraries/tipipeline/resources/scripts/git_askpass_broker.sh').isFile())
+        }
     }
 
     static class CacheKeys {
@@ -206,6 +213,138 @@ class TestProw {
             }
 
             assertTrue('cleanup must not run without a temporary path', events.isEmpty())
+        }
+    }
+
+    static class AskPassBroker {
+        @Test
+        void shouldScopeBrokerEnvironmentAndCleanUp() {
+            def events = []
+            def script = loadProw(
+                env: [WORKSPACE: '/tmp/ws', GIT_BROKER_URL: 'http://broker.example'],
+                libraryResource: { String path ->
+                    events << "resource:${path}".toString()
+                    'broker askpass'
+                },
+                writeFile: { Map args -> events << "write:${args.file}".toString() },
+                sh: { Map args -> events << "sh:${args.script}".toString() },
+                withEnv: { List environment, Closure body ->
+                    events << "env:${environment}".toString()
+                    body()
+                },
+            )
+
+            script.withGitAskPassFromBroker([repo: 'tidbcloud/cloud-storage-engine']) {
+                events << 'checkout'
+            }
+
+            assertEquals('resource loaded', 'resource:scripts/git_askpass_broker.sh', events[0])
+            assertTrue('helper written from resource',
+                events[1] ==~ /write:\/tmp\/ws\/git-askpass-broker-.*/)
+            assertTrue('helper made executable',
+                events[2] ==~ /sh:chmod 700 '\/tmp\/ws\/git-askpass-broker-.*'/)
+            def env = events[3]
+            assertTrue('askpass scoped', env.contains('GIT_ASKPASS=/tmp/ws/git-askpass-broker-'))
+            assertTrue('terminal prompts disabled', env.contains('GIT_TERMINAL_PROMPT=0'))
+            assertTrue('broker url passed', env.contains('TIPIPELINE_BROKER_URL=http://broker.example'))
+            assertTrue('repo pinned', env.contains('TIPIPELINE_BROKER_REPO=tidbcloud/cloud-storage-engine'))
+            assertTrue('default permissions',
+                env.contains('TIPIPELINE_BROKER_PERMISSIONS={"contents":"read"}'))
+            assertTrue('token cache scoped', env.contains('TIPIPELINE_BROKER_CACHE=/tmp/ws/git-broker-token-'))
+            assertTrue('ssh urls rewritten',
+                env.contains('GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf'))
+            assertEquals('body runs inside scope', 'checkout', events[4])
+            assertTrue('helper and cache removed',
+                events[5] ==~ /sh:rm -f '\/tmp\/ws\/git-askpass-broker-.*' '\/tmp\/ws\/git-broker-token-.*'/)
+        }
+
+        @Test
+        void shouldRequireBrokerUrl() {
+            def script = loadProw(env: [WORKSPACE: '/tmp/ws'])
+
+            try {
+                script.withGitAskPassFromBroker { fail('body must not run') }
+                fail('missing broker url should fail')
+            } catch (IllegalArgumentException expected) {
+                assertTrue(expected.message.contains('GIT_BROKER_URL'))
+            }
+        }
+    }
+
+    static class BrokerCheckout {
+        private def loadWithBroker(Map extraEnv, List events) {
+            return loadProw(
+                env: [WORKSPACE: '/tmp/ws', GIT_BROKER_ENABLED: 'true',
+                      GIT_BROKER_URL: 'http://broker.example'] + extraEnv,
+                libraryResource: { String path -> 'broker askpass' },
+                writeFile: { Map args -> },
+                sh: { Map args ->
+                    def script = (args.script ?: '').toString()
+                    if (script.contains('git config remote.origin.url')) {
+                        events << script
+                    }
+                },
+                withEnv: { List environment, Closure body -> body() },
+                sshagent: { Map args, Closure body ->
+                    events << "sshagent:${args.credentials}".toString()
+                    body()
+                },
+            )
+        }
+
+        @Test
+        void shouldUseHttpsAndBrokerForAllowlistedOrgWithoutCdn() {
+            def events = []
+            def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud'], events)
+
+            script.checkoutRefs([org: 'tidbcloud', repo: 'cloud-storage-engine',
+                                 base_ref: 'cloud-engine', pulls: []], 'github-bot-ssh', 7)
+
+            assertTrue('no ssh agent on the broker path', events.every { !it.startsWith('sshagent:') })
+            assertTrue('https remote used',
+                events.last().contains(
+                    'git config remote.origin.url https://github.com/tidbcloud/cloud-storage-engine.git'))
+        }
+
+        @Test
+        void shouldKeepSshUrlForCdnInstances() {
+            def events = []
+            def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud', GIT_CDN_ENABLED: 'true'], events)
+
+            script.checkoutRefs([org: 'tidbcloud', repo: 'cloud-storage-engine',
+                                 base_ref: 'cloud-engine', pulls: []], 'github-bot-ssh', 7)
+
+            assertTrue('cdn rewrite stays available',
+                events.last().contains(
+                    'git config remote.origin.url git@github.com:tidbcloud/cloud-storage-engine.git'))
+        }
+
+        @Test
+        void shouldKeepLegacyCredentialsForOtherOrgs() {
+            def events = []
+            def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud'], events)
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'main', pulls: []],
+                'github-bot-ssh', 7)
+
+            assertTrue('ssh agent still used for non-allowlisted orgs',
+                events.any { it == 'sshagent:[github-bot-ssh]' })
+            assertTrue('ssh remote kept',
+                events.last().contains('git config remote.origin.url git@github.com:pingcap/tidb.git'))
+        }
+
+        @Test
+        void shouldReportBrokerEnablementPerOrg() {
+            def script = loadProw(env: [GIT_BROKER_ENABLED: 'true', GIT_BROKER_ORGS: ' tidbcloud , PingCAP-INC '])
+
+            assertTrue(script.useBrokerCredentials([org: 'tidbcloud', repo: 'x']))
+            assertTrue(script.useBrokerCredentials([org: 'PingCAP-INC', repo: 'x']))
+            assertFalse(script.useBrokerCredentials([org: 'pingcap', repo: 'x']))
+            assertFalse(script.useBrokerCredentials([org: '', repo: 'x']))
+            assertFalse(script.useBrokerCredentials(null))
+
+            def disabled = loadProw(env: [GIT_BROKER_ENABLED: 'false'])
+            assertFalse(disabled.useBrokerCredentials([org: 'tidbcloud', repo: 'x']))
         }
     }
 
