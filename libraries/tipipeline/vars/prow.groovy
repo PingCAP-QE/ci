@@ -91,6 +91,9 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
     }
     final repo = cfg.repo?.toString()?.trim() ?: ''
     final permissions = cfg.permissions ?: '{"contents":"read"}'
+    // The controllers already provide git configuration through GIT_CONFIG_*
+    // (git-cdn insteadOf rewrites). Append to it instead of resetting the count.
+    final baseConfigCount = (env.GIT_CONFIG_COUNT?.toString()?.trim() ?: '0') as int
     final suffix = UUID.randomUUID().toString()
     final askPassScript = "${env.WORKSPACE}/git-askpass-broker-${suffix}"
     final cacheFile = "${env.WORKSPACE}/git-broker-token-${suffix}"
@@ -105,10 +108,14 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
             "TIPIPELINE_BROKER_REPO=${repo}",
             "TIPIPELINE_BROKER_PERMISSIONS=${permissions}",
             "TIPIPELINE_BROKER_CACHE=${cacheFile}",
-            // Rewrite SSH dependency URLs to HTTPS, which the token can authenticate.
-            'GIT_CONFIG_COUNT=1',
-            'GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf',
-            'GIT_CONFIG_VALUE_0=git@github.com:',
+            // Rewrite SSH dependency URLs to HTTPS, which the token can
+            // authenticate, and include the repository path in credential
+            // prompts so the helper can mint a per-repository token.
+            "GIT_CONFIG_COUNT=${baseConfigCount + 2}",
+            "GIT_CONFIG_KEY_${baseConfigCount}=url.https://github.com/.insteadOf",
+            "GIT_CONFIG_VALUE_${baseConfigCount}=git@github.com:",
+            "GIT_CONFIG_KEY_${baseConfigCount + 1}=credential.useHttpPath",
+            "GIT_CONFIG_VALUE_${baseConfigCount + 1}=true",
         ]) {
             body()
         }
