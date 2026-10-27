@@ -298,11 +298,6 @@ pipeline {
                                                         -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}-failpoint#'"${TIDB_FAILPOINT_IMAGE}"'#g' \
                                                         -e 's#[[:alnum:].-]*[.][[:alnum:].-]*/qa/tidb:${TIDB_BRANCH:-master}#'"${TIDB_IMAGE}"'#g' \
                                                         {} +
-                                                # run-test.py reads the failpoint API with urlopen().read(),
-                                                # which returns bytes on Python 3 (the test image ships 3.12 while
-                                                # the harness was written for Python 2). The matcher compares
-                                                # against str, so decode the response.
-                                                sed -i 's#response = urlopen(request).read().strip()#response = urlopen(request).read().decode("utf-8", "ignore").strip()#' ../run-test.py
                                                     rm -rf ~/.docker
                                                 '''
                                                 sh label: "run integration tests", script: """
