@@ -281,6 +281,17 @@ pipeline {
                                                     timeout 300 docker pull "${TIDB_IMAGE}"
                                                     timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}" || true
                                                     timeout 600 docker pull "${TIFLASH_IMAGE}"
+                                                    # The old hub.pingcap.net/tiflash/tiflash-ci-base shipped
+                                                    # without python3, so tests/run-test.sh (which prefers
+                                                    # python3) used python2. The replacement image ships
+                                                    # python3.12 and the release-8.1 harness is Python-2 era
+                                                    # (urllib returns/accepts `str` there), so hide python3 to
+                                                    # keep the same interpreter as before.
+                                                    docker build -q -t tiflash-ci-base-local:p2 - <<DOCKERFILE
+FROM ${TIFLASH_IMAGE}
+RUN rm -f /usr/bin/python3 /usr/bin/python3.12
+DOCKERFILE
+                                                    TIFLASH_IMAGE=tiflash-ci-base-local:p2
 
                                                     find ../docker . -name '*.yaml' -type f -exec sed -i \
                                                         -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
