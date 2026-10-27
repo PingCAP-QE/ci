@@ -229,7 +229,7 @@ class TestProw {
                 writeFile: { Map args -> events << "write:${args.file}".toString() },
                 sh: { Map args -> events << "sh:${args.script}".toString() },
                 withEnv: { List environment, Closure body ->
-                    events << "env:${environment}".toString()
+                    events << "env:${environment.collect { it.toString() }}".toString()
                     body()
                 },
             )
@@ -253,9 +253,40 @@ class TestProw {
             assertTrue('token cache scoped', env.contains('TIPIPELINE_BROKER_CACHE=/tmp/ws/git-broker-token-'))
             assertTrue('ssh urls rewritten',
                 env.contains('GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf'))
+            assertTrue('repository path included in credential prompts',
+                env.contains('GIT_CONFIG_KEY_1=credential.useHttpPath'))
+            assertTrue('git config count set', env.contains('GIT_CONFIG_COUNT=2'))
             assertEquals('body runs inside scope', 'checkout', events[4])
             assertTrue('helper and cache removed',
                 events[5] ==~ /sh:rm -f '\/tmp\/ws\/git-askpass-broker-.*' '\/tmp\/ws\/git-broker-token-.*'/)
+        }
+
+        @Test
+        void shouldAppendToExistingGitConfigEntries() {
+            def events = []
+            def script = loadProw(
+                env: [WORKSPACE: '/tmp/ws', GIT_BROKER_URL: 'http://broker.example',
+                      GIT_CONFIG_COUNT: '3'],
+                libraryResource: { String path -> 'broker askpass' },
+                writeFile: { Map args -> },
+                sh: { Map args -> },
+                withEnv: { List environment, Closure body ->
+                    events << environment.collect { it.toString() }
+                    body()
+                },
+            )
+
+            script.withGitAskPassFromBroker { }
+
+            def env = events[0]
+            assertTrue('count grows instead of resetting',
+                env.contains('GIT_CONFIG_COUNT=5'))
+            assertTrue('rewrite appended at the first free slot',
+                env.contains('GIT_CONFIG_KEY_3=url.https://github.com/.insteadOf'))
+            assertTrue('useHttpPath appended at the next slot',
+                env.contains('GIT_CONFIG_KEY_4=credential.useHttpPath'))
+            assertTrue('existing entries preserved',
+                !env.any { it == 'GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf' })
         }
 
         @Test
