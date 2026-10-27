@@ -24,7 +24,7 @@ spec:
         Image providing the statically linked git-credential helper. Pin an
         ee-apps release tag (github-token-broker-git-credential).
       type: string
-      default: "ghcr.io/pingcap-qe/ee-apps/github-token-broker-git-credential:v2026.10.27-0-g0000000"
+      default: "ghcr.io/pingcap-qe/ee-apps/github-token-broker-git-credential:v2026.10.25-6-g9218dd0"
     - name: broker-url
       description: Base URL of the in-cluster token broker.
       type: string

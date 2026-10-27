@@ -63,6 +63,13 @@ spec:
       description: Base URL of the in-cluster token broker.
       type: string
       default: "http://github-token-broker.github-token-broker.svc"
+    - name: git-auth-home
+      description: >-
+        Shared home directory of the pod where the credential helper is
+        installed. Tekton mounts it in every step, but steps keep the HOME of
+        their own image, so the path must be absolute.
+      type: string
+      default: "/tekton/home"
     - name: git-auth-permissions
       description: Permissions requested from the broker, as name=level pairs separated by semicolons.
       type: string
@@ -80,6 +87,8 @@ spec:
           value: $(params.git-auth-broker-url)
         - name: permissions
           value: $(params.git-auth-permissions)
+        - name: user-home
+          value: $(params.git-auth-home)
 
     - name: generate
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
@@ -178,9 +187,12 @@ spec:
           insteadOf = ssh://git@github.com/
         CONFIG
         fi
-        if [ -f "$HOME/.git-auth/gitconfig.fragment" ]; then
+        # The setup step installs the helper in the shared home; this step keeps
+        # the HOME of the builder image, so read the fragment by absolute path.
+        git_auth_fragment="$(params.git-auth-home)/.git-auth/gitconfig.fragment"
+        if [ -f "${git_auth_fragment}" ]; then
           mkdir -p "$HOME"
-          cat "$HOME/.git-auth/gitconfig.fragment" >> "$HOME/.gitconfig"
+          cat "${git_auth_fragment}" >> "$HOME/.gitconfig"
         fi
         script="/workspace/build-package-artifacts.sh"
         "$script" -b -a -w "$(params.release-dir)"
