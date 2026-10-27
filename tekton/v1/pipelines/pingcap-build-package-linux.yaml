@@ -68,7 +68,26 @@ spec:
       description: Fetch the external enterprise-plugin repo during checkout.
       type: string
       default: "false"
+    - name: git-auth-app
+      description: >-
+        Authenticate git with GitHub App installation tokens from the in-cluster
+        token broker. Set to "false" to fall back to the previous credentials.
+      type: string
+      default: "true"
+    - name: git-auth-broker-url
+      description: Base URL of the in-cluster token broker.
+      type: string
+      default: "http://github-token-broker.github-token-broker.svc"
+    - name: git-auth-fallback-credentials
+      description: >-
+        Path to a .git-credentials file used when the broker denies the request.
+        Empty makes git fail explicitly for repositories outside the App.
+      type: string
+      default: ""
   results:
+    - name: git-auth-mode
+      description: Credential source used by checkout (app, pat, unused or disabled).
+      value: "$(tasks.checkout.results.git-auth-mode)"
     - name: pushed-binaries
       description: pushed binaries.
       value: "$(tasks.build-binaries.results.pushed)"
@@ -110,6 +129,12 @@ spec:
           value: $(params.fetch-external)
         - name: external-git-ref
           value: $(params.external-git-ref)
+        - name: git-auth-app
+          value: $(params.git-auth-app)
+        - name: git-auth-broker-url
+          value: $(params.git-auth-broker-url)
+        - name: git-auth-fallback-credentials
+          value: $(params.git-auth-fallback-credentials)
       workspaces:
         - name: output
           workspace: source
@@ -176,6 +201,10 @@ spec:
           value: "$(params.push)"
         - name: registry
           value: "$(params.registry)"
+        - name: git-auth-app
+          value: "$(params.git-auth-app)"
+        - name: git-auth-broker-url
+          value: "$(params.git-auth-broker-url)"
       workspaces:
         - name: git-credentials
           workspace: git-credentials

@@ -56,6 +56,11 @@ spec:
     - name: fetch-external
       description: Fetch the external enterprise-plugin repo during checkout.
       default: "false"
+    - name: git-auth-app
+      description: >-
+        Authenticate git with GitHub App installation tokens from the in-cluster
+        token broker. Set to "false" to fall back to the previous credentials.
+      default: "true"
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -101,6 +106,8 @@ spec:
             value: $(tt.params.external-git-ref)
           - name: fetch-external
             value: $(tt.params.fetch-external)
+          - name: git-auth-app
+            value: $(tt.params.git-auth-app)
         taskRunTemplate:
           podTemplate:
             nodeSelector:

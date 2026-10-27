@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://github.com/redhat-developer/vscode-tekton/raw/refs/heads/main/scheme/tekton.dev/v1beta1_StepAction.json
+apiVersion: tekton.dev/v1beta1
+kind: StepAction
+metadata:
+  name: setup-git-auth
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: git,security
+    tekton.dev/tags: git,github,credentials,broker
+    tekton.dev/displayName: "Set up broker-backed git authentication"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: >-
+    Install a broker-backed git credential helper into the shared home directory
+    so later steps in the same pod (checkout, submodules, and long builds that
+    fetch private Go, Cargo or npm dependencies) authenticate to GitHub with
+    short-lived GitHub App installation tokens. The identity is the pod
+    ServiceAccount: no PAT and no App private key is written to the pod.
+  params:
+    - name: helper-image
+      description: >-
+        Image providing the statically linked git-credential helper. Pin an
+        ee-apps release tag (github-token-broker-git-credential).
+      type: string
+      default: "ghcr.io/pingcap-qe/ee-apps/github-token-broker-git-credential:v2026.10.27-0-g0000000"
+    - name: broker-url
+      description: Base URL of the in-cluster token broker.
+      type: string
+      default: "http://github-token-broker.github-token-broker.svc"
+    - name: permissions
+      description: >-
+        Permissions to request, as name=level pairs separated by semicolons.
+        Keep this read-only for dependency fetching.
+      type: string
+      default: "contents=read"
+    - name: hosts
+      description: Comma separated git hosts that may receive a token.
+      type: string
+      default: "github.com"
+    - name: fallback-credentials-path
+      description: >-
+        Optional .git-credentials file used when the broker denies the request,
+        for repositories outside the App installation. Empty disables the
+        fallback and makes git fail explicitly.
+      type: string
+      default: ""
+    - name: user-home
+      description: >-
+        Shared home directory of the pod. Tekton mounts it in every step, so the
+        helper and the git configuration are visible to later steps.
+      type: string
+      default: "/tekton/home"
+  env:
+    - name: PARAM_BROKER_URL
+      value: $(params.broker-url)
+    - name: PARAM_PERMISSIONS
+      value: $(params.permissions)
+    - name: PARAM_HOSTS
+      value: $(params.hosts)
+    - name: PARAM_FALLBACK_CREDENTIALS
+      value: $(params.fallback-credentials-path)
+    - name: PARAM_USER_HOME
+      value: $(params.user-home)
+  image: $(params.helper-image)
+  script: |
+    #!/usr/bin/env sh
+    set -eu
+
+    git_auth_dir="${PARAM_USER_HOME}/.git-auth"
+    mkdir -p "${git_auth_dir}/bin" "${git_auth_dir}/cache"
+
+    # The helper image ships the binary at /ko-app/<command>; copy it into the
+    # shared home so every later step and any builder image can run it.
+    cp /ko-app/git-credential "${git_auth_dir}/bin/git-credential"
+    chmod 0755 "${git_auth_dir}/bin/git-credential"
+
+    "${git_auth_dir}/bin/git-credential" setup \
+      -home "${PARAM_USER_HOME}" \
+      -broker-url "${PARAM_BROKER_URL}" \
+      -permissions "${PARAM_PERMISSIONS}" \
+      -hosts "${PARAM_HOSTS}" \
+      -fallback-credentials "${PARAM_FALLBACK_CREDENTIALS}"
