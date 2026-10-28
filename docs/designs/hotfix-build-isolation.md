@@ -64,6 +64,10 @@ from release-anchor tags `vX.Y.Z-YYYYMMDD-<sha>`) and branch-built tags
 branch-built tags are pruned after 30 days by an Artifact Registry cleanup
 policy (`tag_prefixes = ["release-"]`).
 
+Decision: hotfix branch candidates stay in the `hotfix` registry for now (no
+dedicated candidate repository). Only branch-name tags with the `release-` prefix
+are pruned automatically.
+
 Two constraints are worth knowing:
 
 - Artifact Registry KEEP policies win over DELETE policies, so the repository
