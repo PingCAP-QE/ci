@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - gcp-classic-build-params.yaml
   - gcp-dev-build-params.yaml
+  - gcp-hotfix-build-params.yaml
   - gcp-internal-build-params.yaml
   - gcp-ng-build-params.yaml
   - github-branch-create.yaml

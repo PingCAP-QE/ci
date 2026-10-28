@@ -19,6 +19,7 @@ resources:
   - _/git-push-branch-build-community-linux.yaml
   - _/git-push-branch-build-enterprise.yaml
   - _/git-push-branch-build-failpoint.yaml
+  - _/git-push-branch-build-hotfix-linux.yaml
   - _/git-push-branch-build-ng.yaml
   - _/git-push-on-fips-branches.yaml
   - _/github-pr-coderabbit-review-label.yaml
@@ -47,7 +48,6 @@ resources:
   - pingcap/ticdc/git-create-tag-darwin-amd64.yaml
   - pingcap/ticdc/git-create-tag-darwin-arm64.yaml
   - pingcap/ticdc/git-create-tag.yaml
-  - pingcap/ticdc/git-push-branch-build-hotfix.yaml
   - pingcap/tidb-binlog/git-push.yaml
   - pingcap/tidb-ctl/git-create-tag.yaml
   - pingcap/tidb-ctl/git-push.yaml

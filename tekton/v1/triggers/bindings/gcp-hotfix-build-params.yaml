@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: gcp-hotfix-build-params # only use in GCP clusters for hotfix candidate builds
+spec:
+  params:
+    # Hotfix branch builds are preview/candidate builds: they must never touch
+    # the released artifacts in `hub`, and they must never be delivered to the
+    # tiup mirrors. See docs/designs/hotfix-build-isolation.md.
+    - name: registry
+      value: us-docker.pkg.dev/pingcap-testing-account/hotfix
+    - name: publisher-url
+      value: ""
