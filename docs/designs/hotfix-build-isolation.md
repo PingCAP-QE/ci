@@ -58,13 +58,21 @@ triggers and the registry layout.
 
 ## Retention
 
-The `hotfix` registry also stores officially released hotfix artifacts, so its
-cleanup policy only prunes untagged manifests after 1 day and keeps every tagged
-artifact, exactly like `hub`. Candidate builds therefore accumulate until a
-dedicated candidate repository (for example `hotfix-candidate`) with a short
-retention window is introduced; once that repository exists, candidates should
-be redirected there by changing the `registry` value in
-`gcp-hotfix-build-params`.
+The `hotfix` registry stores both officially released hotfix artifacts (built
+from release-anchor tags `vX.Y.Z-YYYYMMDD-<sha>`) and branch-built tags
+(`release-X.Y-YYYYMMDD-vX.Y.Z_<os>_<arch>`). Released artifacts are kept, while
+branch-built tags are pruned after 30 days by an Artifact Registry cleanup
+policy (`tag_prefixes = ["release-"]`).
+
+Two constraints are worth knowing:
+
+- Artifact Registry KEEP policies win over DELETE policies, so the repository
+  must not define a blanket `KEEP tagged` rule together with the pruning rule.
+- Tags of the form `vX.Y.Z-<profile>` (for example `v8.5.6-pre`), which also come
+  from builds at a tagged commit, share the `vX.Y.Z-` prefix with the released
+  `vX.Y.Z-YYYYMMDD-<sha>` tags and cannot be pruned with prefix-based cleanup.
+  They are pruned either by not writing candidates into this registry (dedicated
+  candidate repository) or by a regex-based cleanup job.
 
 ## Known risk
 
