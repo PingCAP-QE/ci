@@ -12,10 +12,10 @@ spec:
           value: overlay2
       resources:
         requests:
-          memory: "10Gi"
+          memory: "16Gi"
           cpu: "4"
         limits:
-          memory: "10Gi"
+          memory: "16Gi"
           cpu: "5"
       securityContext:
         privileged: true
