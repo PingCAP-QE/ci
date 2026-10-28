@@ -7,10 +7,10 @@ spec:
       name: "dockerd"
       resources:
         requests:
-          memory: "10Gi"
+          memory: "16Gi"
           cpu: "5000m"
         limits:
-          memory: "10Gi"
+          memory: "16Gi"
           cpu: "5000m"
       securityContext:
         privileged: true
