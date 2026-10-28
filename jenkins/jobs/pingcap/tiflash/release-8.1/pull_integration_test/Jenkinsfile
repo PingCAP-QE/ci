@@ -304,16 +304,6 @@ pipeline {
                                         println "Test failed, archive the log"
                                         sh label: "debug fail", script: """
                                             docker ps -a
-                                            # `tidb-ci` needs the failpoint API; dump what the container
-                                            # actually got so a failure here is diagnosable.
-                                            docker-compose -f cluster.yaml -f tiflash-dt.yaml ps -q tidb0 \
-                                                | xargs -r docker inspect \
-                                                    --format 'tidb0 image={{.Config.Image}} env={{.Config.Env}}' || true
-                                            docker-compose -f cluster.yaml -f tiflash-dt.yaml exec -T tiflash0 bash -c '
-                                                env | grep -i "^tidb" || true
-                                                getent hosts tidb0 || true
-                                                python3 -c "import urllib.request; print(urllib.request.urlopen(\"http://tidb0:10080/fail/github.com/pingcap/tidb/pkg/server/enableTestAPI\", timeout=5).read())" || true
-                                            ' || true
                                             mv log ${TEST_PATH}-log
                                             find ${TEST_PATH}-log -name '*.log' | xargs tail -n 500
                                         """
