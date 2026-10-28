@@ -30,8 +30,9 @@ triggers and the registry layout.
 - **Separate registry.** Hotfix branch builds push to
   `us-docker.pkg.dev/pingcap-testing-account/hotfix` via the
   `gcp-hotfix-build-params` binding, so they cannot overwrite the artifacts in
-  `hub`. Note that `hotfix` already holds officially released hotfix artifacts,
-  therefore its retention policy must stay non-destructive (see below).
+  `hub`. Note that `hotfix` already holds officially released hotfix artifacts
+  built from release-anchor tags (`vX.Y.Z-YYYYMMDD-<sha>`), therefore its
+  retention policy must stay non-destructive (see below).
 - **No delivery.** The same binding sets `publisher-url` to the empty string,
   so `pingcap-deliver-binaries` does not notify the tiup publisher. In
   addition, `packages/delivery.yaml` rules only match the `hub` and `tidbx`
@@ -51,7 +52,7 @@ triggers and the registry layout.
 | Registry | Content | Delivered |
 | --- | --- | --- |
 | `hub` | artifacts built from tag refs and from `master`/`main`/`release-X.Y` branches | yes (images + tiup) |
-| `hotfix` | hotfix branch candidates, plus officially released hotfix artifacts | released ones only (via their own release flow) |
+| `hotfix` | officially released hotfix artifacts built from `vX.Y.Z-YYYYMMDD-<sha>` tags, plus (for now) hotfix branch candidates | tag-built ones by their own flow |
 | `dev` | ad-hoc / custom builds | no |
 | `tidbx` | nextgen builds | per delivery rules |
 
@@ -64,6 +65,16 @@ dedicated candidate repository (for example `hotfix-candidate`) with a short
 retention window is introduced; once that repository exists, candidates should
 be redirected there by changing the `registry` value in
 `gcp-hotfix-build-params`.
+
+## Known risk
+
+Candidate branch builds share the `hotfix` registry with the official
+release-anchor artifacts. A branch created **from a hotfix tag** (for example
+`v8.5.8-20261016-5feda11`) makes `git describe` return that tag version, so the
+candidate build would push `v8.5.8-20261016-5feda11_<os>_<arch>` and overwrite
+the released artifact. Until version derivation is fixed, candidates should be
+redirected to a dedicated repository (for example `hotfix-candidate`) so that
+no branch build can touch release artifacts.
 
 ## Follow-ups
 
