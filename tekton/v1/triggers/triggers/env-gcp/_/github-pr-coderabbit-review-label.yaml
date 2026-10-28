@@ -19,6 +19,7 @@ spec:
                 && body.pull_request.base.ref == 'test_ai_review'
               )
               || body.repository.full_name in [
+                'pingcap/tiflash',
                 'tikv/pd'
               ]
             )
