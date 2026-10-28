@@ -1,0 +1,109 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: github-push-build-hotfix-linux
+  labels:
+    type: github-branch-push
+    profile: hotfix
+  annotations:
+    description: >-
+      Builds hotfix branches and pushes the artifacts to the `hotfix` registry
+      only (never to `hub`, never to the tiup mirrors).
+spec:
+  interceptors:
+    - name: filter on repo and hotfix branch
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: >-
+            body.repository.full_name in [
+            'pingcap/monitoring',
+            'pingcap/ng-monitoring',
+            'pingcap/ticdc',
+            'pingcap/tidb',
+            'pingcap/tidb-dashboard',
+            'pingcap/tiflash',
+            'pingcap/tiflow',
+            'tikv/pd',
+            'tikv/tikv',
+            ]
+            &&
+            (
+              body.ref.matches('^refs/heads/release-[0-9]+[.][0-9]+-[0-9]{8}-v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$')
+              ||
+              body.ref.matches('^refs/heads/release-[0-9]+[.][0-9]+[.][0-9]+-release[.][0-9]+-[0-9]{8}(-.+)?$')
+            )
+        - name: overlays
+          value:
+            - key: resource-config
+              expression: >-
+                {
+                  'pingcap/monitoring': {
+                    'timeout': '30m',
+                    'sourceWsSize': '20Gi',
+                    'cpu': '2',
+                    'memory': '4Gi',
+                  },
+                  'pingcap/ng-monitoring': {
+                    'timeout': '30m',
+                    'sourceWsSize': '20Gi',
+                    'cpu': '2',
+                    'memory': '4Gi',
+                  },
+                  'pingcap/ticdc': {
+                    'timeout': '30m',
+                    'sourceWsSize': '50Gi',
+                    'cpu': '4',
+                    'memory': '16Gi',
+                  },
+                  'pingcap/tidb': {
+                    'timeout': '45m',
+                    'sourceWsSize': '50Gi',
+                    'cpu': '6',
+                    'memory': '24Gi',
+                  },
+                  'pingcap/tidb-dashboard': {
+                    'timeout': '40m',
+                    'sourceWsSize': '20Gi',
+                    'cpu': '2',
+                    'memory': '4Gi',
+                  },
+                  'pingcap/tiflash': {
+                    'timeout': '2h',
+                    'sourceWsSize': '100Gi',
+                    'cpu': '12',
+                    'memory': '48Gi',
+                  },
+                  'pingcap/tiflow': {
+                    'timeout': '40m',
+                    'sourceWsSize': '50Gi',
+                    'cpu': '6',
+                    'memory': '24Gi',
+                  },
+                  'tikv/pd': {
+                    'timeout': '40m',
+                    'sourceWsSize': '50Gi',
+                    'cpu': '6',
+                    'memory': '24Gi',
+                  },
+                  'tikv/tikv': {
+                    'timeout': '2h',
+                    'sourceWsSize': '100Gi',
+                    'cpu': '12',
+                    'memory': '56Gi',
+                  },
+                }[body.repository.full_name]
+  bindings:
+    - ref: github-branch-push
+    - ref: gcp-hotfix-build-params
+    - { name: component, value: $(body.repository.name) }
+    - { name: profile, value: release }
+    - { name: timeout, value: $(extensions.resource-config.timeout) }
+    - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
+    - name: builder-resources-cpu
+      value: $(extensions.resource-config.cpu)
+    - name: builder-resources-memory
+      value: $(extensions.resource-config.memory)
+
+  template:
+    ref: build-component-linux
