@@ -124,6 +124,7 @@ periodics:
               memory: 1Gi
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
+    cluster: tke-pingcap-cicd
     cron: "15 0 * * *" # Run daily at 8:15 UTC+8 (which is 0:15 UTC)
     spec:
       activeDeadlineSeconds: 300
@@ -186,6 +187,7 @@ periodics:
                   name: ci-smtp
   - name: periodic-reporter-flaky-tests-tidb-ng2609
     decorate: true # need add this.
+    cluster: tke-pingcap-cicd
     cron: "25 0 * * *" # Run daily at 8:25 UTC+8 (which is 0:25 UTC)
     spec:
       activeDeadlineSeconds: 300
@@ -248,6 +250,7 @@ periodics:
                   name: ci-smtp
   - name: periodic-reporter-flaky-tests-tidb-ng2603
     decorate: true # need add this.
+    cluster: tke-pingcap-cicd
     cron: "35 0 * * *" # Run daily at 8:35 UTC+8 (which is 0:35 UTC)
     spec:
       activeDeadlineSeconds: 300
@@ -310,6 +313,7 @@ periodics:
                   name: ci-smtp
   - name: periodic-reporter-flaky-tests-tidb-ng2510
     decorate: true # need add this.
+    cluster: tke-pingcap-cicd
     cron: "45 0 * * *" # Run daily at 8:45 UTC+8 (which is 0:45 UTC)
     spec:
       activeDeadlineSeconds: 300
