@@ -101,6 +101,5 @@ publish_and_wait() {
 
 # Example:
 #   # run the script to publish tiup packages from oci artifact
-#   # for staging:
-#   ./scripts/flow/rc/refresh-tiup.sh https://publisher-staging.pingcap.net <git-branch-name>
+#   ./scripts/flow/rc/refresh-tiup.sh https://do2.pingcap.net/publisher <git-branch-name>
 main "$@"

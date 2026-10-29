@@ -9,7 +9,6 @@ resources:
   - _/ci-helper-for-pr.yaml
   - _/coderabbit-review-label.yaml
   - _/collect-multi-arch-image.yaml
-  # - _/push-oci-artifact-to-fileserver.yaml
   - pingcap/bump-placeholder-version-in-readme.yaml
   - pingcap/ctl/build-component-single-platform.yaml
   - pingcap/sync-owners-for-hotfix-branch.yaml
