@@ -10,7 +10,6 @@ resources:
   - delivery/pingcap-notify-to-deliver-images-to-cloud-tidbx.yaml
   - delivery/pingcap-notify-to-update-ops-tidbx.yaml
   - delivery/pingcap-notify-to-update-tcms-tidbx.yaml
-  # - delivery/publish-fileserver-from-oci-artifact.yaml
   - echo.yaml
   - git-clone.yaml
   - github-set-status.yaml
