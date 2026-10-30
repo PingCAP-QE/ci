@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: pingcap-deliver-images
   labels:
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.2.0"
   annotations:
     tekton.dev/pipelines.minVersion: "1.0.0"
     tekton.dev/categories: delivery
@@ -12,6 +12,12 @@ metadata:
     tekton.dev/displayName: "PingCAP product image delivery"
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
+  description: >-
+    Delivers product images to the destination registries listed in the delivery
+    rules. Two modes coexist: when `publisher-url` is set the task submits the
+    delivery to the TiBuild publish API and waits for the per-target steps;
+    otherwise it keeps the legacy behaviour of generating a `crane` script with
+    the deno generator and running it in this pod.
   params:
     - name: src
     - name: src-type
@@ -20,20 +26,54 @@ spec:
       enum:
         - image-url # container image url
         - images-info # yaml/json content that stored images information return by image build task
+    - name: publisher-url
+      description: >-
+        Base URL of the TiBuild publish API, for example
+        http://v2-tibuild-v2.tibuild.svc. When empty (or "false") the task falls
+        back to the legacy deno generator + crane script.
+      default: ""
+    - name: publish-wait-timeout-seconds
+      description: How long to wait for the publication units created by the publish API
+      default: "1800"
     - name: delivery-config-url
-      description: URL of the delivery configuration file
+      description: URL of the delivery configuration file (legacy mode only)
       default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
     - name: generator-script-url
-      description: URL of the generator script
+      description: URL of the generator script (legacy mode only)
       default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
     - name: retries
-      description: Number of retries for image delivery step
+      description: Number of retries for image delivery step (legacy mode only)
       default: "3"
     - name: notify-webhook-url
       description: URL of the webhook for notification
       default: "http://el-notify.ee-cd.svc:8080"
   steps:
+    # Service mode. The API owns the rules and the per-target state, so the task
+    # only submits and waits; the shell lives in the StepActions.
+    - name: submit-to-publisher
+      when:
+        - input: "$(params.publisher-url)"
+          operator: notin
+          values: ["false", ""]
+      ref:
+        name: submit-publish-images
+      params:
+        - name: publisher-url
+          value: "$(params.publisher-url)"
+        - name: src
+          value: "$(params.src)"
+        - name: src-type
+          value: "$(params.src-type)"
+        - name: unit-ids-file
+          value: /workspace/publish-unit-ids.txt
+    # Legacy mode: generate the crane script from the remote rules and run it.
+    # It is the rollback path and is removed once the service mode is fully
+    # rolled out.
     - name: generate
+      when:
+        - input: "$(params.publisher-url)"
+          operator: in
+          values: ["false", ""]
       image: docker.io/denoland/deno:alpine-2.0.6 # it has `wget` tool.
       results:
         - name: generated
@@ -94,6 +134,22 @@ spec:
           echo "Script '$script' failed. Retrying in 10 seconds... ($tries/$max_retries)"
           sleep 10
         done
+    - name: wait-for-publisher
+      when:
+        - input: "$(params.publisher-url)"
+          operator: notin
+          values: ["false", ""]
+      ref:
+        name: wait-publish-units
+      params:
+        - name: publisher-url
+          value: "$(params.publisher-url)"
+        - name: unit-ids-file
+          value: /workspace/publish-unit-ids.txt
+        - name: timeout-seconds
+          value: "$(params.publish-wait-timeout-seconds)"
+        - name: summary-file
+          value: /workspace/publish-units.json
     - name: post-notify
       image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       when:
@@ -112,6 +168,39 @@ spec:
         yq --output-format json . "$targetsInfo" | tee event.json
 
         # send cloud-events to tekton event listener
+        curl -X POST "$(params.notify-webhook-url)" \
+        -H "Content-Type: application/cloudevents+json" \
+        -H "ce-specversion: 1.0" \
+        -H "ce-id: $(uuidgen)" \
+        -H "ce-type: net.pingcap.tibuild.notify.delivery.images.success" \
+        -H "ce-source: tekton/taskRun/$(context.taskRun.name)" \
+        --data-binary @event.json
+    - name: post-notify-publisher
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+      when:
+        - input: "$(params.publisher-url)"
+          operator: notin
+          values: ["false", ""]
+        - input: "$(params.notify-webhook-url)"
+          operator: notin
+          values: ["false", ""]
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        unitsFile="/workspace/publish-units.json"
+        if [ ! -f "$unitsFile" ]; then
+          echo "[]" > "$unitsFile"
+        fi
+
+        # The event data keeps the shape the downstream triggers read: a flat
+        # `images` list of "<repo>:<tag>", exactly what the legacy generator
+        # produced (see the CEL filter in the tidbx notify trigger). The unit
+        # details are added next to it.
+        jq '{images: ([.[] | .steps[] | ((.result.copied // []) + (.result.skipped // []))[]] | unique),
+             units: .}' "$unitsFile" > event.json
+        cat event.json
+
         curl -X POST "$(params.notify-webhook-url)" \
         -H "Content-Type: application/cloudevents+json" \
         -H "ce-specversion: 1.0" \

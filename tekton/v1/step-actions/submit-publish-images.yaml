@@ -1,0 +1,105 @@
+apiVersion: tekton.dev/v1beta1
+kind: StepAction
+metadata:
+  name: submit-publish-images
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: delivery
+    tekton.dev/tags: images,delivery,publish
+    tekton.dev/displayName: "Submit images to the TiBuild publish API"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: |-
+    Submits image references to the TiBuild publish API and records the id of
+    every publication unit it creates.
+
+    One unit is created per image reference; the service expands the delivery
+    rules into per-target steps, so the caller only has to wait. With
+    `src-type=images-info` the build result is expanded the way the legacy
+    generator did: every tag of every image (`tag`, `tags`, `multi_arch_tags`),
+    de-duplicated.
+
+    The ids are written to `unit-ids-file`, one per line. The file always exists
+    afterwards: empty means no delivery rule matched (a successful no-op), which
+    is what `wait-publish-units` distinguishes from a submit that never ran.
+  params:
+    - name: publisher-url
+      type: string
+      description: Base URL of the publish API, for example http://v2-tibuild-v2.tibuild.svc
+    - name: src
+      type: string
+      description: Image reference, or the build result (YAML/JSON) when src-type is images-info
+    - name: src-type
+      type: string
+      description: How to read src
+      default: image-url
+      enum:
+        - image-url
+        - images-info
+    - name: unit-ids-file
+      type: string
+      description: Where to write the created publication unit ids, one per line
+      default: /workspace/publish-unit-ids.txt
+  # StepActions must not substitute params inside the script; map them to env.
+  env:
+    - name: PUBLISHER_URL
+      value: $(params.publisher-url)
+    - name: SRC
+      value: $(params.src)
+    - name: SRC_TYPE
+      value: $(params.src-type)
+    - name: UNIT_IDS_FILE
+      value: $(params.unit-ids-file)
+  image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+  script: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    base="$PUBLISHER_URL"
+    src="$SRC"
+    ids_file="$UNIT_IDS_FILE"
+    src_file=/workspace/publish-src.txt
+    : > "$ids_file"
+
+    publish() {
+      local ref="$1" response unit_id step_count
+      echo "Submitting ${ref}"
+      response="$(curl -fsS -X POST "${base}/api/v2/publish/images" \
+        -H 'Content-Type: application/json' \
+        -d "{\"artifactUrl\":\"${ref}\"}")"
+      echo "$response"
+      unit_id="$(jq -r '.id // empty' <<<"$response")"
+      step_count="$(jq -r '.steps | length' <<<"$response")"
+      if [[ -z "$unit_id" || "$step_count" == "0" ]]; then
+        echo "  no delivery rule matched, nothing to publish"
+        return 0
+      fi
+      echo "${unit_id}" >> "$ids_file"
+    }
+
+    case "$SRC_TYPE" in
+      image-url)
+        publish "$src"
+        ;;
+      images-info)
+        printf '%s\n' "$src" > "$src_file"
+        # `yq` reads JSON as YAML, so the build result can be either format.
+        while IFS= read -r ref; do
+          [[ -z "$ref" ]] && continue
+          publish "$ref"
+        done < <(yq -r '
+          (if type == "!!seq" then . else .images end)[]
+          | .repo as $repo
+          | ([.tag] + (.tags // []) + (.multi_arch_tags // []))[]
+          | select(. != null and . != "")
+          | $repo + ":" + .' "$src_file" | sort -u)
+        ;;
+      *)
+        echo "unsupported src-type '${SRC_TYPE}'" >&2
+        exit 1
+        ;;
+    esac
+
+    echo "Created $(wc -l < "$ids_file" | tr -d ' ') publication unit(s)."
