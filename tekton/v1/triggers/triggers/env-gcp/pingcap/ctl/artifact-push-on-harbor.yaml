@@ -25,9 +25,7 @@ spec:
           # Only artifacts in the GCP registry (us-docker.pkg.dev/pingcap-testing-account/hub)
           # are considered; events from the legacy zot registry are ignored.
           value: >-
-            (
-              body.event_data.resources[0].resource_url.startsWith('us-docker.pkg.dev/pingcap-testing-account/hub/')
-            ) &&
+            body.event_data.resources[0].resource_url.startsWith('us-docker.pkg.dev/pingcap-testing-account/hub/') &&
             body.event_data.repository.repo_full_name in [
             'pingcap-testing-account/hub/pingcap/tidb/package',
             'pingcap-testing-account/hub/pingcap/tiflow/package',
