@@ -48,60 +48,27 @@ spec:
       description: URL of the webhook for notification
       default: "http://el-notify.ee-cd.svc:8080"
   steps:
+    # Service mode. The API owns the rules and the per-target state, so the task
+    # only submits and waits; the shell lives in the StepActions.
     - name: submit-to-publisher
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       when:
         - input: "$(params.publisher-url)"
           operator: notin
           values: ["false", ""]
-      results:
-        - name: units
-          description: Number of publication units created
-          type: string
-      script: |
-        #!/usr/bin/env bash
-        set -euo pipefail
-
-        base="$(params.publisher-url)"
-        src="$(params.src)"
-        units_file="/workspace/publish-units.txt"
-        : > "$units_file"
-
-        publish() {
-          local ref="$1"
-          local response unit_id step_count
-          echo "Submitting ${ref}"
-          response="$(curl -fsS -X POST "${base}/api/v2/publish/images" \
-            -H 'Content-Type: application/json' \
-            -d "{\"artifactUrl\":\"${ref}\"}")"
-          echo "$response"
-          unit_id="$(jq -r '.id // empty' <<<"$response")"
-          step_count="$(jq -r '.steps | length' <<<"$response")"
-          if [[ -z "$unit_id" || "$step_count" == "0" ]]; then
-            echo "  no delivery rule matched, nothing to publish"
-            return 0
-          fi
-          echo "${unit_id}" >> "$units_file"
-        }
-
-        if [[ "$(params.src-type)" == "image-url" ]]; then
-          publish "$src"
-        else
-          echo "$src" > /workspace/src.txt
-          # Expand the build result exactly like the legacy generator did: every
-          # tag of every image, de-duplicated. `yq` reads JSON as YAML.
-          while IFS= read -r ref; do
-            [[ -z "$ref" ]] && continue
-            publish "$ref"
-          done < <(yq -r '
-            (if type == "!!seq" then . else .images end)[]
-            | .repo as $repo
-            | ([.tag] + (.tags // []) + (.multi_arch_tags // []))[]
-            | select(. != null and . != "")
-            | $repo + ":" + .' /workspace/src.txt | sort -u)
-        fi
-
-        echo -n "$(wc -l < "$units_file" | tr -d ' ')" > "$(step.results.units.path)"
+      ref:
+        name: submit-publish-images
+      params:
+        - name: publisher-url
+          value: "$(params.publisher-url)"
+        - name: src
+          value: "$(params.src)"
+        - name: src-type
+          value: "$(params.src-type)"
+        - name: unit-ids-file
+          value: /workspace/publish-unit-ids.txt
+    # Legacy mode: generate the crane script from the remote rules and run it.
+    # It is the rollback path and is removed once the service mode is fully
+    # rolled out.
     - name: generate
       when:
         - input: "$(params.publisher-url)"
@@ -168,71 +135,21 @@ spec:
           sleep 10
         done
     - name: wait-for-publisher
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       when:
         - input: "$(params.publisher-url)"
           operator: notin
           values: ["false", ""]
-      computeResources:
-        requests:
-          cpu: 50m
-          memory: 128Mi
-      script: |
-        #!/usr/bin/env bash
-        set -euo pipefail
-
-        base="$(params.publisher-url)"
-        units_file="/workspace/publish-units.txt"
-        summary_file="/workspace/publish-units.json"
-
-        if [[ ! -s "$units_file" ]]; then
-          echo "Nothing to publish: no delivery rule matched."
-          echo "[]" > "$summary_file"
-          exit 0
-        fi
-
-        rm -f /workspace/publish-unit-*.json
-        deadline=$(( $(date +%s) + $(params.publish-wait-timeout-seconds) ))
-        interval=10
-        while :; do
-          pending=0
-          failed=0
-          index=0
-          while IFS= read -r unit_id; do
-            [[ -z "$unit_id" ]] && continue
-            index=$((index + 1))
-            body="$(curl -fsS "${base}/api/v2/publish/units/${unit_id}")" || {
-              echo "Failed to read publication unit ${unit_id}" >&2
-              exit 1
-            }
-            printf '%s' "$body" > "/workspace/publish-unit-${index}.json"
-            state="$(jq -r '.state' <<<"$body")"
-            echo "Unit ${unit_id}: ${state}"
-            jq -r '.steps[] | "  - \(.target)\t\(.state)\t\(.dest // "")"' <<<"$body"
-            case "$state" in
-              succeeded) ;;
-              queued|running) pending=1 ;;
-              *) failed=1 ;;
-            esac
-          done < "$units_file"
-
-          if [[ "$failed" == "1" ]]; then
-            jq -s '.' /workspace/publish-unit-*.json > "$summary_file" || true
-            echo "Publication did not fully succeed; see the unit states above." >&2
-            exit 1
-          fi
-          if [[ "$pending" == "0" ]]; then
-            jq -s '.' /workspace/publish-unit-*.json > "$summary_file"
-            echo "All targets delivered."
-            exit 0
-          fi
-          if [[ "$(date +%s)" -ge "$deadline" ]]; then
-            echo "Timed out after $(params.publish-wait-timeout-seconds)s waiting for the publication." >&2
-            exit 1
-          fi
-          sleep "$interval"
-          interval=$(( interval < 30 ? interval + 10 : 30 ))
-        done
+      ref:
+        name: wait-publish-units
+      params:
+        - name: publisher-url
+          value: "$(params.publisher-url)"
+        - name: unit-ids-file
+          value: /workspace/publish-unit-ids.txt
+        - name: timeout-seconds
+          value: "$(params.publish-wait-timeout-seconds)"
+        - name: summary-file
+          value: /workspace/publish-units.json
     - name: post-notify
       image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       when:

@@ -1,0 +1,130 @@
+apiVersion: tekton.dev/v1beta1
+kind: StepAction
+metadata:
+  name: wait-publish-units
+  labels:
+    app.kubernetes.io/version: "0.1.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "1.0.0"
+    tekton.dev/categories: delivery
+    tekton.dev/tags: images,delivery,publish
+    tekton.dev/displayName: "Wait for TiBuild publication units"
+    tekton.dev/platforms: "linux/amd64,linux/arm64"
+spec:
+  description: |-
+    Polls the publication units written by `submit-publish-images` until every
+    destination reached a terminal state.
+
+    A unit that is `partial` or `failed` fails the step, so a partially delivered
+    artifact is visible in the pipeline and not only in the service. The
+    per-target states are printed for the TaskRun log, and the final units are
+    written to `summary-file` as a JSON array for the notify step.
+
+    An empty `unit-ids-file` is a successful no-op (no delivery rule matched). A
+    missing file means the submit step did not run, which fails loudly instead of
+    reporting a delivery that never happened.
+  params:
+    - name: publisher-url
+      type: string
+      description: Base URL of the publish API
+    - name: unit-ids-file
+      type: string
+      description: File written by submit-publish-images, one unit id per line
+      default: /workspace/publish-unit-ids.txt
+    - name: timeout-seconds
+      type: string
+      description: How long to wait for the units
+      default: "1800"
+    - name: poll-interval
+      type: string
+      description: Initial polling interval in seconds
+      default: "10"
+    - name: max-poll-interval
+      type: string
+      description: Upper bound of the polling interval in seconds
+      default: "30"
+    - name: summary-file
+      type: string
+      description: Where to write the final units as a JSON array
+      default: /workspace/publish-units.json
+  # StepActions must not substitute params inside the script; map them to env.
+  env:
+    - name: PUBLISHER_URL
+      value: $(params.publisher-url)
+    - name: UNIT_IDS_FILE
+      value: $(params.unit-ids-file)
+    - name: TIMEOUT_SECONDS
+      value: $(params.timeout-seconds)
+    - name: POLL_INTERVAL
+      value: $(params.poll-interval)
+    - name: MAX_POLL_INTERVAL
+      value: $(params.max-poll-interval)
+    - name: SUMMARY_FILE
+      value: $(params.summary-file)
+  image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+  script: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    base="$PUBLISHER_URL"
+    ids_file="$UNIT_IDS_FILE"
+    summary_file="$SUMMARY_FILE"
+    timeout_seconds="$TIMEOUT_SECONDS"
+    interval="$POLL_INTERVAL"
+    max_interval="$MAX_POLL_INTERVAL"
+
+    if [[ ! -f "$ids_file" ]]; then
+      echo "The publication unit list ${ids_file} does not exist; was submit-publish-images skipped?" >&2
+      exit 1
+    fi
+    ids="$(tr '\n' ',' < "$ids_file" | sed 's/,$//')"
+    if [[ -z "${ids//[[:space:]]/}" ]]; then
+      echo "Nothing to publish: no delivery rule matched."
+      printf '[]' > "$summary_file"
+      exit 0
+    fi
+
+    work_dir="$(mktemp -d)"
+    trap 'rm -rf "$work_dir"' EXIT
+
+    deadline=$(( $(date +%s) + timeout_seconds ))
+    while :; do
+      pending=0
+      failed=0
+      index=0
+      for unit_id in ${ids//,/ }; do
+        index=$((index + 1))
+        body="$(curl -fsS "${base}/api/v2/publish/units/${unit_id}")" || {
+          echo "Failed to read publication unit ${unit_id}" >&2
+          exit 1
+        }
+        printf '%s' "$body" > "${work_dir}/${index}.json"
+
+        state="$(jq -r '.state' <<<"$body")"
+        echo "Unit ${unit_id}: ${state}"
+        jq -r '.steps[] | "  - \(.target)\t\(.state)\t\(.dest // "")"' <<<"$body"
+        case "$state" in
+          succeeded) ;;
+          queued|running) pending=1 ;;
+          *) failed=1 ;;
+        esac
+      done
+
+      if [[ "$failed" == "1" ]]; then
+        jq -s '.' "${work_dir}"/*.json > "$summary_file" || true
+        echo "Publication did not fully succeed; see the unit states above." >&2
+        exit 1
+      fi
+      if [[ "$pending" == "0" ]]; then
+        jq -s '.' "${work_dir}"/*.json > "$summary_file"
+        echo "All targets delivered."
+        exit 0
+      fi
+      if [[ "$(date +%s)" -ge "$deadline" ]]; then
+        echo "Timed out after ${timeout_seconds}s waiting for the publication." >&2
+        exit 1
+      fi
+
+      sleep "$interval"
+      interval=$(( interval < max_interval ? interval + 10 : max_interval ))
+    done

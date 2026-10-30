@@ -4,3 +4,5 @@ kind: Kustomization
 resources:
   - request-kernel-image-sync.yaml
   - setup-git-auth.yaml
+  - submit-publish-images.yaml
+  - wait-publish-units.yaml
