@@ -24,8 +24,10 @@ spec:
       description: URL of the generator script
       default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
     - name: publisher-url
-      description: URL of the publisher service
-      default: http://publisher.publisher.svc
+      description: >-
+        Base URL of the TiBuild publish API, for example
+        http://v2-tibuild-v2.tibuild.svc
+      default: http://v2-tibuild-v2.tibuild.svc
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
   steps:
@@ -54,7 +56,7 @@ spec:
         #!/usr/bin/env bash
         set -euo pipefail
 
-        publisher_url="$(params.publisher-url)/tiup/delivery-by-rules"
+        publisher_url="$(params.publisher-url)/api/v2/publish/tiup/delivery-by-rules"
 
         deliver() {
           local artifact_url="$1"
