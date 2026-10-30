@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1.0.11";
+import { assertEquals, assertThrows } from "jsr:@std/assert@1.0.11";
 import { compute } from "./versioning-strategy.ts";
 
 Deno.test("compute", () => {
@@ -442,6 +442,77 @@ Deno.test("compute", () => {
       "assert failed on newTag",
     );
     console.debug("🎉");
+    console.groupEnd();
+  }
+});
+
+Deno.test("compute rejects versions from another release line", () => {
+  const cases: {
+    description: string;
+    gitVer: string;
+    branches: string[];
+    expectError: boolean;
+    expectPrefix?: string;
+  }[] = [
+    {
+      description: "GA tag on its own release line",
+      gitVer: "v7.5.8",
+      branches: ["release-7.5"],
+      expectError: false,
+      expectPrefix: "v7.5.8",
+    },
+    {
+      description: "stale tag of another line on the release branch head",
+      gitVer: "v7.3.0",
+      branches: ["release-7.5"],
+      expectError: true,
+    },
+    {
+      description: "stale tag of another line, also on master",
+      gitVer: "v7.3.0",
+      branches: ["master", "release-7.5"],
+      expectError: true,
+    },
+    {
+      description: "commits after the GA tag on the same line",
+      gitVer: "v7.5.8-3-gabc1234",
+      branches: ["release-7.5"],
+      expectError: false,
+      expectPrefix: "v7.5.",
+    },
+    {
+      description: "no release branch at all, nothing to assert",
+      gitVer: "v7.3.0",
+      branches: ["master"],
+      expectError: false,
+      expectPrefix: "v7.3.0",
+    },
+    {
+      description: "nextgen uses calendar versions and is skipped",
+      gitVer: "v26.3.7-2-gabc1234",
+      branches: ["release-nextgen-202603"],
+      expectError: false,
+      expectPrefix: "v26.3.7",
+    },
+  ];
+
+  for (const c of cases) {
+    console.group(`🧪  ${c.description}`);
+    console.debug(`🚀 gitVer: ${c.gitVer} & branches: ${c.branches}`);
+    if (c.expectError) {
+      assertThrows(
+        () => compute(c.gitVer, c.branches),
+        Error,
+        "does not belong to the release line",
+      );
+    } else {
+      const result = compute(c.gitVer, c.branches);
+      assertEquals(
+        result.releaseVersion.startsWith(c.expectPrefix!),
+        true,
+        `${result.releaseVersion} should start with ${c.expectPrefix}`,
+      );
+    }
     console.groupEnd();
   }
 });

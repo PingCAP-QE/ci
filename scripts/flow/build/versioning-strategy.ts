@@ -65,7 +65,7 @@ function isGaVer(version: semver.SemVer): boolean {
  * @param {string[]} commitInBranches The branches the commit is in.
  * @returns {builtControl} The computed release version and new git tag.
  */
-export function compute(
+function computeVersion(
   rawVersion: string,
   commitInBranches: string[],
 ): builtControl {
@@ -208,6 +208,81 @@ export function compute(
   }
 
   return { releaseVersion: "v" + semver.format(rv), newGitTag };
+}
+
+export function compute(
+  rawVersion: string,
+  commitInBranches: string[],
+): builtControl {
+  const result = computeVersion(rawVersion, commitInBranches);
+  assertVersionOnReleaseLine(result.releaseVersion, commitInBranches);
+  return result;
+}
+
+/**
+ * Collect the release lines (`major.minor`) of the branches the commit lives on.
+ * Nextgen branches use calendar versions and are ignored here.
+ * @param {string[]} branches - The branches containing the commit.
+ * @returns {Array} Unique release lines with one representative branch each.
+ */
+function releaseLinesOf(
+  branches: string[],
+): Array<{ major: number; minor: number; branch: string }> {
+  const lines: Array<{ major: number; minor: number; branch: string }> = [];
+  for (const branch of branches) {
+    if (!isReleaseBranch(branch) || isNextgenReleaseBranch(branch)) {
+      continue;
+    }
+    const matched = branch.match(/\brelease-([0-9]+)[.]([0-9]+)\b/);
+    if (!matched) {
+      continue;
+    }
+    const major = parseInt(matched[1]);
+    const minor = parseInt(matched[2]);
+    if (!lines.some((line) => line.major === major && line.minor === minor)) {
+      lines.push({ major, minor, branch });
+    }
+  }
+  return lines;
+}
+
+/**
+ * Refuse to stamp a version that does not belong to the release line the commit
+ * lives on, e.g. `v7.3.0` computed on `release-7.5`. Version is derived from the
+ * git tags of whatever repository fired the build, so a stale tag on a release
+ * branch head can otherwise publish content of one release line under another
+ * line's version.
+ * @param {string} releaseVersion - The computed release version.
+ * @param {string[]} branches - The branches containing the commit.
+ */
+function assertVersionOnReleaseLine(
+  releaseVersion: string,
+  branches: string[],
+): void {
+  const lines = releaseLinesOf(branches);
+  if (lines.length === 0) {
+    return;
+  }
+
+  const version = semver.parse(releaseVersion);
+  if (!version) {
+    return;
+  }
+
+  if (
+    lines.some((l) => l.major === version.major && l.minor === version.minor)
+  ) {
+    return;
+  }
+
+  throw new Error(
+    `computed release version ${releaseVersion} does not belong to the release ` +
+      `line(s) of the current commit (${
+        lines.map((l) => l.branch).join(", ")
+      }). ` +
+      `Check the tags on the release branch head: the nearest tag must belong ` +
+      `to the same release line.`,
+  );
 }
 
 /**
