@@ -38,6 +38,11 @@ spec:
     - name: force-builder-image
       default: ""
     - name: publisher-url
+    - name: image-publisher-url
+      description: >-
+        Base URL of the TiBuild publish API for image delivery. Empty keeps the
+        legacy generator path.
+      default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -77,6 +82,8 @@ spec:
             value: $(tt.params.force-builder-image)
           - name: publisher-url
             value: $(tt.params.publisher-url)
+          - name: image-publisher-url
+            value: $(tt.params.image-publisher-url)
         taskRunTemplate:
           podTemplate:
             nodeSelector:

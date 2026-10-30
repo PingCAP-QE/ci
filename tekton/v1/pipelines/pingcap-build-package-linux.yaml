@@ -58,6 +58,14 @@ spec:
       default: ""
     - name: publisher-url
       description: The URL of the running publisher server
+    - name: image-publisher-url
+      description: >-
+        Base URL of the TiBuild publish API used for image delivery. Empty keeps
+        the legacy deno generator path (a task-level fallback during the
+        image_delivery_consolidation rollout). It merges into publisher-url once
+        the TiUP domain also moves into tibuild-v2.
+      type: string
+      default: ""
     - name: external-git-ref
       description: >-
         Explicit enterprise-plugin ref. When non-empty, the git-clone task
@@ -285,3 +293,5 @@ spec:
           value: $(tasks.build-images.results.pushed)
         - name: src-type
           value: images-info
+        - name: publisher-url
+          value: "$(params.image-publisher-url)"

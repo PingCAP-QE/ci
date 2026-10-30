@@ -26,5 +26,9 @@ spec:
     - { name: source-ws-size, value: 20Gi }
     - { name: builder-resources-memory, value: 8Gi }
     - { name: builder-resources-cpu, value: "2" }
+    # Canary for image_delivery_consolidation: only this component submits image
+    # delivery to the TiBuild publish API. Remove the binding to fall back to the
+    # legacy deno generator.
+    - { name: image-publisher-url, value: "http://v2-tibuild-v2.tibuild.svc" }
   template:
     ref: build-component-linux

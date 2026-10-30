@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: pingcap-deliver-images
   labels:
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.2.0"
   annotations:
     tekton.dev/pipelines.minVersion: "1.0.0"
     tekton.dev/categories: delivery
@@ -12,6 +12,12 @@ metadata:
     tekton.dev/displayName: "PingCAP product image delivery"
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
+  description: >-
+    Delivers product images to the destination registries listed in the delivery
+    rules. Two modes coexist: when `publisher-url` is set the task submits the
+    delivery to the TiBuild publish API and waits for the per-target steps;
+    otherwise it keeps the legacy behaviour of generating a `crane` script with
+    the deno generator and running it in this pod.
   params:
     - name: src
     - name: src-type
@@ -20,20 +26,87 @@ spec:
       enum:
         - image-url # container image url
         - images-info # yaml/json content that stored images information return by image build task
+    - name: publisher-url
+      description: >-
+        Base URL of the TiBuild publish API, for example
+        http://v2-tibuild-v2.tibuild.svc. When empty (or "false") the task falls
+        back to the legacy deno generator + crane script.
+      default: ""
+    - name: publish-wait-timeout-seconds
+      description: How long to wait for the publication units created by the publish API
+      default: "1800"
     - name: delivery-config-url
-      description: URL of the delivery configuration file
+      description: URL of the delivery configuration file (legacy mode only)
       default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
     - name: generator-script-url
-      description: URL of the generator script
+      description: URL of the generator script (legacy mode only)
       default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
     - name: retries
-      description: Number of retries for image delivery step
+      description: Number of retries for image delivery step (legacy mode only)
       default: "3"
     - name: notify-webhook-url
       description: URL of the webhook for notification
       default: "http://el-notify.ee-cd.svc:8080"
   steps:
+    - name: submit-to-publisher
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+      when:
+        - input: "$(params.publisher-url)"
+          operator: notin
+          values: ["false", ""]
+      results:
+        - name: units
+          description: Number of publication units created
+          type: string
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        base="$(params.publisher-url)"
+        src="$(params.src)"
+        units_file="/workspace/publish-units.txt"
+        : > "$units_file"
+
+        publish() {
+          local ref="$1"
+          local response unit_id step_count
+          echo "Submitting ${ref}"
+          response="$(curl -fsS -X POST "${base}/api/v2/publish/images" \
+            -H 'Content-Type: application/json' \
+            -d "{\"artifactUrl\":\"${ref}\"}")"
+          echo "$response"
+          unit_id="$(jq -r '.id // empty' <<<"$response")"
+          step_count="$(jq -r '.steps | length' <<<"$response")"
+          if [[ -z "$unit_id" || "$step_count" == "0" ]]; then
+            echo "  no delivery rule matched, nothing to publish"
+            return 0
+          fi
+          echo "${unit_id}" >> "$units_file"
+        }
+
+        if [[ "$(params.src-type)" == "image-url" ]]; then
+          publish "$src"
+        else
+          echo "$src" > /workspace/src.txt
+          # Expand the build result exactly like the legacy generator did: every
+          # tag of every image, de-duplicated. `yq` reads JSON as YAML.
+          while IFS= read -r ref; do
+            [[ -z "$ref" ]] && continue
+            publish "$ref"
+          done < <(yq -r '
+            (if type == "!!seq" then . else .images end)[]
+            | .repo as $repo
+            | ([.tag] + (.tags // []) + (.multi_arch_tags // []))[]
+            | select(. != null and . != "")
+            | $repo + ":" + .' /workspace/src.txt | sort -u)
+        fi
+
+        echo -n "$(wc -l < "$units_file" | tr -d ' ')" > "$(step.results.units.path)"
     - name: generate
+      when:
+        - input: "$(params.publisher-url)"
+          operator: in
+          values: ["false", ""]
       image: docker.io/denoland/deno:alpine-2.0.6 # it has `wget` tool.
       results:
         - name: generated
@@ -94,6 +167,72 @@ spec:
           echo "Script '$script' failed. Retrying in 10 seconds... ($tries/$max_retries)"
           sleep 10
         done
+    - name: wait-for-publisher
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+      when:
+        - input: "$(params.publisher-url)"
+          operator: notin
+          values: ["false", ""]
+      computeResources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        base="$(params.publisher-url)"
+        units_file="/workspace/publish-units.txt"
+        summary_file="/workspace/publish-units.json"
+
+        if [[ ! -s "$units_file" ]]; then
+          echo "Nothing to publish: no delivery rule matched."
+          echo "[]" > "$summary_file"
+          exit 0
+        fi
+
+        rm -f /workspace/publish-unit-*.json
+        deadline=$(( $(date +%s) + $(params.publish-wait-timeout-seconds) ))
+        interval=10
+        while :; do
+          pending=0
+          failed=0
+          index=0
+          while IFS= read -r unit_id; do
+            [[ -z "$unit_id" ]] && continue
+            index=$((index + 1))
+            body="$(curl -fsS "${base}/api/v2/publish/units/${unit_id}")" || {
+              echo "Failed to read publication unit ${unit_id}" >&2
+              exit 1
+            }
+            printf '%s' "$body" > "/workspace/publish-unit-${index}.json"
+            state="$(jq -r '.state' <<<"$body")"
+            echo "Unit ${unit_id}: ${state}"
+            jq -r '.steps[] | "  - \(.target)\t\(.state)\t\(.dest // "")"' <<<"$body"
+            case "$state" in
+              succeeded) ;;
+              queued|running) pending=1 ;;
+              *) failed=1 ;;
+            esac
+          done < "$units_file"
+
+          if [[ "$failed" == "1" ]]; then
+            jq -s '.' /workspace/publish-unit-*.json > "$summary_file" || true
+            echo "Publication did not fully succeed; see the unit states above." >&2
+            exit 1
+          fi
+          if [[ "$pending" == "0" ]]; then
+            jq -s '.' /workspace/publish-unit-*.json > "$summary_file"
+            echo "All targets delivered."
+            exit 0
+          fi
+          if [[ "$(date +%s)" -ge "$deadline" ]]; then
+            echo "Timed out after $(params.publish-wait-timeout-seconds)s waiting for the publication." >&2
+            exit 1
+          fi
+          sleep "$interval"
+          interval=$(( interval < 30 ? interval + 10 : 30 ))
+        done
     - name: post-notify
       image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       when:
@@ -119,3 +258,31 @@ spec:
         -H "ce-type: net.pingcap.tibuild.notify.delivery.images.success" \
         -H "ce-source: tekton/taskRun/$(context.taskRun.name)" \
         --data-binary @event.json
+    - name: post-notify-publisher
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+      when:
+        - input: "$(params.publisher-url)"
+          operator: notin
+          values: ["false", ""]
+        - input: "$(params.notify-webhook-url)"
+          operator: notin
+          values: ["false", ""]
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        # The event data is the summary of the publication units that just
+        # finished, so downstream consumers can see per-target results.
+        unitsFile="/workspace/publish-units.json"
+        if [ ! -f "$unitsFile" ]; then
+          echo "[]" > "$unitsFile"
+        fi
+        cat "$unitsFile"
+
+        curl -X POST "$(params.notify-webhook-url)" \
+        -H "Content-Type: application/cloudevents+json" \
+        -H "ce-specversion: 1.0" \
+        -H "ce-id: $(uuidgen)" \
+        -H "ce-type: net.pingcap.tibuild.notify.delivery.images.success" \
+        -H "ce-source: tekton/taskRun/$(context.taskRun.name)" \
+        --data-binary @"$unitsFile"
