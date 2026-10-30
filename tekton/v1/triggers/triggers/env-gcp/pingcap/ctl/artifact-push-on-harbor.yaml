@@ -14,6 +14,13 @@ spec:
         name: cel
       params:
         - name: filter
+          # NOTE: `pingcap/tidb-binlog/package` and `pingcap/tidb-ctl/package` are
+          # intentionally excluded from the repository list below:
+          #   - tidb-binlog release branches are frozen on old commits, so the
+          #     version-derivation step (`git describe` in the firing repo) yields
+          #     stale versions; that is how ctl:v7.3.0 ended up built from release-7.5.
+          #   - tidb-ctl only publishes `master_*` tags, which carry no version info.
+          # Rebuild the ctl package manually if either repository changes.
           value: >-
             (
               body.event_data.resources[0].resource_url.startsWith('hub-zot.pingcap.net/hub/')
@@ -24,15 +31,11 @@ spec:
             'hub/pingcap/tidb/package',
             'hub/pingcap/tiflow/package',
             'hub/pingcap/ticdc/package',
-            'hub/pingcap/tidb-binlog/package',
-            'hub/pingcap/tidb-ctl/package',
             'hub/tikv/pd/package',
             'hub/tikv/tikv/package',
             'pingcap-testing-account/hub/pingcap/tidb/package',
             'pingcap-testing-account/hub/pingcap/tiflow/package',
             'pingcap-testing-account/hub/pingcap/ticdc/package',
-            'pingcap-testing-account/hub/pingcap/tidb-binlog/package',
-            'pingcap-testing-account/hub/pingcap/tidb-ctl/package',
             'pingcap-testing-account/hub/tikv/pd/package',
             'pingcap-testing-account/hub/tikv/tikv/package',
             ] &&
