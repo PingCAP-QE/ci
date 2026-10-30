@@ -11,3 +11,8 @@ spec:
       value: us-docker.pkg.dev/pingcap-testing-account/hotfix
     - name: publisher-url
       value: ""
+
+    # Hotfix builds never deliver: keep them on the legacy generator path, the
+    # same intent as the empty publisher-url above (docs/designs/hotfix-build-isolation.md).
+    - name: image-publisher-url
+      value: ""

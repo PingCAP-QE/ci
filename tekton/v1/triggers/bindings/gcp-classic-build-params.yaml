@@ -8,3 +8,5 @@ spec:
       value: us-docker.pkg.dev/pingcap-testing-account/hub
     - name: publisher-url
       value: "https://do2.pingcap.net/publisher"
+    - name: image-publisher-url
+      value: "http://v2-tibuild-v2.tibuild.svc"

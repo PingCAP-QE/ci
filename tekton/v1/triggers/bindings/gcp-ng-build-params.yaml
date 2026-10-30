@@ -10,3 +10,4 @@ spec:
     - { name: registry, value: us-docker.pkg.dev/pingcap-testing-account/tidbx }
     - { name: source-ws-size, value: $(extensions.resource-config.sourceWsSize) }
     - { name: timeout, value: $(extensions.resource-config.timeout) }
+    - { name: image-publisher-url, value: "http://v2-tibuild-v2.tibuild.svc" }
