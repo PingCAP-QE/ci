@@ -188,13 +188,18 @@ spec:
         #!/usr/bin/env bash
         set -e
 
-        # The event data is the summary of the publication units that just
-        # finished, so downstream consumers can see per-target results.
         unitsFile="/workspace/publish-units.json"
         if [ ! -f "$unitsFile" ]; then
           echo "[]" > "$unitsFile"
         fi
-        cat "$unitsFile"
+
+        # The event data keeps the shape the downstream triggers read: a flat
+        # `images` list of "<repo>:<tag>", exactly what the legacy generator
+        # produced (see the CEL filter in the tidbx notify trigger). The unit
+        # details are added next to it.
+        jq '{images: ([.[] | .steps[] | ((.result.copied // []) + (.result.skipped // []))[]] | unique),
+             units: .}' "$unitsFile" > event.json
+        cat event.json
 
         curl -X POST "$(params.notify-webhook-url)" \
         -H "Content-Type: application/cloudevents+json" \
@@ -202,4 +207,4 @@ spec:
         -H "ce-id: $(uuidgen)" \
         -H "ce-type: net.pingcap.tibuild.notify.delivery.images.success" \
         -H "ce-source: tekton/taskRun/$(context.taskRun.name)" \
-        --data-binary @"$unitsFile"
+        --data-binary @event.json
