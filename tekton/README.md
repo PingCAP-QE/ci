@@ -49,6 +49,24 @@ Trigger bindings extract and transform event data into pipeline parameters.
 - **Tag Creation**: Creates release builds
 - **Branch Creation**: Handles new branch setup
 
+### Image Delivery
+`pingcap-deliver-images` has two modes, selected by its `publisher-url` parameter:
+
+- **Service mode** (`publisher-url` set): the task submits every image reference to
+  `POST /api/v2/publish/images` on tibuild-v2 and polls
+  `GET /api/v2/publish/units/{id}` until every destination is terminal. A
+  `partial` or `failed` unit fails the TaskRun. The event sent by
+  `post-notify-publisher` carries the unit summaries (per-target state and
+  digest).
+- **Legacy mode** (`publisher-url` empty): the task keeps generating the crane
+  script with the remote deno generator and running it in the pod. This is the
+  rollback path during the rollout.
+
+The pipeline parameter is `image-publisher-url` (separate from `publisher-url`,
+which still points at the old publisher for TiUP delivery). Only
+`pingcap/advanced-statefulset` binds it today; its triggers live under
+`v1/triggers/triggers/env-gcp/pingcap/advanced-statefulset/`.
+
 ### Build Profiles
 - `release` - Standard release build, now always for community release build.
 - `enterprise` - Enterprise version build
