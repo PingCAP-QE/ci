@@ -21,7 +21,9 @@ spec:
         - oci-url # oci url
         - oci-info # yaml/json content that stored oci information return by binaries build task
     - name: publisher-url
-      description: URL of the publisher service
+      description: >-
+        Base URL of the TiBuild publish API, for example
+        http://v2-tibuild-v2.tibuild.svc. Empty or "false" skips delivery.
     - name: notify-webhook-url
       description: URL of the webhook for notification
       default: "http://el-harbor:8080"
@@ -43,7 +45,7 @@ spec:
 
         targetsInfo="/workspace/delivery-targets.yaml"
         oci_src="$(params.src)"
-        publisher_url="$(params.publisher-url)/tiup/delivery-by-rules"
+        publisher_url="$(params.publisher-url)/api/v2/publish/tiup/delivery-by-rules"
 
         deliver() {
           local artifact_url="$1"
