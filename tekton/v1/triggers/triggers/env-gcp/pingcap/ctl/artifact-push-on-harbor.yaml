@@ -38,9 +38,6 @@ spec:
             body.event_data.resources[0].tag.matches('^(master|main|release-[0-9]+[.][0-9]+(-beta[.][0-9]+)?)(-[0-9a-f]{6,10})_(darwin|linux)_(amd64|arm64)$')
         - name: overlays
           value:
-            - key: git-url
-              expression: >-
-                'https://github.com/' + body.event_data.repository.repo_full_name.translate('^hub/', '').replace('/package', '.git')
             - key: git-ref
               # - master-abcdef123_linux_amd64 => master
               # - release-1.2-abcdef123_linux_amd64 => release-1.2
