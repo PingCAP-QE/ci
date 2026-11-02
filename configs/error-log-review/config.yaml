@@ -1,5 +1,9 @@
 # Error Log Review Configuration
 # This config defines repositories, their error log patterns, and required approvers
+#
+# Approvers must be listed with the canonical casing of the GitHub login, because
+# the checker matches them verbatim against the login ti-chi-bot echoes in the
+# approval notification (e.g. "XuHuaiyu", not "xuhuaiyu").
 
 repositories:
   - name: "pingcap/tidb"
@@ -19,7 +23,7 @@ repositories:
       - "niubell"
       - "nongfushanquan"
       - "v01dstar"
-      - "xuhuaiyu"
+      - "XuHuaiyu"
       - "YuJuncen"
 
   - name: "tikv/pd"
