@@ -26,7 +26,9 @@ pipeline {
     }
     environment {
         NEXT_GEN = '1'
-        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        // next-gen PD/TiKV artifacts (master-nextgen / cloud-engine-nextgen) live on
+        // the tidbx registry; the classic hub mirror only carries release tags.
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_TIDBX}"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
