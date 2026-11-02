@@ -18,7 +18,7 @@ spec:
     - name: publisher-url
       type: string
       description: publisher url
-      default: "http://publisher.publisher.svc"
+      default: "http://v2-tibuild-v2.tibuild.svc/api/v2"
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
   steps:

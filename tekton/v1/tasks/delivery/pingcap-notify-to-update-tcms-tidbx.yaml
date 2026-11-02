@@ -23,7 +23,7 @@ spec:
     - name: push-image-tag-records
       env:
         - name: PUBLISHER_BASE_URL
-          value: "http://publisher.publisher.svc" # in cluster
+          value: "http://v2-tibuild-v2.tibuild.svc/api/v2" # in-cluster tibuild-v2
       args: ["$(params.images)"]
       script: |
         #!/usr/bin/env bash
