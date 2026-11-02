@@ -18,7 +18,7 @@ spec:
     - name: publisher-url
       type: string
       description: publisher url
-      default: "http://publisher.publisher.svc"
+      default: "http://v2-tibuild-v2.tibuild.svc/api/v2"
     - name: stages
       type: string
       description: target stage(s) (dev or prod or "prod dev")
