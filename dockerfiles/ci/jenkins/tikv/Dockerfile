@@ -3,11 +3,13 @@ ARG BASE_IMG=ghcr.io/pingcap-qe/cd/builders/tikv:v2026.3.22-3-g892e449
 FROM $BASE_IMG
 
 # create user jenkins and add it to sudoers.
+# The account is created without a password on purpose: `useradd` leaves it
+# locked in /etc/shadow. Jenkins agents connect over the agent channel, never
+# by logging into the OS, so keep the account locked here.
 RUN --mount=type=cache,target=/var/cache/dnf \
     dnf install -y sudo
 RUN groupadd -g 1000 jenkins && \
     useradd -u 1000 -g 1000 -m -s /bin/bash jenkins && \
-    echo "jenkins:password" | chpasswd && \
     echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 ENV TZ=Asia/Shanghai
