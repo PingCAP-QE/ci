@@ -284,9 +284,16 @@ pipeline {
                                     """
                                     dir("tests/${TEST_PATH}") {
                                         echo "path: ${pwd()}"
-                                        sh label: "debug docker info", script: """
-                                        docker ps -a && docker version
-                                        """
+                                        sh label: "wait for docker", script: '''
+                                        for i in $(seq 1 30); do
+                                            if docker version >/dev/null 2>&1; then
+                                                break
+                                            fi
+                                            sleep 2
+                                        done
+                                        docker ps -a
+                                        docker version
+                                        '''
                                         // TODO: check the env TAG, currently the tiflash_commmit_hash is not the pr latest commit hash
                                         // because we checkout tiflash pr code in pre-merge method.
                                         script {

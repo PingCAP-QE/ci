@@ -5,6 +5,13 @@ spec:
     - image: "docker:18.09.6-dind"
       imagePullPolicy: "IfNotPresent"
       name: "dockerd"
+      readinessProbe:
+        exec:
+          command: ["docker", "info"]
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 3
       resources:
         requests:
           memory: "16Gi"

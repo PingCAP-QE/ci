@@ -7,6 +7,13 @@ spec:
     - name: dockerd
       image: "docker:24.0.9-dind"
       imagePullPolicy: IfNotPresent
+      readinessProbe:
+        exec:
+          command: ["docker", "info"]
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 3
       env:
         - name: DOCKER_TLS_CERTDIR
           value: ""

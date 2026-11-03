@@ -232,9 +232,16 @@ pipeline {
                                 """
                                 dir("tests/${TEST_PATH}") {
                                     echo "path: ${pwd()}"
-                                    sh label: "debug docker info", script: """
-                                    docker ps -a && docker version
-                                    """
+                                    sh label: "wait for docker", script: '''
+                                    for i in $(seq 1 30); do
+                                        if docker version >/dev/null 2>&1; then
+                                            break
+                                        fi
+                                        sleep 2
+                                    done
+                                    docker ps -a
+                                    docker version
+                                    '''
                                     script {
                                         def pdBranch = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
                                         def tikvBranch = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'release-8.5')
