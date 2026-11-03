@@ -56,6 +56,7 @@ presubmits:
         # `ci-rwo` is the cluster-neutral CI workspace class (GKE:
         # hyperdisk-balanced, 10k IOPS / 400MiB/s; Tencent Cloud: CBS HSSD), so
         # moving this job to `cluster: tke-pingcap-cicd` needs no spec change.
+        # Sized from a measured run: target/ peaks at ~38GiB.
         volumes:
           - name: workspace
             ephemeral:
@@ -68,7 +69,7 @@ presubmits:
                   storageClassName: ci-rwo
                   resources:
                     requests:
-                      storage: 200Gi
+                      storage: 80Gi
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
