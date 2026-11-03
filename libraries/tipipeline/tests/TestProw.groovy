@@ -377,6 +377,27 @@ class TestProw {
             def disabled = loadProw(env: [GIT_BROKER_ENABLED: 'false'])
             assertFalse(disabled.useBrokerCredentials([org: 'tidbcloud', repo: 'x']))
         }
+
+        @Test
+        void shouldReportBrokerEnablementPerRepo() {
+            def script = loadProw(env: [
+                GIT_BROKER_ENABLED: 'true',
+                GIT_BROKER_REPOS: ' pingcap-inc/enterprise-plugin , PingCAP-INC/Tiflow ',
+            ])
+
+            // Repository allowlist narrows the migration without opening the org.
+            assertTrue(script.useBrokerCredentials([org: 'pingcap-inc', repo: 'enterprise-plugin']))
+            assertTrue(script.useBrokerCredentials([org: 'pingcap-inc', repo: 'tiflow']))
+            assertFalse(script.useBrokerCredentials([org: 'pingcap-inc', repo: 'tidb']))
+            assertFalse(script.useBrokerCredentials([org: 'pingcap', repo: 'enterprise-plugin']))
+
+            def wildcard = loadProw(env: [
+                GIT_BROKER_ENABLED: 'true',
+                GIT_BROKER_REPOS: 'pingcap-inc/*',
+            ])
+            assertTrue(wildcard.useBrokerCredentials([org: 'pingcap-inc', repo: 'anything']))
+            assertFalse(wildcard.useBrokerCredentials([org: 'pingcap', repo: 'anything']))
+        }
     }
 
     static class WithCache {
