@@ -28,21 +28,47 @@ presubmits:
               # inflate target/ (tens of GiB) on the node root disk.
               - name: CARGO_INCREMENTAL
                 value: "0"
+              # Keep the Rust build artifacts off the node root disk. A 100 GB
+              # boot disk only exposes ~43.8Gi of ephemeral-storage after GKE
+              # reservations, while a single `make ci_test` run (three
+              # `cargo test` invocations with different --features sets, each
+              # recompiling the same crates under a new feature hash) writes
+              # 40Gi+ and got the pod evicted mid-build:
+              #   Evicted: The node was low on resource: ephemeral-storage
+              #   Evicted: ... exceeds the total limit of containers 40Gi
+              - name: CARGO_TARGET_DIR
+                value: /workspace/target
+            volumeMounts:
+              - name: workspace
+                mountPath: /workspace
             resources:
-              # The Rust build is ephemeral-storage bound: the NAP nodes expose
-              # ~43Gi allocatable and kubelet evicts a pod once free space drops
-              # below ~9.4Gi. Without an ephemeral-storage request the pod is
-              # the first eviction candidate, which surfaced as
-              # "The node was low on resource: ephemeral-storage" (SIGTERM ->
-              # ABORTED) and later as clang "No space left on device".
+              # Only the checkout, the cargo home and the logs stay on the node
+              # disk (~10Gi); target/ lives on the workspace volume below.
               requests:
                 memory: 32Gi
                 cpu: "12"
-                ephemeral-storage: 30Gi
+                ephemeral-storage: 20Gi
               limits:
                 memory: 32Gi
                 cpu: "12"
-                ephemeral-storage: 40Gi
+                ephemeral-storage: 30Gi
+        # Scratch space for target/, provisioned per pod and deleted with it.
+        # `ci-rwo` is the cluster-neutral CI workspace class (GKE:
+        # hyperdisk-balanced, 10k IOPS / 400MiB/s; Tencent Cloud: CBS HSSD), so
+        # moving this job to `cluster: tke-pingcap-cicd` needs no spec change.
+        volumes:
+          - name: workspace
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    type: ephemeral
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: ci-rwo
+                  resources:
+                    requests:
+                      storage: 200Gi
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
