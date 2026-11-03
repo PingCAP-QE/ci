@@ -24,10 +24,25 @@ presubmits:
             env:
               - name: CARGO_NET_GIT_FETCH_WITH_CLI
                 value: "true"
+              # One-shot CI builds never reuse incremental artifacts, they only
+              # inflate target/ (tens of GiB) on the node root disk.
+              - name: CARGO_INCREMENTAL
+                value: "0"
             resources:
+              # The Rust build is ephemeral-storage bound: the NAP nodes expose
+              # ~43Gi allocatable and kubelet evicts a pod once free space drops
+              # below ~9.4Gi. Without an ephemeral-storage request the pod is
+              # the first eviction candidate, which surfaced as
+              # "The node was low on resource: ephemeral-storage" (SIGTERM ->
+              # ABORTED) and later as clang "No space left on device".
+              requests:
+                memory: 32Gi
+                cpu: "12"
+                ephemeral-storage: 30Gi
               limits:
                 memory: 32Gi
                 cpu: "12"
+                ephemeral-storage: 40Gi
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
