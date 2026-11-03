@@ -514,7 +514,7 @@ class TestComponent {
          * Mirror prow.useBrokerCredentials / prow.withGitAskPassFromBroker so the
          * component helpers can be exercised without the Jenkins library loader.
          */
-        private static def scriptWithBroker(Map env, List events, Map scmArgs) {
+        private static def scriptWithBroker(Map env, List events, Map scmArgs, List scripts = []) {
             def prowStub = new Expando()
             prowStub.useBrokerCredentials = { Map refs ->
                 if (!env.GIT_BROKER_ENABLED?.toString()?.toBoolean()) {
@@ -545,6 +545,10 @@ class TestComponent {
                     events << 'checkout'
                     scmArgs.putAll(args)
                 },
+                sh      : { Map args ->
+                    events << "sh:${args.label}".toString()
+                    scripts << args.script.toString()
+                },
             ])
         }
 
@@ -552,15 +556,18 @@ class TestComponent {
         void shouldMintAppTokenForAllowlistedOrg() {
             def events = []
             def scmArgs = [:]
-            def script = scriptWithBroker(brokerEnv(), events, scmArgs)
+            def scripts = []
+            def script = scriptWithBroker(brokerEnv(), events, scmArgs, scripts)
 
             script.checkoutSingle('git@github.com:pingcap-inc/enterprise-plugin.git',
                     'release-8.5', 'release-8.5', 'github-bot-ssh')
 
-            assertEquals(['mint:pingcap-inc/enterprise-plugin', 'checkout'], events)
-            def remote = scmArgs.scm.userRemoteConfigs[0]
-            assertEquals('http://git-cdn.cache.svc:8000/pingcap-inc/enterprise-plugin.git', remote.url)
-            assertEquals('no Jenkins credential may shadow GIT_ASKPASS', '', remote.credentialsId)
+            assertEquals(['mint:pingcap-inc/enterprise-plugin', 'sh:Checkout with broker token'], events)
+            assertTrue('the checkout step must be bypassed for broker auth',
+                !events.contains('checkout'))
+            def remoteUrl = 'http://git-cdn.cache.svc:8000/pingcap-inc/enterprise-plugin.git'
+            assertTrue(scripts[0].contains("git fetch --force --prune --tags -- '${remoteUrl}'"))
+            assertTrue(scripts[0].contains("git checkout -f 'release-8.5'"))
         }
 
         @Test
@@ -594,13 +601,13 @@ class TestComponent {
         void shouldMintWhenTheRepoAllowlistUsesAWildcard() {
             def events = []
             def scmArgs = [:]
-            def script = scriptWithBroker(brokerEnv([GIT_BROKER_REPOS: 'pingcap-inc/*']), events, scmArgs)
+            def scripts = []
+            def script = scriptWithBroker(brokerEnv([GIT_BROKER_REPOS: 'pingcap-inc/*']), events, scmArgs, scripts)
 
             script.checkoutSingle('git@github.com:pingcap-inc/tiflow.git',
                     'release-8.5', 'release-8.5', 'github-bot-ssh')
 
-            assertEquals(['mint:pingcap-inc/tiflow', 'checkout'], events)
-            assertEquals('', scmArgs.scm.userRemoteConfigs[0].credentialsId)
+            assertEquals(['mint:pingcap-inc/tiflow', 'sh:Checkout with broker token'], events)
         }
 
         @Test
@@ -633,14 +640,15 @@ class TestComponent {
         void shouldMintForComponentCheckoutToo() {
             def events = []
             def scmArgs = [:]
-            def script = scriptWithBroker(brokerEnv(), events, scmArgs)
+            def scripts = []
+            def script = scriptWithBroker(brokerEnv(), events, scmArgs, scripts)
 
             script.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin',
                     'release-8.5', 'build: bump Go | plugin=pr/259', 'github-bot-ssh')
 
-            assertEquals(['mint:pingcap-inc/enterprise-plugin', 'checkout'], events)
-            assertEquals('', scmArgs.scm.userRemoteConfigs[0].credentialsId)
-            assertEquals('origin/pr/259/head', scmArgs.scm.branches[0].name.toString())
+            assertEquals(['mint:pingcap-inc/enterprise-plugin', 'sh:Checkout with broker token'], events)
+            assertTrue(scripts[0].contains("git checkout -f 'origin/pr/259/head'"))
+            assertTrue(scripts[0].contains('refs/pull/*:refs/remotes/origin/pr/*'))
         }
     }
 

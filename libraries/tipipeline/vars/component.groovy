@@ -418,17 +418,39 @@ private String brokerRepoSlug(String gitUrl) {
 }
 
 /*
- * Run a GitSCM checkout. For a brokered repository the SCM carries no Jenkins
- * credential and Git answers the git-cdn/GitHub 401 with a short-lived App
- * installation token: SAML-enforcing organizations reject user PATs, and an
- * empty credentialsId keeps the GIT_ASKPASS helper in charge.
+ * Run a GitSCM checkout. Brokered repositories use plain git inside
+ * prow.withGitAskPassFromBroker instead of the Jenkins `checkout` step: the
+ * step always sends its own (empty) BasicAuth for an empty credentialsId and
+ * never lets GIT_ASKPASS answer the 401, so the broker token never reaches
+ * GitHub. Everything else keeps the SCM checkout.
  */
 private Object checkoutWithAuth(Map scmArgs, String brokerRepo) {
-    def runCheckout = { checkout(scmArgs) }
-    if (brokerRepo) {
-        return prow.withGitAskPassFromBroker([repo: brokerRepo], runCheckout)
+    if (!brokerRepo) {
+        return checkout(scmArgs)
     }
-    return runCheckout()
+    final scm = scmArgs.scm
+    final remote = scm.userRemoteConfigs[0]
+    final branch = scm.branches[0].name
+    final cloneOption = scm.extensions.find { it instanceof Map && it['$class'] == 'CloneOption' }
+    final timeout = cloneOption?.timeout ?: 5
+    return prow.withGitAskPassFromBroker([repo: brokerRepo]) {
+        sh label: 'Checkout with broker token', script: """#!/usr/bin/env bash
+            set -e
+            git --version
+            git init
+            git config user.email "ti-chi-bot@ci"
+            git config user.name "TiChiBot"
+            git config remote.origin.url '${remote.url}'
+            git reset --hard || true
+            git clean -ffdx || true
+            git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 1 -I {} git update-ref -d "{}" || true
+            timeout ${timeout}m git fetch --force --prune --tags -- '${remote.url}' '${remote.refspec}'
+            git checkout -f '${branch}'
+            echo "🧾 HEAD info:"
+            git rev-parse HEAD^{commit}
+            git log -n 3 --oneline
+        """
+    }
 }
 
 // ============================================================
