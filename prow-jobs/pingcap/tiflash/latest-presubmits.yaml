@@ -42,13 +42,18 @@ global_definitions:
     fi
 
     repo_root="$(pwd)"
+    # Build state (rustup / cargo / ccache / ninja output) is tens of GiB; put it
+    # on the pod's `ci-rwo` workspace volume when one is mounted instead of on
+    # the node root disk, where kubelet evicts the pod mid-build.
+    scratch_root="${CI_SCRATCH_ROOT:-${repo_root}}"
+    mkdir -p "${scratch_root}"
 
-    export RUSTUP_HOME="${repo_root}/.rustup-${sanitizer}"
-    export CARGO_HOME="${repo_root}/.cargo-${sanitizer}"
+    export RUSTUP_HOME="${scratch_root}/.rustup-${sanitizer}"
+    export CARGO_HOME="${scratch_root}/.cargo-${sanitizer}"
     unset RUSTUP_TOOLCHAIN
 
-    rm -rf "${repo_root}/.ccache" "${repo_root}/build-${sanitizer}" "${RUSTUP_HOME}" "${CARGO_HOME}"
-    mkdir -p "${repo_root}/build-${sanitizer}" "${RUSTUP_HOME}" "${CARGO_HOME}"
+    rm -rf "${scratch_root}/.ccache" "${scratch_root}/build-${sanitizer}" "${RUSTUP_HOME}" "${CARGO_HOME}"
+    mkdir -p "${scratch_root}/build-${sanitizer}" "${RUSTUP_HOME}" "${CARGO_HOME}"
 
     echo "RUSTUP_HOME=${RUSTUP_HOME}"
     echo "CARGO_HOME=${CARGO_HOME}"
@@ -69,7 +74,7 @@ global_definitions:
     rustup which cargo
     cargo --version
 
-    ccache -o cache_dir="$(realpath "${repo_root}/.ccache")" || true
+    ccache -o cache_dir="$(realpath "${scratch_root}/.ccache")" || true
     ccache -o max_size=2G || true
     ccache -o limit_multiple=0.99 || true
     ccache -o hash_dir=false || true
@@ -78,7 +83,7 @@ global_definitions:
     ccache -z || true
 
     (
-      cd "${repo_root}/build-${sanitizer}"
+      cd "${scratch_root}/build-${sanitizer}"
       cmake "${repo_root}" \
         -DCMAKE_CXX_COMPILER=clang++ \
         -DCMAKE_C_COMPILER=clang \
@@ -95,9 +100,9 @@ global_definitions:
     rm -rf /tests /tiflash
     ln -s "${repo_root}/tests" /tests
     mkdir -p /tiflash
-    cp "${repo_root}/build-${sanitizer}/dbms/gtests_dbms" /tiflash
-    cp "${repo_root}/build-${sanitizer}/libs/libcommon/src/tests/gtests_libcommon" /tiflash
-    cp "${repo_root}/build-${sanitizer}/libs/libdaemon/src/tests/gtests_libdaemon" /tiflash
+    cp "${scratch_root}/build-${sanitizer}/dbms/gtests_dbms" /tiflash
+    cp "${scratch_root}/build-${sanitizer}/libs/libcommon/src/tests/gtests_libcommon" /tiflash
+    cp "${scratch_root}/build-${sanitizer}/libs/libdaemon/src/tests/gtests_libdaemon" /tiflash
 
     source /tests/docker/util.sh
     show_env
@@ -116,6 +121,23 @@ global_definitions:
                 operator: In
                 values:
                   - amd64
+  # Scratch space for the sanitizer build (rustup / cargo / ccache / ninja
+  # output). Provisioned per pod and deleted with it; `ci-rwo` is the
+  # cluster-neutral CI workspace class (GKE: hyperdisk-balanced, Tencent Cloud:
+  # CBS HSSD), so these jobs keep working when they move to `tke-pingcap-cicd`.
+  pull_sanitizer_volumes: &pull_sanitizer_volumes
+    - name: workspace
+      ephemeral:
+        volumeClaimTemplate:
+          metadata:
+            labels:
+              type: ephemeral
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            storageClassName: ci-rwo
+            resources:
+              requests:
+                storage: 100Gi
   pull_sanitizer_container: &pull_sanitizer_container
     name: run-sanitizer
     image: ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.8.10-2-gc9e3144-centos7
@@ -123,13 +145,20 @@ global_definitions:
     command: [/bin/bash, -ce]
     args:
       - *sanitizer_script
+    volumeMounts:
+      - name: workspace
+        mountPath: /workspace
     resources:
+      # Build state lives on /workspace; the node disk only keeps the checkout,
+      # the ccache-less rust toolchain leftovers and the test binaries (~10Gi).
       requests:
         cpu: "24"
         memory: 64Gi
+        ephemeral-storage: 20Gi
       limits:
         cpu: "24"
         memory: 64Gi
+        ephemeral-storage: 30Gi
   pull_sanitizer_decoration_config: &pull_sanitizer_decoration_config
     timeout: 3h
     pod_pending_timeout: 20m
@@ -188,11 +217,14 @@ presubmits:
       rerun_command: "/test pull-sanitizer-asan"
       spec:
         affinity: *pull_sanitizer_affinity
+        volumes: *pull_sanitizer_volumes
         containers:
           - <<: *pull_sanitizer_container
             env:
               - name: SANITIZER
                 value: ASan
+              - name: CI_SCRATCH_ROOT
+                value: /workspace
 
     - <<: *pull_sanitizer_job
       name: pull-sanitizer-tsan
@@ -200,11 +232,14 @@ presubmits:
       rerun_command: "/test pull-sanitizer-tsan"
       spec:
         affinity: *pull_sanitizer_affinity
+        volumes: *pull_sanitizer_volumes
         containers:
           - <<: *pull_sanitizer_container
             env:
               - name: SANITIZER
                 value: TSan
+              - name: CI_SCRATCH_ROOT
+                value: /workspace
             securityContext:
               privileged: true
 
