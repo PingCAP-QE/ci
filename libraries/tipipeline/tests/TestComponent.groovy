@@ -19,6 +19,12 @@ class TestComponent {
 
     private static def loadScriptWithBindings(Map steps = [:]) {
         def binding = new Binding()
+        // Default library-var stubs: the scripts may call into other vars even when
+        // the test is not about them. Broker auth stays off unless a test opts in.
+        def prowStub = new Expando()
+        prowStub.useBrokerCredentials = { Map refs -> false }
+        prowStub.withGitAskPassFromBroker = { Map cfg, Closure body -> body() }
+        binding.setVariable('prow', prowStub)
         steps.each { name, value -> binding.setVariable(name, value) }
         new GroovyShell(binding).parse(
             new File("libraries/tipipeline/vars/component.groovy"))
@@ -487,6 +493,154 @@ class TestComponent {
             def remote = scmArg.scm.userRemoteConfigs[0]
             assertEquals('git@gitlab.example.com:foo/bar.git', remote.url)
             assertEquals('some-ssh-cred', remote.credentialsId)
+        }
+    }
+
+    // ============================================================
+    // Token broker aware component checkouts
+    // ============================================================
+    static class BrokerCheckout {
+        private static Map brokerEnv(Map overrides = [:]) {
+            return [
+                GIT_CDN_ENABLED        : 'true',
+                GIT_HTTP_CREDENTIALS_ID: 'github-bot-https',
+                GIT_BROKER_ENABLED     : 'true',
+                GIT_BROKER_ORGS        : 'tidbcloud',
+                GIT_BROKER_REPOS       : 'pingcap-inc/enterprise-plugin',
+            ] + overrides
+        }
+
+        /*
+         * Mirror prow.useBrokerCredentials / prow.withGitAskPassFromBroker so the
+         * component helpers can be exercised without the Jenkins library loader.
+         */
+        private static def scriptWithBroker(Map env, List events, Map scmArgs) {
+            def prowStub = new Expando()
+            prowStub.useBrokerCredentials = { Map refs ->
+                if (!env.GIT_BROKER_ENABLED?.toString()?.toBoolean()) {
+                    return false
+                }
+                def org = refs.org?.toString()?.toLowerCase()
+                def orgs = (env.GIT_BROKER_ORGS ?: 'tidbcloud').toString()
+                        .split(',').collect { it.trim().toLowerCase() }.findAll { it }
+                if (orgs.contains(org)) {
+                    return true
+                }
+                if (!refs.repo) {
+                    return false
+                }
+                def slug = "${org}/${refs.repo}".toString()
+                def repos = (env.GIT_BROKER_REPOS ?: '').toString()
+                        .split(',').collect { it.trim().toLowerCase() }.findAll { it }
+                return repos.any { it == slug || it == "${org}/*".toString() }
+            }
+            prowStub.withGitAskPassFromBroker = { Map cfg, Closure body ->
+                events << "mint:${cfg.repo}".toString()
+                body()
+            }
+            return loadScriptWithBindings([
+                env     : env,
+                prow    : prowStub,
+                checkout: { Map args ->
+                    events << 'checkout'
+                    scmArgs.putAll(args)
+                },
+            ])
+        }
+
+        @Test
+        void shouldMintAppTokenForAllowlistedOrg() {
+            def events = []
+            def scmArgs = [:]
+            def script = scriptWithBroker(brokerEnv(), events, scmArgs)
+
+            script.checkoutSingle('git@github.com:pingcap-inc/enterprise-plugin.git',
+                    'release-8.5', 'release-8.5', 'github-bot-ssh')
+
+            assertEquals(['mint:pingcap-inc/enterprise-plugin', 'checkout'], events)
+            def remote = scmArgs.scm.userRemoteConfigs[0]
+            assertEquals('http://git-cdn.cache.svc:8000/pingcap-inc/enterprise-plugin.git', remote.url)
+            assertEquals('no Jenkins credential may shadow GIT_ASKPASS', '', remote.credentialsId)
+        }
+
+        @Test
+        void shouldKeepPatForOrganizationOutsideTheAllowlist() {
+            def events = []
+            def scmArgs = [:]
+            def script = scriptWithBroker(brokerEnv([GIT_BROKER_REPOS: '']), events, scmArgs)
+
+            script.checkoutSingle('git@github.com:pingcap-inc/enterprise-plugin.git',
+                    'release-8.5', 'release-8.5', 'github-bot-ssh')
+
+            assertEquals(['checkout'], events)
+            assertEquals('github-bot-https', scmArgs.scm.userRemoteConfigs[0].credentialsId)
+        }
+
+        @Test
+        void shouldOnlyMintForRepositoriesOnTheRepoAllowlist() {
+            def events = []
+            def scmArgs = [:]
+            def script = scriptWithBroker(brokerEnv(), events, scmArgs)
+
+            // Same organization, but another repository: still on the PAT path.
+            script.checkoutSingle('git@github.com:pingcap-inc/tidb.git',
+                    'release-8.5', 'release-8.5', 'github-bot-ssh')
+
+            assertEquals(['checkout'], events)
+            assertEquals('github-bot-https', scmArgs.scm.userRemoteConfigs[0].credentialsId)
+        }
+
+        @Test
+        void shouldMintWhenTheRepoAllowlistUsesAWildcard() {
+            def events = []
+            def scmArgs = [:]
+            def script = scriptWithBroker(brokerEnv([GIT_BROKER_REPOS: 'pingcap-inc/*']), events, scmArgs)
+
+            script.checkoutSingle('git@github.com:pingcap-inc/tiflow.git',
+                    'release-8.5', 'release-8.5', 'github-bot-ssh')
+
+            assertEquals(['mint:pingcap-inc/tiflow', 'checkout'], events)
+            assertEquals('', scmArgs.scm.userRemoteConfigs[0].credentialsId)
+        }
+
+        @Test
+        void shouldKeepPatWhenBrokerDisabled() {
+            def events = []
+            def scmArgs = [:]
+            def script = scriptWithBroker(brokerEnv([GIT_BROKER_ENABLED: 'false']), events, scmArgs)
+
+            script.checkoutSingle('git@github.com:pingcap-inc/enterprise-plugin.git',
+                    'release-8.5', 'release-8.5', 'github-bot-ssh')
+
+            assertEquals(['checkout'], events)
+            assertEquals('github-bot-https', scmArgs.scm.userRemoteConfigs[0].credentialsId)
+        }
+
+        @Test
+        void shouldNotMintForNonGithubRepository() {
+            def events = []
+            def scmArgs = [:]
+            def script = scriptWithBroker(brokerEnv(), events, scmArgs)
+
+            script.checkoutSingle('git@gitlab.example.com:pingcap-inc/enterprise-plugin.git',
+                    'release-8.5', 'release-8.5', 'some-ssh-cred')
+
+            assertEquals(['checkout'], events)
+            assertEquals('some-ssh-cred', scmArgs.scm.userRemoteConfigs[0].credentialsId)
+        }
+
+        @Test
+        void shouldMintForComponentCheckoutToo() {
+            def events = []
+            def scmArgs = [:]
+            def script = scriptWithBroker(brokerEnv(), events, scmArgs)
+
+            script.checkout('git@github.com:pingcap-inc/enterprise-plugin.git', 'plugin',
+                    'release-8.5', 'build: bump Go | plugin=pr/259', 'github-bot-ssh')
+
+            assertEquals(['mint:pingcap-inc/enterprise-plugin', 'checkout'], events)
+            assertEquals('', scmArgs.scm.userRemoteConfigs[0].credentialsId)
+            assertEquals('origin/pr/259/head', scmArgs.scm.branches[0].name.toString())
         }
     }
 

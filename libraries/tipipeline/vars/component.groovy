@@ -388,6 +388,50 @@ private String gitCdnRewriteUrl(String gitUrl) {
 }
 
 // ============================================================
+// Token broker
+// ============================================================
+/*
+ * Extract `owner/repo` from a GitHub URL (SSH, ssh:// or HTTPS form).
+ * Non-GitHub URLs return '' so callers keep their existing transport.
+ */
+private String githubRepoSlug(String gitUrl) {
+    if (!gitUrl) {
+        return ''
+    }
+    def matcher = (gitUrl.trim() =~ /^(?:git@github\.com:|https:\/\/github\.com\/|ssh:\/\/git@github\.com\/)([^\/\s]+)\/([^\/\s]+?)(\.git)?$/)
+    return matcher ? "${matcher[0][1]}/${matcher[0][2]}".toString() : ''
+}
+
+/*
+ * Repository to mint an installation token for when the token broker
+ * authenticates this checkout, or '' to keep the SSH key / PAT path.
+ * Enablement and the organization allowlist are shared with
+ * prow.checkoutRefs, so one switch migrates both checkout paths.
+ */
+private String brokerRepoSlug(String gitUrl) {
+    final slug = githubRepoSlug(gitUrl)
+    if (!slug) {
+        return ''
+    }
+    final parts = slug.split('/')
+    return prow.useBrokerCredentials([org: parts[0], repo: parts[1]]) ? slug : ''
+}
+
+/*
+ * Run a GitSCM checkout. For a brokered repository the SCM carries no Jenkins
+ * credential and Git answers the git-cdn/GitHub 401 with a short-lived App
+ * installation token: SAML-enforcing organizations reject user PATs, and an
+ * empty credentialsId keeps the GIT_ASKPASS helper in charge.
+ */
+private Object checkoutWithAuth(Map scmArgs, String brokerRepo) {
+    def runCheckout = { checkout(scmArgs) }
+    if (brokerRepo) {
+        return prow.withGitAskPassFromBroker([repo: brokerRepo], runCheckout)
+    }
+    return runCheckout()
+}
+
+// ============================================================
 // Checkout
 // ============================================================
 // checkout component src from git repo.
@@ -404,9 +448,11 @@ def checkout(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunk
     // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
     // the git-cdn HTTP credential natively so the plugin manages basic auth.
     // Non-CDN instances keep the original SSH URL and credential.
+    // Brokered organizations authenticate with an App installation token instead.
     final cdnUrl = gitCdnRewriteUrl(gitUrl)
-    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
-    checkout(
+    final brokerRepo = brokerRepoSlug(gitUrl)
+    final scmCredentialsId = brokerRepo ? '' : ((cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId)
+    return checkoutWithAuth([
             changelog: false,
             poll: true,
             scm: [
@@ -425,7 +471,7 @@ def checkout(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunk
                     url: cdnUrl,
                 ]]
             ]
-        )
+        ], brokerRepo)
 }
 
 def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", trunkBranch="master", timeout=5) {
@@ -444,9 +490,11 @@ def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", tru
     // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
     // the git-cdn HTTP credential natively so the plugin manages basic auth.
     // Non-CDN instances keep the original SSH URL and credential.
+    // Brokered organizations authenticate with an App installation token instead.
     final cdnUrl = gitCdnRewriteUrl(gitUrl)
-    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
-    checkout(
+    final brokerRepo = brokerRepoSlug(gitUrl)
+    final scmCredentialsId = brokerRepo ? '' : ((cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId)
+    return checkoutWithAuth([
             changelog: false,
             poll: true,
             scm: [
@@ -465,7 +513,7 @@ def checkoutV2(gitUrl, component, prTargetBranch, prTitle, credentialsId="", tru
                     url: cdnUrl,
                 ]]
             ]
-        )
+        ], brokerRepo)
 }
 
 
@@ -532,9 +580,11 @@ def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeou
     // SSH key cannot authenticate. Point the SCM at the git-cdn HTTP URL and bind
     // the git-cdn HTTP credential natively so the plugin manages basic auth.
     // Non-CDN instances keep the original SSH URL and credential.
+    // Brokered organizations authenticate with an App installation token instead.
     final cdnUrl = gitCdnRewriteUrl(gitUrl)
-    final scmCredentialsId = (cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId
-    checkout(
+    final brokerRepo = brokerRepoSlug(gitUrl)
+    final scmCredentialsId = brokerRepo ? '' : ((cdnUrl != gitUrl) ? gitCdnHttpCredentialsId() : credentialsId)
+    return checkoutWithAuth([
             changelog: false,
             poll: true,
             scm: [
@@ -553,7 +603,7 @@ def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeou
                     url: cdnUrl,
                 ]]
             ]
-        )
+        ], brokerRepo)
 }
 
 def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentialsId) {

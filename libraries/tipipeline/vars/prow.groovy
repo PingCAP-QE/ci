@@ -165,9 +165,13 @@ def publicRemoteUrl(refs, gitBaseUrl = 'https://github.com') {
     return "https://${gitBaseUrl}/${refs.org}/${refs.repo}.git"
 }
 
-// Whether the repository should authenticate through the token broker. The
-// organization allowlist defaults to the SAML-enforcing tidbcloud org; other
-// organizations keep the SSH key/PAT until they are migrated deliberately.
+// Whether the repository should authenticate through the token broker.
+//
+// `GIT_BROKER_ORGS` is the organization allowlist (defaults to the
+// SAML-enforcing tidbcloud org). `GIT_BROKER_REPOS` narrows the migration to
+// single repositories of an organization that is not fully migrated, using
+// `owner/repo` entries or `owner/*` wildcards. Everything else keeps the SSH
+// key/PAT until it is migrated deliberately.
 def useBrokerCredentials(refs) {
     if (!env.GIT_BROKER_ENABLED?.trim()?.toBoolean()) {
         return false
@@ -176,11 +180,25 @@ def useBrokerCredentials(refs) {
     if (!org) {
         return false
     }
-    final allowlist = (env.GIT_BROKER_ORGS ?: 'tidbcloud')
+    if (splitBrokerAllowlist(env.GIT_BROKER_ORGS ?: 'tidbcloud').contains(org)) {
+        return true
+    }
+    final repo = refs?.repo?.toString()?.trim()?.toLowerCase()
+    if (!repo) {
+        return false
+    }
+    final slug = "${org}/${repo}"
+    return splitBrokerAllowlist(env.GIT_BROKER_REPOS).any { entry ->
+        entry == slug || entry == "${org}/*"
+    }
+}
+
+def splitBrokerAllowlist(def value) {
+    return (value ?: '')
+        .toString()
         .split(',')
         .collect { it.trim().toLowerCase() }
         .findAll { it }
-    return allowlist.contains(org)
 }
 
 /*
