@@ -54,3 +54,22 @@
 # pods would multiply the scheduler footprint of a 6-container template, so the
 # sizing decision belongs to the job owners, not to this pin.
 ^jenkins/jobs/pingcap/tidb/(latest|release-7\.5|release-8\.1|release-8\.5|release-9\.0-beta)/pull_mysql_client_test(_next_gen)?/pod\.yaml$	*	2027-05-31	memory requests != limits predates the image pin; Guaranteed sizing needs the job owners' decision
+
+# pingcap/tidb build and unit test pods: memory requests (16Gi-60Gi) vs
+# 64Gi limits have been unequal since these templates were written. The
+# violations only surfaced when the pod privilege was removed; turning them
+# into Guaranteed pods would reserve the full 64Gi per pod, which is the job
+# owners' sizing decision, so record them instead of changing them here.
+^jenkins/jobs/pingcap/tidb/latest/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/latest/merged_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/latest/pull_build_next_gen/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/latest/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/latest/pull_unit_test_next_gen/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release-7\.1/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release-7\.1/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release-7\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release-7\.5/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release-8\.1/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release-8\.1/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release-9\.0-beta/pull_unit_test/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	memory requests 48Gi != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
