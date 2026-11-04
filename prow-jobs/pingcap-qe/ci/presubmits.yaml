@@ -99,6 +99,16 @@ presubmits:
             args:
               - |
                 apk add --no-cache git jq ripgrep yq-go
+                # This job hands Jenkins admin credentials to a script from the
+                # PR checkout. Refuse to run it when the PR modifies that
+                # script, so PR code can never choose the code that receives
+                # the tokens.
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required to verify the script}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                if ! git diff --quiet "${base_sha}" -- .ci/replay-jenkins-build.sh; then
+                  echo "ERROR: .ci/replay-jenkins-build.sh is modified by this PR; it runs with CI credentials here. Land the script change in a separate PR and rerun." >&2
+                  exit 1
+                fi
                 .ci/replay-jenkins-build.sh \
                   --auto-changed \
                   --route-by-prow-master \
@@ -166,6 +176,16 @@ presubmits:
             args:
               - |
                 apk add --no-cache git jq ripgrep yq-go github-cli
+                # This job hands Jenkins and GitHub tokens to a script from the
+                # PR checkout. Refuse to run it when the PR modifies that
+                # script, so PR code can never choose the code that receives
+                # the tokens.
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required to verify the script}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                if ! git diff --quiet "${base_sha}" -- .ci/verify-jenkins-migration.sh; then
+                  echo "ERROR: .ci/verify-jenkins-migration.sh is modified by this PR; it runs with CI credentials here. Land the script change in a separate PR and rerun." >&2
+                  exit 1
+                fi
                 .ci/verify-jenkins-migration.sh \
                   --base-sha "${PULL_BASE_SHA:-}" \
                   --head-sha "${PULL_PULL_SHA:-}" \
