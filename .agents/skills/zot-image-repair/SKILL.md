@@ -77,19 +77,20 @@ ships `/bin/bash` 3.2, where it fails with `local: -n: invalid option`:
 `brew install bash`, then run `bash "$SCRIPT" ...` with the Homebrew shell
 first on `PATH` (or call `/opt/homebrew/bin/bash` directly).
 
-### 3. Authenticate to the source registry
+### 3. Prepare registry authentication
 
-The source images live in the private project
-`us-docker.pkg.dev/pingcap-testing-account`, so pulls must be authenticated.
-Give crane a docker config that can pull from it — for Artifact Registry:
+Repositories under `us-docker.pkg.dev/pingcap-testing-account` are a mix of
+public and private, and the private ones need an authenticated pull. Set the
+credential up once rather than guessing per image:
 
 ```bash
 gcloud auth login
 gcloud auth configure-docker us-docker.pkg.dev
 ```
 
-crane reads it through `DOCKER_CONFIG` (default `~/.docker/config.json`).
-Prefer the credential helper over pasting a token into the config by hand.
+crane picks it up through `DOCKER_CONFIG` (default `~/.docker/config.json`).
+Prefer the credential helper over pasting a token into the config by hand; if
+it reports `Reauthentication failed`, re-run `gcloud auth login`.
 
 ### 4. Provide KS3 credentials
 
@@ -131,21 +132,21 @@ Repair touches three systems, and needs a different permission on each:
 | System | Needed | Used for |
 |---|---|---|
 | Target registry `hub-zot.pingcap.net` | **read** | `crane validate` and `crane manifest` to find the broken blobs, plus the re-validation after the repair |
-| Source registry (e.g. `us-docker.pkg.dev/pingcap-testing-account`) | **read**, authenticated | `crane blob` to download the healthy blobs |
+| Source registry (e.g. `us-docker.pkg.dev/pingcap-testing-account`) | **read**, auth prepared (public and private repos are mixed) | `crane blob` to download the healthy blobs |
 | KS3 bucket (`ee-zot`) | **read + write** | `stat` to discover the two endpoints, `ks3util cp` to upload blobs under `<repo_path>/blobs/<alg>/<digest>` |
 
-- **Registry read**: both registries are pulled, so both need read access. The
-  source is a **private** project (`us-docker.pkg.dev/pingcap-testing-account`),
-  so the pull has to be authenticated; crane takes the credentials from the
-  local docker config (`DOCKER_CONFIG`). For Artifact Registry that normally
-  means `gcloud auth login` followed by
-  `gcloud auth configure-docker us-docker.pkg.dev`. A `401` / `denied` on
-  `crane manifest` or `crane blob` means the credential is missing or expired:
-  stop and ask the user to refresh it — do not retry anonymously, a private
-  registry will not answer that way.
+- **Registry read**: the target registry only needs read for this workflow, and
+  the source has to be pullable. Repositories under `pingcap-testing-account`
+  are a **mix of public and private**, so do not assume either — prepare the
+  authenticated access described in *Prepare* and let crane use it. crane reads
+  credentials from the local docker config (`DOCKER_CONFIG`); for Artifact
+  Registry that is `gcloud auth login` + `gcloud auth configure-docker
+  us-docker.pkg.dev`. A `401` / `denied` means the credential is missing or
+  expired: refresh it (ask the user) instead of retrying anonymously.
 - A stale credential helper fails *before* the request is made, e.g.
-  `gcloud.auth.docker-helper ... Reauthentication failed`; that is the same
-  credential problem, not a permission to work around.
+  `gcloud.auth.docker-helper ... Reauthentication failed`. That is a credential
+  problem even for a public repository, so fix the credential — it is not a
+  missing permission and not something to route around.
 - **Bucket write** is carried by the AK/SK in `ks3utilconfig`. `ks3util stat`
   only proves read access; a missing write permission surfaces at the first
   `ks3util cp` as `AccessDenied`. There is no read-only way to prove write
