@@ -99,12 +99,47 @@ optional: see *KS3 endpoint* below.
 bash -n "$SCRIPT"                        # syntax check, needs bash 4.3+
 "$SCRIPT" --help
 crane version && jq --version && ks3util --version
+crane manifest <target-image> >/dev/null   # target registry: read
+crane manifest <source-image> >/dev/null   # source registry: read
 ks3util -c ~/.ks3utilconfig stat ks3://ee-zot/
 ```
 
-The last command proves credentials and endpoint work: it prints
-`IntranetEndpoint` and `ExtranetEndpoint` for the bucket. If it fails, stop
-here — repair cannot work either.
+The `stat` call proves credentials and endpoint work (it prints
+`IntranetEndpoint` and `ExtranetEndpoint` for the bucket); the two `manifest`
+calls prove pull access to both registries. If any of them fails, stop here —
+repair cannot work either. Bucket write access cannot be checked without
+writing; see *Permissions*.
+
+## Permissions
+
+Repair touches three systems, and needs a different permission on each:
+
+| System | Needed | Used for |
+|---|---|---|
+| Target registry `hub-zot.pingcap.net` | **read** | `crane validate` and `crane manifest` to find the broken blobs, plus the re-validation after the repair |
+| Source registry (e.g. `us-docker.pkg.dev/pingcap-testing-account`) | **read** | `crane blob` to download the healthy blobs |
+| KS3 bucket (`ee-zot`) | **read + write** | `stat` to discover the two endpoints, `ks3util cp` to upload blobs under `<repo_path>/blobs/<alg>/<digest>` |
+
+- **Registry read** is what `crane manifest <ref>` exercises; the public mirror
+  source usually needs no credentials at all. When a registry does need them,
+  crane picks them up from the local docker config (`DOCKER_CONFIG`). A `401` /
+  `denied` on `crane manifest` or `crane blob` means the credential for that
+  registry is missing — stop and ask the user. One trap: a stale credential
+  helper (an unauthenticated `gcloud` helper, for instance) fails
+  non-interactively and blocks a registry that is actually public. Retry with
+  an empty docker config to confirm before blaming permissions:
+
+  ```bash
+  DOCKER_CONFIG=$(mktemp -d) crane manifest <source-image> >/dev/null
+  ```
+- **Bucket write** is carried by the AK/SK in `ks3utilconfig`. `ks3util stat`
+  only proves read access; a missing write permission surfaces at the first
+  `ks3util cp` as `AccessDenied`. There is no read-only way to prove write
+  access, so never report the setup as verified before an upload has actually
+  succeeded, or the user has confirmed the AK/SK may write to the bucket.
+- **Never escalate to get around a missing permission**: no second credential,
+  no different bucket, no substituting another source image. Report which of
+  the three permissions is missing and stop.
 
 ## Scope
 
@@ -145,8 +180,10 @@ to switch between intranet and extranet.
    If the mapping is unclear, ask the user for the authoritative source image
    instead of guessing.
 3. Use bucket `ee-zot` (ask the user when a different bucket is expected).
-4. Run the script. Start interactively so the user sees the target, source,
-   bucket, resolved endpoint and the blob list before anything is uploaded:
+4. Check the three permissions in *Permissions* (target read, source read,
+   bucket write), then run the script. Start interactively so the user sees
+   the target, source, bucket, resolved endpoint and the blob list before
+   anything is uploaded:
 
    ```bash
    bash "$SCRIPT" \
