@@ -17,8 +17,6 @@ spec:
     - name: mysql-client-test
       # pinned 2026-11-04: was :latest, digest resolved from a running pod
       image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/tiproxy-team/mysql-client-test@sha256:1ee3ca02da8830671fb6501adb980850d9f81540074d9f2eeddbf1f3472ac997"
-      securityContext:
-        privileged: true
       tty: true
       resources:
         requests:
