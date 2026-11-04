@@ -10,6 +10,8 @@ NC=$'\033[0m'
 
 TMPDIR="${TMPDIR:-/tmp}/validate-repair-$$"
 VALIDATE_LOG=""
+# Resolved at run time: empty means "use whatever the ks3util config says".
+KS3_ENDPOINT=""
 
 usage() {
     cat <<EOF
@@ -52,6 +54,10 @@ ${BOLD}Authentication:${NC}
   In interactive mode, the script will also prompt for AK/SK/region/endpoint
   and pass them directly to ks3util.
 
+  KS3 has an intranet and an extranet endpoint. The script asks the bucket for
+  both, probes the intranet one first and automatically falls back to the
+  extranet one when the intranet is not reachable.
+
 ${BOLD}Non-interactive example:${NC}
   $0 --source source-registry.example.com/mirrors/example/image:tag \\
      --bucket my-bucket \\
@@ -68,6 +74,95 @@ header()  { echo; echo "${BOLD}${CYAN}=== $* ===${NC}"; echo; }
 
 require_command() {
     command -v "$1" >/dev/null 2>&1 || { error "Required command '$1' not found in PATH."; exit 1; }
+}
+
+# ---------------------------------------------------------------------------
+# KS3 endpoint selection
+#
+# The intranet endpoint only works inside the KSY network, the extranet one
+# only from outside it. Rather than hardcoding a choice, ask the bucket for
+# both names, probe the intranet one first and fall back to the extranet one
+# when the probe fails.
+# ---------------------------------------------------------------------------
+
+_ks3_stat_bucket() {
+    local bucket="$1"
+    local config_file="$2"
+    local endpoint="${3:-}"
+
+    local stat_args=(stat "ks3://${bucket}/")
+    local cmd=(ks3util)
+    if [[ -n "$config_file" ]]; then
+        cmd+=(--config-file "$config_file")
+    fi
+    if [[ -n "$endpoint" ]]; then
+        cmd+=(--endpoint "$endpoint" --read-timeout=5)
+    fi
+    cmd+=("${stat_args[@]}")
+
+    "${cmd[@]}" 2>/dev/null
+}
+
+_endpoint_reachable() {
+    local endpoint="$1"
+    local bucket="$2"
+    local config_file="$3"
+    local output
+
+    output=$(_ks3_stat_bucket "$bucket" "$config_file" "$endpoint") || return 1
+    [[ -n "$output" ]]
+}
+
+# Echo the endpoint to use: intranet when reachable, extranet otherwise.
+# Echoes nothing when neither could be determined (caller keeps the config).
+resolve_ks3_endpoint() {
+    local bucket="$1"
+    local config_file="$2"
+
+    local bucket_info
+    bucket_info=$(_ks3_stat_bucket "$bucket" "$config_file" "")
+
+    local intranet="" extranet=""
+    if [[ -n "$bucket_info" ]]; then
+        intranet=$(printf '%s\n' "$bucket_info" \
+            | awk -F': *' '/^[[:space:]]*IntranetEndpoint/ {print $2; exit}')
+        extranet=$(printf '%s\n' "$bucket_info" \
+            | awk -F': *' '/^[[:space:]]*ExtranetEndpoint/ {print $2; exit}')
+    fi
+
+    if [[ -n "$intranet" ]]; then
+        if _endpoint_reachable "$intranet" "$bucket" "$config_file"; then
+            info "KS3 endpoint: ${CYAN}${intranet}${NC} (intranet, reachable)" >&2
+            printf '%s' "$intranet"
+            return 0
+        fi
+        warn "KS3 intranet endpoint ${intranet} unreachable — falling back to extranet." >&2
+    fi
+
+    if [[ -n "$extranet" ]]; then
+        info "KS3 endpoint: ${CYAN}${extranet}${NC} (extranet)" >&2
+        printf '%s' "$extranet"
+        return 0
+    fi
+
+    # Could not describe the bucket: derive the public counterpart of the
+    # configured endpoint and probe that instead.
+    local configured=""
+    if [[ -n "${KS3_ENDPOINT:-}" ]]; then
+        configured="$KS3_ENDPOINT"
+    elif [[ -n "$config_file" && -f "$config_file" ]]; then
+        configured=$(awk -F'=' '/^[[:space:]]*endpoint/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' "$config_file")
+    fi
+    if [[ -n "$configured" ]]; then
+        local public="${configured/-internal./.}"
+        if [[ "$public" != "$configured" ]] && _endpoint_reachable "$public" "$bucket" "$config_file"; then
+            info "KS3 endpoint: ${CYAN}${public}${NC} (extranet, derived from config)" >&2
+            printf '%s' "$public"
+            return 0
+        fi
+    fi
+
+    return 1
 }
 
 cleanup() {
@@ -329,6 +424,9 @@ upload_blob() {
     if [[ -n "$config_file" ]]; then
         config_opt=(--config-file "$config_file")
     fi
+    if [[ -n "${KS3_ENDPOINT:-}" ]]; then
+        config_opt+=(--endpoint "$KS3_ENDPOINT")
+    fi
 
     info "Uploading to ${CYAN}$s3_path${NC} ..."
     if ks3util cp -f "${config_opt[@]}" "$local_file" "$s3_path" 2>&1 | sed 's/^/  /'; then
@@ -519,6 +617,16 @@ main() {
         info "No --config-file specified, ks3util will use default config (~/.ks3utilconfig)."
     fi
 
+    # Prefer the intranet endpoint, fall back to the extranet one when the
+    # intranet is not reachable from where this runs.
+    local resolved_endpoint=""
+    if resolved_endpoint=$(resolve_ks3_endpoint "$bucket" "$config_file"); then
+        KS3_ENDPOINT="$resolved_endpoint"
+    else
+        KS3_ENDPOINT=""
+        warn "Could not probe a KS3 endpoint for ${bucket}; using the ks3util config default."
+    fi
+
     # ---- Repair loop: parse → repair → re-validate → detect new errors ----
 
     local -A attempted_digests=()
@@ -587,6 +695,11 @@ main() {
         echo "  ${BOLD}Source image:${NC}    $source_image"
         echo "  ${BOLD}S3 bucket:${NC}      $bucket"
         echo "  ${BOLD}S3 blob path:${NC}    ks3://${bucket}/${repo_path}/blobs/<alg>/<digest>"
+        if [[ -n "${KS3_ENDPOINT:-}" ]]; then
+            echo "  ${BOLD}KS3 endpoint:${NC}    $KS3_ENDPOINT"
+        else
+            echo "  ${BOLD}KS3 endpoint:${NC}    (ks3util config default)"
+        fi
         if [[ -n "$config_file" ]]; then
             echo "  ${BOLD}Config file:${NC}     $config_file"
         else
