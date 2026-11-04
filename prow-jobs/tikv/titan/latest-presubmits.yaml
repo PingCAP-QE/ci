@@ -146,10 +146,9 @@ presubmits:
             env:
               - name: SANITIZER
                 value: TSAN
-            securityContext:
-              # Required for TSAN on GCP. Without privileged mode, the TSAN job hit
-              # `ThreadSanitizer: unexpected memory mapping` during test execution.
-              privileged: true
+            # TSan's "unexpected memory mapping" comes from ASLR entropy, and the
+            # test script already runs the TSan runtime under `setarch -R` (see
+            # scripts/tikv/titan/test.sh), so no privileged container is needed.
             resources:
               requests:
                 cpu: "4"
