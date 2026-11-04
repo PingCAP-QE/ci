@@ -54,3 +54,7 @@
 # pods would multiply the scheduler footprint of a 6-container template, so the
 # sizing decision belongs to the job owners, not to this pin.
 ^jenkins/jobs/pingcap/tidb/(latest|release-7\.5|release-8\.1|release-8\.5|release-9\.0-beta)/pull_mysql_client_test(_next_gen)?/pod\.yaml$	*	2027-05-31	memory requests != limits predates the image pin; Guaranteed sizing needs the job owners' decision
+
+# `pingcap/tidb` release-9.0-beta unit-test pods: same pre-existing sizing debt.
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_unit_test/pod\.yaml$	golang	2027-05-31	memory requests 48Gi != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	memory requests 48Gi != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
