@@ -1,0 +1,124 @@
+# Allowlist for the pod privilege policy: `securityContext.privileged: true`
+# is refused unless the container is recorded here. Enforced by
+# .ci/verify-pod-privilege-policy.sh.
+#
+# Format: <path-regex>\t<container-name>\t<review-date>\t<reason>
+# A line whose container-name is '*' matches every container in the file.
+# Entries whose review date has passed must be re-justified (with usage
+# evidence) or removed -- they stop exempting.
+#
+# This file is the privileged-container inventory of the Jenkins agent Pod
+# templates: 10 docker-in-docker sidecars (a real requirement) plus 94
+# containers that inherited privileged from the original templates and have
+# not been audited. The check only looks at Pod templates a PR changes, so the
+# backlog does not block unrelated work; renewing an entry means "go and check
+# this pod still needs it", removing one means the next change to that template
+# drops the privilege.
+
+# --- docker-in-docker sidecars (dockerd runs inside the pod) ---
+^jenkins/jobs/pingcap/tidb/release\-6\.5/pull_tiflash_test/pod\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/latest/pull_integration_test/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/release\-6\.5/pull_integration_test/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/release\-7\.1/pull_integration_test/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/release\-7\.5/pull_integration_test/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/release\-8\.1/pull_integration_test/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/release\-8\.5/pull_integration_test/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+^jenkins/jobs/pingcap/tiflash/release\-9\.0\-beta/pull_integration_test/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
+
+# --- inherited from the original templates, not audited yet ---
+^jenkins/jobs/pingcap\-inc/enterprise\-extensions/latest/pr_verify/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/ghpr_build/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/ghpr_integration_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/pull_tiproxy_common_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/pull_tiproxy_jdbc_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/pull_tiproxy_mysql_connector_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/pull_tiproxy_mysql_connector_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/pull_tiproxy_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/pull_tiproxy_ruby_orm_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-6\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-6\.5/ghpr_integration_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-6\.5/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-7\.1/ghpr_build/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-7\.1/ghpr_integration_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-7\.1/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-8\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-8\.5/ghpr_integration_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-8\.5/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tidb/latest/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/merged_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/merged_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/pull_build_next_gen/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/pull_check_next_gen/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/pull_integration_realcluster_test_next_gen/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/pull_mysql_client_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/pull_mysql_client_test_next_gen/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/latest/pull_unit_test_next_gen/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-6\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-6\.5/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-6\.5/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-6\.5/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.1/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.1/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.1/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.1/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.5/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.5/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.5/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-7\.5/pull_mysql_client_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.1/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.1/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.1/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.1/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.1/pull_mysql_client_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_mysql_client_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_mysql_client_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/pingcap/tiproxy/latest/merged_integration_common_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/merged_integration_jdbc_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/merged_integration_python_orm_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/merged_integration_ruby_orm_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/merged_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/merged_sqllogic_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/pull_integration_common_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/pull_integration_jdbc_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/pull_integration_ruby_orm_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/pull_mysql_connector_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/pingcap/tiproxy/latest/pull_mysql_connector_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
+^jenkins/jobs/pingcap/tiproxy/latest/pull_mysql_test/pod\.yaml$	golang	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tidbcloud/cloud\-storage\-engine/dedicated/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/tidbcloud/cloud\-storage\-engine/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/tikv/pd/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
+^jenkins/jobs/tikv/tikv/latest/pull_integration_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/latest/pull_unit_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-6\.5/pull_integration_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-6\.5/pull_unit_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-7\.1/pull_integration_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-7\.1/pull_unit_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-7\.5/pull_integration_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-7\.5/pull_unit_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-8\.1/pull_integration_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-8\.1/pull_unit_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-8\.5/pull_unit_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up
+^jenkins/jobs/tikv/tikv/release\-9\.0\-beta/pull_unit_test/pod\.yaml$	runner	2027-05-31	Jenkins agent container: privileged comes from the original agent template; narrowing tracked in the agent-hardening follow-up

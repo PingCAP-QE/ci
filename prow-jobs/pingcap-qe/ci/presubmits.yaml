@@ -387,6 +387,27 @@ presubmits:
               limits:
                 memory: 256Mi
                 cpu: 200m
+    - name: pull-verify-pod-privilege-policy
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      run_if_changed: "^(jenkins/jobs/.*/pod.*\\.ya?ml|\\.ci/verify-pod-privilege-policy\\.sh|\\.ci/test-verify-pod-privilege-policy\\.sh|\\.ci/pod-privilege-policy-allowlist\\.txt)$"
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.24
+            command: [sh, -ce]
+            args:
+              - |
+                apk add --no-cache bash git grep sed findutils yq-go
+                bash .ci/test-verify-pod-privilege-policy.sh
+                bash .ci/verify-pod-privilege-policy.sh
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
     - name: pull-verify-jenkins-job-references
       labels: *labels
       decorate: true

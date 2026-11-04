@@ -34,3 +34,8 @@ repos:
         entry: bash .ci/pre-commit-verify-pod-resource-policy.sh
         language: system
         files: '^jenkins/jobs/.*/pod[^/]*\.ya?ml$'
+      - id: verify-pod-privilege-policy
+        name: Verify pod privilege policy (privileged containers allowlisted)
+        entry: bash .ci/pre-commit-verify-pod-privilege-policy.sh
+        language: system
+        files: '^jenkins/jobs/.*/pod[^/]*\.ya?ml$'
