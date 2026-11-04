@@ -9,7 +9,8 @@ presubmits:
       clone_depth: 1
       spec:
         containers:
-          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:latest-master
+          # pinned 2026-11-04: was :latest-master, an upstream moving tag
+          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e@sha256:026a3a75edd3963f325473ee22f40be8a7d3135df8baa7bdcb29c20d40197b64
             command:
               - runner.sh
             args:
@@ -24,7 +25,8 @@ presubmits:
       spec:
         serviceAccountName: prow-pusher
         containers:
-          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:latest-master
+          # pinned 2026-11-04: was :latest-master, an upstream moving tag
+          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e@sha256:026a3a75edd3963f325473ee22f40be8a7d3135df8baa7bdcb29c20d40197b64
             command:
               - runner.sh
             args:
@@ -48,7 +50,8 @@ presubmits:
       clone_depth: 1
       spec:
         containers:
-          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e:latest-master
+          # pinned 2026-11-04: was :latest-master, an upstream moving tag
+          - image: us-central1-docker.pkg.dev/k8s-staging-test-infra/images/kubekins-e2e@sha256:026a3a75edd3963f325473ee22f40be8a7d3135df8baa7bdcb29c20d40197b64
             command:
               - runner.sh
             args:

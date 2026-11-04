@@ -47,3 +47,10 @@
 # The Guaranteed alignment is deferred to a dedicated FLA-303 batch.
 ^jenkins/jobs/pingcap/tidb/release-6\.5/ghpr_build/pod\.yaml$	golang	2027-03-31	build pod bursts to 64Gi/16cpu (bazel jobs come from limits); align with metrics in a later FLA-303 batch
 ^jenkins/jobs/pingcap/tidb/release-6\.5/ghpr_unit_test/pod\.yaml$	golang	2027-03-31	unit-test pod bursts to 64Gi; align with metrics in a later FLA-303 batch
+
+# `pull_mysql_client_test` pods: memory requests (golang 12Gi, mysql-client-test
+# 1Gi) vs limits (16Gi) has been unequal since these templates were written.
+# Surfaced when the moving image tag was pinned; turning them into Guaranteed
+# pods would multiply the scheduler footprint of a 6-container template, so the
+# sizing decision belongs to the job owners, not to this pin.
+^jenkins/jobs/pingcap/tidb/(latest|release-7\.5|release-8\.1|release-8\.5|release-9\.0-beta)/pull_mysql_client_test(_next_gen)?/pod\.yaml$	*	2027-05-31	memory requests != limits predates the image pin; Guaranteed sizing needs the job owners' decision
