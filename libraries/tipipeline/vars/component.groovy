@@ -130,6 +130,26 @@ def computeNextgenPeerBranch(String branch) {
 }
 
 // ============================================================
+// Branch name validation
+// ============================================================
+// Values resolved from the PR title are interpolated into shell scripts by the
+// checkout and artifact steps. Restrict them to characters that can appear in a
+// git ref, so a crafted title cannot inject shell syntax (`;`, `$()`, backticks,
+// `|`, `&&`, newlines) or `..` path segments.
+def validateBranchToken(String component, String value) {
+    final String branchTokenReg = /^[@A-Za-z0-9][A-Za-z0-9._\/+@-]{0,127}$/
+    if (value == null) {
+        return value
+    }
+    if (!(value ==~ branchTokenReg) || value.contains('..') || value.contains('//')) {
+        throw new IllegalArgumentException(
+            "refusing unsafe branch value for component '${component}': ${value.inspect()}; " +
+            "PR-title CI params may only contain letters, digits, '.', '_', '/', '+', '@' and '-'")
+    }
+    return value
+}
+
+// ============================================================
 // Branch mapping
 // ============================================================
 // compute component branch from pr info.
@@ -176,7 +196,7 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     if (ciParams.containsKey(component)) {
         def resolved = ciParams[component]
         println("🎫 '${component}' on '${prTargetBranch}' resolved from PR title param '${component}=${resolved}' -> '${resolved}'")
-        return resolved
+        return validateBranchToken(component, resolved)
     }
 
     // Derive the release-X.Y / release-X.Y.Z branch implied by the target branch.
@@ -208,7 +228,7 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
             def matchedBy = special['match'] != null ? "match='${special['match']}'" : "matchRegex='${special['matchRegex']}'"
             def valueSource = fromComponentMap ? "components.${component}" : 'default'
             println("🎯 '${component}' on '${prTargetBranch}' matched ${COMPONENT_BRANCH_MAPPING_RESOURCE} (${matchedBy}, ${valueSource}='${value}') -> '${resolved}'")
-            return resolved
+            return validateBranchToken(component, resolved)
         }
     }
 
@@ -243,7 +263,7 @@ def computeBranchFromPR(String component, String prTargetBranch, String prTitle,
     }
 
     println("🧭 '${component}' on '${prTargetBranch}' resolved by ${resolvedBy} -> '${componentBranch}'")
-    return componentBranch
+    return validateBranchToken(component, componentBranch)
 }
 
 // Load and cache the special branch mapping config from
@@ -772,14 +792,14 @@ def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artif
         sha1=""
 
         if [[ "commit_${componentBranch}" =~ ^commit_[0-9a-f]{40}\$ ]]; then
-            sha1=${componentBranch}
+            sha1="${componentBranch}"
         else
             refUrl="${serverUrl}/download/refs/pingcap/${component}/${componentBranch}/sha1"
             if [[ "${artifactVerify}" = "true" ]]; then
                 refUrl="${serverUrl}/download/refs/pingcap/${component}/${componentBranch}/sha1.verify"
             fi
             echo "🔍 ref url: \${refUrl}"
-            sha1="\$(curl --fail \${refUrl} | head -1)"
+            sha1="\$(curl --fail \"\${refUrl}\" | head -1)"
         fi
 
         artifactUrl="${serverUrl}/download/builds/pingcap/${component}/\${sha1}/${artifactPath}"
@@ -787,8 +807,8 @@ def fetchAndExtractArtifact(serverUrl, component, prTargetBranch, prTitle, artif
             artifactUrl="${serverUrl}/download/builds/pingcap/${component}/${componentBranch}/\${sha1}/${artifactPath}"
         fi
         echo "⬇️📦 artifact url: \${artifactUrl}"
-        saveFile=\$(basename \${artifactUrl})
-        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -c -O \${saveFile} \${artifactUrl}
+        saveFile=\$(basename \"\${artifactUrl}\")
+        wget -q --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -c -O \"\${saveFile}\" \"\${artifactUrl}\"
         echo "📂 extract ${pathInArchive} from \${saveFile} ..."
         tar -xzf \${saveFile} ${pathInArchive}
         rm \${saveFile}
