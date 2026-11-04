@@ -23,8 +23,6 @@ spec:
         - name: DOCKER_HOST
           value: tcp://localhost:2375
 
-      securityContext:
-        privileged: true
       resources:
         requests:
           memory: 8Gi
