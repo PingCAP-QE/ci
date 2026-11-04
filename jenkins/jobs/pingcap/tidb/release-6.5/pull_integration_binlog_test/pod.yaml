@@ -59,7 +59,7 @@ spec:
           value: "zk"
         - name: KAFKA_ZOOKEEPER_CONNECT
           value: "127.0.0.1:2181"
-      image: docker.io/confluentinc/cp-kafka:7.6.2
+      image: docker.io/confluentinc/cp-kafka:7.6.14
       imagePullPolicy: IfNotPresent
       name: kafka
       resources:
