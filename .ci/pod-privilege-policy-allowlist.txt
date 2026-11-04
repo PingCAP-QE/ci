@@ -16,7 +16,6 @@
 # drops the privilege.
 
 # --- docker-in-docker sidecars (dockerd runs inside the pod) ---
-^jenkins/jobs/pingcap/tidb/release\-6\.5/pull_tiflash_test/pod\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 ^jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 ^jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 ^jenkins/jobs/pingcap/tiflash/latest/pull_integration_test/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
@@ -65,24 +64,6 @@
 ^jenkins/jobs/pingcap/tidb/latest/pull_mysql_client_test_next_gen/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
 ^jenkins/jobs/pingcap/tidb/latest/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
 ^jenkins/jobs/pingcap/tidb/latest/pull_unit_test_next_gen/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-6\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-6\.5/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-6\.5/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-6\.5/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.1/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.1/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.1/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.1/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.5/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.5/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.5/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-7\.5/pull_mysql_client_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-8\.1/ghpr_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-8\.1/ghpr_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-8\.1/ghpr_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-8\.1/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
-^jenkins/jobs/pingcap/tidb/release\-8\.1/pull_mysql_client_test/pod\.yaml$	mysql-client-test	2027-05-31	mysql client test container: privileged comes from the original template; not audited yet
 ^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_build/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
 ^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_check/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
 ^jenkins/jobs/pingcap/tidb/release\-8\.5/pull_check2/pod\.yaml$	golang	2027-05-31	TiDB builder container: privileged comes from the original build template; not audited yet
