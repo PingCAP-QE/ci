@@ -45,6 +45,15 @@ presubmits:
             args:
               - |
                 apk add --no-cache bash git jq yq-go kubectl
+                # This job turns its ServiceAccount token into a kubeconfig and
+                # hands both to a script from the PR checkout. Refuse to run it
+                # when the PR modifies that script.
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required to verify the script}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                if ! git diff --quiet "${base_sha}" -- .ci/verify-prow-jobs-run.sh; then
+                  echo "ERROR: .ci/verify-prow-jobs-run.sh is modified by this PR; it runs with the prow-job-validation ServiceAccount here. Land the script change in a separate PR and rerun." >&2
+                  exit 1
+                fi
                 bash .ci/verify-prow-jobs-run.sh
             resources:
               limits:
