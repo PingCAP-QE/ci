@@ -6,8 +6,6 @@ spec:
   containers:
     - name: golang
       image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.29-14-g90ae7ef-go1.25
-      securityContext:
-        privileged: true
       tty: true
       resources:
         requests:

@@ -73,3 +73,13 @@
 ^jenkins/jobs/pingcap/tidb/release-8\.1/ghpr_unit_test/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
 ^jenkins/jobs/pingcap/tidb/release-9\.0-beta/pull_unit_test/pod\.yaml$	golang	2027-05-31	memory requests != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
 ^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	memory requests 48Gi != 64Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+
+# pingcap-qe/tidb-test pods: memory 12Gi request vs 24Gi limit, pre-existing.
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-qe/tidb\-test/latest/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-6\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-6\.5/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-7\.1/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-7\.1/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-8\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-qe/tidb\-test/release\-8\.5/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
