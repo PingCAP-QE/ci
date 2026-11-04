@@ -69,7 +69,7 @@ spec:
         git branch --contains > /workspace/branches.txt
         cat /workspace/branches.txt
     - name: compute-version
-      image: denoland/deno:2.9.7
+      image: denoland/deno:2.9.8
       when:
         - input: $(params.component)
           operator: notin
