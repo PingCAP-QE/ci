@@ -45,21 +45,32 @@ presubmits:
       spec:
         containers:
           - image: golang:1.26.4
-            command:
-              - scripts/peribolos.sh
+            command: [bash, -ceo, pipefail]
             args:
-              - --config-path=orgs/config.yaml
-              - --github-token-path=/etc/github/token
-              - --github-endpoint=http://prow-ghproxy.apps
-              - --github-endpoint=https://api.github.com
-              - --min-admins=2
-              - --fix-org
-              - --fix-org-members
-              - --fix-teams
-              - --fix-team-members
-              - --fix-team-repos
-              - --tokens=1200
-              - --confirm=false
+              - |
+                # This job runs a script from the PR tree with an org-scoped
+                # GitHub token. Refuse to run it when the PR modifies that
+                # script, so PR code can never choose the code that receives
+                # the token.
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required to verify the script}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                if ! git diff --quiet "${base_sha}" -- scripts/peribolos.sh; then
+                  echo "ERROR: scripts/peribolos.sh is modified by this PR; it runs with an org-scoped GitHub token here. Land the script change in a separate PR and rerun." >&2
+                  exit 1
+                fi
+                scripts/peribolos.sh \
+                  --config-path=orgs/config.yaml \
+                  --github-token-path=/etc/github/token \
+                  --github-endpoint=http://prow-ghproxy.apps \
+                  --github-endpoint=https://api.github.com \
+                  --min-admins=2 \
+                  --fix-org \
+                  --fix-org-members \
+                  --fix-teams \
+                  --fix-team-members \
+                  --fix-team-repos \
+                  --tokens=1200 \
+                  --confirm=false
             volumeMounts:
               - name: github-token
                 mountPath: /etc/github
