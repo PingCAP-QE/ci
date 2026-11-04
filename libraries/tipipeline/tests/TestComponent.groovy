@@ -1077,4 +1077,52 @@ class TestComponent {
         }
     }
 
+    // ============================================================
+    // Branch token validation
+    // ============================================================
+    static class BranchTokenValidation {
+        private def script
+
+        @Before
+        void setUp() {
+            script = loadScript()
+        }
+
+        private String branch(String title) {
+            script.invokeMethod('computeBranchFromPR', ['tidb', 'master', title, 'master'])
+        }
+
+        @Test
+        void shouldAcceptRealBranchValues() {
+            assertEquals('pr/123', branch('feat: x | tidb=pr/123'))
+            assertEquals('master', branch('feat: x | tidb=master'))
+            assertEquals('release-8.5', branch('feat: x | tidb=release-8.5'))
+            assertEquals('feature/release-8.5-fts', branch('feat: x | tidb=feature/release-8.5-fts'))
+            assertEquals('@v8.5.0', branch('feat: x | tidb=@v8.5.0'))
+            assertEquals('commit_0123456789abcdef0123456789abcdef01234567',
+                branch('feat: x | tidb=commit_0123456789abcdef0123456789abcdef01234567'))
+        }
+
+        @Test
+        void shouldRejectShellMetacharactersInTitleParams() {
+            [
+                'feat: x | tidb=master;touch',
+                'feat: x | tidb=master&&id',
+                'feat: x | tidb=$(id)',
+                'feat: x | tidb=`id`',
+                'feat: x | tidb=../../etc/passwd',
+                'feat: x | tidb=feature//x',
+                'feat: x | tidb=-rf',
+            ].each { title ->
+                try {
+                    def value = branch(title)
+                    fail("expected unsafe title to be rejected, got '${value}' for: ${title}")
+                } catch (IllegalArgumentException expected) {
+                    assertTrue("error should name the value: ${expected.message}",
+                        expected.message.contains('refusing unsafe branch value'))
+                }
+            }
+        }
+    }
+
 }
