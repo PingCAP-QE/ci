@@ -77,7 +77,21 @@ ships `/bin/bash` 3.2, where it fails with `local: -n: invalid option`:
 `brew install bash`, then run `bash "$SCRIPT" ...` with the Homebrew shell
 first on `PATH` (or call `/opt/homebrew/bin/bash` directly).
 
-### 3. Provide KS3 credentials
+### 3. Authenticate to the source registry
+
+The source images live in the private project
+`us-docker.pkg.dev/pingcap-testing-account`, so pulls must be authenticated.
+Give crane a docker config that can pull from it — for Artifact Registry:
+
+```bash
+gcloud auth login
+gcloud auth configure-docker us-docker.pkg.dev
+```
+
+crane reads it through `DOCKER_CONFIG` (default `~/.docker/config.json`).
+Prefer the credential helper over pasting a token into the config by hand.
+
+### 4. Provide KS3 credentials
 
 The script reads a `ks3utilconfig` file (default `~/.ks3utilconfig`) holding
 AK/SK for the bucket that backs zot:
@@ -93,14 +107,14 @@ endpoint=ks3-cn-beijing.ksyuncs.com
 never paste its contents into the conversation. An `endpoint` line is
 optional: see *KS3 endpoint* below.
 
-### 4. Verify the setup (read only)
+### 5. Verify the setup (read only)
 
 ```bash
 bash -n "$SCRIPT"                        # syntax check, needs bash 4.3+
 "$SCRIPT" --help
 crane version && jq --version && ks3util --version
 crane manifest <target-image> >/dev/null   # target registry: read
-crane manifest <source-image> >/dev/null   # source registry: read
+crane manifest <source-image> >/dev/null   # source registry: authenticated read
 ks3util -c ~/.ks3utilconfig stat ks3://ee-zot/
 ```
 
@@ -117,21 +131,21 @@ Repair touches three systems, and needs a different permission on each:
 | System | Needed | Used for |
 |---|---|---|
 | Target registry `hub-zot.pingcap.net` | **read** | `crane validate` and `crane manifest` to find the broken blobs, plus the re-validation after the repair |
-| Source registry (e.g. `us-docker.pkg.dev/pingcap-testing-account`) | **read** | `crane blob` to download the healthy blobs |
+| Source registry (e.g. `us-docker.pkg.dev/pingcap-testing-account`) | **read**, authenticated | `crane blob` to download the healthy blobs |
 | KS3 bucket (`ee-zot`) | **read + write** | `stat` to discover the two endpoints, `ks3util cp` to upload blobs under `<repo_path>/blobs/<alg>/<digest>` |
 
-- **Registry read** is what `crane manifest <ref>` exercises; the public mirror
-  source usually needs no credentials at all. When a registry does need them,
-  crane picks them up from the local docker config (`DOCKER_CONFIG`). A `401` /
-  `denied` on `crane manifest` or `crane blob` means the credential for that
-  registry is missing — stop and ask the user. One trap: a stale credential
-  helper (an unauthenticated `gcloud` helper, for instance) fails
-  non-interactively and blocks a registry that is actually public. Retry with
-  an empty docker config to confirm before blaming permissions:
-
-  ```bash
-  DOCKER_CONFIG=$(mktemp -d) crane manifest <source-image> >/dev/null
-  ```
+- **Registry read**: both registries are pulled, so both need read access. The
+  source is a **private** project (`us-docker.pkg.dev/pingcap-testing-account`),
+  so the pull has to be authenticated; crane takes the credentials from the
+  local docker config (`DOCKER_CONFIG`). For Artifact Registry that normally
+  means `gcloud auth login` followed by
+  `gcloud auth configure-docker us-docker.pkg.dev`. A `401` / `denied` on
+  `crane manifest` or `crane blob` means the credential is missing or expired:
+  stop and ask the user to refresh it — do not retry anonymously, a private
+  registry will not answer that way.
+- A stale credential helper fails *before* the request is made, e.g.
+  `gcloud.auth.docker-helper ... Reauthentication failed`; that is the same
+  credential problem, not a permission to work around.
 - **Bucket write** is carried by the AK/SK in `ks3utilconfig`. `ks3util stat`
   only proves read access; a missing write permission surfaces at the first
   `ks3util cp` as `AccessDenied`. There is no read-only way to prove write
