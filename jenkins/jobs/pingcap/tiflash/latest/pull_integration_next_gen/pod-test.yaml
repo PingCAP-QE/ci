@@ -4,7 +4,7 @@ spec:
   securityContext:
     fsGroup: 1000
   containers:
-    - image: "docker:24.0.9-dind"
+    - image: "docker:29.9.3-dind"
       imagePullPolicy: "IfNotPresent"
       name: "dockerd"
       readinessProbe:

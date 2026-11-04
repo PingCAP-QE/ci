@@ -2,7 +2,7 @@ apiVersion: "v1"
 kind: "Pod"
 spec:
   containers:
-    - image: "docker:24.0.9-dind"
+    - image: "docker:29.9.3-dind"
       imagePullPolicy: "IfNotPresent"
       name: "dockerd"
       readinessProbe:
