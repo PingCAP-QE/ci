@@ -7,6 +7,7 @@ readonly -a ALLOWED_PINGCAP_HOSTS=(
     "sunset-fileserver.pingcap.net"
     "fileserver.pingcap.net"
     "hub.pingcap.net"
+    "hub-zot.pingcap.net"
     "tiup.pingcap.net"
     "cla.pingcap.net"
     "do2.pingcap.net"
