@@ -13,6 +13,25 @@
 # automountServiceAccountToken: false; there is no entry for that check in
 # this file today because no Pod here needs the projected token.
 
+# --- ServiceAccount token kept on for broker-authenticated checkouts ---
+# `pingcap-inc` and `tidbcloud` enforce SAML SSO, so their Jenkins checkouts
+# mint a GitHub App installation token from the in-process token broker
+# instead of using the `ti-chi-bot` SSH key. The broker identifies the caller
+# with the Pod ServiceAccount token (TokenReview), so these templates must keep
+# `automountServiceAccountToken` enabled. No RBAC is bound to the `default`
+# ServiceAccount in these namespaces; the token is only usable against the
+# broker's policy, which grants read-only contents on an explicit repository
+# list. Remove these entries once the broker accepts a projected token with a
+# dedicated audience.
+automount	^jenkins/jobs/pingcap-inc/enterprise\-extensions/latest/pr_verify/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_build/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_check/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_check2/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_unit_test/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_unit_test_ddlv1/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/dedicated/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+
 # --- privileged containers: docker-in-docker and kind (a real requirement) ---
 privileged	^jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen_columnar/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
