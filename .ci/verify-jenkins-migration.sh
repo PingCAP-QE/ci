@@ -741,7 +741,14 @@ validate_inputs() {
     require_bin sed
 
     [[ -n "$BASE_SHA" ]] || fatal "--base-sha is required"
-    [[ -n "$HEAD_SHA" ]] || fatal "--head-sha is required"
+    # Tide batch runs do not export PULL_PULL_SHA, because a batch covers more
+    # than one PR. Their checkout HEAD is the merge commit that combines the
+    # batch, so verify that tree instead of failing the whole batch.
+    if [[ -z "$HEAD_SHA" ]]; then
+        HEAD_SHA="$(git rev-parse --verify HEAD 2>/dev/null || true)"
+        [[ -n "$HEAD_SHA" ]] || fatal "--head-sha is required"
+        log "no --head-sha given (batch run); using the checkout HEAD ${HEAD_SHA}"
+    fi
     [[ "$PARALLEL" =~ ^[0-9]+$ ]] && [[ "$PARALLEL" -ge 1 ]] || fatal "--parallel must be an integer >= 1"
     if (( PARALLEL > 1 )); then
         [[ "${BASH_VERSINFO[0]}" -ge 5 ]] || fatal "--parallel > 1 requires bash 5.1+ (found ${BASH_VERSION})"
