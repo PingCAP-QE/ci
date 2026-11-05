@@ -27,6 +27,9 @@ pipeline {
         parallelsAlwaysFailFast()
         skipDefaultCheckout()
     }
+    environment {
+        OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+    }
     stages {
         stage('Checkout') {
             options { timeout(time: 5, unit: 'MINUTES') }
