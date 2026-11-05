@@ -4,12 +4,19 @@ kind: Task
 metadata:
   name: pingcap-get-builder-image
   labels:
-    app.kubernetes.io/version: "0.2"
+    app.kubernetes.io/version: "0.3"
   annotations:
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
   description: >-
     Build binaries for the component.
+
+    The builder image can be forced with a value that originates from an
+    untrusted CloudEvent header (`ce-paramBuilderImage`), therefore every value
+    that is written to the `image-url` result - forced or resolved from the
+    artifacts config - must pass the allowlist below. A value outside the
+    company's own registry namespaces fails the step, so no caller can make a
+    later build step run an arbitrary container image.
   results:
     - description: The builder image url
       name: image-url
@@ -33,15 +40,65 @@ spec:
       type: string
       description: >
         force to use a specific builder image, it will be used as the base
-        image for building binaries.
+        image for building binaries. The value is validated against the
+        builder image allowlist; anything else fails the task.
       default: ""
   steps:
     - name: get
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      env:
+        - name: COMPONENT
+          value: "$(params.component)"
+        - name: OS
+          value: "$(params.os)"
+        - name: ARCH
+          value: "$(params.arch)"
+        - name: VERSION
+          value: "$(params.version)"
+        - name: PROFILE
+          value: "$(params.profile)"
+        - name: FORCE_BUILDER_IMAGE
+          value: "$(params.force-builder-image)"
+        - name: IMAGE_URL_RESULT
+          value: "$(results.image-url.path)"
       script: |
-        if [ -n "$(params.force-builder-image)" ]; then
-          echo "use force builder image: $(params.force-builder-image)"
-          printf "%s" "$(params.force-builder-image)" > $(results.image-url.path)
+        #!/bin/sh
+        set -eu
+
+        # `force-builder-image` comes from an untrusted CloudEvent header
+        # (ce-paramBuilderImage). It must therefore point at one of the
+        # company-owned registry namespaces and use a safe character set before
+        # it can end up as the `image:` of a later build step.
+        is_allowed_forced_builder_image() {
+          image="$1"
+          is_valid_image_reference "${image}" || return 1
+          case "${image}" in
+            ghcr.io/pingcap-qe/*|hub.pingcap.net/pingcap/*|us-docker.pkg.dev/pingcap-testing-account/*)
+              return 0
+              ;;
+            *)
+              return 1
+              ;;
+          esac
+        }
+
+        # A plain OCI reference check for values that come from our own pinned
+        # artifacts config (not from a request). `case` matches the whole value,
+        # so embedded newlines or other control characters are rejected too.
+        is_valid_image_reference() {
+          case "${1}" in
+            ''|[!A-Za-z0-9]*|*[!A-Za-z0-9._:/@-]*) return 1 ;;
+            *) return 0 ;;
+          esac
+        }
+
+        if [ -n "${FORCE_BUILDER_IMAGE}" ]; then
+          if ! is_allowed_forced_builder_image "${FORCE_BUILDER_IMAGE}"; then
+            echo "❌ refused builder image outside the allowlist: '${FORCE_BUILDER_IMAGE}'" >&2
+            exit 1
+          fi
+          echo "use force builder image: ${FORCE_BUILDER_IMAGE}"
+          printf '%s' "${FORCE_BUILDER_IMAGE}" > "${IMAGE_URL_RESULT}"
           exit 0
         fi
 
@@ -49,12 +106,23 @@ spec:
 
         out="/workspace/builder-package-artifacts.txt"
         /workspace/artifacts/packages/scripts/get-package-builder-with-config.sh \
-          $(params.component) \
-          $(params.os) \
-          $(params.arch) \
-          $(params.version) \
-          $(params.profile) \
+          "${COMPONENT}" \
+          "${OS}" \
+          "${ARCH}" \
+          "${VERSION}" \
+          "${PROFILE}" \
           /workspace/artifacts/packages/packages.yaml.tmpl \
-          $out
+          "${out}"
 
-        printf "%s" "$(cat $out)" > $(results.image-url.path)
+        resolved_image=""
+        if [ -f "${out}" ]; then
+          resolved_image="$(cat "${out}")"
+        fi
+        # The resolved image comes from the pinned artifacts config, so only a
+        # reference-shape check applies here; the build task validates the final
+        # value against its own allowlist before the build step may start.
+        if ! is_valid_image_reference "${resolved_image}"; then
+          echo "❌ malformed resolved builder image: '${resolved_image}'" >&2
+          exit 1
+        fi
+        printf '%s' "${resolved_image}" > "${IMAGE_URL_RESULT}"

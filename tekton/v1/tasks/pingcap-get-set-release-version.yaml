@@ -4,6 +4,10 @@ kind: Task
 metadata:
   name: pingcap-get-set-release-version
 spec:
+  description: >-
+    Resolve the release version and build ref of the checked-out repository.
+    Request-derived parameters (`git-ref`, `git-refspec`) are passed to the
+    scripts as environment variables and every shell expansion is quoted.
   params:
     - name: component
       default: ""
@@ -102,14 +106,21 @@ spec:
         fi
     - name: set-ref
       image: alpine/git:v2.54.0
+      env:
+        - name: GIT_REF
+          value: "$(params.git-ref)"
+        - name: GIT_REFSPEC
+          value: "$(params.git-refspec)"
+        - name: BUILD_REF_RESULT
+          value: "$(results.build-ref.path)"
       script: |
         #!/bin/sh
         set -e
 
-        if echo "$(params.git-refspec)" | grep -E '^refs/pull/[0-9]+(/.+)?:pull/[0-9]+$'; then
+        if printf '%s' "${GIT_REFSPEC}" | grep -E '^refs/pull/[0-9]+(/.+)?:pull/[0-9]+$'; then
           # Extract the part after the colon
-          ref=$(echo "$(params.git-refspec)" | awk -F: '{print $2}')
-          echo -n "$ref" > $(results.build-ref.path)
+          ref="$(printf '%s' "${GIT_REFSPEC}" | awk -F: '{print $2}')"
+          printf '%s' "${ref}" > "${BUILD_REF_RESULT}"
         else
-          echo -n "$(params.git-ref)" > $(results.build-ref.path)
+          printf '%s' "${GIT_REF}" > "${BUILD_REF_RESULT}"
         fi

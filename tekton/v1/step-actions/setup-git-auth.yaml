@@ -22,7 +22,8 @@ spec:
     - name: helper-image
       description: >-
         Image providing the statically linked git-credential helper. Pin an
-        ee-apps release tag (github-token-broker-git-credential).
+        ee-apps release tag (github-token-broker-git-credential). The value is
+        not request-derived; it must stay a pinned company image.
       type: string
       default: "ghcr.io/pingcap-qe/ee-apps/github-token-broker-git-credential:v2026.10.25-6-g9218dd0"
     - name: broker-url
@@ -54,16 +55,16 @@ spec:
       default: "/tekton/home"
   env:
     - name: PARAM_BROKER_URL
-      value: $(params.broker-url)
+      value: "$(params.broker-url)"
     - name: PARAM_PERMISSIONS
-      value: $(params.permissions)
+      value: "$(params.permissions)"
     - name: PARAM_HOSTS
-      value: $(params.hosts)
+      value: "$(params.hosts)"
     - name: PARAM_FALLBACK_CREDENTIALS
-      value: $(params.fallback-credentials-path)
+      value: "$(params.fallback-credentials-path)"
     - name: PARAM_USER_HOME
-      value: $(params.user-home)
-  image: $(params.helper-image)
+      value: "$(params.user-home)"
+  image: "$(params.helper-image)"
   script: |
     #!/usr/bin/env sh
     set -eu

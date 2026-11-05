@@ -45,13 +45,13 @@ spec:
   # StepActions must not substitute params inside the script; map them to env.
   env:
     - name: PUBLISHER_URL
-      value: $(params.publisher-url)
+      value: "$(params.publisher-url)"
     - name: SRC
-      value: $(params.src)
+      value: "$(params.src)"
     - name: SRC_TYPE
-      value: $(params.src-type)
+      value: "$(params.src-type)"
     - name: UNIT_IDS_FILE
-      value: $(params.unit-ids-file)
+      value: "$(params.unit-ids-file)"
   image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
   script: |
     #!/usr/bin/env bash

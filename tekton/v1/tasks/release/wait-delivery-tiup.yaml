@@ -4,7 +4,9 @@ kind: Task
 metadata:
   name: wait-delivery-tiup
 spec:
-  description: wait for tiup delivery to complete.
+  description: >-
+    Wait for tiup delivery to complete. Request-derived parameters are passed to
+    the script as environment variables and every expansion is quoted.
   params:
     - name: version
       type: string
@@ -21,23 +23,23 @@ spec:
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       env:
         - name: tiup_check_ver
-          value: $(params.version)
+          value: "$(params.version)"
         - name: tiup_mirror
-          value: $(params.mirror)
+          value: "$(params.mirror)"
         - name: oci_registry
-          value: $(params.oci-registry)
+          value: "$(params.oci-registry)"
       script: |
         #! /usr/bin/env bash
         set -exo pipefail
 
-        tiup mirror set $tiup_mirror
+        tiup mirror set "${tiup_mirror}"
 
         # check the tiup pkgs
         wget --tries 3 -c -O check-tiup.sh https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/artifacts/check-tiup.sh
         chmod +x check-tiup.sh
 
         while true; do
-          if ./check-tiup.sh "$tiup_check_ver" "$tiup_mirror" "$oci_registry" true; then
+          if ./check-tiup.sh "${tiup_check_ver}" "${tiup_mirror}" "${oci_registry}" true; then
             echo "🏅🏅🏅 Check TiUP package delivery succeeded!"
             break
           else

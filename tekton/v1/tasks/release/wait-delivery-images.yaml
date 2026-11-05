@@ -7,6 +7,9 @@ spec:
   description: |
     Wait for images delivery to complete.
     This task should be run with service account with `pull-images` permission on the OCI registry.
+
+    Request-derived parameters are passed to the scripts as environment
+    variables and every expansion is quoted.
   params:
     - name: version
       type: string
@@ -20,31 +23,48 @@ spec:
   steps:
     - name: compute
       image: docker.io/denoland/deno:alpine-2.1.4
+      env:
+        - name: VERSION
+          value: "$(params.version)"
+        - name: OCI_REGISTRY
+          value: "$(params.oci-registry)"
+        - name: DELIVERY_CONFIG
+          value: "$(params.delivery-config)"
       script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
         deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/get-delivery-target-images.ts \
-          --version="$(params.version)" \
-          --registry="$(params.oci-registry)" \
-          --config="$(params.delivery-config)" \
+          --version="${VERSION}" \
+          --registry="${OCI_REGISTRY}" \
+          --config="${DELIVERY_CONFIG}" \
           --save_to=/workspace/target-images.yaml
     - name: wait
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      env:
+        - name: TARGET_IMAGES_FILE
+          value: /workspace/target-images.yaml
       script: |
-        cat /workspace/target-images.yaml
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        cat "${TARGET_IMAGES_FILE}"
 
         while true; do
-          # loop with yq for /workspace/target-images.yaml:
+          # loop with yq for the target images file:
           check_success=true
-          for image in $(yq -r '.[]' /workspace/target-images.yaml); do
+          while IFS= read -r image; do
+            [ -n "$image" ] || continue
             echo -en "Checking $image...\t"
-            if oras manifest fetch $image > /dev/null; then
+            if oras manifest fetch "$image" > /dev/null; then
               echo "🏅 delivery succeeded!"
             else
               echo "🤷 not found."
               check_success=false
             fi
-          done
+          done < <(yq -r '.[]' "${TARGET_IMAGES_FILE}")
 
-          if $check_success; then
+          if [ "$check_success" = true ]; then
             echo "🏅🏅🏅 All images delivery succeeded!"
             break
           else

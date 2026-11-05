@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: pingcap-build-images
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
@@ -17,6 +17,9 @@ spec:
     2. append the google service account key json the to the secret.
     3. add the secret to the Kubernetes service account
     4. run the task with the service account, Tekton pipeline controller will auto inject the volume from the `docker-registry` type secret to `/tekton/creds-secrets/<secret-name>/` path.
+
+    Request-derived parameters are passed to the step scripts as environment
+    variables and every shell expansion is quoted.
   workspaces:
     - name: source
   results:
@@ -54,34 +57,52 @@ spec:
         - name: generated
           type: string
       args: ["$(results.pushed.path)"]
+      env:
+        - name: COMPONENT
+          value: "$(params.component)"
+        - name: OS
+          value: "$(params.os)"
+        - name: ARCH
+          value: "$(params.arch)"
+        - name: VERSION
+          value: "$(params.version)"
+        - name: PROFILE
+          value: "$(params.profile)"
+        - name: GIT_REF
+          value: "$(params.git-ref)"
+        - name: GIT_SHA
+          value: "$(params.git-sha)"
+        - name: REGISTRY
+          value: "$(params.registry)"
       script: |
+        #!/usr/bin/env sh
         pushed_result_path="$1"
         git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
 
-        git_ref="$(params.git-ref)"
-        git_sha="$(params.git-sha)"
-        if [ "$git_sha" == "$git_ref" ]; then
+        git_ref="${GIT_REF}"
+        git_sha="${GIT_SHA}"
+        if [ "$git_sha" = "$git_ref" ]; then
           git_sha=""
         fi
 
         out_script="/workspace/build-package-images.sh"
         /workspace/artifacts/packages/scripts/gen-package-images-with-config.sh \
-          $(params.component) \
-          $(params.os) \
-          $(params.arch) \
-          $(params.version) \
-          $(params.profile) \
-          $git_ref \
-          "$git_sha" \
+          "${COMPONENT}" \
+          "${OS}" \
+          "${ARCH}" \
+          "${VERSION}" \
+          "${PROFILE}" \
+          "${git_ref}" \
+          "${git_sha}" \
           /workspace/artifacts/packages/packages.yaml.tmpl \
-          "$out_script" \
-          $(params.registry) || true
+          "${out_script}" \
+          "${REGISTRY}" || true
 
         if [ -f "$out_script" ]; then
-          echo -n "true" > $(step.results.generated.path)
+          echo -n "true" > "$(step.results.generated.path)"
           cat "$out_script"
         else
-          echo -n "false" > $(step.results.generated.path)
+          echo -n "false" > "$(step.results.generated.path)"
           echo "🤷 no output script generated!"
           printf '"{}"' > "$pushed_result_path"
         fi
@@ -98,12 +119,19 @@ spec:
         - name: CREDS_DIR
           value: /tekton/creds-secrets
         - name: GIT_URL
-          value: $(params.git-url)
+          value: "$(params.git-url)"
+        - name: BUILD_BINARIES
+          value: "$(params.build)"
+        - name: RELEASE_DIR
+          value: "$(params.release-dir)"
+        - name: PUSHED_RESULT
+          value: "$(results.pushed.path)"
       computeResources:
         requests:
           cpu: "4"
           memory: 8Gi
       script: |
+        #!/usr/bin/env sh
         # Prepare credentials
         DOCKER_CONFIG_JSON="$(find "$CREDS_DIR" \( -name 'docker.json' -o -name '.dockerconfigjson' \) | head -1)"
         if [ -n "$DOCKER_CONFIG_JSON" ]; then
@@ -127,29 +155,37 @@ spec:
 
         # Building
         script="/workspace/build-package-images.sh"
-        if [ "$(params.build)" = "true" ]; then
+        if [ "${BUILD_BINARIES}" = "true" ]; then
           # try 2 times.
-          "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path) -b || \
-          "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path) -b
+          "$script" -w "${RELEASE_DIR}" -k "${KANIKO_EXECUTOR}" -o "${PUSHED_RESULT}" -b || \
+          "$script" -w "${RELEASE_DIR}" -k "${KANIKO_EXECUTOR}" -o "${PUSHED_RESULT}" -b
         else
           # try 2 times.
-          "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path) || \
-          "$script" -w "$(params.release-dir)" -k ${KANIKO_EXECUTOR} -o $(results.pushed.path)
+          "$script" -w "${RELEASE_DIR}" -k "${KANIKO_EXECUTOR}" -o "${PUSHED_RESULT}" || \
+          "$script" -w "${RELEASE_DIR}" -k "${KANIKO_EXECUTOR}" -o "${PUSHED_RESULT}"
         fi
     - name: add-more-tags
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in
           values: ["true"]
+      env:
+        - name: PUSHED_RESULT
+          value: "$(results.pushed.path)"
       script: |
+        #!/usr/bin/env sh
         script="/workspace/build-package-images.sh"
         oras version
-        "$script" -P -t -o $(results.pushed.path) # -P means disable build and push the image.
+        "$script" -P -t -o "${PUSHED_RESULT}" # -P means disable build and push the image.
     - name: collect-multi-arch
       when:
         - input: "$(steps.generate.results.generated)"
           operator: in
           values: ["true"]
+      env:
+        - name: PUSHED_RESULT
+          value: "$(results.pushed.path)"
       script: |
+        #!/usr/bin/env sh
         script="/workspace/build-package-images.sh"
-        "$script" -P -m -o $(results.pushed.path) # -P means disable build and push the image.
+        "$script" -P -m -o "${PUSHED_RESULT}" # -P means disable build and push the image.

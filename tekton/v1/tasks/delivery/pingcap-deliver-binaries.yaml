@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: pingcap-deliver-binaries
   labels:
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.2.0"
   annotations:
     tekton.dev/pipelines.minVersion: "1.0.0"
     tekton.dev/categories: delivery
@@ -39,32 +39,44 @@ spec:
         - input: "$(params.publisher-url)"
           operator: notin
           values: ["false", ""]
+      env:
+        - name: SRC
+          value: "$(params.src)"
+        - name: SRC_TYPE
+          value: "$(params.src-type)"
+        - name: PUBLISHER_URL
+          value: "$(params.publisher-url)"
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
 
         targetsInfo="/workspace/delivery-targets.yaml"
-        oci_src="$(params.src)"
-        publisher_url="$(params.publisher-url)/api/v2/publish/tiup/delivery-by-rules"
+        oci_src="${SRC}"
+        publisher_url="${PUBLISHER_URL}/api/v2/publish/tiup/delivery-by-rules"
 
         deliver() {
-          local artifact_url="$1"
+          local artifact_url="$1" body_file
           echo "Delivering artifact_url: $artifact_url"
+          body_file="$(mktemp)"
+          jq -n --arg artifact_url "$artifact_url" \
+            '{artifact_url: $artifact_url}' > "$body_file"
           response=$(curl -s -X POST "$publisher_url" \
             -H "Content-Type: application/json" \
-            -d "{\"artifact_url\":\"$artifact_url\"}")
+            -d "@$body_file")
+          rm -f "$body_file"
           echo "Response: $response"
         }
 
-        if [ "$(params.src-type)" = "oci-url" ]; then
+        if [ "${SRC_TYPE}" = "oci-url" ]; then
           deliver "$oci_src"
-        elif [ "$(params.src-type)" = "oci-info" ]; then
-          echo "$oci_src" > /workspace/src.txt
+        elif [ "${SRC_TYPE}" = "oci-info" ]; then
+          printf '%s' "$oci_src" > /workspace/src.txt
           repo="$(yq .oci.repo /workspace/src.txt)"
           # loop tags in .oci.tags
-          for tag in $(yq -r .oci.tags[] /workspace/src.txt); do
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
             deliver "$repo:$tag"
-          done
+          done < <(yq -r '.oci.tags[]' /workspace/src.txt)
         fi
     - name: notify-to-build-ctl-component
       when:
@@ -74,40 +86,40 @@ spec:
         - input: "$(params.notify-webhook-url)"
           operator: notin
           values: ["false", ""]
+      env:
+        - name: SRC
+          value: "$(params.src)"
+        - name: NOTIFY_WEBHOOK_URL
+          value: "$(params.notify-webhook-url)"
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
 
-        oci_src="$(params.src)"
-        notify_webhook_url="$(params.notify-webhook-url)"
+        oci_src="${SRC}"
+        notify_webhook_url="${NOTIFY_WEBHOOK_URL}"
 
         # Write the OCI source to a file for processing
-        echo "$oci_src" > /workspace/src.txt
+        printf '%s' "$oci_src" > /workspace/src.txt
 
         # Extract repository and tags
         repo="$(yq .oci.repo /workspace/src.txt)"
         resource_url="$(yq .oci.repo /workspace/src.txt)"
 
         # Loop through each tag and send a notification
-        for tag in $(yq -r .oci.tags[] /workspace/src.txt); do
+        while IFS= read -r tag; do
+          [ -n "$tag" ] || continue
           # Construct the event data
-          event_data=$(cat <<EOF
-          {
-            "type": "PUSH_ARTIFACT",
-            "event_data": {
-              "repository": {
-                "repo_full_name": "${repo#*/}"
-              },
-              "resources": [
-                {
-                  "tag": "$tag",
-                  "resource_url": "$resource_url"
-                }
-              ]
-            }
-          }
-        EOF
-          )
+          event_data=$(jq -n \
+            --arg repo_full_name "${repo#*/}" \
+            --arg tag "$tag" \
+            --arg resource_url "$resource_url" \
+            '{
+              type: "PUSH_ARTIFACT",
+              event_data: {
+                repository: {repo_full_name: $repo_full_name},
+                resources: [{tag: $tag, resource_url: $resource_url}]
+              }
+            }')
 
           # Send the event to the webhook
           echo "Sending event for tag: $tag"
@@ -116,4 +128,4 @@ spec:
             -H "Content-Type: application/json" \
             -d "$event_data")
           echo "Response: $response"
-        done
+        done < <(yq -r '.oci.tags[]' /workspace/src.txt)

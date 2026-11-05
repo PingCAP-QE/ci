@@ -25,11 +25,11 @@ spec:
       default: "dev"
   env:
     - name: IMAGES_SRC
-      value: $(params.src)
+      value: "$(params.src)"
     - name: PUBLISHER_URL
-      value: $(params.publisher-url)
+      value: "$(params.publisher-url)"
     - name: TARGET_STAGES
-      value: $(params.stages)
+      value: "$(params.stages)"
   image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
   script: |
     #!/usr/bin/env bash

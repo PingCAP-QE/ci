@@ -3,13 +3,18 @@ kind: Task
 metadata:
   name: create-pr-to-bump-tikv-version
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/pipelines.minVersion: "0.29.0"
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
   description: >-
     Create pull request to fix `go.mod` file to github repository branch.
+
+    The repository url and the branch/tag name come from a webhook, so they are
+    passed to the scripts as environment variables, the branch/tag name is
+    validated against a strict pattern, and every expansion is quoted. The rust
+    image is validated against a registry allowlist before its step can start.
   params:
     - name: git-url
       description: repository clone url
@@ -24,31 +29,75 @@ spec:
   stepTemplate:
     image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
   steps:
+    - name: validate-rust-image
+      image: alpine:3.24
+      env:
+        - name: RUST_IMAGE
+          value: "$(params.rust-image)"
+      script: |
+        #!/bin/sh
+        set -eu
+
+        # The rust image is a step `image:`; Tekton resolves it before any shell
+        # guard inside that step can run, so validate it up front and fail the
+        # Task instead of executing an arbitrary container image.
+        case "${RUST_IMAGE}" in
+          ghcr.io/pingcap-qe/*|hub.pingcap.net/pingcap/*|us-docker.pkg.dev/pingcap-testing-account/*)
+            ;;
+          *)
+            echo "❌ refused rust image outside the allowlist: '${RUST_IMAGE}'" >&2
+            exit 1
+            ;;
+        esac
+        case "${RUST_IMAGE}" in
+          ''|[!A-Za-z0-9]*|*[!A-Za-z0-9._:/@-]*)
+            echo "❌ malformed rust image reference: '${RUST_IMAGE}'" >&2
+            exit 1
+            ;;
+        esac
+        echo "✅ rust image is allowlisted."
     - name: analyse
+      env:
+        - name: GIT_URL
+          value: "$(params.git-url)"
+        - name: BRANCH
+          value: "$(params.branch)"
       script: |
         #!/bin/bash
 
         set -euo pipefail
 
-        git_url=$(params.git-url)
-        branch=$(params.branch)
+        git_url="${GIT_URL}"
+        branch="${BRANCH}"
 
-        if [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-alpha$ ]]; then
+        # The branch/tag name is webhook-supplied: reject anything that is not a
+        # plain git ref name before it reaches git.
+        case "${branch}" in
+          ''|.*|*..*|*[!A-Za-z0-9._/-]*)
+            echo "❌ refused malformed branch/tag name: '${branch}'" >&2
+            exit 1
+            ;;
+        esac
+        case "${branch}" in
+          -*) echo "❌ refused branch/tag name starting with '-': '${branch}'" >&2; exit 1 ;;
+        esac
+
+        if [[ "${branch}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-alpha$ ]]; then
             echo -n "master" > /workspace/inner-results-branch
             echo -n "${branch#v}" > /workspace/inner-results-version
-        elif [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|rc)[.][0-9]+[.]pre$ ]]; then
+        elif [[ "${branch}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|rc)[.][0-9]+[.]pre$ ]]; then
             echo -n "master" > /workspace/inner-results-branch
             # Remove the ".pre" suffix from the version string
             echo -n "${branch#v}" | sed 's/.pre$//' > /workspace/inner-results-version
-        elif [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          major_minor_version=$(echo "$branch" | cut -d'.' -f1-2)
+        elif [[ "${branch}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          major_minor_version=$(echo "${branch}" | cut -d'.' -f1-2)
           echo -n "release-${major_minor_version#v}" > /workspace/inner-results-branch
           echo -n "--bump patch" > /workspace/inner-results-version
-        elif [[ "$branch" =~ ^release-[0-9]+\.[0-9]+$ ]]; then
-          echo -n "$branch" > /workspace/inner-results-branch
+        elif [[ "${branch}" =~ ^release-[0-9]+\.[0-9]+$ ]]; then
+          echo -n "${branch}" > /workspace/inner-results-branch
           echo -n "--bump patch" > /workspace/inner-results-version
         else
-          echo "Invalid branch/tag format: $branch"
+          echo "Invalid branch/tag format: ${branch}"
           exit 1
         fi
 
@@ -56,8 +105,15 @@ spec:
         cat /workspace/inner-results-version
     - name: clone
       workingDir: /workspace
+      env:
+        - name: GIT_URL
+          value: "$(params.git-url)"
       script: |
-        git clone $(params.git-url) --branch $(cat /workspace/inner-results-branch) --depth 1 /workspace/src
+        #!/bin/bash
+        set -euo pipefail
+
+        base_branch="$(cat /workspace/inner-results-branch)"
+        git clone "${GIT_URL}" --branch "${base_branch}" --depth 1 /workspace/src
     - name: update-crate-pkg-ver
       image: "$(params.rust-image)"
       workingDir: /workspace/src
@@ -86,8 +142,8 @@ spec:
             cargo_edit_ver="0.12.2"
             ;;
         esac
-        cargo install cargo-edit --version ${cargo_edit_ver} --locked --features vendored-openssl || exit 1
-        cargo set-version --package tikv $(cat /workspace/inner-results-version)
+        cargo install cargo-edit --version "${cargo_edit_ver}" --locked --features vendored-openssl || exit 1
+        cargo set-version --package tikv "$(cat /workspace/inner-results-version)"
         if git diff --exit-code --name-status Cargo.toml; then
           echo "🤷 No need to update the go.mod file, they are updated."
           exit 1
@@ -97,8 +153,15 @@ spec:
       env:
         - name: REF_ISSUE_NUMBER
           value: "15990"
+        - name: GIT_URL
+          value: "$(params.git-url)"
+        - name: TOKEN_FILE
+          value: "$(workspaces.github.path)/token"
       script: |
-        git config --global --add safe.directory `pwd`
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        git config --global --add safe.directory "$(pwd)"
         git config --global user.email "ti-community-prow-bot@tidb.io"
         git config --global user.name  "ti-chi-bot"
 
@@ -110,7 +173,7 @@ spec:
         fi
 
         # login and setup git
-        gh auth login --with-token < $(workspaces.github.path)/token
+        gh auth login --with-token < "${TOKEN_FILE}"
         gh auth setup-git
 
         # commit and push the changes.
@@ -149,8 +212,8 @@ spec:
 
         # solve the problem that the prow plugin will remove the approved label.
         sleep 10
-        pr_url=$(gh pr list --repo $(params.git-url) --base "$base_branch" --head "$head_branch"  --json url --jq .[].url | head -1)
-        gh pr edit --add-label lgtm --add-label approved --add-label cherry-pick-approved ${pr_url}
+        pr_url=$(gh pr list --repo "${GIT_URL}" --base "$base_branch" --head "$head_branch" --json url --jq .[].url | head -1)
+        gh pr edit --add-label lgtm --add-label approved --add-label cherry-pick-approved "${pr_url}"
 
   workspaces:
     - name: github

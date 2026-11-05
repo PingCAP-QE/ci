@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: create-pr-to-sync-owners
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/pipelines.minVersion: "0.29.0"
     tekton.dev/categories: Deno
@@ -14,6 +14,10 @@ metadata:
 spec:
   description: >-
     Create pull request to sync `OWNERS`` file to github repository branch.
+
+    The repository url and the branch name come from a webhook, so they are
+    passed to the script as environment variables, the branch name is validated
+    against a strict pattern, and every expansion is quoted.
   params:
     - name: git-url
       description: repository clone url
@@ -30,22 +34,54 @@ spec:
     - name: create-pull-request
       image: denoland/deno:2.8.3
       workingDir: /workspace/community
+      env:
+        - name: GIT_URL
+          value: "$(params.git-url)"
+        - name: BRANCH
+          value: "$(params.branch)"
+        - name: TOKEN_FILE
+          value: "$(workspaces.github.path)/token"
       script: |
-        owner=$(basename $(dirname $(params.git-url)))
-        repo=$(basename $(params.git-url) .git)
+        #!/usr/bin/env bash
+        set -euo pipefail
 
-        echo "url=$(params.git-url)"
-        echo "branch=$(params.branch)"
+        # The branch name is webhook-supplied: reject anything that is not a
+        # plain git branch/ref name before it reaches git or deno.
+        case "${BRANCH}" in
+          ''|.*|*..*|*[!A-Za-z0-9._/-]*)
+            echo "❌ refused malformed branch name: '${BRANCH}'" >&2
+            exit 1
+            ;;
+        esac
+        case "${BRANCH}" in
+          -*) echo "❌ refused branch name starting with '-': '${BRANCH}'" >&2; exit 1 ;;
+        esac
+
+        # https://github.com/<owner>/<repo>[.git]
+        owner="${GIT_URL%/*}"
+        owner="${owner##*/}"
+        repo="${GIT_URL##*/}"
+        repo="${repo%.git}"
+        case "${owner}" in
+          pingcap|tikv) ;;
+          *)
+            echo "❌ unsupported repository owner: '${owner}'" >&2
+            exit 1
+            ;;
+        esac
+
+        echo "url=${GIT_URL}"
+        echo "branch=${BRANCH}"
         echo "owner=${owner}"
         echo "repo=${repo}"
 
-        if [ "$owner" == "pingcap" ]; then
+        if [ "${owner}" = "pingcap" ]; then
           deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/community/update-prow-owners.ts \
             --force \
-            --owner=${owner} \
-            --github_private_token=$(cat /etc/github/token) \
-            --only_repo.repo=${repo} \
-            --only_repo.branch=$(params.branch) \
+            --owner="${owner}" \
+            --github_private_token="$(cat "${TOKEN_FILE}")" \
+            --only_repo.repo="${repo}" \
+            --only_repo.branch="${BRANCH}" \
             --inputs=teams/diagnostic/membership.json \
             --inputs=teams/docs/membership.json \
             --inputs=teams/ticdc/membership.json \
@@ -55,13 +91,13 @@ spec:
             --inputs=teams/kubernetes/membership.json \
             --inputs=teams/migration/membership.json \
             --inputs=teams/bigdata/membership.json
-        elif [ "$owner" == "tikv" ]; then
+        elif [ "${owner}" = "tikv" ]; then
           deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/community/update-prow-owners.ts \
             --force \
-            --owner=${owner} \
-            --github_private_token=$(cat /etc/github/token) \
-            --only_repo.repo=${repo} \
-            --only_repo.branch=$(params.branch) \
+            --owner="${owner}" \
+            --github_private_token="$(cat "${TOKEN_FILE}")" \
+            --only_repo.repo="${repo}" \
+            --only_repo.branch="${BRANCH}" \
             --inputs=teams/pd/team.json \
             --inputs=teams/tikv/team.json
         fi
