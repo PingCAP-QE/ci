@@ -11,4 +11,3 @@ resources:
   - github-issue-comment.yaml
   - github-pr.yaml
   - github-tag-create.yaml
-  - harbor-image-push.yaml

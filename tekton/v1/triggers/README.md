@@ -26,6 +26,83 @@ triggers/
 > gcp and tencentcloud; darwin builds use the gcp macbuild path. `env-prod2/`
 > is being retired — do not add new triggers there.
 
+## Security model
+
+The trigger plane creates PipelineRuns/TaskRuns that clone repositories with
+CI credentials, so these invariants are not optional. They are enforced by the
+files in this directory and covered by `tekton/tests/trigger-security.test.ts`.
+
+### 1. Request headers are never a trust source
+
+Values read with `header.canonical('ce-param...')` are set by whoever POSTs to
+the EventListener. They may select between options that are **already**
+authorized, but they must never admit a repository or replace its identity.
+
+- The repository allowlist is always derived from `body.repository.full_name`
+  (or `body.repository.name` plus `body.repository.owner.login`).
+- Devbuild (fake-github) routes allow a fork of a known component: the
+  **repository name** must be an allowlisted component, while the owner may be
+  any fork owner. The full name must also match
+  `^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$`.
+- `ce-paramProduct` may pick the build component, but the filter requires it to
+  agree with the repository name (with the `cloud-storage-engine`/`tikv` and
+  `tiflash-cse`/`tiflash` aliases).
+- Do not re-introduce a "this repo is allowlisted" header such as
+  `ce-paramGithubRepo`. That pattern let any non-allowlisted repository through
+  (security finding `655d8930-bebf-4acc-9a20-2eddb0383c20`).
+
+### 2. The clone URL is derived from the allowlisted full name
+
+The `github-{branch-push,pr,tag-create,branch-create}` TriggerBindings build
+`git-url` as `https://github.com/$(body.repository.full_name).git`. They never
+bind `body.repository.clone_url`, so the repository that is cloned cannot
+differ from the repository the CEL allowlist approved
+(security finding `afe15663-40ae-4f4b-af1e-9aed7cfddadf`).
+
+### 3. GitHub webhooks are authenticated by HMAC
+
+GitHub App `214286` (`ti-chi-bot`) delivers to Prow, whose `prow-tekton`
+external plugin forwards the original payload **and headers** (including
+`X-Hub-Signature-256`) to the `github` EventListener. The EventListeners are
+deployed from `PingCAP-QE/ee-ops`
+(`apps/{gcp,tencentcloud}/tekton/configs/triggers/event-listeners/el-github.yaml`)
+and verify the signature with the Tekton `github` interceptor and the
+`el-github-webhook` secret (an `ExternalSecret` over the same Secret Manager
+key Prow uses, `gcp_prow_github_app_webhook_hmac`).
+
+Every Trigger in this repository that is selected by a `type: github-*`
+listener label also declares its own `github` interceptor with
+`secretRef: {secretName: el-github-webhook, secretKey: secret}`, so it keeps
+verifying the signature even if it is ever selected by another listener
+(security findings `b85e5f9d-8a2d-4639-aad1-f1634f5c4563` and
+`f3ff97ab-c1d8-401f-b2c3-6da9a090d0de`).
+
+**Deployment requirement:** the `el-github-webhook` secret must exist in the
+EventListener namespace (`ee-cd`); it is created by `PingCAP-QE/ee-ops`, not by
+this repository. If it is missing every webhook Trigger fails closed (events
+are dropped) and the EventListener logs `error getting secret`. Do not invent a
+secret value and do not remove the `secretRef` to make a non-standard
+deployment work.
+
+### 4. Devbuild (fake-github) and other non-GitHub listeners
+
+`fake-github-*` Triggers are selected by the `tibuild` EventListener
+(`PingCAP-QE/ee-ops`), which receives CloudEvents from the in-cluster
+`tibuild-v2` service. Those events are not GitHub-signed, so a GitHub HMAC
+interceptor cannot be used. Compensating controls are the body-derived
+component allowlist (item 1) and the derived clone URL (item 2), plus the fact
+that the EventListener is a ClusterIP service.
+
+Remaining work, owned outside this repository: authenticate that transport (for
+example restrict `el-tibuild` ingress to the tibuild namespace with a
+NetworkPolicy, or sign the CloudEvent in `tibuild-v2` / `ee-ops`). A shared
+secret passed in a header is **not** an acceptable substitute — headers are
+attacker-controlled, exactly like the removed `ce-paramGithubRepo`.
+
+The `harbor` (`type: image-push`) and `notify` (`type: ce-notify`) triggers are
+likewise not GitHub webhooks; their listener authentication is owned by the
+ingress/EventListeners in `PingCAP-QE/ee-ops`.
+
 ## How to test CEL interceptors
 
 ## Testing CEL Interceptors
