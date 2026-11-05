@@ -37,10 +37,10 @@ spec:
       default: "1800"
     - name: delivery-config-url
       description: URL of the delivery configuration file (legacy mode only)
-      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@9836c414b7204cbfd8fbdaac117babaa39090910/packages/delivery.yaml
     - name: generator-script-url
       description: URL of the generator script (legacy mode only)
-      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@9836c414b7204cbfd8fbdaac117babaa39090910/packages/scripts/gen-delivery-image-commands.ts
     - name: retries
       description: Number of retries for image delivery step (legacy mode only)
       default: "3"
