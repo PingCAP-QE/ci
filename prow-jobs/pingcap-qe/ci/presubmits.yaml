@@ -41,6 +41,13 @@ presubmits:
         containers:
           - name: main
             image: wbitt/network-multitool
+            # `git ls-remote` cannot read private repositories (for example the
+            # `pingcap-inc/*` ones), so the validator's trunk-SHA lookup needs a
+            # credential. It reads it from this mount; see the askpass below.
+            volumeMounts:
+              - name: github-token
+                mountPath: /etc/github-token
+                readOnly: true
             command: [bash, -ceo, pipefail]
             args:
               - |
@@ -54,11 +61,25 @@ presubmits:
                   echo "ERROR: .ci/verify-prow-jobs-run.sh is modified by this PR; it runs with the prow-job-validation ServiceAccount here. Land the script change in a separate PR and rerun." >&2
                   exit 1
                 fi
+                # Let `git ls-remote` read private refs. The token is only
+                # handed to git: the validator script is taken from the base
+                # revision and refused above when a PR changes it, so PR code
+                # never sees it.
+                printf '#!/bin/sh\ncase "$1" in Username*) echo x-access-token ;; *) cat /etc/github-token/token ;; esac\n' > /tmp/git-askpass
+                chmod 700 /tmp/git-askpass
+                export GIT_ASKPASS=/tmp/git-askpass GIT_TERMINAL_PROMPT=0
                 bash .ci/verify-prow-jobs-run.sh
             resources:
               limits:
                 memory: 512Mi
                 cpu: 500m
+        volumes:
+          - name: github-token
+            secret:
+              secretName: github-token
+              items:
+                - key: token
+                  path: token
     - name: pull-replay-jenkins-pipelines
       labels: *labels
       decorate: true
