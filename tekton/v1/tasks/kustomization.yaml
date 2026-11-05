@@ -9,7 +9,6 @@ resources:
   - delivery/pingcap-notify-to-deliver-images-to-cloud-tidbx.yaml
   - delivery/pingcap-notify-to-update-ops-tidbx.yaml
   - delivery/pingcap-notify-to-update-tcms-tidbx.yaml
-  - github-set-status.yaml
   - hotfix/create-pr-to-sync-owners.yaml
   - hotfix/create-pr-to-update-gomod-fix-ladp.yaml
   - multi-arch-image-collect.yaml
