@@ -18,6 +18,15 @@ metadata:
     profile: community
 spec:
   interceptors:
+    # Verify the GitHub webhook HMAC before trusting any payload field; see
+    # "Security model" in tekton/v1/triggers/README.md.
+    - name: verify github webhook signature
+      ref: { name: github }
+      params:
+        - name: secretRef
+          value:
+            secretName: el-github-webhook
+            secretKey: secret
     - name: filter on repo and branch
       ref: { name: cel }
       params:
@@ -85,6 +94,15 @@ metadata:
     profile: community
 spec:
   interceptors:
+    # Verify the GitHub webhook HMAC before trusting any payload field; see
+    # "Security model" in tekton/v1/triggers/README.md.
+    - name: verify github webhook signature
+      ref: { name: github }
+      params:
+        - name: secretRef
+          value:
+            secretName: el-github-webhook
+            secretKey: secret
     - name: filter on repo and branch
       ref: { name: cel }
       params:
