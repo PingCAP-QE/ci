@@ -442,8 +442,10 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
             `${product}/${kind}/${arch}${fork ? "/fork" : ""}`,
             () => {
               const routeKind = kind === "commit" ? "branch-push" : kind;
+              // A fork keeps the upstream repository name, so the repository
+              // allowlist (which matches on repository.name) still applies.
               const repo = fork
-                ? "custom-owner/custom-fork"
+                ? `custom-owner/${product}`
                 : `tidbcloud/${product}`;
               const body = payload(repo, routeKind);
               if (kind === "commit") body.ref = sha;
@@ -454,7 +456,6 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
                 "ce-paramproduct": product,
                 "ce-paramgitrevision": sha,
                 "ce-paramplatform": `linux/${arch}`,
-                "ce-paramgithubrepo": repo,
               };
               const trigger = load<Trigger>(
                 `${routeDirectory}fake-github-${routeKind}-single-platform.yaml`,
@@ -658,7 +659,6 @@ Deno.test("old products retain multi-platform and Darwin routing", () => {
       const header: Header = {
         "ce-type": "net.pingcap.tibuild.devbuild.push",
         "ce-paramproduct": "tidb",
-        "ce-paramgithubrepo": repo,
       };
       for (
         const platform of [

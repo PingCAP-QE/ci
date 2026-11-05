@@ -11,34 +11,16 @@ spec:
       params:
         - name: filter
           value: >-
-            ((header.canonical('ce-paramGithubRepo') != '' && (header.canonical('ce-paramProduct') != '' ?
-            header.canonical('ce-paramProduct') : body.repository.name) in ['tici', 'ng-monitoring',
-            'ticdc', 'tidb', 'tidb-binlog', 'tidb-dashboard', 'tidb-operator', 'tidb-tools', 'tiflash',
-            'tiflow', 'tiproxy', 'cloud-storage-engine', 'tiflash-cse', 'pd', 'tikv']) ||
-            body.repository.full_name in [
-              'pingcap-inc/tici',
-              'pingcap/ng-monitoring',
-              'pingcap/ticdc',
-              'pingcap/tidb',
-              'pingcap/tidb-binlog',
-              'pingcap/tidb-dashboard',
-              'pingcap/tidb-operator',
-              'pingcap/tidb-tools',
-              'pingcap/tiflash',
-              'pingcap/tiflow',
-              'pingcap/tiproxy',
-              'tidbcloud/cloud-storage-engine',
-              'tidbcloud/tiflash-cse',
-              'tikv/pd',
-              'tikv/tikv'
-            ])
-            &&
+            (body.repository.full_name.matches('^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$') &&
+            body.repository.name in ['tici', 'ng-monitoring', 'ticdc', 'tidb', 'tidb-binlog', 'tidb-dashboard', 'tidb-operator', 'tidb-tools', 'tiflash', 'tiflow', 'tiproxy', 'cloud-storage-engine', 'tiflash-cse', 'pd', 'tikv'] &&
+            ((header.canonical('ce-paramProduct') == '' || header.canonical('ce-paramProduct') == body.repository.name) || (body.repository.name == 'cloud-storage-engine' && header.canonical('ce-paramProduct') == 'tikv') || (body.repository.name == 'tiflash-cse' && header.canonical('ce-paramProduct') == 'tiflash')) &&
+            body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$') &&
             ! (header.canonical('ce-paramPlatform') in [
               'linux/amd64',
               'linux/arm64',
               'darwin/amd64',
               'darwin/arm64'
-            ])
+            ]))
         - name: overlays
           value:
             - key: resource-config
