@@ -14,18 +14,23 @@ global_definitions:
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
   pingcap-inc/tiflash-scripts:
-    # TODO: migrate these two jobs to the to Jenkins (`master: "1"` -> `"0"`).
-    # Blocked: the pipeline must `yum install` runtime packages (jq,
-    # java-1.8.0-openjdk-headless, fio, mariadb, lsof, net-tools, nmap-ncat)
-    # in the CentOS 7 based pod image, which pins
-    # `baseurl=http://vault.centos.org/centos/$releasever/...`. That host
-    # answers HTTP 403 from the to Jenkins cluster while it still answers 200
-    # from the from Jenkins cluster, so the "Prepare Runtime And Artifacts"
-    # stage fails before any test case runs. See #5250 for the evidence.
+    # Migrated to the TKE controller (`master: "0"`), which mints GitHub App
+    # installation tokens through `github-token-broker` instead of the
+    # `ti-chi-bot` SSH key that `pingcap-inc`'s SAML SSO rejects.
+    #
+    # The earlier blocker (#5250) still applies: the pipeline must `yum install`
+    # runtime packages in the CentOS 7 based pod image, and the vault.centos.org
+    # baseurl baked into it answers HTTP 403 from the TKE cluster (still 200
+    # from the GCP cluster). `prepare_runtime_and_artifacts.sh` now retries once
+    # through a reachable mirror when the first install fails, so this no longer
+    # keeps the jobs on the GCP controller. Verified on TKE with the exact image
+    # (v2025.8.10-2-gc9e3144-centos7): plain `yum install` fails 403, the mirror
+    # retry installs jq/java-1.8.0-openjdk-headless/fio/mariadb/lsof/net-tools/
+    # nmap-ncat successfully.
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       context: pull-regression-test
       decorate: false
       name: pingcap-inc/tiflash-scripts/pull_regression_test
@@ -36,11 +41,11 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       skip_report: false
 
-    # Same blocker as `pull_regression_test` above, see #5250.
+    # Same blocker and same fix as `pull_regression_test` above, see #5250.
     - <<: *brancher
       agent: jenkins
       labels:
-        master: "1"
+        master: "0"
       context: pull-schrodinger-test
       decorate: false
       name: pingcap-inc/tiflash-scripts/pull_schrodinger_test
