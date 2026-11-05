@@ -35,7 +35,7 @@ repos:
         language: system
         files: '^jenkins/jobs/.*/pod[^/]*\.ya?ml$'
       - id: verify-pod-privilege-policy
-        name: Verify pod privilege policy (privileged containers allowlisted)
+        name: Verify pod privilege policy (privileged access allowlisted, no SA token)
         entry: bash .ci/pre-commit-verify-pod-privilege-policy.sh
         language: system
-        files: '^jenkins/jobs/.*/pod[^/]*\.ya?ml$'
+        files: '^(jenkins/jobs/.*/pod[^/]*\.ya?ml|prow-jobs/.*\.ya?ml)$'
