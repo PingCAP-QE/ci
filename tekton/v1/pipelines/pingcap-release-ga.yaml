@@ -65,7 +65,8 @@ spec:
         - { name: version, value: $(params.version) }
         - { name: oci-registry, value: $(params.oci-registry) }
         - name: delivery-config
-          value: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
+          # Pinned to an immutable commit; bump this SHA deliberately to update.
+          value: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@9836c414b7204cbfd8fbdaac117babaa39090910/packages/delivery.yaml
       taskRef:
         name: wait-delivery-images
     - name: compose-offline-pkgs-amd64-community

@@ -27,7 +27,8 @@ spec:
         #!/usr/bin/env bash
         set -euo pipefail
 
-        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/ga/create_github_release.ts \
+        # Pinned to an immutable commit; bump this SHA deliberately to update.
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/flow/ga/create_github_release.ts \
           --version="${VERSION}" \
           --token="$(cat "${TOKEN_FILE}")"
     - name: create-branches
@@ -41,6 +42,7 @@ spec:
         #!/usr/bin/env bash
         set -euo pipefail
 
-        deno run --allow-net https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/ga/create-patch-release-branches.ts \
+        # Pinned to an immutable commit; bump this SHA deliberately to update.
+        deno run --allow-net https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/flow/ga/create-patch-release-branches.ts \
           --version="${VERSION}" \
           --token="$(cat "${TOKEN_FILE}")"

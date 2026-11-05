@@ -102,7 +102,12 @@ spec:
           exit 0
         fi
 
-        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
+        # artifacts scripts are fetched at an immutable commit; bump this SHA deliberately to update.
+        git init -q /workspace/artifacts
+        git -C /workspace/artifacts remote add origin https://github.com/PingCAP-QE/artifacts.git
+        # Pinned to an immutable commit; bump this SHA deliberately to update.
+        git -C /workspace/artifacts fetch -q --depth=1 origin 9836c414b7204cbfd8fbdaac117babaa39090910
+        git -C /workspace/artifacts checkout -q --detach FETCH_HEAD
 
         out="/workspace/builder-package-artifacts.txt"
         /workspace/artifacts/packages/scripts/get-package-builder-with-config.sh \

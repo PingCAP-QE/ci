@@ -18,7 +18,8 @@ spec:
       default: us-docker.pkg.dev/pingcap-testing-account/hub
       description: The OCI registry stored the origin tarball files.
     - name: delivery-config
-      default: "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml"
+      # Pinned to an immutable commit; bump this SHA deliberately to update.
+      default: "https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@9836c414b7204cbfd8fbdaac117babaa39090910/packages/delivery.yaml"
       description: The delivery config yaml file, it contains delivery rules.
   steps:
     - name: compute
@@ -34,7 +35,8 @@ spec:
         #!/usr/bin/env bash
         set -euo pipefail
 
-        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/get-delivery-target-images.ts \
+        # Pinned to an immutable commit; bump this SHA deliberately to update.
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@9836c414b7204cbfd8fbdaac117babaa39090910/packages/scripts/get-delivery-target-images.ts \
           --version="${VERSION}" \
           --registry="${OCI_REGISTRY}" \
           --config="${DELIVERY_CONFIG}" \

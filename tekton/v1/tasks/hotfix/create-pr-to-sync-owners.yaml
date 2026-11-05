@@ -76,7 +76,8 @@ spec:
         echo "repo=${repo}"
 
         if [ "${owner}" = "pingcap" ]; then
-          deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/community/update-prow-owners.ts \
+          # Pinned to an immutable commit; bump this SHA deliberately to update.
+          deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/pingcap/community/update-prow-owners.ts \
             --force \
             --owner="${owner}" \
             --github_private_token="$(cat "${TOKEN_FILE}")" \
@@ -92,7 +93,8 @@ spec:
             --inputs=teams/migration/membership.json \
             --inputs=teams/bigdata/membership.json
         elif [ "${owner}" = "tikv" ]; then
-          deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/community/update-prow-owners.ts \
+          # Pinned to an immutable commit; bump this SHA deliberately to update.
+          deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/pingcap/community/update-prow-owners.ts \
             --force \
             --owner="${owner}" \
             --github_private_token="$(cat "${TOKEN_FILE}")" \

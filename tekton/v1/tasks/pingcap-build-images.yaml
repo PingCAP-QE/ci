@@ -77,7 +77,12 @@ spec:
       script: |
         #!/usr/bin/env sh
         pushed_result_path="$1"
-        git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
+        # artifacts scripts are fetched at an immutable commit; bump this SHA deliberately to update.
+        git init -q /workspace/artifacts
+        git -C /workspace/artifacts remote add origin https://github.com/PingCAP-QE/artifacts.git
+        # Pinned to an immutable commit; bump this SHA deliberately to update.
+        git -C /workspace/artifacts fetch -q --depth=1 origin 9836c414b7204cbfd8fbdaac117babaa39090910
+        git -C /workspace/artifacts checkout -q --detach FETCH_HEAD
 
         git_ref="${GIT_REF}"
         git_sha="${GIT_SHA}"

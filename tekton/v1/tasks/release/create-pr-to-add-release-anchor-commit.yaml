@@ -121,7 +121,8 @@ spec:
         echo "pr dest branch: $(cat /workspace/inner-results-branch)"
         echo "pr placeholder version: $(cat /workspace/inner-results-version)"
 
-        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/add-placeholder-version-in-readme.ts \
+        # Pinned to an immutable commit; bump this SHA deliberately to update.
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/pingcap/add-placeholder-version-in-readme.ts \
           --owner="${owner}" \
           --repo="${repo}" \
           --branch="$(cat /workspace/inner-results-branch)" \
