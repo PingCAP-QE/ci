@@ -101,7 +101,8 @@ if [[ -z "${oci_script}" && -n "${WORKSPACE:-}" && -f "${WORKSPACE}/scripts/arti
 fi
 if [[ -z "${oci_script}" || ! -f "${oci_script}" ]]; then
   oci_script="/tmp/download_pingcap_oci_artifact.sh"
-  curl -fsSL "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/artifacts/download_pingcap_oci_artifact.sh" -o "${oci_script}"
+  # Pinned to an immutable commit; bump this SHA deliberately to update.
+  curl -fsSL "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/artifacts/download_pingcap_oci_artifact.sh" -o "${oci_script}"
 fi
 
 branch="${TEST_BRANCH:-master}"

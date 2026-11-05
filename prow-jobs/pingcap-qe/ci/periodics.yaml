@@ -13,7 +13,8 @@ periodics:
             - deno
             - run
             - --allow-net
-            - https://cdn.jsdelivr.net/gh/PingCAP-QE/ee-apps@main/insight/crawlers/ci/prow-jobs.ts
+            # Pinned to an immutable commit; bump this SHA deliberately to update.
+            - https://cdn.jsdelivr.net/gh/PingCAP-QE/ee-apps@7152a42f42611b6edcbe93d2200f6cc9be08dd05/insight/crawlers/ci/prow-jobs.ts
           args: [--dsn=$(DSN)]
           env:
             - name: DSN
@@ -44,7 +45,8 @@ periodics:
               #!/usr/bin/env bash
               set -euo pipefail
 
-              script_url="https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/tools/reporters/ci/flaky-tests/main.ts"
+              # Pinned to an immutable commit; bump this SHA deliberately to update.
+              script_url="https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/tools/reporters/ci/flaky-tests/main.ts"
               start_date=$(date -d "1 days ago" +%Y-%m-%d)
               end_date=$(date +%Y-%m-%d)
               email_subject="Flaky Tests Report of $PARAM_REPO repository (branch: $PARAM_BRANCH) between ${start_date} and ${end_date}"

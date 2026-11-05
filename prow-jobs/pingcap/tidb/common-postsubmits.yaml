@@ -20,7 +20,8 @@ postsubmits:
             command: [bash, -ce]
             args:
               - |
-                curl -L -O https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/tidb/auto-handle-tidb-test-pr.py
+                # Pinned to an immutable commit; bump this SHA deliberately to update.
+                curl -L -O https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/pingcap/tidb/auto-handle-tidb-test-pr.py
                 echo $PULL_BASE_SHA
                 echo $PULL_BASE_REF
                 python3 auto-handle-tidb-test-pr.py
@@ -80,7 +81,8 @@ postsubmits:
                   git checkout "${PULL_BASE_REF}"
                   [ -e ../tidb ] || ln -s "../${REPO_OWNER}/${REPO_NAME}" ../tidb
                   for modPath in audit/go.mod whitelist/go.mod; do
-                    go run github.com/PingCAP-QE/ci/tools/gomod-sync@main --source=../../${REPO_OWNER}/${REPO_NAME}/go.mod --target=${modPath}
+                    # Pinned to an immutable commit; bump this SHA deliberately to update.
+                    go run github.com/PingCAP-QE/ci/tools/gomod-sync@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5 --source=../../${REPO_OWNER}/${REPO_NAME}/go.mod --target=${modPath}
                   done
                   git add -u audit whitelist
                   if git diff --cached --exit-code --name-status .; then
@@ -136,7 +138,8 @@ postsubmits:
               - deno
               - run
               - --allow-all
-              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/plugins/sync-owners-to-release.ts
+              # Pinned to an immutable commit; bump this SHA deliberately to update.
+              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/plugins/sync-owners-to-release.ts
             args:
               - --owner=$(REPO_OWNER)
               - --repository=$(REPO_NAME)

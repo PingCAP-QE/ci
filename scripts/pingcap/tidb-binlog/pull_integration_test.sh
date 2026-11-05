@@ -100,8 +100,9 @@ prepare_download_tools() {
     cp /ci/download_pingcap_oci_artifact.sh "${OCI_SCRIPT}"
   else
     log "Fetching OCI download helper"
+    # Pinned to an immutable commit; bump this SHA deliberately to update.
     curl -fsSL --retry 3 \
-      "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/artifacts/download_pingcap_oci_artifact.sh" \
+      "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/artifacts/download_pingcap_oci_artifact.sh" \
       -o "${OCI_SCRIPT}"
   fi
   chmod +x "${OCI_SCRIPT}"

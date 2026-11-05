@@ -122,8 +122,9 @@ presubmits:
             args:
               - |
                 trap 'touch /tools/run.done' EXIT
+                # Pinned to an immutable commit; bump this SHA deliberately to update.
                 curl -fsSL --retry 3 \
-                  https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/tidb-binlog/pull_integration_test.sh \
+                  https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/pingcap/tidb-binlog/pull_integration_test.sh \
                   -o /tmp/pull_integration_test.sh
                 bash /tmp/pull_integration_test.sh
             resources:
