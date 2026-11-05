@@ -56,6 +56,7 @@ presubmits:
       skip_if_only_changed: *skip_if_only_changed
       branches: *branches
       spec:
+        automountServiceAccountToken: false
         affinity: *affinity
         volumes:
           - name: docker-sock-dir

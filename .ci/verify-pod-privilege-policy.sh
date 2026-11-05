@@ -1,24 +1,42 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Verify that Jenkins agent Pod templates do not run containers with
-# `securityContext.privileged: true` unless the debt is recorded.
+# Verify that Pod specs do not silently widen the privileged surface.
 #
 # A privileged container gets every capability and the host devices; a single
 # container escape then becomes a node compromise. In CI there is usually a
-# legitimate reason (a docker-in-docker sidecar), but that is a decision to
-# write down with an expiry date, not something a new pod template should be
-# able to add silently.
+# legitimate reason (a docker-in-docker sidecar, a kind cluster), but that is a
+# decision to write down with an expiry date, not something a new Pod spec
+# should be able to add silently.
 #
-# Scope: `jenkins/jobs/**/pod*.yaml` (Jenkins Kubernetes agent Pod templates).
-# When file arguments are given (pre-commit), they are checked directly.
-# Otherwise the Pod templates changed between PULL_BASE_SHA and PULL_PULL_SHA
-# are checked, so the pre-existing backlog does not block unrelated PRs.
+# Two document shapes are covered:
+#   * Jenkins agent Pod templates: `jenkins/jobs/**/pod*.yaml`
+#     (a Kubernetes Pod manifest, `spec` at the top level)
+#   * Prow job definitions: `prow-jobs/**/*.yaml`
+#     (`.presubmits.<repo>[].spec`, `.postsubmits.<repo>[].spec`, `.periodics[].spec`)
+#
+# Four checks:
+#   1. `securityContext.privileged: true` on a container   -> allowlist
+#   2. a `hostPath` volume                                -> allowlist
+#   3. UID 0: `runAsUser: 0` on a container or the Pod    -> allowlist
+#   4. a Pod spec that runs a privileged container must set
+#      `automountServiceAccountToken: false`              -> allowlist
+#
+# Check 4 exists because the projected ServiceAccount token turns a container
+# escape into an API-server credential. A privileged container almost never
+# needs it (our agents run as the namespace `default` ServiceAccount); a Pod
+# that really does authenticate to the API records that in the allowlist.
+#
+# Scope: with no arguments the files changed between PULL_BASE_SHA and
+# PULL_PULL_SHA are checked, so the pre-existing backlog does not block
+# unrelated PRs. With file arguments (pre-commit) those files are checked.
 #
 # Allowlist format (.ci/pod-privilege-policy-allowlist.txt), tab separated:
-#   <path-regex>\t<container-name>\t<review-date>\t<reason>
-# `*` as container-name matches every container in the file. An entry whose
-# review date has passed is treated as expired and no longer exempts.
+#   <check>\t<path-regex>\t<subject>\t<review-date>\t<reason>
+# <check> is privileged | hostPath | runAsUser | automount, or * for all four.
+# <subject> is the container name (a volume name for hostPath, `<pod>` for a
+# Pod-level securityContext), or * for any subject. An entry whose review date
+# has passed is treated as expired and no longer exempts.
 
 BASE_SHA="${PULL_BASE_SHA:-}"
 HEAD_SHA="${PULL_PULL_SHA:-${PULL_HEAD_SHA:-HEAD}}"
@@ -27,14 +45,14 @@ TODAY="${POD_PRIVILEGE_POLICY_TODAY:-$(date -u +%Y-%m-%d)}"
 
 usage() {
   cat <<'USAGE'
-Check changed Pod templates for unrecorded privileged containers.
+Check changed Pod specs for unrecorded privileged access.
 
 Usage:
   .ci/verify-pod-privilege-policy.sh [file ...]
 
 With file arguments only those files are checked. Otherwise the Pod templates
-changed in PULL_BASE_SHA..PULL_PULL_SHA are checked (PULL_BASE_SHA defaults to
-HEAD~1).
+and Prow job definitions changed in PULL_BASE_SHA..PULL_PULL_SHA are checked
+(PULL_BASE_SHA defaults to HEAD~1).
 USAGE
 }
 
@@ -50,57 +68,123 @@ if ! command -v yq >/dev/null 2>&1; then
   exit 1
 fi
 
+is_pod_template() {
+  [[ "$1" == *'/pod'*.yaml || "$1" == *'/pod'*.yml ]] && [[ "$1" == jenkins/jobs/* ]]
+}
+
+is_prow_jobs_file() {
+  [[ "$1" == prow-jobs/*.yaml || "$1" == prow-jobs/*.yml ]]
+}
+
 changed_files=()
 if [[ "$#" -gt 0 ]]; then
   for f in "$@"; do
     [[ -n "${f}" ]] || continue
-    case "$(basename "${f}")" in
-      pod*.yaml | pod*.yml) changed_files+=("${f}") ;;
-    esac
+    if is_pod_template "${f}" || is_prow_jobs_file "${f}"; then
+      changed_files+=("${f}")
+    fi
   done
 else
   [[ -n "${BASE_SHA}" ]] || BASE_SHA="HEAD~1"
   while IFS= read -r line; do
     [[ -n "${line}" ]] || continue
-    changed_files+=("${line}")
-  done < <(git diff --name-only --diff-filter=d "${BASE_SHA}..${HEAD_SHA}" -- 'jenkins/jobs/**' |
-    grep -E '(^|/)pod[^/]*\.ya?ml$' || true)
+    if is_pod_template "${line}" || is_prow_jobs_file "${line}"; then
+      changed_files+=("${line}")
+    fi
+  done < <(git diff --name-only --diff-filter=d "${BASE_SHA}..${HEAD_SHA}" -- 'jenkins/jobs/**' 'prow-jobs/**' || true)
 fi
 
 if [[ "${#changed_files[@]}" -eq 0 ]]; then
-  echo "No changed Pod templates to check."
+  echo "No changed Pod specs to check."
   exit 0
 fi
 
-# Return 0 when the (file, container) pair is exempt, 2 when a matching entry
-# has expired, and 1 otherwise. The exempt entry is echoed when it matches.
+# Print one line per finding: <unit>|<check>|<subject>
+# <unit> names the Prow job, or is `<pod>` for a Pod template.
+list_violations() {
+  local file="$1"
+  local document
+
+  if is_pod_template "${file}"; then
+    document='[{"unit": "<pod>", "spec": (.spec)}]'
+  else
+    document='
+      [
+        ((.presubmits // {}) | to_entries[] | .key as $repo | .value[] | {"unit": "presubmit \($repo)/\(.name)", "spec": (.spec)}),
+        ((.postsubmits // {}) | to_entries[] | .key as $repo | .value[] | {"unit": "postsubmit \($repo)/\(.name)", "spec": (.spec)}),
+        ((.periodics // []) | .[] | {"unit": "periodic \(.name)", "spec": (.spec)})
+      ]
+    '
+  fi
+
+  yq -o=json -I=0 e "${document}" "${file}" 2>/dev/null |
+    yq -p=json -r e '
+      .[] as $job |
+      $job.spec as $spec |
+      ((($spec.initContainers // []) + ($spec.containers // []))) as $containers |
+      [
+        ($containers[] | select((.securityContext.privileged // false) == true) | [$job.unit, "privileged", (.name // "<unnamed>")]),
+        (($spec.volumes // [])[] | select(has("hostPath")) | [$job.unit, "hostPath", (.name // "<unnamed>")]),
+        ($containers[] | select((.securityContext.runAsUser // null) == 0) | [$job.unit, "runAsUser", (.name // "<unnamed>")]),
+        (select(($spec.securityContext.runAsUser // null) == 0) | [$job.unit, "runAsUser", "<pod>"]),
+        (select((($containers | map(select((.securityContext.privileged // false) == true)) | length) > 0)
+                and ($spec.automountServiceAccountToken != false))
+          | [$job.unit, "automount", "<pod>"])
+      ] | .[] | join("|")
+    ' 2>/dev/null || true
+}
+
+# Return 0 when the (file, check, subject) triple is exempt, 2 when a matching
+# entry has expired, and 1 otherwise. The exempt entry is echoed when it
+# matches.
 allowlist_status() {
   local file_path="$1"
-  local container="$2"
+  local check="$2"
+  local subject="$3"
 
   [[ -f "${ALLOWLIST_FILE}" ]] || return 1
 
   local expired=0
-  local path_regex allowed_container review_date _reason
-  while IFS=$'\t' read -r path_regex allowed_container review_date _reason; do
-    [[ -n "${path_regex}" ]] || continue
-    [[ "${path_regex}" =~ ^[[:space:]]*# ]] && continue
-    [[ -n "${allowed_container}" ]] || continue
+  local entry_check path_regex allowed_subject review_date _reason
+  while IFS=$'\t' read -r entry_check path_regex allowed_subject review_date _reason; do
+    [[ -n "${entry_check:-}" ]] || continue
+    [[ "${entry_check}" =~ ^[[:space:]]*# ]] && continue
+    [[ -n "${path_regex:-}" && -n "${allowed_subject:-}" && -n "${review_date:-}" ]] || continue
 
+    [[ "${entry_check}" == "*" || "${entry_check}" == "${check}" ]] || continue
     [[ "${file_path}" =~ ${path_regex} ]] || continue
-    [[ "${allowed_container}" == "*" || "${allowed_container}" == "${container}" ]] || continue
+    [[ "${allowed_subject}" == "*" || "${allowed_subject}" == "${subject}" ]] || continue
 
-    if [[ -n "${review_date}" && "${review_date}" < "${TODAY}" ]]; then
+    if [[ "${review_date}" < "${TODAY}" ]]; then
       expired=1
       continue
     fi
 
-    echo "[ALLOWLIST] ${file_path}: container \"${container}\" exempt (review ${review_date:-n/a})"
+    echo "[ALLOWLIST] ${file_path}: ${check} ${subject} exempt (review ${review_date})"
     return 0
   done <"${ALLOWLIST_FILE}"
 
   [[ "${expired}" -eq 1 ]] && return 2
   return 1
+}
+
+violation_message() {
+  local check="$1"
+  local subject="$2"
+  case "${check}" in
+    privileged)
+      echo "container \"${subject}\": privileged: true without an allowlist entry"
+      ;;
+    hostPath)
+      echo "volume \"${subject}\": hostPath without an allowlist entry"
+      ;;
+    runAsUser)
+      echo "principal \"${subject}\": runAsUser: 0 (root) without an allowlist entry"
+      ;;
+    automount)
+      echo "privileged container reaches the ServiceAccount token: set automountServiceAccountToken: false (or record why it is needed)"
+      ;;
+  esac
 }
 
 echo "Checking pod privilege policy on ${#changed_files[@]} changed file(s)"
@@ -116,26 +200,25 @@ for file in "${changed_files[@]}"; do
     continue
   fi
 
-  while IFS= read -r container; do
-    [[ -n "${container}" ]] || continue
+  while IFS='|' read -r unit check subject; do
+    [[ -n "${check:-}" ]] || continue
+
+    where="${file}"
+    [[ "${unit}" != "<pod>" ]] && where="${file} (${unit})"
 
     rc=0
-    allowlist_status "${file}" "${container}" || rc=$?
+    allowlist_status "${file}" "${check}" "${subject}" || rc=$?
     if [[ "${rc}" -eq 0 ]]; then
       allowlisted=$((allowlisted + 1))
     elif [[ "${rc}" -eq 2 ]]; then
-      echo "[BLOCK] ${file}: container \"${container}\": privileged allowlist entry expired, renew or remove it" >&2
+      echo "[BLOCK] ${where}: $(violation_message "${check}" "${subject}") — allowlist entry expired, renew or remove it" >&2
       failed=1
     else
-      echo "[BLOCK] ${file}: container \"${container}\": privileged: true without an allowlist entry" >&2
-      echo "        add: <path-regex>\\t${container}\\t<review-date>\\t<reason> to ${ALLOWLIST_FILE}" >&2
+      echo "[BLOCK] ${where}: $(violation_message "${check}" "${subject}")" >&2
+      echo "        add: ${check}\\t<path-regex>\\t${subject}\\t<review-date>\\t<reason> to ${ALLOWLIST_FILE}" >&2
       failed=1
     fi
-  done < <(yq e '
-    ((.spec.initContainers // []) + (.spec.containers // []))[] |
-    select((.securityContext.privileged // false) == true) |
-    (.name | tostring)
-  ' "${file}")
+  done < <(list_violations "${file}")
 done
 
 if [[ "${failed}" -ne 0 ]]; then
@@ -143,4 +226,4 @@ if [[ "${failed}" -ne 0 ]]; then
   exit 1
 fi
 
-echo "Pod privilege policy check passed (${allowlisted} allowlisted privileged container(s))."
+echo "Pod privilege policy check passed (${allowlisted} allowlisted finding(s))."

@@ -1,6 +1,7 @@
 apiVersion: v1
 kind: Pod
 spec:
+  automountServiceAccountToken: false
   securityContext:
     fsGroup: 1000
   containers:

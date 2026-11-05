@@ -23,6 +23,7 @@ presubmits:
         - ^master$
         - ^release$
       spec:
+        automountServiceAccountToken: false
         serviceAccountName: prow-pusher
         containers:
           # pinned 2026-11-04: was :latest-master, an upstream moving tag
