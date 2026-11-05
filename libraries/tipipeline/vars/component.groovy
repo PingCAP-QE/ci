@@ -354,6 +354,11 @@ private String resolveBranchToken(String value, String prTargetBranch, String re
 /*
  * Let Git try an anonymous HTTP request first and provide Jenkins' PAT only
  * after the server asks for credentials. Kept in sync with prow.withGitAskPass.
+ *
+ * The helper answers only for the hosts allow-listed inside
+ * resources/scripts/git_askpass.sh (github.com and the in-cluster git-cdn);
+ * every other host gets no credential, so a PR-controlled .gitmodules cannot
+ * redirect the bot credential to an attacker host.
  */
 def withGitAskPass(String credentialsId, Closure body) {
     final askPassScript = libraryResource 'scripts/git_askpass.sh'

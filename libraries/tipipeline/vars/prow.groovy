@@ -128,6 +128,11 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
  * Let Git try an anonymous HTTP request first and provide Jenkins' PAT only
  * after the server asks for credentials. The script is outside the workspace
  * because checkout cleanup and the pipeline cache operate on the workspace.
+ *
+ * The helper answers only for the hosts allow-listed inside
+ * resources/scripts/git_askpass.sh (github.com and the in-cluster git-cdn);
+ * every other host gets no credential, so a PR-controlled .gitmodules cannot
+ * redirect the bot credential to an attacker host.
  */
 def withGitAskPass(String credentialsId, Closure body) {
     // Keep the askpass script inside the shared workspace volume but outside
@@ -393,6 +398,16 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
          "--branch origin/${refs.base_ref} --sha ${refs.base_sha}"
     )
 
+    if (bazelLCov) {
+        // The LCOV -> cobertura converter is vendored as a library resource
+        // instead of being downloaded at run time: fetching executable content
+        // from a mutable third-party branch would let upstream (or a compromised
+        // mirror) change what runs inside our CI agents.
+        // Source: https://raw.githubusercontent.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
+        // sha256: 0a536b892cfce0ac50a39f005a0106703e9ca5ab17e3fbc0cdd6336323598840
+        writeFile(file: 'lcov_cobertura.py', text: libraryResource('scripts/lcov_cobertura.py'))
+    }
+
     sh label: "upload coverage to codecov", script: """#!/usr/bin/env bash
         coverageFile=${file}
         if [ "${bazelLCov}" == "true" ]; then
@@ -400,7 +415,6 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
             bazelCoverageData=`bazel ${bazelOptions} info output_path`/_coverage/_coverage_report.dat
             if [ -f \$bazelCoverageData ]; then
                 echo "Convert bazel LCOV data to cobertura XML..."
-                wget https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
                 python3 lcov_cobertura.py \$bazelCoverageData --output=\${coverageFile}
                 echo "✅ Converted bazel LCOV data to cobertura XML."
             else

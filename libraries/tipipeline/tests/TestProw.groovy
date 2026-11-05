@@ -493,4 +493,115 @@ class TestProw {
                 events.any { it[0] == 'echo' && it[1].contains('my-cache') })
         }
     }
+
+    // ============================================================
+    // Git askpass credential host policy
+    // ============================================================
+    // The helper is a shell script (a library resource), so these cases execute
+    // the real script with the prompts git actually passes. Both allowed hosts
+    // must keep their credentials; every other host must get nothing.
+    static class AskPassCredentialHostPolicy {
+        private static final File ASKPASS_SCRIPT =
+            new File('libraries/tipipeline/resources/scripts/git_askpass.sh').absoluteFile
+
+        private static Map run(String prompt) {
+            def builder = new ProcessBuilder(['sh', ASKPASS_SCRIPT.path, prompt])
+            builder.environment().put('TIPIPELINE_GIT_USERNAME', 'bot-user')
+            builder.environment().put('TIPIPELINE_GIT_PASSWORD', 'bot-password')
+            def process = builder.start()
+            def out = process.inputStream.text
+            def err = process.errorStream.text
+            int rc = process.waitFor()
+            return [rc: rc, out: out, err: err]
+        }
+
+        @Test
+        void shouldAnswerCredentialPromptsOnlyForAllowlistedHosts() {
+            // Table: prompt exactly as git formats it, expected exit status and
+            // expected stdout (empty means the credential must not be printed).
+            def cases = [
+                [prompt: "Username for 'https://github.com': ",
+                 rc: 0, out: 'bot-user\n'],
+                [prompt: "Password for 'https://x-access-token@github.com/org/repo.git': ",
+                 rc: 0, out: 'bot-password\n'],
+                [prompt: "Username for 'http://git-cdn.cache.svc:8000': ",
+                 rc: 0, out: 'bot-user\n'],
+                [prompt: "Password for 'http://x-access-token@git-cdn.cache.svc:8000/org/repo.git': ",
+                 rc: 0, out: 'bot-password\n'],
+                [prompt: "Password for 'ssh://git@github.com/org/repo.git': ",
+                 rc: 0, out: 'bot-password\n'],
+                [prompt: "Password for 'git@github.com:org/repo.git': ",
+                 rc: 0, out: 'bot-password\n'],
+                [prompt: "Password for 'https://GitHub.com/org/repo.git': ",
+                 rc: 0, out: 'bot-password\n'],
+                // A PR-controlled .gitmodules can point a submodule at any of
+                // these hosts; none of them may receive the bot credential.
+                [prompt: "Password for 'https://evil.example/org/repo.git': ",
+                 rc: 1, out: ''],
+                [prompt: "Username for 'https://github.com.evil.example': ",
+                 rc: 1, out: ''],
+                [prompt: "Password for 'https://127.0.0.1:18099/org/repo.git': ",
+                 rc: 1, out: ''],
+                [prompt: "Password for 'ssh://git@evil.example/org/repo.git': ",
+                 rc: 1, out: ''],
+                [prompt: "Password for 'git@evil.example:org/repo.git': ",
+                 rc: 1, out: ''],
+                // Not a credential prompt at all.
+                [prompt: "git@github.com's password: ",
+                 rc: 1, out: ''],
+            ]
+
+            cases.each { testCase ->
+                def actual = run(testCase.prompt)
+                assertEquals("exit status for prompt [${testCase.prompt}]",
+                    testCase.rc, actual.rc)
+                assertEquals("stdout for prompt [${testCase.prompt}]",
+                    testCase.out, actual.out)
+            }
+        }
+
+        @Test
+        void shouldNotExposeCredentialEnvironmentForRejectedHosts() {
+            def actual = run("Password for 'https://evil.example/org/repo.git': ")
+
+            assertFalse('rejected host must not receive the password',
+                actual.out.contains('bot-password'))
+            assertTrue('rejection should be explained on stderr',
+                actual.err.contains('evil.example'))
+        }
+    }
+
+    // ============================================================
+    // Coverage converter vendoring
+    // ============================================================
+    static class CoverageConverter {
+        @Test
+        void shouldConvertBazelCoverageWithTheVendoredScript() {
+            def events = []
+            def vendored = '#!/usr/bin/env python\nprint("converter")\n'
+            def script = loadProw(
+                env: [WORKSPACE: '/tmp/ws'],
+                libraryResource: { String path ->
+                    events << "resource:${path}".toString()
+                    vendored
+                },
+                writeFile: { Map args -> events << "write:${args.file}:${args.text}".toString() },
+                sh: { Map args -> events << "sh:${args.script}".toString() },
+            )
+
+            script.uploadCoverageToCodecov(
+                [org: 'pingcap', repo: 'tidb', base_ref: 'main', base_sha: 'abc',
+                 pulls: []], 'unit', './coverage.dat', true)
+
+            assertEquals('converter loaded from the shared library',
+                'resource:scripts/lcov_cobertura.py', events[0])
+            assertEquals('converter written from the vendored resource',
+                "write:lcov_cobertura.py:${vendored}".toString(), events[1].toString())
+
+            def shell = events[2].toString()
+            assertTrue('vendored converter is executed', shell.contains('python3 lcov_cobertura.py'))
+            assertFalse('converter must not be downloaded at run time',
+                shell.contains('raw.github.com') || shell.contains('wget'))
+        }
+    }
 }
