@@ -5,12 +5,19 @@ global_definitions:
     - ^feature/release-8[.]5[.]5-active-active$
   changer: &changer
     skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf|yaml|json)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
+  # The GCP controller (`master: "1"`) has no token broker configured, so it
+  # still checks out with the `ti-chi-bot` SSH key, which `pingcap-inc` rejects
+  # because the organization enforces SAML SSO. The TKE controller
+  # (`master: "0"`) mints GitHub App installation tokens through
+  # `github-token-broker` and its policy already grants `jenkins-tiflow/default`
+  # read-only access to `pingcap-inc/tiflow`. The pod templates match the
+  # `pingcap/tiflow/release-8.5` integration jobs that already run on TKE.
   jenkins_job: &jenkins_job
     agent: jenkins
     decorate: false # need add this.
     max_concurrency: 2
     labels:
-      master: "1"
+      master: "0"
     run_before_merge: true
   k8s_job: &k8s_job
     decorate: true
