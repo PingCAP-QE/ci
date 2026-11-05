@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - ci/ci-helper-for-pr.yaml
   - ci/coderabbit-review-label.yaml
-  - ci/resolve-cherrypick-conflicts.yaml
   - delivery/pingcap-deliver-binaries.yaml
   - delivery/pingcap-deliver-images.yaml
   - delivery/pingcap-notify-to-deliver-images-to-cloud-tidbx.yaml
@@ -35,4 +34,3 @@ resources:
   - release/tag-and-deliver-rc2ga-on-oci-artifacts.yaml
   - release/wait-delivery-images.yaml
   - release/wait-delivery-tiup.yaml
-  - zot-validate-repair-image.yaml

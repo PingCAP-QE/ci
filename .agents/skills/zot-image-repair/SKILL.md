@@ -19,9 +19,11 @@ uploads them back to S3, without rewriting the manifest or the tags.
 The repair is a single shell script, `tools/validate-repair-zot-image.sh` in
 `PingCAP-QE/ci`. It is the only file needed from that repository: installing
 it plus three CLIs is covered in **Prepare** below, and cloning the whole
-repo is not required. There is no Tekton task in the loop any more — the KSY
-Tekton deployment that ran `zot-validate-repair-image` is gone, and
-`tekton/v1/tasks/zot-validate-repair-image.yaml` is kept for reference only.
+repo is not required. There is no Tekton task in the loop any more: both the
+KSY Tekton deployment that ran `zot-validate-repair-image` and its task
+definition (`tekton/v1/tasks/zot-validate-repair-image.yaml`, which downloaded
+and executed the script from a mutable `@main` ref with KS3 credentials in
+scope) have been removed.
 
 ## Prepare (one time per machine)
 
@@ -231,4 +233,3 @@ to switch between intranet and extranet.
 ## Read Next
 
 - Repair script: `tools/validate-repair-zot-image.sh`
-- Legacy Tekton task (not deployed): `tekton/v1/tasks/zot-validate-repair-image.yaml`
