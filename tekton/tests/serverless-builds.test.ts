@@ -74,7 +74,7 @@ Deno.test("Serverless keeps raw Git versions and the legacy version CLI", async 
   assert(cleanup?.script);
   assertEquals(
     compute.command.join(" "),
-    "deno run --allow-read --allow-write https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/build/versioning-strategy.ts",
+    "deno run --allow-read --allow-write https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/flow/build/versioning-strategy.ts",
   );
   assertEquals(
     compute.args.join(" "),
