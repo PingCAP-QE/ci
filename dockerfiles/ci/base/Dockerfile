@@ -95,7 +95,7 @@ RUN folder=$([ "$(arch)" = "x86_64" ] && echo linux || echo aarch64); \
 
 # codecov-cli tool
 # renovate: datasource=github-tags depName=codecov/codecov-cli
-ARG CODECOVCLI_VERSION=v11.3.1
+ARG CODECOVCLI_VERSION=v11.3.2
 RUN ARCH=$([ "$(arch)" = "x86_64" ] && echo linux || echo linux_arm64); \
     curl -fsSL "https://github.com/codecov/codecov-cli/releases/download/${CODECOVCLI_VERSION}/codecovcli_${ARCH}" -o /usr/local/bin/codecovcli && \
     chmod +x /usr/local/bin/codecovcli
