@@ -33,53 +33,39 @@ presubmits:
       optional: true
       run_if_changed: "^prow-jobs/.*\\.ya?ml$"
       max_concurrency: 1
-      timeout: 4h
+      timeout: 15m
       branches:
         - ^main$
+      # Validate-only. This job must never create a ProwJob (or apply a pod
+      # spec) from a PR-supplied definition: doing that pre-merge runs arbitrary
+      # containers before OWNERS review, and with an elevated ServiceAccount or
+      # a mounted token it also hands PR-chosen code the cluster's credentials.
+      # Running a job for real is an operator action on the prow cluster; this
+      # presubmit only parses and statically lints the job definitions, so it
+      # runs with the default ServiceAccount and no secret mounts.
       spec:
-        serviceAccountName: prow-job-validation
         containers:
           - name: main
             image: wbitt/network-multitool
-            # `git ls-remote` cannot read private repositories (for example the
-            # `pingcap-inc/*` ones), so the validator's trunk-SHA lookup needs a
-            # credential. It reads it from this mount; see the askpass below.
-            volumeMounts:
-              - name: github-token
-                mountPath: /etc/github-token
-                readOnly: true
             command: [bash, -ceo, pipefail]
             args:
               - |
-                apk add --no-cache bash git jq yq-go kubectl
-                # This job turns its ServiceAccount token into a kubeconfig and
-                # hands both to a script from the PR checkout. Refuse to run it
-                # when the PR modifies that script.
+                apk add --no-cache bash git jq yq-go
+                # The validator runs from the PR checkout, so refuse a PR that
+                # also rewrites the validator: land validator changes in their
+                # own PR. This job holds no token and no elevated
+                # ServiceAccount, so the guard protects the check itself.
                 base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required to verify the script}"
                 git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
                 if ! git diff --quiet "${base_sha}" -- .ci/verify-prow-jobs-run.sh; then
-                  echo "ERROR: .ci/verify-prow-jobs-run.sh is modified by this PR; it runs with the prow-job-validation ServiceAccount here. Land the script change in a separate PR and rerun." >&2
+                  echo "ERROR: .ci/verify-prow-jobs-run.sh is modified by this PR; land the validator change in a separate PR and rerun." >&2
                   exit 1
                 fi
-                # Let `git ls-remote` read private refs. The token is only
-                # handed to git: the validator script is taken from the base
-                # revision and refused above when a PR changes it, so PR code
-                # never sees it.
-                printf '#!/bin/sh\ncase "$1" in Username*) echo x-access-token ;; *) cat /etc/github-token/token ;; esac\n' > /tmp/git-askpass
-                chmod 700 /tmp/git-askpass
-                export GIT_ASKPASS=/tmp/git-askpass GIT_TERMINAL_PROMPT=0
                 bash .ci/verify-prow-jobs-run.sh
             resources:
               limits:
                 memory: 512Mi
                 cpu: 500m
-        volumes:
-          - name: github-token
-            secret:
-              secretName: github-token
-              items:
-                - key: token
-                  path: token
     - name: pull-replay-jenkins-pipelines
       labels: *labels
       decorate: true
@@ -233,7 +219,10 @@ presubmits:
     - name: pull-verify-secret-scan
       labels: *labels
       decorate: true
-      run_if_changed: "^(pipelines|jobs|jenkins|libraries|prow-jobs)/.*\\.(groovy|yaml|yml)$|^\\.ci/(verify-secret-scan|verify-jenkins-credential-policy|security-policy-allowlist)\\.(sh|txt)$"
+      # Credentials live in every tree the credential policy scans (see
+      # CREDENTIAL_SCAN_PATHS in .ci/verify-jenkins-credential-policy.sh), so a
+      # change anywhere under them must run the secret checks.
+      run_if_changed: "^((jenkins|libraries|prow-jobs|tekton|scripts|dockerfiles)/|\\.ci/(verify-secret-scan|verify-jenkins-credential-policy|test-verify-jenkins-credential-policy)\\.sh$|\\.ci/security-policy-allowlist\\.txt$)"
       max_concurrency: 1
       timeout: 15m
       branches:
@@ -288,7 +277,8 @@ presubmits:
             command: [sh, -ce]
             args:
               - |
-                apk add --no-cache bash grep sed
+                apk add --no-cache bash git grep sed
+                bash .ci/test-verify-storage-class-policy.sh
                 bash .ci/verify-storage-class-policy.sh
             resources:
               limits:
@@ -335,7 +325,9 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^libraries/.*\\.groovy$"
+      # Resources carry behaviour too (the Git askpass helper's host allowlist),
+      # so a resource change must run the shared-library tests.
+      run_if_changed: "^libraries/.*\\.groovy$|^libraries/tipipeline/resources/"
       branches:
         - ^main$
       spec:
@@ -392,7 +384,7 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^(pipelines/.*\\.(yaml|yml)|jenkins/jobs/.*/pod.*\\.ya?ml)$"
+      run_if_changed: "^jenkins/jobs/.*/pod.*\\.ya?ml$"
       branches:
         - ^main$
       spec:
@@ -402,11 +394,11 @@ presubmits:
             command: [sh, -ce]
             args:
               - |
-                apk add --no-cache kubectl yq-go wget tar git
+                apk add --no-cache yq-go wget tar git
                 wget -qO /tmp/crane.tar.gz "https://github.com/google/go-containerregistry/releases/download/v0.21.5/go-containerregistry_Linux_x86_64.tar.gz"
                 tar xzf /tmp/crane.tar.gz -C /usr/local/bin/ crane
                 rm /tmp/crane.tar.gz
-                changed_files=$(git diff --name-only --diff-filter=d "${PULL_BASE_SHA:?}" -- 'pipelines/**/*.yaml' 'pipelines/**/*.yml' 'jenkins/jobs/**/pod*.yaml' | LC_ALL=C sort)
+                changed_files=$(git diff --name-only --diff-filter=d "${PULL_BASE_SHA:?}" -- 'jenkins/jobs/**/pod*.yaml' | LC_ALL=C sort)
                 if [ -z "$changed_files" ]; then
                   echo "No changed pipeline Pod YAML files to verify."
                   exit 0

@@ -2,30 +2,34 @@
 
 set -eu
 
-KUBECTL_BIN=${KUBECTL_BIN:-kubectl}
-KUBE_SERVICEACCOUNT_TOKEN_PATH=${KUBE_SERVICEACCOUNT_TOKEN_PATH:-/var/run/secrets/kubernetes.io/serviceaccount/token}
-KUBE_SERVICEACCOUNT_NAMESPACE_PATH=${KUBE_SERVICEACCOUNT_NAMESPACE_PATH:-/var/run/secrets/kubernetes.io/serviceaccount/namespace}
-POD_YAML_TEST_NAME=${POD_YAML_TEST_NAME:-ci-pod-yaml-validate}
-export POD_YAML_TEST_NAME
-
-if [ -z "${POD_YAML_TEST_NAMESPACE:-}" ] && [ -f "$KUBE_SERVICEACCOUNT_NAMESPACE_PATH" ]; then
-    POD_YAML_TEST_NAMESPACE=$(tr -d '\n' < "$KUBE_SERVICEACCOUNT_NAMESPACE_PATH")
-fi
-POD_YAML_TEST_NAMESPACE=${POD_YAML_TEST_NAMESPACE:-}
-export POD_YAML_TEST_NAMESPACE
+# Structural validation for Jenkins agent Pod templates
+# (jenkins/jobs/<org>/<repo>/<branch>/<job>/pod*.yaml).
+#
+# What this gate checks:
+#   - the file is valid YAML, a `v1` `Pod` with a non-empty containers list
+#   - no explicit null nodes (they silently override Pod defaults)
+#   - every container image resolves in its registry (crane, best effort)
+#
+# What this gate intentionally does NOT do: `kubectl apply --dry-run` schema
+# validation. Client-side `--validate=strict` is a no-op in current kubectl
+# (field validation is server-side), and `--dry-run=server` requires `create
+# pods` RBAC that the presubmit ServiceAccount does not have. Enabling it would
+# only ever print a permission error or silently skip, so the call was dead
+# code and was removed; a fabricated "validated" message would be worse than
+# no check. Schema errors are caught when the Jenkins Kubernetes plugin uses
+# the template, and the structural checks above run on every changed file.
+#
+# Usage:
+#   .ci/verify-k8s-pod-yaml.sh [file ...]
+# With no arguments every `jenkins/jobs/**/pod*.yaml` is checked.
 
 if [ "$#" -gt 0 ]; then
     files="$*"
 else
     files=$(
-        {
-            if [ -d pipelines ]; then
-                find pipelines -type f \( -name '*.yaml' -o -name '*.yml' \)
-            fi
-            if [ -d jenkins/jobs ]; then
-                find jenkins/jobs -type f -name 'pod*.yaml'
-            fi
-        } | LC_ALL=C sort
+        if [ -d jenkins/jobs ]; then
+            find jenkins/jobs -type f -name 'pod*.yaml'
+        fi | LC_ALL=C sort
     )
 fi
 
@@ -33,40 +37,11 @@ CRANE_BIN=${CRANE_BIN:-crane}
 
 count=0
 failed=0
-kubectl_validation_enabled=0
 crane_validation_enabled=0
 
 if command -v "$CRANE_BIN" >/dev/null 2>&1; then
     crane_validation_enabled=1
 fi
-
-validate_with_kubectl() {
-    file=$1
-    manifest=$(mktemp)
-    manifest_with_ns=$(mktemp)
-    stderr_file=$(mktemp)
-
-    yq e '.metadata = (.metadata // {}) | .metadata.name = (.metadata.name // strenv(POD_YAML_TEST_NAME))' "$file" >"$manifest"
-    if [ -n "$POD_YAML_TEST_NAMESPACE" ]; then
-        yq e '.metadata.namespace = (.metadata.namespace // strenv(POD_YAML_TEST_NAMESPACE))' "$manifest" >"$manifest_with_ns"
-        mv "$manifest_with_ns" "$manifest"
-    fi
-
-    if ! "$KUBECTL_BIN" apply --dry-run=client --validate=strict -f "$manifest" >/dev/null 2>"$stderr_file"; then
-        echo "$file: kubectl client dry-run validation failed:"
-        sed 's/^/  /' "$stderr_file"
-        failed=1
-    fi
-
-    : >"$stderr_file"
-    if ! "$KUBECTL_BIN" apply --dry-run=server --validate=strict -f "$manifest" >/dev/null 2>"$stderr_file"; then
-        echo "$file: kubectl server dry-run validation failed:"
-        sed 's/^/  /' "$stderr_file"
-        failed=1
-    fi
-
-    rm -f "$manifest" "$manifest_with_ns" "$stderr_file"
-}
 
 validate_images_with_crane() {
     file=$1
@@ -123,10 +98,6 @@ check_file() {
 
     if [ "$crane_validation_enabled" -eq 1 ]; then
         validate_images_with_crane "$file"
-    fi
-
-    if [ "$kubectl_validation_enabled" -eq 1 ]; then
-        validate_with_kubectl "$file"
     fi
 }
 

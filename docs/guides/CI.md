@@ -122,8 +122,8 @@ This repository has two related presubmit jobs for pipeline changes:
   - Validates Jenkins pipeline syntax/model.
   - Triggered by pipeline file changes.
 - `pull-verify-k8s-pod-yaml`
-  - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests.
-  - When in-cluster Kubernetes API access is available, injects a test `metadata.name` and also runs both `kubectl --dry-run=client --validate=strict` and `kubectl --dry-run=server --validate=strict`.
+  - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests: valid YAML, `apiVersion: v1`, `kind: Pod`, a non-empty `spec.containers`, no explicit null nodes, and container images that resolve in their registry.
+  - Does not run `kubectl --dry-run` schema validation: field validation is server-side and `--dry-run=server` needs `create pods` RBAC that the presubmit ServiceAccount does not have, so that call was dead code and was removed rather than left as a check that never runs.
   - Triggered by `jenkins/jobs/**/pod*.yaml` changes.
 - `pull-verify-pod-resource-policy`
   - Fails when a changed `jenkins/jobs/**/pod*.yaml` container declares memory `requests != limits` (or only one of request/limit), enforcing Guaranteed QoS and preventing new OOM/eviction-prone templates.
@@ -132,8 +132,11 @@ This repository has two related presubmit jobs for pipeline changes:
   - Runs `.ci/test-verify-pod-resource-policy.sh` (positive and negative fixtures including allowlist and expiry cases) before the check.
   - Triggered by `jenkins/jobs/**/pod*.yaml` or the policy script/allowlist changes.
 - `pull-verify-secret-scan`
-  - Triggered only when changed files are in the Jenkins credentials-risk surface:
-    `jenkins/jobs/**`, `libraries/**`, `prow-jobs/**` (`*.groovy|*.yml|*.yaml`).
+  - Triggered only when changed files are in the CI credentials-risk surface:
+    `jenkins/**`, `libraries/**`, `prow-jobs/**`, `tekton/**`, `scripts/**` and
+    `dockerfiles/**` (`*.groovy|*.yaml|*.yml|*.sh|*.bash`, `Jenkinsfile*`,
+    `Dockerfile*`), which is exactly the set of trees
+    `.ci/verify-jenkins-credential-policy.sh` scans.
   - Uses pinned scanner image digest and explicit timeout for predictable operations.
   - Runs two fail-fast checks:
     - Jenkins credential policy check (`bash .ci/verify-jenkins-credential-policy.sh`) to block obvious insecure patterns such as secret-like literal assignments, secret value echo, and secret-like env vars with direct `value:` in Prow YAML.
@@ -142,6 +145,7 @@ This repository has two related presubmit jobs for pipeline changes:
     - format: `<rule><TAB><path-regex>`
     - supported rules: `hardcoded_literal`, `secret_echo`, `secret_env_plain_value`
     - exemptions should be narrow and path-scoped to avoid broad bypasses.
+    - The allowlist is resolved from the repository root and is **not** overridable through an environment variable, so code under check cannot redirect the gate at a permissive file.
 - `pull-test-security-policy-scripts`
   - Runs regression tests for `.ci/verify-jenkins-credential-policy.sh` with both positive and negative fixtures.
   - Includes allowlist regression fixtures (allowlisted vs non-allowlisted secret echo).
