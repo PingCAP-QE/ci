@@ -84,7 +84,7 @@ spec:
         #!/bin/sh
         set -e
 
-        wget -O delivery.yaml $(params.delivery-config-url)
+        wget -O delivery.yaml "$(params.delivery-config-url)"
         script="/workspace/delivery.sh"
         targetsInfo="/workspace/delivery-targets.yaml"
         img_src="$(params.src)"
