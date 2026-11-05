@@ -9,6 +9,11 @@ global_definitions:
       oauth_token_secret:
         name: github-token
         key: token
+  # `master: "1"` is the GCP controller; it checks out with the `ti-chi-bot`
+  # SSH key, which `pingcap-inc` rejects because the organization enforces SAML
+  # SSO. Jobs are moved to the TKE controller (`master: "0"`, broker-minted
+  # GitHub App tokens) only once they are verified green there -- see the
+  # per-job overrides below.
   jenkins_job: &jenkins_job
     agent: jenkins
     decorate: false
@@ -39,8 +44,13 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?check-dev2(?: .*?)?$"
       rerun_command: "/test check-dev2"
 
+    # Verified green on the TKE controller: replayed there by
+    # `pull-verify-jenkins-migration`, which exercises the broker-authenticated
+    # checkout and the full test until success.
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_mysql_test
+      labels:
+        master: "0"
       skip_if_only_changed: "(\\.(md|png|jpeg|jpg|gif|svg|pdf)|Dockerfile|OWNERS|OWNERS_ALIASES)$"
       context: pull-mysql-test
       trigger: "(?m)^/test (?:.*? )?mysql-test(?: .*?)?$"
@@ -67,8 +77,11 @@ presubmits:
       trigger: "(?m)^/test (?:.*? )?pull-br-integration-test(?: .*?)?$"
       rerun_command: "/test pull-br-integration-test"
 
+    # Verified green on the TKE controller, same as `pull_mysql_test` above.
     - <<: [*jenkins_job, *brancher]
       name: pingcap-inc/tidb/release-8.5/pull_integration_e2e_test
+      labels:
+        master: "0"
       always_run: false
       optional: true
       context: pull-integration-e2e-test

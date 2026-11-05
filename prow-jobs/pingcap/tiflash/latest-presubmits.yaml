@@ -240,8 +240,10 @@ presubmits:
                 value: TSan
               - name: CI_SCRATCH_ROOT
                 value: /workspace
-            securityContext:
-              privileged: true
+            # TSan's "unexpected memory mapping" comes from ASLR entropy, and the
+            # job script already runs the TSan runtime under `setarch -R` (see
+            # sanitizer_script above), so the container does not need to be
+            # privileged.
 
     - name: pull-error-log-review
       branches:

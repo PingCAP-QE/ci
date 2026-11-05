@@ -53,7 +53,22 @@ fi
 
 if [[ "${#missing_pkgs[@]}" -gt 0 ]]; then
   if command -v yum >/dev/null 2>&1 && [[ "$(id -u)" == "0" ]]; then
-    yum install -y "${missing_pkgs[@]}"
+    # The CentOS 7 builder image pins `baseurl=http://vault.centos.org/centos/...`
+    # in /etc/yum.repos.d. That host answers HTTP 403 from the TKE cluster (it
+    # still answers 200 from the GCP cluster), so a plain install fails there
+    # before any test case runs. Keep the first attempt untouched and retry once
+    # through a mirror that still serves the CentOS 7 tree.
+    centos_vault_mirror="${CENTOS_VAULT_MIRROR:-mirrors.tencent.com/centos}"
+    install_missing_pkgs() {
+      yum install -y "${missing_pkgs[@]}"
+    }
+
+    if ! install_missing_pkgs; then
+      echo "yum install failed, retrying through ${centos_vault_mirror}" >&2
+      sed -i "s|vault.centos.org/centos|${centos_vault_mirror}|g" /etc/yum.repos.d/*.repo
+      yum clean all >/dev/null 2>&1 || true
+      install_missing_pkgs
+    fi
   else
     echo "missing required commands and cannot auto install: ${missing_pkgs[*]}" >&2
     exit 1

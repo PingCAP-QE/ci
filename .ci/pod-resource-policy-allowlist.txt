@@ -83,3 +83,15 @@
 ^jenkins/jobs/pingcap\-qe/tidb\-test/release\-7\.1/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
 ^jenkins/jobs/pingcap\-qe/tidb\-test/release\-8\.5/ghpr_build/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
 ^jenkins/jobs/pingcap\-qe/tidb\-test/release\-8\.5/ghpr_mysql_test/pod\.yaml$	golang	2027-05-31	memory requests 12Gi != 24Gi limits predates the privilege removal; Guaranteed sizing needs the job owners' decision
+
+# Pod templates touched by the ServiceAccount-token sweep (privileged Pods no
+# longer mount a projected token). Their memory shape predates this change and
+# resizing a build agent is the job owners' call, so it stays recorded here.
+^jenkins/jobs/pingcap\-inc/enterprise\-extensions/latest/pr_verify/pod\.yaml$	golang	2027-05-31	memory requests 48Gi != 64Gi limits predates this change; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_unit_test/pod\.yaml$	golang	2027-05-31	memory requests 48Gi != 64Gi limits predates this change; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	memory requests 48Gi != 64Gi limits predates this change; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/tidbcloud/cloud\-storage\-engine/dedicated/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	memory requests 24Gi != 48Gi limits predates this change; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/tidbcloud/cloud\-storage\-engine/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	memory requests 24Gi != 48Gi limits predates this change; Guaranteed sizing needs the job owners' decision
+^jenkins/jobs/tikv/tikv/release\-8\.1/pull_unit_test/pod\.yaml$	runner	2027-05-31	memory limit unset (requests only) predates this change; capping a unit-test runner needs the job owners' decision
+^jenkins/jobs/tikv/tikv/release\-8\.5/pull_unit_test/pod\.yaml$	runner	2027-05-31	memory limit unset (requests only) predates this change; capping a unit-test runner needs the job owners' decision
+^jenkins/jobs/tikv/tikv/release\-9\.0\-beta/pull_unit_test/pod\.yaml$	runner	2027-05-31	memory limit unset (requests only) predates this change; capping a unit-test runner needs the job owners' decision
