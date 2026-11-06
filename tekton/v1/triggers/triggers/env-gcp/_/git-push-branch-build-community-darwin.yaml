@@ -6,6 +6,11 @@
 # workers (mac-builder-operator). Mirrors the repo/branch filters and resource
 # overlays of the prod2 triggers; only the binding set and the template differ.
 #
+# Both triggers use `build-component-darwin-mac-all-arch` on purpose: the prod2
+# template rendered darwin/amd64 *and* darwin/arm64, and dropping arm64 during
+# the migration silently stopped darwin/arm64 package artifacts (and the tiup
+# nightly tarballs built from them) for every community repo after 2026-10-19.
+#
 # NOTE (dependency): `PingCAP-QE/artifacts` removes tiflow's inline nvm/node
 # install only *after* this trigger is deployed — the declarative `macos.tools`
 # toolchain is provided by the mac agent on this (gcp/macbuild) path.
@@ -74,7 +79,7 @@ spec:
     - { name: git-secret-ref, value: $(extensions.git-secret-ref) }
 
   template:
-    ref: build-component-darwin-mac
+    ref: build-component-darwin-mac-all-arch
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
@@ -117,4 +122,4 @@ spec:
     - { name: submodules, value: $(extensions.submodules) }
     - { name: git-secret-ref, value: $(extensions.git-secret-ref) }
   template:
-    ref: build-component-darwin-mac
+    ref: build-component-darwin-mac-all-arch

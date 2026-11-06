@@ -1,0 +1,130 @@
+# Darwin builds for triggers that must cover the whole darwin platform set.
+#
+# History: the retired prod2 path (`build-component-darwin`, KSY + boskos)
+# emitted one PipelineRun per darwin arch. The community darwin builds moved to
+# the gcp macbuild path with `build-component-darwin-mac`, which only renders
+# darwin/amd64 unless a trigger says otherwise, so `master`/`release-*` pushes
+# stopped producing darwin/arm64 package artifacts on 2026-10-19/20. This
+# template restores the two-arch fan-out for those triggers.
+#
+# Use `build-component-darwin-mac` instead when a trigger owns exactly one arch
+# (tag triggers for tici/ticdc/tiproxy) so it keeps passing an explicit `arch`.
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: build-component-darwin-mac-all-arch
+spec:
+  params:
+    - name: git-url
+      description: The git repository full url
+    - name: git-refspec
+      default: +refs/heads/*:refs/heads/*
+    - name: git-revision
+      description: The git revision
+    - name: git-ref
+      description: The git branch
+    - name: component
+      description: component name
+    - name: os
+      default: darwin
+    - name: profile
+      default: release
+    - name: registry
+    - name: ce-context
+      description: cloud event context.
+      default: "{}"
+    - name: publisher-url
+    - name: git-secret-ref
+      description: Secret in the MacBuild namespace with git credentials for private-repo clones; empty clones anonymously.
+      default: ""
+    - name: submodules
+      description: Initialize git submodules after checkout; set "false" for repositories whose submodules are not needed (e.g. tidb community builds).
+      default: "true"
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-amd64-
+        annotations:
+          "tekton.dev/ce-context": $(tt.params.ce-context)
+          "tibuild.pingcap.net/git-repo": $(tt.params.git-url)
+          "tibuild.pingcap.net/git-ref": $(tt.params.git-ref)
+          "tibuild.pingcap.net/git-revision": $(tt.params.git-revision)
+          "tibuild.pingcap.net/component": $(tt.params.component)
+          "tibuild.pingcap.net/profile": $(tt.params.profile)
+          "tibuild.pingcap.net/platform": $(tt.params.os)/amd64
+      spec:
+        pipelineRef:
+          name: pingcap-build-package-darwin-mac
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: git-refspec
+            value: $(tt.params.git-refspec)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: git-ref
+            value: $(tt.params.git-ref)
+          - name: component
+            value: $(tt.params.component)
+          - name: os
+            value: $(tt.params.os)
+          - name: arch
+            value: amd64
+          - name: profile
+            value: $(tt.params.profile)
+          - name: registry
+            value: $(tt.params.registry)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
+          - name: git-secret-ref
+            value: $(tt.params.git-secret-ref)
+          - name: submodules
+            value: $(tt.params.submodules)
+        # Fixed for darwin: the 6h covers time queued for a macOS worker plus
+        # the build itself. Two arches share the same (small) macOS fleet, so
+        # queueing is expected and must not be mistaken for a build timeout.
+        timeouts:
+          pipeline: 6h
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: bp-$(tt.params.component)-$(tt.params.profile)-$(tt.params.os)-arm64-
+        annotations:
+          "tekton.dev/ce-context": $(tt.params.ce-context)
+          "tibuild.pingcap.net/git-repo": $(tt.params.git-url)
+          "tibuild.pingcap.net/git-ref": $(tt.params.git-ref)
+          "tibuild.pingcap.net/git-revision": $(tt.params.git-revision)
+          "tibuild.pingcap.net/component": $(tt.params.component)
+          "tibuild.pingcap.net/profile": $(tt.params.profile)
+          "tibuild.pingcap.net/platform": $(tt.params.os)/arm64
+      spec:
+        pipelineRef:
+          name: pingcap-build-package-darwin-mac
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: git-refspec
+            value: $(tt.params.git-refspec)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: git-ref
+            value: $(tt.params.git-ref)
+          - name: component
+            value: $(tt.params.component)
+          - name: os
+            value: $(tt.params.os)
+          - name: arch
+            value: arm64
+          - name: profile
+            value: $(tt.params.profile)
+          - name: registry
+            value: $(tt.params.registry)
+          - name: publisher-url
+            value: $(tt.params.publisher-url)
+          - name: git-secret-ref
+            value: $(tt.params.git-secret-ref)
+          - name: submodules
+            value: $(tt.params.submodules)
+        timeouts:
+          pipeline: 6h

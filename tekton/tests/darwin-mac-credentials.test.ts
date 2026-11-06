@@ -110,7 +110,10 @@ Deno.test("darwin triggers pass github-ssh-secret for tiflash", async (t) => {
   ) {
     await t.step(name, () => {
       const trigger = byName(community, name);
-      assertEquals(trigger.spec.template.ref, "build-component-darwin-mac");
+      assertEquals(
+        trigger.spec.template.ref,
+        "build-component-darwin-mac-all-arch",
+      );
       assert(
         trigger.spec.bindings.some((binding) => binding.name === "git-secret-ref"),
         "community trigger must bind git-secret-ref",
