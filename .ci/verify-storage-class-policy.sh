@@ -14,11 +14,21 @@ set -euo pipefail
 # an environment variable, so code under check cannot point the gate at a
 # permissive allowlist.
 
-if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
-  echo "ERROR: not inside a git work tree; the storage-class policy check needs the repository root." >&2
-  exit 1
+# Resolve the repository root from the checkout when git can answer. Some
+# presubmit containers cannot run git in the checkout (for example when the
+# clone is owned by a different uid), and failing the gate for that reason
+# would hide the real policy result: fall back to this script's location, which
+# is still inside the reviewed tree and cannot be redirected by the code under
+# check.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "${REPO_ROOT}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 fi
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+[[ -f "${REPO_ROOT}/.ci/storage-class-policy-allowlist.txt" ]] || {
+  echo "ERROR: cannot locate the repository root (no .ci/storage-class-policy-allowlist.txt under ${REPO_ROOT})." >&2
+  exit 1
+}
 ALLOWLIST_FILE="${REPO_ROOT}/.ci/storage-class-policy-allowlist.txt"
 
 # Directories that are scanned for storageClassName references. The legacy
