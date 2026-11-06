@@ -1,34 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Static validation for changes to Prow **kubernetes-agent** jobs (jobs that
+# General validation for changes to Prow **kubernetes-agent** jobs (jobs that
 # carry a `spec.containers` pod spec, i.e. `decorate: true` / agent kubernetes).
 #
 # It is intentionally *not* tied to any single job: it validates every changed
-# kubernetes-agent job in a PR that touches prow-jobs YAML.
+# kubernetes-agent job in a PR that touches prow-jobs YAML, so future job
+# additions (like pull-license-check) are exercised the same way.
 #
-# SECURITY: this presubmit is VALIDATE-ONLY and must never apply a PR-supplied
-# pod spec to a cluster. A PR can add or edit any `spec` under prow-jobs/, and
-# creating a real ProwJob from it pre-merge would let the PR run an arbitrary
-# container (with any ServiceAccount or Secret reachable from the pod
-# namespace) before OWNERS review. Running a job for real is an operator action
-# on the prow cluster; the pre-merge check only parses and lints the
-# definitions:
-#   - the YAML parses into presubmit/postsubmit entries with a pod spec
-#   - container image is a literal, fully-qualified reference (no `$var`,
-#     no bare `latest`), and its tag exists in the registry when reachable
-#   - container declares command/args and resource requests/limits
-#   - the embedded shell (command + args) passes `bash -n`
+# Two layers:
+#   1. Static checks (fast, no cluster access):
+#      - container image is a literal, fully-qualified reference (no `$var`,
+#        no bare `latest`), and its tag exists in the registry when reachable
+#      - container declares command/args and resource requests/limits
+#      - the embedded shell (command + args) passes `bash -n`
+#   2. Dynamic check (real run, best-effort):
+#      - actually create a ProwJob (prowjobs.prow.k8s.io) on the prow cluster
+#        from the job's own pod spec, point it at the target repo's trunk, and
+#        wait until the ProwJob reaches a terminal state (success / failure /
+#        aborted), then delete it. This validates the definition end-to-end:
+#        pod schedules, image pulls, the command actually runs to completion.
+#
+# The dynamic check needs RBAC on the prow cluster: create/get/watch/delete on
+# prowjobs + get/list/watch on pods. The required RBAC is managed by GitOps in
+# PingCAP-QE/ee-ops (apps/gcp/prow/post/job-ns/rbac.yaml, applied by Flux
+# `prow-post`) and granted to the dedicated ServiceAccount `prow-job-validation`
+# in the pod namespace (prow-test-pods) that this job runs with. ProwJob CRs are
+# created in the prowjob namespace (apps) where plank watches them, while the
+# spawned pods run in the pod namespace (prow-test-pods). Without RBAC the
+# script falls back to static-only and reports the steps to enable the create.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 BASE_SHA="${PULL_BASE_SHA:-}"
 HEAD_SHA="${PULL_PULL_SHA:-HEAD}"
+MAX_CREATE_JOBS="${MAX_CREATE_JOBS:-3}"
+# how long to wait for a created ProwJob to reach a terminal state
+# (jobs get a decoration timeout of 30m, so give this some slack)
+COMPLETION_TIMEOUT="${COMPLETION_TIMEOUT:-2400}"
+SKIP_CREATE="${SKIP_CREATE:-0}"
+
+# The prow cluster splits namespaces: ProwJob CRs live in the prowjob namespace
+# (plank watches it there) while the job pods plank spawns run in the pod
+# namespace. Override via env when targeting a different cluster.
+PJOB_NAMESPACE="${PJOB_NAMESPACE:-apps}"
+POD_NAMESPACE="${POD_NAMESPACE:-prow-test-pods}"
 
 CRANE_BIN=""
+workdir="$(mktemp -d)"
+trap 'rm -rf "${workdir}"' EXIT
 
 failures=0
+created=0
 
 warn() { echo "  ⚠  ${*}" >&2; }
 fail() { echo "  ✗  ${*}" >&2; failures=$((failures + 1)); }
@@ -47,6 +71,35 @@ get_crane() {
   fi
   tar xzf "${tmp}/crane.tar.gz" -C "${tmp}" crane
   CRANE_BIN="${tmp}/crane"
+}
+
+get_kubeconfig() {
+  local token ca
+  token="/var/run/secrets/kubernetes.io/serviceaccount/token"
+  ca="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+  [[ -f "${token}" ]] || return 1
+  local server="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"
+  cat > "${workdir}/kubeconfig" <<EOF
+apiVersion: v1
+kind: Config
+clusters:
+  - name: in-cluster
+    cluster:
+      server: ${server}
+      certificate-authority: ${ca}
+contexts:
+  - name: in-cluster
+    context:
+      cluster: in-cluster
+      user: in-cluster
+current-context: in-cluster
+users:
+  - name: in-cluster
+    user:
+      tokenFile: ${token}
+EOF
+  export KUBECONFIG="${workdir}/kubeconfig"
+  return 0
 }
 
 # ------------------------------------------------------- changed file scoping
@@ -125,6 +178,120 @@ static_check_job() {
   done < <(jq -c '.spec.containers[]' <<<"${job}")
 }
 
+# ------------------------------------------------- dynamic (create ProwJob)
+
+# resolve the default branch of a public GitHub repo (HEAD symref, fallback list)
+resolve_default_branch() {
+  local org="$1" repo_name="$2"
+  local head_ref
+  head_ref="$(git ls-remote --symref "https://github.com/${org}/${repo_name}.git" HEAD 2>/dev/null | awk '/^ref:/ {sub(/^refs\/heads\//, "", $2); print $2; exit}')"
+  [[ -n "${head_ref}" ]] && { echo "${head_ref}"; return 0; }
+  local b
+  for b in master main; do
+    if git ls-remote "https://github.com/${org}/${repo_name}.git" "refs/heads/${b}" 2>/dev/null | grep -q .; then
+      echo "${b}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+create_prowjob() {
+  local job="$1"
+  local name repo kind job_type cluster
+  name="$(jq -r '.name' <<<"${job}")"
+  repo="$(jq -r '.repo' <<<"${job}")"
+  kind="$(jq -r '.kind' <<<"${job}")"
+  cluster="$(jq -r '.cluster // ""' <<<"${job}")"
+  job_type="presubmit"
+  [[ "${kind}" == "postsubmit" ]] && job_type="postsubmit"
+
+  local org repo_name
+  org="${repo%/*}"
+  repo_name="${repo#*/}"
+  local branch base_sha
+  branch="$(resolve_default_branch "${org}" "${repo_name}" || echo master)"
+  base_sha="$(git ls-remote "https://github.com/${org}/${repo_name}.git" "refs/heads/${branch}" 2>/dev/null | awk '{print $1; exit}')"
+  [[ -n "${base_sha}" ]] || { fail "cannot resolve ${branch} head sha for ${repo}"; return 1; }
+
+  local pjname
+  pjname="ci-validate-${name//\//-}"
+  pjname="${pjname//[^a-zA-Z0-9-]/-}"
+  pjname="${pjname:0:55}-$(date +%s)"
+  [[ ${#pjname} -le 63 ]] || pjname="${pjname: -63}"
+
+  local podspec deco timeout_min
+  podspec="$(jq -c '.spec' <<<"${job}")"
+  deco="$(jq -c '.decoration_config // {}' <<<"${job}")"
+  timeout_min="$(jq -r '(.timeout // "30m")' <<<"${deco}")"
+  [[ "${timeout_min}" == *m ]] || timeout_min="30m"
+
+  jq -n \
+    --arg name "${pjname}" \
+    --arg ns "${PJOB_NAMESPACE}" \
+    --arg type "${job_type}" \
+    --arg job "${name}" \
+    --arg org "${org}" \
+    --arg repo "${repo_name}" \
+    --arg branch "${branch}" \
+    --arg sha "${base_sha}" \
+    --arg cluster "${cluster}" \
+    --argjson deco "${deco}" \
+    --arg timeout "${timeout_min}" \
+    --argjson podspec "${podspec}" \
+    '{
+      apiVersion: "prow.k8s.io/v1",
+      kind: "ProwJob",
+      metadata: { name: $name, namespace: $ns },
+      spec: ({
+        type: $type,
+        agent: "kubernetes",
+        job: $job,
+        refs: { org: $org, repo: $repo, base_ref: $branch, base_sha: $sha },
+        decorate: true,
+        decoration_config: ($deco + { timeout: $timeout }),
+        pod_spec: $podspec
+      } + (if $cluster != "" then { cluster: $cluster } else {} end))
+    }' | yq -P > "${workdir}/${pjname}.yaml"
+
+  echo "    creating ProwJob ${pjname} in ${PJOB_NAMESPACE} (${repo}@${branch})"
+  if ! kubectl apply -f "${workdir}/${pjname}.yaml" >/dev/null 2>&1; then
+    echo "      unable to create ProwJob (RBAC not granted?) - apply the RBAC"
+    echo "      in PingCAP-QE/ee-ops apps/gcp/prow/post/job-ns/rbac.yaml (Flux prow-post) to enable this"
+    return 0
+  fi
+
+  # wait for the ProwJob to reach a terminal state (success/failure/aborted),
+  # i.e. the spawned job pod actually ran to completion, not just started.
+  local state=""
+  local waited=0
+  while (( waited < COMPLETION_TIMEOUT )); do
+    state="$(kubectl -n "${PJOB_NAMESPACE}" get prowjob "${pjname}" -o jsonpath='{.status.state}' 2>/dev/null || true)"
+    case "${state}" in
+      success|failure|aborted) break ;;
+    esac
+    sleep 15
+    waited=$((waited + 15))
+  done
+
+  case "${state}" in
+    success)
+      echo "      ProwJob ${pjname} completed: success ✓"
+      ;;
+    failure)
+      fail "ProwJob ${pjname} completed with failure (job ran but its command/tests failed)"
+      ;;
+    aborted)
+      fail "ProwJob ${pjname} aborted (prow decoration timeout)"
+      ;;
+    *)
+      fail "ProwJob ${pjname} did not reach a terminal state within ${COMPLETION_TIMEOUT}s (state=${state:-unknown}); recent events:"
+      kubectl -n "${POD_NAMESPACE}" get events --field-selector "involvedObject.name=${pjname}" --sort-by=.lastTimestamp 2>/dev/null | tail -n 5 | sed 's/^/        /' || true
+      ;;
+  esac
+  kubectl -n "${PJOB_NAMESPACE}" delete prowjob "${pjname}" --ignore-not-found >/dev/null 2>&1 || true
+}
+
 # --------------------------------------------------------------------- main
 
 files=()
@@ -136,9 +303,15 @@ if [[ ${#files[@]} -eq 0 ]]; then
   exit 0
 fi
 
-for tool in jq yq; do
+for tool in jq yq kubectl; do
   command -v "${tool}" >/dev/null || { echo "ERROR: '${tool}' not found" >&2; exit 1; }
 done
+
+if [[ "${SKIP_CREATE}" == "1" ]]; then
+  echo "SKIP_CREATE=1, dynamic ProwJob creation disabled"
+elif ! get_kubeconfig; then
+  echo "  in-cluster kubeconfig unavailable, dynamic ProwJob creation disabled"
+fi
 
 for f in "${files[@]}"; do
   [[ -f "${REPO_ROOT}/${f}" ]] || continue
@@ -151,6 +324,10 @@ for f in "${files[@]}"; do
   while read -r job; do
     [[ -n "${job}" ]] || continue
     static_check_job "${job}"
+    if [[ "${SKIP_CREATE}" != "1" && -n "${KUBECONFIG:-}" && "${created}" -lt "${MAX_CREATE_JOBS}" ]]; then
+      create_prowjob "${job}" || true
+      created=$((created + 1))
+    fi
   done < <(jq -c '.[]' <<<"${jobs}")
 done
 
