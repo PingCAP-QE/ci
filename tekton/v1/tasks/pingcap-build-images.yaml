@@ -75,7 +75,8 @@ spec:
         - name: REGISTRY
           value: "$(params.registry)"
       script: |
-        #!/usr/bin/env sh
+        #!/bin/sh
+        set -e
         pushed_result_path="$1"
         git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
 
@@ -131,7 +132,11 @@ spec:
           cpu: "4"
           memory: 8Gi
       script: |
-        #!/usr/bin/env sh
+        #!/bin/sh
+        # The kaniko executor image is distroless: it ships /bin/sh (a busybox
+        # symlink) but no /usr/bin/env, so this shebang must stay #!/bin/sh.
+        # Tekton's default preamble is "#!/bin/sh" plus "set -e"; reproduce both.
+        set -e
         # Prepare credentials
         DOCKER_CONFIG_JSON="$(find "$CREDS_DIR" \( -name 'docker.json' -o -name '.dockerconfigjson' \) | head -1)"
         if [ -n "$DOCKER_CONFIG_JSON" ]; then
@@ -173,7 +178,8 @@ spec:
         - name: PUSHED_RESULT
           value: "$(results.pushed.path)"
       script: |
-        #!/usr/bin/env sh
+        #!/bin/sh
+        set -e
         script="/workspace/build-package-images.sh"
         oras version
         "$script" -P -t -o "${PUSHED_RESULT}" # -P means disable build and push the image.
@@ -186,6 +192,7 @@ spec:
         - name: PUSHED_RESULT
           value: "$(results.pushed.path)"
       script: |
-        #!/usr/bin/env sh
+        #!/bin/sh
+        set -e
         script="/workspace/build-package-images.sh"
         "$script" -P -m -o "${PUSHED_RESULT}" # -P means disable build and push the image.
