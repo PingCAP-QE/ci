@@ -886,3 +886,62 @@ Deno.test("Serverless skips the binary delivery task and keeps legacy delivery",
     });
   }
 });
+
+Deno.test("builder image override is only shape-checked inside the cluster", () => {
+  // Which builder images a caller may force is product policy, decided by the
+  // devbuild API where the request enters the system. Down here the value only
+  // has to survive being used as a step `image:`, so upstream images pinned by
+  // the artifacts config must pass while anything that could break out of the
+  // field must not.
+  const task = load<{ spec: { steps: Step[] } }>(
+    "tekton/v1/tasks/pingcap-get-builder-image.yaml",
+  );
+  const get = task.spec.steps.find((step) => step.name === "get")!;
+  const tmp = Deno.makeTempDirSync();
+  try {
+    const resultPath = `${tmp}/image-url`;
+    const run = (value: string) =>
+      command("sh", ["-c", get.script], {
+        env: stepEnv(get, {
+          "$(params.force-builder-image)": value,
+          "$(results.image-url.path)": resultPath,
+        }),
+      });
+    const rejected = (value: string) => {
+      const result = new Deno.Command("sh", {
+        args: ["-c", get.script],
+        env: stepEnv(get, {
+          "$(params.force-builder-image)": value,
+          "$(results.image-url.path)": resultPath,
+        }),
+        stdout: "piped",
+        stderr: "piped",
+      }).outputSync();
+      return !result.success;
+    };
+
+    for (
+      const image of [
+        // Serverless components build with the upstream images the artifacts
+        // config pins, so a value allowlist here would reject them.
+        "docker.io/library/golang:1.24.2-bullseye@sha256:f50ff25f8331682b44c1582974eb9e620fcb08052fc6ed434f93ca24636fc4d6",
+        "public.ecr.aws/amazonlinux/amazonlinux:2023.5.20240805.0@sha256:03c807fdc5d40ab06b21c2e6d158c63c37d5149a127b7fdfa9e3c1150352ff20",
+        "ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c",
+      ]
+    ) {
+      assertEquals(run(image), `use force builder image: ${image}\n`);
+      assertEquals(Deno.readTextFileSync(resultPath), image);
+    }
+    for (
+      const image of [
+        "docker.io/library/golang:1.24.2\nmalicious",
+        "docker.io/library/golang:1.24.2 --entrypoint=/bin/sh",
+        "golang:1.24.2; rm -rf /",
+      ]
+    ) {
+      assert(rejected(image), `must reject ${JSON.stringify(image)}`);
+    }
+  } finally {
+    Deno.removeSync(tmp, { recursive: true });
+  }
+});

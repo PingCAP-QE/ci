@@ -12,8 +12,10 @@ spec:
 
     Request-derived values are mapped to environment variables instead of being
     interpolated into the step scripts, and every shell expansion is quoted.
-    The builder image is validated against a registry allowlist by the
-    `validate-builder-image` step before the `build` step is allowed to start.
+    Which builder images are acceptable is a product policy decided where the
+    request enters the system (the devbuild API), not here: this Task receives
+    both the pinned image from the artifacts config and a user-overridden one
+    through the same param, so it cannot tell them apart by value.
   workspaces:
     - name: git-credentials
       optional: true
@@ -51,9 +53,10 @@ spec:
     - name: builder-image
       default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       description: >-
-        Builder image for the build step. It is validated against the
-        company-owned registry allowlist by the validate-builder-image step;
-        anything else fails the Task.
+        Builder image for the build step, normally the image pinned by the
+        artifacts config for the component. Values supplied by a caller are
+        vetted by the devbuild API, the place where the request enters the
+        system.
     - name: release-dir
       default: build
     - name: push
@@ -84,41 +87,6 @@ spec:
       type: string
       default: "contents=read"
   steps:
-    - name: validate-builder-image
-      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
-      env:
-        - name: BUILDER_IMAGE
-          value: "$(params.builder-image)"
-      script: |
-        #!/bin/sh
-        set -eu
-
-        # The builder image is a step `image:`, which Tekton resolves before any
-        # shell guard inside the build step could run. Validate it here first and
-        # fail the Task, so the build step below never starts with an image
-        # outside the trusted registry namespaces. The value can reach us from an
-        # untrusted CloudEvent header (ce-paramBuilderImage); that header path is
-        # additionally restricted to the company-owned registries by
-        # pingcap-get-builder-image. The Rust builder from the pinned artifacts
-        # config is the single trusted upstream image allowed here.
-        case "${BUILDER_IMAGE}" in
-          ghcr.io/pingcap-qe/*|hub.pingcap.net/pingcap/*|us-docker.pkg.dev/pingcap-testing-account/*)
-            ;;
-          docker.io/rustlang/rust:*|docker.io/rustlang/rust@sha256:*)
-            ;;
-          *)
-            echo "❌ refused builder image outside the allowlist: '${BUILDER_IMAGE}'" >&2
-            exit 1
-            ;;
-        esac
-        case "${BUILDER_IMAGE}" in
-          ''|[!A-Za-z0-9]*|*[!A-Za-z0-9._:/@-]*)
-            echo "❌ malformed builder image reference: '${BUILDER_IMAGE}'" >&2
-            exit 1
-            ;;
-        esac
-        echo "✅ builder image is allowlisted."
-
     - name: setup-git-auth
       when:
         - input: "$(params.git-auth-app)"
