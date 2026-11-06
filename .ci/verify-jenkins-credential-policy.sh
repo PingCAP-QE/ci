@@ -1,26 +1,69 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Credential-hygiene policy for the CI trees that can reach a token.
+#
+# Every tree below handles credentials or pod/job definitions that receive
+# them, so each is in scope:
+#   .ci/          maintenance scripts (some run with CI credentials)
+#   dockerfiles/  images that bake in tools and env vars
+#   jenkins/      Jenkinsfiles + Job DSL (the pipelines that bind credentials)
+#   libraries/    shared pipeline code (askpass helpers, credential binding)
+#   prow-jobs/    Prow job definitions (env valueFrom/secretKeyRef)
+#   scripts/      helper scripts run from CI
+#   tekton/       Tekton Tasks/Pipelines/Triggers (param defaults, env values)
+#
+# FAIL-CLOSED allowlist: the allowlist is a reviewed file in this repository.
+# It is resolved from the repository root and is deliberately NOT overridable
+# through an environment variable, so code under check cannot redirect the
+# check at a permissive allowlist.
+
+if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
+  echo "ERROR: not inside a git work tree; the credential policy check needs git history." >&2
+  exit 1
+fi
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "${REPO_ROOT}"
+
 BASE_SHA="${PULL_BASE_SHA:-}"
 HEAD_SHA="${PULL_PULL_SHA:-${PULL_HEAD_SHA:-HEAD}}"
-ALLOWLIST_FILE="${CREDENTIAL_POLICY_ALLOWLIST_FILE:-.ci/security-policy-allowlist.txt}"
+ALLOWLIST_FILE="${REPO_ROOT}/.ci/security-policy-allowlist.txt"
 
 if [[ -z "$BASE_SHA" ]]; then
   BASE_SHA="HEAD~1"
 fi
 
-# Focus on credentials-risk surface only.
+CREDENTIAL_SCAN_PATHS=(
+  '.ci'
+  'dockerfiles'
+  'jenkins'
+  'libraries'
+  'prow-jobs'
+  'scripts'
+  'tekton'
+)
+
+# A renamed/removed tree must fail loudly instead of silently shortening the
+# scan to nothing.
+for path in "${CREDENTIAL_SCAN_PATHS[@]}"; do
+  if [[ ! -d "${REPO_ROOT}/${path}" ]]; then
+    echo "ERROR: credential-policy scan path does not exist: ${path}" >&2
+    exit 1
+  fi
+done
+
+# Credentials live in shell scripts, Groovy pipelines, YAML job/task
+# definitions, Dockerfiles and (extension-less) Jenkinsfiles.
 changed_files=()
 while IFS= read -r line; do
   [[ -n "$line" ]] && changed_files+=("$line")
 done < <(
-  git diff --name-only "${BASE_SHA}..${HEAD_SHA}" -- \
-    'pipelines/**' 'jobs/**' 'jenkins/**' 'libraries/**' 'prow-jobs/**' \
-    | rg -N '\.(groovy|ya?ml)$' || true
+  git diff --name-only "${BASE_SHA}..${HEAD_SHA}" -- "${CREDENTIAL_SCAN_PATHS[@]}" \
+    | rg -N -e '\.(groovy|ya?ml|sh|bash)$' -e '(^|/)(Dockerfile[^/]*|Jenkinsfile[^/]*)$' || true
 )
 
 if [[ ${#changed_files[@]} -eq 0 ]]; then
-  echo "No changed Groovy/YAML files in credentials-risk scope."
+  echo "No changed credential-risk files in scope."
   exit 0
 fi
 

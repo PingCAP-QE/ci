@@ -8,16 +8,37 @@ set -euo pipefail
 # `hyperdisk-rwo`). CI configs must reference the unified `ci-rwo` name so
 # they keep working across clusters. See `docs` and the allowlist file for
 # the canonical list of allowed names.
+#
+# FAIL-CLOSED allowlist: the allowlist is a reviewed file in this repository,
+# resolved from the repository root. It is deliberately NOT overridable through
+# an environment variable, so code under check cannot point the gate at a
+# permissive allowlist.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-ALLOWLIST_FILE="${STORAGE_CLASS_POLICY_ALLOWLIST_FILE:-${SCRIPT_DIR}/storage-class-policy-allowlist.txt}"
+# Resolve the repository root from the checkout when git can answer. Some
+# presubmit containers cannot run git in the checkout (for example when the
+# clone is owned by a different uid), and failing the gate for that reason
+# would hide the real policy result: fall back to this script's location, which
+# is still inside the reviewed tree and cannot be redirected by the code under
+# check.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "${REPO_ROOT}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
+[[ -f "${REPO_ROOT}/.ci/storage-class-policy-allowlist.txt" ]] || {
+  echo "ERROR: cannot locate the repository root (no .ci/storage-class-policy-allowlist.txt under ${REPO_ROOT})." >&2
+  exit 1
+}
+ALLOWLIST_FILE="${REPO_ROOT}/.ci/storage-class-policy-allowlist.txt"
 
-# Directories that are scanned for storageClassName references.
+# Directories that are scanned for storageClassName references. The legacy
+# `jobs/` and `pipelines/` trees were retired by the one-folder-per-job
+# migration, so the manifests actually live under `jenkins/`, `prow-jobs/` and
+# `tekton/`. Every entry must exist: a gate that silently skips a missing
+# directory scans nothing and always passes, which is worse than failing.
 SCAN_PATHS=(
-  "jobs"
+  "jenkins"
   "libraries"
-  "pipelines"
   "prow-jobs"
   "tekton"
 )
@@ -55,17 +76,24 @@ is_allowed() {
   return 1
 }
 
+for path in "${SCAN_PATHS[@]}"; do
+  if [[ ! -d "${REPO_ROOT}/${path}" ]]; then
+    echo "ERROR: storage-class scan path does not exist: ${path}" >&2
+    echo "       update SCAN_PATHS in ${BASH_SOURCE[0]} when a tree moves." >&2
+    exit 1
+  fi
+done
+
 load_allowlist
 
 failed=0
+scanned=0
 report_violation() {
   echo "[BLOCK] ${1}:${2}: storageClassName \"${3}\" is not in the storage-class allowlist" >&2
   failed=1
 }
 
 for path in "${SCAN_PATHS[@]}"; do
-  [[ -d "${REPO_ROOT}/${path}" ]] || continue
-
   while IFS= read -r file; do
     [[ -f "${file}" ]] || continue
 
@@ -76,10 +104,11 @@ for path in "${SCAN_PATHS[@]}"; do
     #   storageClassName: ${STORAGE_CLASSNAME_RWO}
     while IFS= read -r line; do
       [[ -n "${line}" ]] || continue
-      file_path="${line%%:*}"
-      rest="${line#*:}"
-      line_no="${rest%%:*}"
-      content="${rest#*:}"
+      scanned=$((scanned + 1))
+      # `grep -n` over one file prints "<line>:<content>" (no file prefix).
+      file_path="${file}"
+      line_no="${line%%:*}"
+      content="${line#*:}"
 
       value="$(printf '%s\n' "${content}" | sed -nE "s/.*storageClassName[[:space:]]*:[[:space:]]*['\\\"]?([^'\\\"[:space:],})]+).*/\\1/p")"
       [[ -n "${value}" ]] || continue
@@ -96,4 +125,4 @@ if [[ "${failed}" -ne 0 ]]; then
   exit 1
 fi
 
-echo "Storage class policy check passed."
+echo "Storage class policy check passed (${scanned} storageClassName reference(s) checked)."

@@ -5,5 +5,15 @@
 # - secret_env_plain_value
 #
 # Example:
-# secret_echo	^pipelines/pingcap/example/legacy-debug\.groovy$
+# secret_echo	^libraries/tipipeline/vars/example/legacy-debug\.groovy$
+
+# The GIT_ASKPASS helper must write the credential to stdout: that is git's
+# askpass contract (git reads the helper's stdout, not the build log).
+secret_echo	^libraries/tipipeline/resources/scripts/git_askpass\.sh$
+
+# The credential-policy regression test intentionally contains fake secret
+# literals and secret echoes to prove the policy blocks them.
+hardcoded_literal	^\.ci/test-verify-jenkins-credential-policy\.sh$
+secret_echo	^\.ci/test-verify-jenkins-credential-policy\.sh$
+
 secret_env_plain_value	^prow-jobs/tikv/client-go/latest-presubmits-nextgen\.yaml$
