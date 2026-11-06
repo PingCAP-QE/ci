@@ -50,22 +50,27 @@ Trigger bindings extract and transform event data into pipeline parameters.
 - **Branch Creation**: Handles new branch setup
 
 ### Image Delivery
-`pingcap-deliver-images` has two modes, selected by its `publisher-url` parameter:
+Both `pingcap-deliver-images` and `tag-and-deliver-rc2ga-on-oci-artifacts` have
+two modes. The switch is `publisher-url` on the first task and
+`image-publisher-url` on the second; at pipeline level both are
+`image-publisher-url`.
 
-- **Service mode** (`publisher-url` set): the task submits every image reference to
+- **Service mode** (URL set): the task submits every image reference to
   `POST /api/v2/publish/images` on tibuild-v2 and polls
   `GET /api/v2/publish/units/{id}` until every destination is terminal. A
-  `partial` or `failed` unit fails the TaskRun. The event sent by
-  `post-notify-publisher` carries the unit summaries (per-target state and
-  digest).
-- **Legacy mode** (`publisher-url` empty): the task keeps generating the crane
-  script with the remote deno generator and running it in the pod. This is the
-  rollback path during the rollout.
+  `partial` or `failed` unit fails the TaskRun. `pingcap-deliver-images` also
+  sends the unit summaries (per-target state and digest) from
+  `post-notify-publisher`.
+- **Legacy mode** (URL empty): the task keeps generating the crane script with
+  the remote deno generator and running it in the pod. This is the rollback path
+  during the rollout; `tag-and-deliver-rc2ga-on-oci-artifacts` keeps the same
+  fallback.
 
-The pipeline parameter is `image-publisher-url` (separate from `publisher-url`,
-which still points at the old publisher for TiUP delivery). Only
-`pingcap/advanced-statefulset` binds it today; its triggers live under
-`v1/triggers/triggers/env-gcp/pingcap/advanced-statefulset/`.
+`image-publisher-url` is separate from `publisher-url`, which points at the
+TiBuild publish API for TiUP delivery. The gcp classic, internal and ng
+`build-params` bindings set it to the in-cluster service; the hotfix binding
+keeps it empty because hotfix builds never deliver. The GA pipeline
+(`pingcap-release-ga`) defaults it to the same in-cluster service.
 
 ### Build Profiles
 - `release` - Standard release build, now always for community release build.
