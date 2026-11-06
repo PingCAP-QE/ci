@@ -19,6 +19,7 @@ type Step = {
   script: string;
   command: string[];
   args: string[];
+  env?: { name: string; value?: string }[];
   when?: { input: string; operator: string; values: string[] }[];
 };
 
@@ -44,6 +45,22 @@ function optionalText(path: string) {
     if (error instanceof Deno.errors.NotFound) return undefined;
     throw error;
   }
+}
+
+// The build step receives its request-derived values through env:, so a test
+// that executes the step script must provide the same environment instead of
+// substituting $(params.*) inside the script body.
+function stepEnv(step: Step, values: Record<string, string>) {
+  const env: Record<string, string> = {};
+  for (const entry of step.env ?? []) {
+    if (!entry.value) continue;
+    let value = entry.value;
+    for (const [from, to] of Object.entries(values)) {
+      value = value.replaceAll(from, to);
+    }
+    env[entry.name] = value;
+  }
+  return env;
 }
 
 Deno.test("Serverless keeps raw Git versions and the legacy version CLI", async (t) => {
@@ -224,10 +241,10 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
   const task = load<{ spec: { steps: Step[] } }>(
     "tekton/v1/tasks/pingcap-build-binaries-linux.yaml",
   );
-  let script =
-    task.spec.steps.find((step) => step.name === "build")!.script.split(
-      'script="/workspace/build-package-artifacts.sh"',
-    )[0];
+  const build = task.spec.steps.find((step) => step.name === "build")!;
+  let script = build.script.split(
+    'script="/workspace/build-package-artifacts.sh"',
+  )[0];
   assert(script);
   const tmp = Deno.makeTempDirSync();
   try {
@@ -242,14 +259,20 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
     for (
       const [from, to] of [
         ["$(workspaces.git-credentials.path)", credentials],
-        ["$(params.git-ref)", "feature/test"],
         ["/workspace/serverless-git-credential", `${tmp}/git-credential`],
-        // This test covers the rollback path: git-auth-app=false keeps using
-        // the PAT workspace.
-        ["$(params.git-auth-app)", "false"],
-        ["$(params.git-auth-home)", `${tmp}/app-home`],
       ]
     ) script = script.replaceAll(from, to);
+    // This test covers the rollback path: git-auth-app=false keeps using the
+    // PAT workspace.
+    const env = {
+      ...stepEnv(build, {
+        "$(params.git-ref)": "feature/test",
+        "$(params.git-auth-app)": "false",
+        "$(params.git-auth-home)": `${tmp}/app-home`,
+        "$(workspaces.git-credentials.path)": credentials,
+      }),
+      GIT_CONFIG_NOSYSTEM: "1",
+    };
     const legacy = script.replaceAll(
       "$(workspaces.git-credentials.bound)",
       "false",
@@ -257,18 +280,22 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
     const legacyHome = `${tmp}/legacy`;
     Deno.mkdirSync(legacyHome);
     command("sh", ["-c", legacy], {
-      env: { HOME: legacyHome, GIT_CONFIG_GLOBAL: `${legacyHome}/.gitconfig` },
+      env: {
+        ...env,
+        HOME: legacyHome,
+        GIT_CONFIG_GLOBAL: `${legacyHome}/.gitconfig`,
+      },
     });
     assertEquals(optionalText(`${legacyHome}/.gitconfig`), undefined);
     script = script.replaceAll("$(workspaces.git-credentials.bound)", "true");
     script +=
       "printf 'protocol=https\\nhost=github.com\\n\\n' | git credential fill\n";
-    const env = {
+    const runEnv = {
+      ...env,
       HOME: tmp,
-      GIT_CONFIG_NOSYSTEM: "1",
       GIT_CONFIG_GLOBAL: `${tmp}/.gitconfig`,
     };
-    const output = command("sh", ["-c", script], { env });
+    const output = command("sh", ["-c", script], { env: runEnv });
     assert(output.includes("username=test-user\n"));
     assert(output.includes("password=test-password\n"));
     assertFalse(
@@ -281,7 +308,7 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
       ]
     ) {
       assertEquals(
-        command("git", ["ls-remote", "--get-url", remote], { env }).trim(),
+        command("git", ["ls-remote", "--get-url", remote], { env: runEnv }).trim(),
         "https://github.com/tidbcloud/private.git",
       );
     }
@@ -294,10 +321,10 @@ Deno.test("git-auth-app installs the broker helper instead of the PAT workspace"
   const task = load<{ spec: { steps: Step[] } }>(
     "tekton/v1/tasks/pingcap-build-binaries-linux.yaml",
   );
-  let script =
-    task.spec.steps.find((step) => step.name === "build")!.script.split(
-      'script="/workspace/build-package-artifacts.sh"',
-    )[0];
+  const build = task.spec.steps.find((step) => step.name === "build")!;
+  let script = build.script.split(
+    'script="/workspace/build-package-artifacts.sh"',
+  )[0];
   assert(script);
   const tmp = Deno.makeTempDirSync();
   try {
@@ -320,19 +347,25 @@ Deno.test("git-auth-app installs the broker helper instead of the PAT workspace"
     for (
       const [from, to] of [
         ["$(workspaces.git-credentials.path)", credentials],
-        ["$(params.git-ref)", "feature/test"],
         // The workspace stays bound in the rollback templates: app mode must
         // ignore it.
         ["$(workspaces.git-credentials.bound)", "true"],
-        ["$(params.git-auth-app)", "true"],
-        ["$(params.git-auth-home)", sharedHome],
       ]
     ) script = script.replaceAll(from, to);
 
     const home = `${tmp}/builder-home`;
     Deno.mkdirSync(home);
     command("sh", ["-c", script], {
-      env: { HOME: home, GIT_CONFIG_NOSYSTEM: "1" },
+      env: {
+        ...stepEnv(build, {
+          "$(params.git-ref)": "feature/test",
+          "$(params.git-auth-app)": "true",
+          "$(params.git-auth-home)": sharedHome,
+          "$(workspaces.git-credentials.path)": credentials,
+        }),
+        HOME: home,
+        GIT_CONFIG_NOSYSTEM: "1",
+      },
     });
     const gitconfig = Deno.readTextFileSync(`${home}/.gitconfig`);
     assert(
