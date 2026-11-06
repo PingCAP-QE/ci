@@ -19,10 +19,10 @@ spec:
       description: force to create tag whether it existed or not.
     - name: delivery-config-url
       description: URL of the delivery configuration file
-      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@9836c414b7204cbfd8fbdaac117babaa39090910/packages/delivery.yaml
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
     - name: generator-script-url
       description: URL of the generator script
-      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@9836c414b7204cbfd8fbdaac117babaa39090910/packages/scripts/gen-delivery-image-commands.ts
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
     - name: publisher-url
       description: >-
         Base URL of the TiBuild publish API, for example
@@ -46,8 +46,7 @@ spec:
         registry="$3"
         force="$4"
 
-        # Pinned to an immutable commit: never execute CI scripts from a mutable ref (@main).
-        wget -c --tries=3 https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@32fcc2e2ad7c326f4236a06fd91adb414e09c4d5/scripts/artifacts/tag-rc2ga-on-repos.sh
+        wget -c --tries=3 https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/artifacts/tag-rc2ga-on-repos.sh
         chmod +x tag-rc2ga-on-repos.sh
 
         ./tag-rc2ga-on-repos.sh "$rc_ver" "$ga_ver" "$registry" "$force" /workspace/results.yaml
