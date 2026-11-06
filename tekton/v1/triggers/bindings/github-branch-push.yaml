@@ -4,8 +4,12 @@ metadata:
   name: github-branch-push
 spec:
   params:
+    # Derive the clone URL from repository.full_name instead of binding the
+    # request-supplied clone-URL field: the repository allowlists in the
+    # Triggers are evaluated on full_name, so the URL that is cloned can never
+    # be a different repository than the allowlisted one.
     - name: git-url
-      value: $(body.repository.clone_url)
+      value: https://github.com/$(body.repository.full_name).git
     - name: git-refspec
       value: "+$(body.ref):$(body.ref)"
     - name: git-revision
