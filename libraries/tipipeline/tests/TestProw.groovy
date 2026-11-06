@@ -571,37 +571,4 @@ class TestProw {
         }
     }
 
-    // ============================================================
-    // Coverage converter vendoring
-    // ============================================================
-    static class CoverageConverter {
-        @Test
-        void shouldConvertBazelCoverageWithTheVendoredScript() {
-            def events = []
-            def vendored = '#!/usr/bin/env python\nprint("converter")\n'
-            def script = loadProw(
-                env: [WORKSPACE: '/tmp/ws'],
-                libraryResource: { String path ->
-                    events << "resource:${path}".toString()
-                    vendored
-                },
-                writeFile: { Map args -> events << "write:${args.file}:${args.text}".toString() },
-                sh: { Map args -> events << "sh:${args.script}".toString() },
-            )
-
-            script.uploadCoverageToCodecov(
-                [org: 'pingcap', repo: 'tidb', base_ref: 'main', base_sha: 'abc',
-                 pulls: []], 'unit', './coverage.dat', true)
-
-            assertEquals('converter loaded from the shared library',
-                'resource:scripts/lcov_cobertura.py', events[0])
-            assertEquals('converter written from the vendored resource',
-                "write:lcov_cobertura.py:${vendored}".toString(), events[1].toString())
-
-            def shell = events[2].toString()
-            assertTrue('vendored converter is executed', shell.contains('python3 lcov_cobertura.py'))
-            assertFalse('converter must not be downloaded at run time',
-                shell.contains('raw.github.com') || shell.contains('wget'))
-        }
-    }
 }

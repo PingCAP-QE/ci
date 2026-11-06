@@ -387,7 +387,7 @@ def withCache(Map args, Closure body) {
     }
 }
 
-def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, bazelOptions = "") {
+def uploadCoverageToCodecov(refs, flags = "", file = "") {
     // Skip for batch build.
     if (refs.pulls && refs.pulls.size() > 1) {
         return
@@ -398,30 +398,8 @@ def uploadCoverageToCodecov(refs, flags = "", file = "",  bazelLCov = false, baz
          "--branch origin/${refs.base_ref} --sha ${refs.base_sha}"
     )
 
-    if (bazelLCov) {
-        // The LCOV -> cobertura converter is vendored as a library resource
-        // instead of being downloaded at run time: fetching executable content
-        // from a mutable third-party branch would let upstream (or a compromised
-        // mirror) change what runs inside our CI agents.
-        // Source: https://raw.githubusercontent.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
-        // sha256: 0a536b892cfce0ac50a39f005a0106703e9ca5ab17e3fbc0cdd6336323598840
-        writeFile(file: 'lcov_cobertura.py', text: libraryResource('scripts/lcov_cobertura.py'))
-    }
-
     sh label: "upload coverage to codecov", script: """#!/usr/bin/env bash
         coverageFile=${file}
-        if [ "${bazelLCov}" == "true" ]; then
-            coverageFile="bazel_coverage.xml"
-            bazelCoverageData=`bazel ${bazelOptions} info output_path`/_coverage/_coverage_report.dat
-            if [ -f \$bazelCoverageData ]; then
-                echo "Convert bazel LCOV data to cobertura XML..."
-                python3 lcov_cobertura.py \$bazelCoverageData --output=\${coverageFile}
-                echo "✅ Converted bazel LCOV data to cobertura XML."
-            else
-                echo "🏃 Not found bazel LCOV data."
-            fi
-        fi
-
         if [ -f \$coverageFile ]; then
             # Prefer the codecov binary bundled in the CI base image; download from
             # the public uploader.codecov.io only when it is not available.
