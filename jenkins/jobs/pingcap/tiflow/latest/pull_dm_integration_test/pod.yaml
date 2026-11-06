@@ -67,7 +67,7 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
     - name: mysql2
-      image: "docker.io/library/mysql:8.0.21"
+      image: "docker.io/library/mysql:8.0.46"
       tty: true
       resources:
         requests:
