@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: create-pr-to-add-release-anchor-commit
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/pipelines.minVersion: "0.29.0"
     tekton.dev/categories: Deno
@@ -14,6 +14,10 @@ metadata:
 spec:
   description: >-
     Create pull request to update version placeholder "README.md" to github repository branch.
+
+    The repository url and the branch/tag name come from a webhook, so they are
+    passed to the scripts as environment variables, the branch/tag name is
+    validated against a strict pattern, and every expansion is quoted.
   params:
     - name: git-url
       description: repository clone url
@@ -26,19 +30,36 @@ spec:
     - name: analyse
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       workingDir: /workspace
+      env:
+        - name: GIT_URL
+          value: "$(params.git-url)"
+        - name: BRANCH
+          value: "$(params.branch)"
       script: |
         #!/bin/bash
 
         set -euo pipefail
 
-        git_url=$(params.git-url)
-        branch=$(params.branch)
+        git_url="${GIT_URL}"
+        branch="${BRANCH}"
 
-        git clone "$git_url" --branch "$branch" source && cd source
+        # The branch/tag name is webhook-supplied: reject anything that is not a
+        # plain git ref name before it reaches git.
+        case "${branch}" in
+          ''|.*|*..*|*[!A-Za-z0-9._/-]*)
+            echo "❌ refused malformed branch/tag name: '${branch}'" >&2
+            exit 1
+            ;;
+        esac
+        case "${branch}" in
+          -*) echo "❌ refused branch/tag name starting with '-': '${branch}'" >&2; exit 1 ;;
+        esac
+
+        git clone "${git_url}" --branch "${branch}" source && cd source
         version=$(git describe --tags)
 
         function compare_versions() {
-          if [[ $1 == $2 ]]; then
+          if [[ "$1" == "$2" ]]; then
             echo 0
           elif [[ "$1" < "$2" ]]; then
             echo -1
@@ -47,54 +68,65 @@ spec:
           fi
         }
 
-        if [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-alpha$ ]]; then
-          if [ "$version" = "$branch" ]; then
+        if [[ "${branch}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-alpha$ ]]; then
+          if [ "${version}" = "${branch}" ]; then
           echo "Current branch is up-to-date(version is: ${version}). Exiting."
             exit 1
           else
             echo -n "master" > /workspace/inner-results-branch
             echo -n "${branch#v}" > /workspace/inner-results-version
           fi
-        elif [[ "$branch" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          major_minor_version=$(echo "$branch" | cut -d'.' -f1-2)
-          next_patch_version=$(echo "$branch" | awk -F. '{print $1"."$2"."($3+1)}')
+        elif [[ "${branch}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          major_minor_version=$(echo "${branch}" | cut -d'.' -f1-2)
+          next_patch_version=$(echo "${branch}" | awk -F. '{print $1"."$2"."($3+1)}')
           echo -n "release-${major_minor_version#v}" > /workspace/inner-results-branch
           echo -n "${next_patch_version#v}" > /workspace/inner-results-version
-        elif [[ "$branch" =~ ^release-[0-9]+\.[0-9]+$ ]]; then
-          major_minor_version=$(echo "$branch" | cut -d'-' -f2)
-          compare_result=$(compare_versions "$version" "v$major_minor_version.0")
-          if [ "$compare_result" -lt 0 ]; then
-            printf "$branch" > /workspace/inner-results-branch
-            printf "$major_minor_version.0" > /workspace/inner-results-version
+        elif [[ "${branch}" =~ ^release-[0-9]+\.[0-9]+$ ]]; then
+          major_minor_version=$(echo "${branch}" | cut -d'-' -f2)
+          compare_result=$(compare_versions "${version}" "v${major_minor_version}.0")
+          if [ "${compare_result}" -lt 0 ]; then
+            printf '%s' "${branch}" > /workspace/inner-results-branch
+            printf '%s' "${major_minor_version}.0" > /workspace/inner-results-version
           else
           echo "Current branch is up-to-date(version is: ${version}). Exiting."
             exit 1
           fi
-        elif [[ "$branch" =~ ^release-nextgen-[0-9]+$ ]]; then
-          printf "$branch" > /workspace/inner-results-version
-          printf "$branch" > /workspace/inner-results-branch
+        elif [[ "${branch}" =~ ^release-nextgen-[0-9]+$ ]]; then
+          printf '%s' "${branch}" > /workspace/inner-results-version
+          printf '%s' "${branch}" > /workspace/inner-results-branch
         else
-          echo "Invalid branch format: $branch"
+          echo "Invalid branch format: ${branch}"
           exit 1
         fi
     - name: create-pull-request
       image: denoland/deno:2.8.3
+      env:
+        - name: GIT_URL
+          value: "$(params.git-url)"
+        - name: TOKEN_FILE
+          value: "$(workspaces.github.path)/token"
       script: |
-        owner=$(basename $(dirname $(params.git-url)))
-        repo=$(basename $(params.git-url) .git)
+        #!/usr/bin/env bash
+        set -euo pipefail
 
-        echo "url=$(params.git-url)"
+        # https://github.com/<owner>/<repo>[.git]
+        owner="${GIT_URL%/*}"
+        owner="${owner##*/}"
+        repo="${GIT_URL##*/}"
+        repo="${repo%.git}"
+
+        echo "url=${GIT_URL}"
         echo "owner=${owner}"
         echo "repo=${repo}"
         echo "pr dest branch: $(cat /workspace/inner-results-branch)"
         echo "pr placeholder version: $(cat /workspace/inner-results-version)"
 
         deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/add-placeholder-version-in-readme.ts \
-          --owner=${owner} \
-          --repo=${repo} \
-          --branch=$(cat /workspace/inner-results-branch) \
-          --placeholder=$(cat /workspace/inner-results-version) \
-          --github_private_token=$(cat /etc/github/token)
+          --owner="${owner}" \
+          --repo="${repo}" \
+          --branch="$(cat /workspace/inner-results-branch)" \
+          --placeholder="$(cat /workspace/inner-results-version)" \
+          --github_private_token="$(cat "${TOKEN_FILE}")"
   workspaces:
     - name: github
       description: Must includes a key `token`

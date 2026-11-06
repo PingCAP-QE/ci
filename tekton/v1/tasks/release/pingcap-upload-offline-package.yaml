@@ -3,7 +3,7 @@ kind: Task
 metadata:
   name: pingcap-upload-offline-package
   labels:
-    app.kubernetes.io/version: "0.2"
+    app.kubernetes.io/version: "0.3"
   annotations:
     tekton.dev/pipelines.minVersion: "0.17.0"
     tekton.dev/categories: CLI
@@ -12,7 +12,9 @@ metadata:
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
   description: >-
-    This task performs upload for pingcap's offline packages.
+    This task performs upload for pingcap's offline packages. Request-derived
+    parameters are passed to the script as environment variables and every
+    expansion is quoted.
   params:
     - name: version
       type: string
@@ -34,34 +36,50 @@ spec:
     - name: upload-offline-tarballs
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       workingDir: /workspace
+      env:
+        - name: VERSION
+          value: "$(params.version)"
+        - name: EDITION
+          value: "$(params.edition)"
+        - name: OS
+          value: "$(params.os)"
+        - name: ARCH
+          value: "$(params.arch)"
+        - name: OCI_REPO
+          value: "$(params.oci-repo)"
+        - name: DRY_RUN
+          value: "$(params.dry-run)"
+        - name: SECRETS_DIR
+          value: "$(workspaces.s3-secrets.path)"
       script: |
         #!/usr/bin/env bash
         set -e
 
         apk add curl
 
-        if [ ! -f "$(workspaces.s3-secrets.path)/credentials" ]; then
+        if [ ! -f "${SECRETS_DIR}/credentials" ]; then
           echo "Error: s3-secrets workspace is not bound."
           exit 1
         fi
 
         mkdir -p ~/.aws
-        cat $(workspaces.s3-secrets.path)/credentials > ~/.aws/credentials
-        cat $(workspaces.s3-secrets.path)/config > ~/.aws/config
-        aws configure set plugins.cli_legacy_plugin_path $(find /usr/lib -name site-packages -type d | head -1)
+        cat "${SECRETS_DIR}/credentials" > ~/.aws/credentials
+        cat "${SECRETS_DIR}/config" > ~/.aws/config
+        plugins_path="$(find /usr/lib -name site-packages -type d | head -1)"
+        aws configure set plugins.cli_legacy_plugin_path "${plugins_path}"
         aws configure set plugins.endpoint awscli_plugin_endpoint
 
-        bucket_name=$(cat $(workspaces.s3-secrets.path)/bucket_name)
+        bucket_name=$(cat "${SECRETS_DIR}/bucket_name")
 
-        repo="$(params.oci-repo)"
+        repo="${OCI_REPO}"
         dl_svr_url="http://dl.dl.svc"
 
-        tag="$(params.version)-$(params.edition)_$(params.os)_$(params.arch)"
+        tag="${VERSION}-${EDITION}_${OS}_${ARCH}"
         echo "🚀 uploading for ${tag} ..."
 
         # download the files.
-        curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}"
-        for f in $(curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}" | jq -r '.[]'); do
+        while IFS= read -r f; do
+          [ -n "$f" ] || continue
           # TODO: skip it if it is uploaded remotely.
 
           # download from oci artifact.
@@ -70,14 +88,14 @@ spec:
           echo "✅ Downloaded $f from ${repo}:${tag} ."
 
           # upload it.
-          target_f=$(echo "$f" | sed 's/-pre//')
+          target_f="$(printf '%s' "$f" | sed 's/-pre//')"
           echo "🚀 Uploading $f ..."
-          if [ "$(params.dry-run)" == "true" ]; then
+          if [ "${DRY_RUN}" = "true" ]; then
             echo "🧪🩺 DRY run mode enabled."
-            aws s3 cp $f s3://${bucket_name}/fake-release/$target_f --acl public-read
+            aws s3 cp "$f" "s3://${bucket_name}/fake-release/${target_f}" --acl public-read
           else
-            aws s3 cp $f s3://${bucket_name}/$target_f --acl public-read
+            aws s3 cp "$f" "s3://${bucket_name}/${target_f}" --acl public-read
           fi
           echo "✅ Uploaded $f ."
-        done
+        done < <(curl "${dl_svr_url}/oci-files/${repo}?tag=${tag}" | jq -r '.[]')
         echo "✅ Uploaded for ${tag} ."

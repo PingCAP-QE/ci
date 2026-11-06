@@ -4,12 +4,13 @@ kind: Task
 metadata:
   name: pingcap-compose-offline-pkgs
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
   description: >-
-    Compose TiUP offline deploy packages.
+    Compose TiUP offline deploy packages. Request-derived parameters are passed
+    to the step scripts as environment variables and every expansion is quoted.
   results:
     - description: Just built and pushed images, it will be a yaml content.
       name: pushed
@@ -46,21 +47,35 @@ spec:
         requests:
           cpu: "100m"
           memory: 1Gi
+      env:
+        - name: OS
+          value: "$(params.os)"
+        - name: ARCH
+          value: "$(params.arch)"
+        - name: VERSION
+          value: "$(params.version)"
+        - name: EDITION
+          value: "$(params.edition)"
+        - name: TIUP_MIRROR
+          value: "$(params.tiup-mirror)"
+        - name: REGISTRY
+          value: "$(params.registry)"
       script: |
+        #!/usr/bin/env sh
         git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
 
         /workspace/artifacts/packages/scripts/gen-package-offline-package-with-config.sh \
-          $(params.os) \
-          $(params.arch) \
-          $(params.version) \
-          $(params.edition) \
+          "${OS}" \
+          "${ARCH}" \
+          "${VERSION}" \
+          "${EDITION}" \
           /workspace/artifacts/packages/offline-packages.yaml.tmpl \
-          "$OUT_SCRIPT" \
-          $(params.tiup-mirror) \
-          $(params.registry)
+          "${OUT_SCRIPT}" \
+          "${TIUP_MIRROR}" \
+          "${REGISTRY}"
 
-        if [ -f "$OUT_SCRIPT" ]; then
-          cat "$OUT_SCRIPT"
+        if [ -f "${OUT_SCRIPT}" ]; then
+          cat "${OUT_SCRIPT}"
         else
           echo "🤷 no output script generated!"
           exit 1
@@ -70,18 +85,25 @@ spec:
         limits:
           cpu: "4"
           memory: 16Gi
+      env:
+        - name: TIUP_MIRROR
+          value: "$(params.tiup-mirror)"
+        - name: PUSH
+          value: "$(params.push)"
+        - name: PUSHED_RESULT
+          value: "$(results.pushed.path)"
       script: |
         #! /usr/bin/env bash
         set -exo pipefail
 
-        mkdir -vp ~/.tiup/{keys,bin}
+        mkdir -vp "$HOME/.tiup/keys" "$HOME/.tiup/bin"
 
         # set mirror.
-        tiup mirror set $(params.tiup-mirror) && tiup -v
+        tiup mirror set "${TIUP_MIRROR}" && tiup -v
 
-        if $(params.push); then
-          "$OUT_SCRIPT" -c -r -w build -p -o $(results.pushed.path)
+        if [ "${PUSH}" = "true" ]; then
+          "${OUT_SCRIPT}" -c -r -w build -p -o "${PUSHED_RESULT}"
         else
-          "$OUT_SCRIPT" -c -r -w build
-          printf "%s" "null" > $(results.pushed.path)
+          "${OUT_SCRIPT}" -c -r -w build
+          printf "%s" "null" > "${PUSHED_RESULT}"
         fi

@@ -4,7 +4,10 @@ kind: Task
 metadata:
   name: pingcap-create-github-releases
 spec:
-  description: create github releases on product GitHub repositories.
+  description: >-
+    Create github releases on product GitHub repositories. The version is
+    passed to the scripts as an environment variable and every expansion is
+    quoted.
   params:
     - name: version
       description: the release semver tag name, e.g. v5.0.0
@@ -15,13 +18,29 @@ spec:
     image: docker.io/denoland/deno:alpine-2.2.5
   steps:
     - name: create-releases
+      env:
+        - name: VERSION
+          value: "$(params.version)"
+        - name: TOKEN_FILE
+          value: "$(workspaces.github.path)/token"
       script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
         deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/ga/create_github_release.ts \
-          --version="$(params.version)" \
-          --token="$(cat $(workspaces.github.path)/token)"
+          --version="${VERSION}" \
+          --token="$(cat "${TOKEN_FILE}")"
     - name: create-branches
       onError: continue # it's not so important.
+      env:
+        - name: VERSION
+          value: "$(params.version)"
+        - name: TOKEN_FILE
+          value: "$(workspaces.github.path)/token"
       script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
         deno run --allow-net https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/ga/create-patch-release-branches.ts \
-          --version="$(params.version)" \
-          --token="$(cat $(workspaces.github.path)/token)"
+          --version="${VERSION}" \
+          --token="$(cat "${TOKEN_FILE}")"

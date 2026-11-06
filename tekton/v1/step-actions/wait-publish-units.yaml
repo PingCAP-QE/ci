@@ -50,17 +50,17 @@ spec:
   # StepActions must not substitute params inside the script; map them to env.
   env:
     - name: PUBLISHER_URL
-      value: $(params.publisher-url)
+      value: "$(params.publisher-url)"
     - name: UNIT_IDS_FILE
-      value: $(params.unit-ids-file)
+      value: "$(params.unit-ids-file)"
     - name: TIMEOUT_SECONDS
-      value: $(params.timeout-seconds)
+      value: "$(params.timeout-seconds)"
     - name: POLL_INTERVAL
-      value: $(params.poll-interval)
+      value: "$(params.poll-interval)"
     - name: MAX_POLL_INTERVAL
-      value: $(params.max-poll-interval)
+      value: "$(params.max-poll-interval)"
     - name: SUMMARY_FILE
-      value: $(params.summary-file)
+      value: "$(params.summary-file)"
   image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
   script: |
     #!/usr/bin/env bash

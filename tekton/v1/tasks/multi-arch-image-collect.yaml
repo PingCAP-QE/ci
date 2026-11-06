@@ -16,6 +16,10 @@ spec:
       - master-00595b4-release-arm64       => master-00595b4-release => master-00595b4 => master
       - v6.5.7-20241119-4f2073d_linux_amd64 => v6.5.7-20241119-4f2073d
       - v8.1.0-alpha-123-g1234567_linux_amd64 => v8.1.0-alpha-123-g0234567
+
+    The image url comes from a webhook, so it is passed to the script as an
+    environment variable, validated against a strict reference pattern, and
+    every expansion is quoted.
   params:
     - name: image_url
       description: |
@@ -32,42 +36,67 @@ spec:
     - name: prepare-manifest
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       workingDir: /workspace
+      env:
+        - name: IMAGE_URL
+          value: "$(params.image_url)"
+        - name: RELEASE_TAG_SUFFIX
+          value: "$(params.release_tag_suffix)"
+        - name: REPO_RESULT
+          value: "$(results.repo.path)"
+        - name: TAGS_RESULT
+          value: "$(results.tags.path)"
       script: |
         #! /usr/bin/env bash
 
         set -exo pipefail
 
-        :> $(results.repo.path)
-        :> $(results.tags.path)
+        # The image reference is webhook-supplied: only allow characters that
+        # are valid in an OCI reference so it cannot break out of the yq/grep
+        # expressions below.
+        case "${IMAGE_URL}" in
+          ''|*[!A-Za-z0-9._/:@-]*)
+            echo "❌ refused malformed image reference: '${IMAGE_URL}'" >&2
+            exit 1
+            ;;
+        esac
+        case "${RELEASE_TAG_SUFFIX}" in
+          ''|*[!A-Za-z0-9._-]*)
+            echo "❌ refused malformed release tag suffix: '${RELEASE_TAG_SUFFIX}'" >&2
+            exit 1
+            ;;
+        esac
+
+        :> "${REPO_RESULT}"
+        :> "${TAGS_RESULT}"
         :> manifest.yaml
 
         # steps:
         # 1. check the pushed tag, if not existed, step will fail.
-        oras discover --distribution-spec v1.1-referrers-tag $(params.image_url)
+        oras discover --distribution-spec v1.1-referrers-tag "${IMAGE_URL}"
 
         # 2. compute the mult-arch tags and digests
-        pushed_repo="$(echo $(params.image_url) | cut -d ':' -f 1)"
-        pushed_tag="$(echo $(params.image_url) | cut -d ':' -f 2)"
+        pushed_repo="$(printf '%s' "${IMAGE_URL}" | cut -d ':' -f 1)"
+        pushed_tag="$(printf '%s' "${IMAGE_URL}" | cut -d ':' -f 2)"
         tag=$(\
-          echo "$pushed_tag" | \
+          printf '%s' "$pushed_tag" | \
           sed -E 's/[-_](amd64|arm64)$//g' | \
           sed -E 's/[-_]linux$//g' \
         )
 
         # repo
-        yq -i ".image = \"$pushed_repo\"" manifest.yaml
+        yq -i ".image = \"${pushed_repo}\"" manifest.yaml
 
         # tags
         tags=("$tag")
         # [master-00595b4-release] => [master-00595b4-release, master-00595b4]
-        tags+=($(echo $tag | sed -E 's/[-_]$(params.release_tag_suffix)$//g'))
+        tags+=("$(printf '%s' "$tag" | sed -E "s/[-_]${RELEASE_TAG_SUFFIX}\$//g")")
         # [..., master-00595b4] => [..., master-00595b4, master]
         semver_pattern="^v?[0-9]+\.[0-9]+\.[0-9]+([-+][a-zA-Z0-9]+)*$"
         if [[ "$tag" =~ $semver_pattern ]]; then
           echo "🤷 it is a semver tag, skip to trim the commit SHA suffix part."
         else
           echo "🎯 it is a <branch>-<commit> tag, I will trim the commit SHA suffix part."
-          tags+=($(echo ${tag##* } | sed -E 's/[-][0-9a-f]{7,40}//g'))
+          tags+=("$(printf '%s' "${tag##* }" | sed -E 's/[-][0-9a-f]{7,40}//g')")
         fi
 
         # for tags
@@ -76,23 +105,29 @@ spec:
         done
 
         # digest map
-        for t in `oras repo tags $pushed_repo | grep -E "^${tag}[-_]linux[-_](amd64|arm64)$"`; do
+        while IFS= read -r t; do
           manifest-tool inspect --raw "${pushed_repo}:$t" > manifest.json
-          platform=`jq -r '.os + "/" + .architecture' manifest.json`
-          digest=`jq -r '.digest' manifest.json`
+          platform=$(jq -r '.os + "/" + .architecture' manifest.json)
+          digest=$(jq -r '.digest' manifest.json)
+          case "${digest}" in
+            ''|*[!A-Za-z0-9._:/-]*)
+              echo "❌ refused malformed image digest: '${digest}'" >&2
+              exit 1
+              ;;
+          esac
           echo "add for: ${platform} => ${digest}"
 
-          os="$(echo "$platform" | awk -F/ '{print $1}')"
+          os="$(printf '%s' "$platform" | awk -F/ '{print $1}')"
           architecture="${platform#*/}"
           yq -i '.manifests += [{}]' manifest.yaml
           yq -i ".manifests[-1].image = \"${pushed_repo}@${digest}\"" manifest.yaml
           yq -i ".manifests[-1].platform.os = \"$os\"" manifest.yaml
           yq -i ".manifests[-1].platform.architecture = \"$architecture\"" manifest.yaml
-        done
+        done < <(oras repo tags "${pushed_repo}" | grep -E "^${tag}[-_]linux[-_](amd64|arm64)$" || true)
 
         if yq -e '.manifests |length > 1' manifest.yaml >/dev/null 2>&1; then
-          printf "%s" "$pushed_repo" > $(results.repo.path)
-          yq '.tags | join " "' manifest.yaml | tr -d '\n' > $(results.tags.path)
+          printf "%s" "$pushed_repo" > "${REPO_RESULT}"
+          yq '.tags | join " "' manifest.yaml | tr -d '\n' > "${TAGS_RESULT}"
           cat manifest.yaml
           manifest-tool push from-spec manifest.yaml
         else

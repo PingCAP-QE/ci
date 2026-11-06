@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: ci-helper-for-pr
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/pipelines.minVersion: "0.29.0"
     tekton.dev/categories: GitHub
@@ -12,7 +12,12 @@ metadata:
     tekton.dev/displayName: "ci helper for pull requests"
     tekton.dev/platforms: "linux/amd64"
 spec:
-  description: CI helper for contribution pull requests
+  description: >-
+    CI helper for contribution pull requests.
+
+    The owner/repository/number values come from a webhook, so they are passed
+    to the script as environment variables, validated against strict patterns,
+    and every expansion is quoted.
   params:
     - name: owner
       description: repo owner
@@ -26,19 +31,36 @@ spec:
   steps:
     - name: create-pull-request
       image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
+      env:
+        - name: PR_OWNER
+          value: "$(params.owner)"
+        - name: PR_REPO
+          value: "$(params.repo)"
+        - name: PR_NUMBER
+          value: "$(params.number)"
+        - name: TOKEN_FILE
+          value: "$(workspaces.github.path)/token"
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
 
+        # The values are webhook-supplied: validate them before they reach `gh`
+        # or an URL that is passed to it.
+        [[ "${PR_OWNER}" =~ ^[A-Za-z0-9-]+$ ]]
+        [[ "${PR_REPO}" =~ ^[A-Za-z0-9_.-]+$ ]]
+        [[ "${PR_NUMBER}" =~ ^[0-9]+$ ]]
+
         # install `gh` tool (release utils image ships `gh`; install if missing)
         type -p gh >/dev/null || apk add --no-cache gh
 
-        gh auth login --with-token < $(workspaces.github.path)/token
+        gh auth login --with-token < "${TOKEN_FILE}"
+
+        pr_url="https://github.com/${PR_OWNER}/${PR_REPO}/pull/${PR_NUMBER}"
 
         # truct the pull request
-        echo "pull request url: https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
-        gh pr edit --add-label ok-to-test --remove-label needs-ok-to-test https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)
-        gh pr comment --body 'Now you can start all CI jobs with `/test all` in comment or query the triggers with `/test ?`' https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)
+        echo "pull request url: ${pr_url}"
+        gh pr edit --add-label ok-to-test --remove-label needs-ok-to-test "${pr_url}"
+        gh pr comment --body 'Now you can start all CI jobs with `/test all` in comment or query the triggers with `/test ?`' "${pr_url}"
   workspaces:
     - name: github
       description: Must includes a key `token`

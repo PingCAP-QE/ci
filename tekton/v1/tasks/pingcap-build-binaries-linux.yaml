@@ -3,12 +3,17 @@ kind: Task
 metadata:
   name: pingcap-build-binaries-linux
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
   description: >-
     Build binaries for the component.
+
+    Request-derived values are mapped to environment variables instead of being
+    interpolated into the step scripts, and every shell expansion is quoted.
+    The builder image is validated against a registry allowlist by the
+    `validate-builder-image` step before the `build` step is allowed to start.
   workspaces:
     - name: git-credentials
       optional: true
@@ -45,6 +50,10 @@ spec:
     - name: git-url
     - name: builder-image
       default: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      description: >-
+        Builder image for the build step. It is validated against the
+        company-owned registry allowlist by the validate-builder-image step;
+        anything else fails the Task.
     - name: release-dir
       default: build
     - name: push
@@ -75,6 +84,41 @@ spec:
       type: string
       default: "contents=read"
   steps:
+    - name: validate-builder-image
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      env:
+        - name: BUILDER_IMAGE
+          value: "$(params.builder-image)"
+      script: |
+        #!/bin/sh
+        set -eu
+
+        # The builder image is a step `image:`, which Tekton resolves before any
+        # shell guard inside the build step could run. Validate it here first and
+        # fail the Task, so the build step below never starts with an image
+        # outside the trusted registry namespaces. The value can reach us from an
+        # untrusted CloudEvent header (ce-paramBuilderImage); that header path is
+        # additionally restricted to the company-owned registries by
+        # pingcap-get-builder-image. The Rust builder from the pinned artifacts
+        # config is the single trusted upstream image allowed here.
+        case "${BUILDER_IMAGE}" in
+          ghcr.io/pingcap-qe/*|hub.pingcap.net/pingcap/*|us-docker.pkg.dev/pingcap-testing-account/*)
+            ;;
+          docker.io/rustlang/rust:*|docker.io/rustlang/rust@sha256:*)
+            ;;
+          *)
+            echo "❌ refused builder image outside the allowlist: '${BUILDER_IMAGE}'" >&2
+            exit 1
+            ;;
+        esac
+        case "${BUILDER_IMAGE}" in
+          ''|[!A-Za-z0-9]*|*[!A-Za-z0-9._:/@-]*)
+            echo "❌ malformed builder image reference: '${BUILDER_IMAGE}'" >&2
+            exit 1
+            ;;
+        esac
+        echo "✅ builder image is allowlisted."
+
     - name: setup-git-auth
       when:
         - input: "$(params.git-auth-app)"
@@ -84,11 +128,11 @@ spec:
         name: setup-git-auth
       params:
         - name: broker-url
-          value: $(params.git-auth-broker-url)
+          value: "$(params.git-auth-broker-url)"
         - name: permissions
-          value: $(params.git-auth-permissions)
+          value: "$(params.git-auth-permissions)"
         - name: user-home
-          value: $(params.git-auth-home)
+          value: "$(params.git-auth-home)"
 
     - name: generate
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
@@ -96,34 +140,52 @@ spec:
         - name: generated
           type: string
       args: ["$(results.pushed.path)"]
+      env:
+        - name: COMPONENT
+          value: "$(params.component)"
+        - name: OS
+          value: "$(params.os)"
+        - name: ARCH
+          value: "$(params.arch)"
+        - name: VERSION
+          value: "$(params.version)"
+        - name: PROFILE
+          value: "$(params.profile)"
+        - name: GIT_REF
+          value: "$(params.git-ref)"
+        - name: GIT_SHA
+          value: "$(params.git-sha)"
+        - name: REGISTRY
+          value: "$(params.registry)"
       script: |
+        #!/usr/bin/env sh
         pushed_result_path="$1"
         git clone --depth=1 --branch=main https://github.com/PingCAP-QE/artifacts.git /workspace/artifacts
 
-        git_ref="$(params.git-ref)"
-        git_sha="$(params.git-sha)"
-        if [ "$git_sha" == "$git_ref" ]; then
+        git_ref="${GIT_REF}"
+        git_sha="${GIT_SHA}"
+        if [ "$git_sha" = "$git_ref" ]; then
           git_sha=""
         fi
 
         out_script="/workspace/build-package-artifacts.sh"
         /workspace/artifacts/packages/scripts/gen-package-artifacts-with-config.sh \
-          $(params.component) \
-          $(params.os) \
-          $(params.arch) \
-          $(params.version) \
-          $(params.profile) \
-          $git_ref \
-          "$git_sha" \
+          "${COMPONENT}" \
+          "${OS}" \
+          "${ARCH}" \
+          "${VERSION}" \
+          "${PROFILE}" \
+          "${git_ref}" \
+          "${git_sha}" \
           /workspace/artifacts/packages/packages.yaml.tmpl \
-          "$out_script" \
-          $(params.registry)
+          "${out_script}" \
+          "${REGISTRY}"
 
         if [ -f "$out_script" ]; then
-          echo -n "true" > $(step.results.generated.path)
+          echo -n "true" > "$(step.results.generated.path)"
           cat "$out_script"
         else
-          echo -n "false" > $(step.results.generated.path)
+          echo -n "false" > "$(step.results.generated.path)"
           echo "🤷 no output script generated!"
           printf '"{}"' > "$pushed_result_path"
         fi
@@ -145,6 +207,14 @@ spec:
         # Go and Cargo resolve private modules through the git credential helper.
         - name: GOPRIVATE
           value: "github.com/tidbcloud/*,github.com/pingcap-inc/*"
+        - name: GIT_AUTH_APP
+          value: "$(params.git-auth-app)"
+        - name: GIT_AUTH_HOME
+          value: "$(params.git-auth-home)"
+        - name: GIT_REF
+          value: "$(params.git-ref)"
+        - name: RELEASE_DIR
+          value: "$(params.release-dir)"
         # - name: RUSTUP_DIST_SERVER
         #   value: https://rsproxy.cn
         # - name: RUSTUP_UPDATE_ROOT
@@ -160,9 +230,9 @@ spec:
         # With git-auth-app the broker helper replaces the PAT workspace, so the
         # build pod holds no long-lived GitHub credential. The workspace branch
         # stays as the rollback path.
-        if [ "$(params.git-auth-app)" != "true" ] && [ "$(workspaces.git-credentials.bound)" = "true" ]; then
+        if [ "${GIT_AUTH_APP}" != "true" ] && [ "$(workspaces.git-credentials.bound)" = "true" ]; then
           set -eu
-          export GIT_BRANCH="$(params.git-ref)"
+          export GIT_BRANCH="${GIT_REF:-}"
           export GOPRIVATE=github.com/tidbcloud/*,github.com/pingcap-inc/*
           export GIT_TERMINAL_PROMPT=0
           credential_dir="$(workspaces.git-credentials.path)"
@@ -189,13 +259,13 @@ spec:
         fi
         # The setup step installs the helper in the shared home; this step keeps
         # the HOME of the builder image, so read the fragment by absolute path.
-        git_auth_fragment="$(params.git-auth-home)/.git-auth/gitconfig.fragment"
+        git_auth_fragment="${GIT_AUTH_HOME}/.git-auth/gitconfig.fragment"
         if [ -f "${git_auth_fragment}" ]; then
           mkdir -p "$HOME"
           cat "${git_auth_fragment}" >> "$HOME/.gitconfig"
         fi
         script="/workspace/build-package-artifacts.sh"
-        "$script" -b -a -w "$(params.release-dir)"
+        "$script" -b -a -w "${RELEASE_DIR}"
     - name: publish
       image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
       when:
@@ -205,15 +275,21 @@ spec:
       workingDir: $(workspaces.source.path)/$(params.component)
       env:
         - name: GIT_URL
-          value: $(params.git-url)
+          value: "$(params.git-url)"
+        - name: RELEASE_DIR
+          value: "$(params.release-dir)"
+        - name: PUSHED_RESULT
+          value: "$(results.pushed.path)"
       script: |
+        #!/usr/bin/env sh
         script="/workspace/build-package-artifacts.sh"
 
-        for f in $(find $(params.release-dir) -name "*.tar.gz"); do
-          tar -tf $f
+        # Read-only listing of the produced archives. No extraction happens here.
+        find "${RELEASE_DIR}" -name "*.tar.gz" -type f | while IFS= read -r f; do
+          tar -tf "$f"
         done
 
         oras version
         # try 2 times.
-        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path) || \
-        "$script" -p -w "$(params.release-dir)" -o $(results.pushed.path)
+        "$script" -p -w "${RELEASE_DIR}" -o "${PUSHED_RESULT}" || \
+        "$script" -p -w "${RELEASE_DIR}" -o "${PUSHED_RESULT}"

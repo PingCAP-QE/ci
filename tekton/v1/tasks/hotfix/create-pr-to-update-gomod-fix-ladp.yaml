@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: create-pr-to-update-gomod-fix-ladp
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.2"
   annotations:
     tekton.dev/pipelines.minVersion: "0.29.0"
     tekton.dev/platforms: "linux/amd64,linux/arm64"
@@ -12,6 +12,11 @@ spec:
   description: >-
     Create pull request to fix `go.mod` file to github repository branch.
     Also, update ldap crt/key if the branch is a hotfix branch for specific release series(release-7.5-*, release-8.1-*, release-8.5-*).
+
+    The repository url and the branch name come from a webhook, so they are
+    passed to the scripts as environment variables, the branch name is validated
+    against a strict pattern, and every expansion is quoted. The golang image is
+    validated against a registry allowlist before its step can start.
   params:
     - name: git-url
       description: repository clone url
@@ -23,17 +28,71 @@ spec:
       description: the image to run go mod edit and go mod tidy
       default: ghcr.io/pingcap-qe/ci/base:v20231216-14-g77d0cd2-go1.19
   steps:
+    - name: validate-golang-image
+      image: alpine:3.24
+      env:
+        - name: GOLANG_IMAGE
+          value: "$(params.golang-image)"
+      script: |
+        #!/bin/sh
+        set -eu
+
+        # The golang image is a step `image:`; Tekton resolves it before any
+        # shell guard inside that step can run, so validate it up front and fail
+        # the Task instead of executing an arbitrary container image.
+        case "${GOLANG_IMAGE}" in
+          ghcr.io/pingcap-qe/*|hub.pingcap.net/pingcap/*|us-docker.pkg.dev/pingcap-testing-account/*)
+            ;;
+          *)
+            echo "❌ refused golang image outside the allowlist: '${GOLANG_IMAGE}'" >&2
+            exit 1
+            ;;
+        esac
+        case "${GOLANG_IMAGE}" in
+          ''|[!A-Za-z0-9]*|*[!A-Za-z0-9._:/@-]*)
+            echo "❌ malformed golang image reference: '${GOLANG_IMAGE}'" >&2
+            exit 1
+            ;;
+        esac
+        echo "✅ golang image is allowlisted."
+
     - name: clone
       image: alpine/git:v2.54.0
       workingDir: /workspace
+      env:
+        - name: GIT_URL
+          value: "$(params.git-url)"
+        - name: BRANCH
+          value: "$(params.branch)"
       script: |
-        git clone $(params.git-url) --branch $(params.branch) /workspace/src
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # The branch name is webhook-supplied: reject anything that is not a
+        # plain git branch/ref name before it reaches git.
+        case "${BRANCH}" in
+          ''|.*|*..*|*[!A-Za-z0-9._/-]*)
+            echo "❌ refused malformed branch name: '${BRANCH}'" >&2
+            exit 1
+            ;;
+        esac
+        case "${BRANCH}" in
+          -*) echo "❌ refused branch name starting with '-': '${BRANCH}'" >&2; exit 1 ;;
+        esac
+
+        git clone "${GIT_URL}" --branch "${BRANCH}" /workspace/src
 
     - name: update-ladp-crt-key
       image: alpine/git:v2.54.0
       workingDir: /workspace/src
+      env:
+        - name: BRANCH
+          value: "$(params.branch)"
       script: |
-        git config --global --add safe.directory `pwd`
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        git config --global --add safe.directory "$(pwd)"
         git config --global user.email "ti-community-prow-bot@tidb.io"
         git config --global user.name  "ti-chi-bot"
 
@@ -43,7 +102,7 @@ spec:
         base_release_branch=""
         is_ldap_hotfix_candidate_branch=false
 
-        case "$(params.branch)" in
+        case "${BRANCH}" in
           release-7.5-*)
             base_release_branch="release-7.5"
             is_ldap_hotfix_candidate_branch=true
@@ -57,17 +116,17 @@ spec:
             is_ldap_hotfix_candidate_branch=true
             ;;
           *)
-            echo "Branch $(params.branch) is not a designated hotfix release for ldap crt/key update (release-7.5-*, release-8.1-*, release-8.5-*)."
+            echo "Branch ${BRANCH} is not a designated hotfix release for ldap crt/key update (release-7.5-*, release-8.1-*, release-8.5-*)."
             ;;
         esac
 
         if [ "$is_ldap_hotfix_candidate_branch" = "true" ] && [ -n "$base_release_branch" ]; then
-          echo "Branch $(params.branch) is a hotfix branch for $base_release_branch which may need to update the ldap crt/key."
-          echo "Fetching base release branch: $base_release_branch..."
-          git fetch origin $base_release_branch
+          echo "Branch ${BRANCH} is a hotfix branch for ${base_release_branch} which may need to update the ldap crt/key."
+          echo "Fetching base release branch: ${base_release_branch}..."
+          git fetch origin "${base_release_branch}"
           git remote -v
           git branch
-          echo "Successfully fetched $base_release_branch."
+          echo "Successfully fetched ${base_release_branch}."
 
           echo "Performing git cherry-pick if needed..."
           commit_to_cherry_pick=$(git log FETCH_HEAD --grep="re-generate crt/key for ldap test" --format=%H -n 1)
@@ -86,9 +145,9 @@ spec:
 
           # Check 1: Is there a commit to cherry-pick?
           if [ -z "$commit_to_cherry_pick" ]; then
-            skip_reason="No relevant commit found in $base_release_branch to cherry-pick for ldap update."
+            skip_reason="No relevant commit found in ${base_release_branch} to cherry-pick for ldap update."
           # Check 2: Is the exact commit already in current branch?
-          elif git merge-base --is-ancestor $commit_to_cherry_pick HEAD; then
+          elif git merge-base --is-ancestor "$commit_to_cherry_pick" HEAD; then
             skip_reason="Commit $commit_to_cherry_pick already exists in current branch, skipping cherry-pick."
           else
             # Check 3: Does current branch already have similar ldap crt/key commits?
@@ -106,8 +165,8 @@ spec:
 
           # Execute based on decision
           if [ "$should_cherry_pick" = true ]; then
-            echo "Cherry-picking commit $commit_to_cherry_pick from $base_release_branch"
-            if git cherry-pick $commit_to_cherry_pick; then
+            echo "Cherry-picking commit $commit_to_cherry_pick from ${base_release_branch}"
+            if git cherry-pick "$commit_to_cherry_pick"; then
               echo "Successfully cherry-picked commit $commit_to_cherry_pick"
             else
               echo "Cherry-pick failed, possibly due to conflicts. Attempting to abort..."
@@ -118,14 +177,14 @@ spec:
             echo "$skip_reason"
           fi
         else
-          echo "Skipping ldap crt/key update for branch $(params.branch)."
+          echo "Skipping ldap crt/key update for branch ${BRANCH}."
         fi
 
     - name: update-gomod
       image: "$(params.golang-image)"
       workingDir: /workspace/src
       script: |
-        git config --global --add safe.directory `pwd`
+        git config --global --add safe.directory "$(pwd)"
 
         # replace appdash and update go.mod
         go mod edit -replace sourcegraph.com/sourcegraph/appdash=github.com/sourcegraph/appdash@v0.0.0-20190731080439-ebfcffb1b5c0
@@ -143,8 +202,16 @@ spec:
     - name: create-pr
       image: ghcr.io/pingcap-qe/cd/utils/release:v2026.7.12-4-g372cd24
       workingDir: /workspace/src
+      env:
+        - name: BRANCH
+          value: "$(params.branch)"
+        - name: TOKEN_FILE
+          value: "$(workspaces.github.path)/token"
       script: |
-        git config --global --add safe.directory `pwd`
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        git config --global --add safe.directory "$(pwd)"
         git config --global user.email "ti-community-prow-bot@tidb.io"
         git config --global user.name  "ti-chi-bot"
 
@@ -155,17 +222,17 @@ spec:
         fi
 
         # Fetch the latest state of the remote branch to accurately compare
-        echo "Fetching remote branch $(params.branch)..."
-        git fetch origin $(params.branch)
+        echo "Fetching remote branch ${BRANCH}..."
+        git fetch origin "${BRANCH}"
 
         # Check if the local branch is ahead of the remote branch to determine if the update ldap crt/key cherry-pick has been processed
-        local_commits_ahead_count=$(git rev-list origin/$(params.branch)..HEAD --count)
+        local_commits_ahead_count=$(git rev-list "origin/${BRANCH}..HEAD" --count)
         local_branch_is_ahead=false
         if [ "$local_commits_ahead_count" -gt 0 ]; then
-          echo "Local branch $(params.branch) is $local_commits_ahead_count commit(s) ahead of origin/$(params.branch)."
+          echo "Local branch ${BRANCH} is $local_commits_ahead_count commit(s) ahead of origin/${BRANCH}."
           local_branch_is_ahead=true
         else
-          echo "Local branch $(params.branch) is not ahead of origin/$(params.branch)."
+          echo "Local branch ${BRANCH} is not ahead of origin/${BRANCH}."
         fi
 
         pr_title=""
@@ -202,10 +269,10 @@ spec:
         # login and setup git (release utils image ships `gh`; install if missing)
         type -p gh >/dev/null || apk add --no-cache gh
 
-        gh auth login --with-token < $(workspaces.github.path)/token
+        gh auth login --with-token < "${TOKEN_FILE}"
         gh auth setup-git
 
-        head_branch="fix/$(params.branch)/$head_branch_name_suffix"
+        head_branch="fix/${BRANCH}/${head_branch_name_suffix}"
         echo "Checking out and pushing to new branch: $head_branch"
         git checkout -b "$head_branch"
         git push origin "$head_branch"
@@ -221,9 +288,9 @@ spec:
         \`\`\`
         EOF
 
-        echo "Creating PR with title: '$pr_title' for head branch '$head_branch' into base '$(params.branch)'"
+        echo "Creating PR with title: '$pr_title' for head branch '$head_branch' into base '${BRANCH}'"
         gh pr create \
-          --base $(params.branch) \
+          --base "${BRANCH}" \
           --head "$head_branch" \
           --title "$pr_title" \
           --body-file pr_body.txt
