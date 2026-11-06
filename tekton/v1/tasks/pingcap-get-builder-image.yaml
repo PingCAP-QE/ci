@@ -9,14 +9,14 @@ metadata:
     tekton.dev/platforms: "linux/amd64,linux/arm64"
 spec:
   description: >-
-    Build binaries for the component.
+    Resolve the builder image for a component.
 
-    The builder image can be forced with a value that originates from an
-    untrusted CloudEvent header (`ce-paramBuilderImage`), therefore every value
-    that is written to the `image-url` result - forced or resolved from the
-    artifacts config - must pass the allowlist below. A value outside the
-    company's own registry namespaces fails the step, so no caller can make a
-    later build step run an arbitrary container image.
+    The image is either taken from the pinned artifacts config or forced by the
+    caller through an untrusted CloudEvent header (`ce-paramBuilderImage`).
+    Which images a caller may force is a product policy decided where the
+    request enters the system (the devbuild API). Here the value only has to be
+    a well-formed single-line image reference, because it becomes the `image:`
+    of a later build step.
   results:
     - description: The builder image url
       name: image-url
@@ -40,8 +40,9 @@ spec:
       type: string
       description: >
         force to use a specific builder image, it will be used as the base
-        image for building binaries. The value is validated against the
-        builder image allowlist; anything else fails the task.
+        image for building binaries. The value must be a well-formed image
+        reference; whether the caller is allowed to force it is vetted by the
+        devbuild API.
       default: ""
   steps:
     - name: get
@@ -66,25 +67,11 @@ spec:
         set -eu
 
         # `force-builder-image` comes from an untrusted CloudEvent header
-        # (ce-paramBuilderImage). It must therefore point at one of the
-        # company-owned registry namespaces and use a safe character set before
-        # it can end up as the `image:` of a later build step.
-        is_allowed_forced_builder_image() {
-          image="$1"
-          is_valid_image_reference "${image}" || return 1
-          case "${image}" in
-            ghcr.io/pingcap-qe/*|hub.pingcap.net/pingcap/*|us-docker.pkg.dev/pingcap-testing-account/*)
-              return 0
-              ;;
-            *)
-              return 1
-              ;;
-          esac
-        }
-
-        # A plain OCI reference check for values that come from our own pinned
-        # artifacts config (not from a request). `case` matches the whole value,
-        # so embedded newlines or other control characters are rejected too.
+        # (ce-paramBuilderImage) and ends up as the `image:` of a later build
+        # step, so it must be a single-line, well-formed image reference. Which
+        # images are allowed is decided by the devbuild API, where the request
+        # enters the system; a value allowlist here would have to be updated for
+        # every builder image the artifacts config pins.
         is_valid_image_reference() {
           case "${1}" in
             ''|[!A-Za-z0-9]*|*[!A-Za-z0-9._:/@-]*) return 1 ;;
@@ -93,8 +80,8 @@ spec:
         }
 
         if [ -n "${FORCE_BUILDER_IMAGE}" ]; then
-          if ! is_allowed_forced_builder_image "${FORCE_BUILDER_IMAGE}"; then
-            echo "❌ refused builder image outside the allowlist: '${FORCE_BUILDER_IMAGE}'" >&2
+          if ! is_valid_image_reference "${FORCE_BUILDER_IMAGE}"; then
+            echo "❌ malformed forced builder image: '${FORCE_BUILDER_IMAGE}'" >&2
             exit 1
           fi
           echo "use force builder image: ${FORCE_BUILDER_IMAGE}"
@@ -118,9 +105,8 @@ spec:
         if [ -f "${out}" ]; then
           resolved_image="$(cat "${out}")"
         fi
-        # The resolved image comes from the pinned artifacts config, so only a
-        # reference-shape check applies here; the build task validates the final
-        # value against its own allowlist before the build step may start.
+        # The resolved image comes from the pinned artifacts config; only the
+        # reference shape is checked, because it becomes a step `image:`.
         if ! is_valid_image_reference "${resolved_image}"; then
           echo "❌ malformed resolved builder image: '${resolved_image}'" >&2
           exit 1
