@@ -16,7 +16,7 @@ spec:
                 {
                   'product': (header.canonical('ce-paramProduct') != '' ? header.canonical('ce-paramProduct') : body.repository.name),
                   'serverless': (header.canonical('ce-paramProduct') in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] ||
-                  (header.canonical('ce-paramProduct') == '' && body.repository.name in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb']))
+                  (header.canonical('ce-paramProduct') == '' && body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb']))
                 }
     - name: filter on repo
       ref: { name: cel }
@@ -24,13 +24,11 @@ spec:
         - name: filter
           value: >-
             extensions.build.serverless ?
-            (body.repository.full_name.matches('^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$') &&
-            body.repository.name in ['tidb-cse', 'pd-cse', 'tidb-operator-cse', 'cassandra-on-mysql', 'qdrant-on-tidb'] &&
+            (body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'] &&
             extensions.build.product == body.repository.name &&
             header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.pull_request' &&
             header.canonical('ce-paramPlatform') in ['linux/amd64', 'linux/arm64']) :
-            (body.repository.full_name.matches('^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$') &&
-            body.repository.name in ['tici', 'ng-monitoring', 'ticdc', 'tidb', 'tidb-binlog', 'tidb-dashboard', 'tidb-operator', 'tidb-tools', 'tiflash', 'tiflow', 'tiproxy', 'cloud-storage-engine', 'tiflash-cse', 'pd', 'tikv'] &&
+            (body.repository.full_name in ['pingcap-inc/tici', 'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard', 'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy', 'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv'] &&
             (extensions.build.product == body.repository.name || (body.repository.name == 'cloud-storage-engine' && extensions.build.product == 'tikv') || (body.repository.name == 'tiflash-cse' && extensions.build.product == 'tiflash')) &&
             header.canonical('ce-paramPlatform') in ['linux/amd64', 'linux/arm64'])
         - name: overlays

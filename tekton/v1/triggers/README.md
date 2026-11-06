@@ -39,14 +39,16 @@ the EventListener. They may select between options that are **already**
 authorized, but they must never admit a repository or replace its identity.
 
 - The repository allowlist is always derived from `body.repository.full_name`
-  (or `body.repository.name` plus `body.repository.owner.login`).
-- Devbuild (fake-github) routes allow a fork of a known component: the
-  **repository name** must be an allowlisted component, while the owner may be
-  any fork owner. The full name must also match
-  `^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$`.
+  (or `body.repository.owner.login` plus `body.repository.name`).
+- Devbuild (fake-github) routes accept **only the allow-listed upstream
+  repositories**, matched on the exact `body.repository.full_name`. A renamed
+  or temporary fork is rejected: a repository name is not a unique key across
+  organisations, so matching on it would let e.g. `attacker/tidb` through.
+  Building renamed/temporary forks is intentionally disabled for now — see
+  "Known regression" in item 4.
 - `ce-paramProduct` may pick the build component, but the filter requires it to
   agree with the repository name (with the `cloud-storage-engine`/`tikv` and
-  `tiflash-cse`/`tiflash` aliases).
+  `tiflash-cse`/`tiflash` aliases). It never widens the repository allowlist.
 - Do not re-introduce a "this repo is allowlisted" header such as
   `ce-paramGithubRepo`. That pattern let any non-allowlisted repository through
   (security finding `655d8930-bebf-4acc-9a20-2eddb0383c20`).
@@ -89,9 +91,19 @@ deployment work.
 `fake-github-*` Triggers are selected by the `tibuild` EventListener
 (`PingCAP-QE/ee-ops`), which receives CloudEvents from the in-cluster
 `tibuild-v2` service. Those events are not GitHub-signed, so a GitHub HMAC
-interceptor cannot be used. Compensating controls are the body-derived
-component allowlist (item 1) and the derived clone URL (item 2), plus the fact
-that the EventListener is a ClusterIP service.
+interceptor cannot be used. Compensating controls are the strict allow-listed
+`body.repository.full_name` (item 1) and the derived clone URL (item 2), plus
+the fact that the EventListener is a ClusterIP service.
+
+**Known regression (accepted 2026-11-06).** tibuild regularly builds renamed or
+temporary forks, and the pre-hardening filter allowed those through the
+`ce-paramGithubRepo` escape hatch — i.e. only because of the vulnerability
+itself. With the strict `body.repository.full_name` allowlist in place those
+builds are now rejected by the triggers. This is a deliberate, temporary
+trade-off while the `el-tibuild` transport is unauthenticated: fix the
+transport (follow-up task-9 in `PingCAP-QE/ee-ops`), then re-open fork
+devbuild in a reviewed way. Do **not** restore it by matching on
+`body.repository.name`.
 
 Remaining work, owned outside this repository: authenticate that transport (for
 example restrict `el-tibuild` ingress to the tibuild namespace with a

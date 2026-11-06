@@ -437,134 +437,141 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
       })
     ) {
       for (const arch of ["amd64", "arm64"]) {
-        for (const fork of [false, true]) {
-          await t.step(
-            `${product}/${kind}/${arch}${fork ? "/fork" : ""}`,
-            () => {
-              const routeKind = kind === "commit" ? "branch-push" : kind;
-              // A fork keeps the upstream repository name, so the repository
-              // allowlist (which matches on repository.name) still applies.
-              const repo = fork
-                ? `custom-owner/${product}`
-                : `tidbcloud/${product}`;
-              const body = payload(repo, routeKind);
-              if (kind === "commit") body.ref = sha;
-              // The tag name need not be a formal release version for Devbuild.
-              if (kind === "tag-create") body.ref = "custom-build-tag";
-              const header: Header = {
-                "ce-type": `net.pingcap.tibuild.devbuild.${event}`,
-                "ce-paramproduct": product,
-                "ce-paramgitrevision": sha,
-                "ce-paramplatform": `linux/${arch}`,
-              };
-              const trigger = load<Trigger>(
-                `${routeDirectory}fake-github-${routeKind}-single-platform.yaml`,
-              );
-              assertEquals(
-                trigger.spec.bindings?.find((binding) =>
-                  binding.name === "ce-context"
-                )?.value,
-                "$(extensions.ce-context)",
-              );
-              const candidates = routes.filter((route) =>
-                route.trigger.metadata.labels.type ===
-                  `fake-github-${routeKind}`
-              );
-              assertEquals(
-                candidates.filter((route) =>
-                  filter(route.trigger, body, header)
-                ).length,
-                1,
-              );
-              assertEquals(
-                trigger.spec.template.ref,
-                "build-component-single-platform",
-              );
-              assertEquals(
-                overlay(trigger, "component", body, header),
-                product,
-              );
-              assertEquals(
-                overlay(trigger, "source", body, header, "revision"),
-                sha,
-              );
-              assertEquals(
-                overlay(trigger, "source", body, header, "refspec"),
-                `+${sha}:refs/devbuild/source`,
-              );
-
-              assertEquals(
-                overlay(trigger, "custom-params", body, header, "profile"),
-                "release",
-              );
-              assertEquals(
-                overlay(trigger, "registry", body, header),
-                "us-docker.pkg.dev/pingcap-testing-account/dev",
-              );
-              assertEquals(
-                overlay(
-                  trigger,
-                  "custom-params",
-                  body,
-                  header,
-                  "credentials-secret",
-                ),
-                "github-pat-secret",
-              );
-              assertEquals(
-                overlay(trigger, "custom-params", body, header, "os"),
-                "linux",
-              );
-              assertEquals(
-                overlay(trigger, "custom-params", body, header, "arch"),
-                arch,
-              );
-              assertEquals(
-                overlay(
-                  trigger,
-                  "custom-params",
-                  body,
-                  header,
-                  "credentials-workspace",
-                ),
-                "git-credentials",
-              );
-              const resource =
-                product === "tidb-cse" || product === "qdrant-on-tidb"
-                  ? "80Gi"
-                  : "30Gi";
-              assertEquals(
-                overlay(
-                  trigger,
-                  "resource-config",
-                  body,
-                  header,
-                  "sourceWsSize",
-                ),
-                resource,
-              );
-              for (
-                const platform of ["linux", "darwin/amd64", "darwin/arm64"]
-              ) {
-                header["ce-paramplatform"] = platform;
-                assertEquals(
-                  candidates.filter((route) =>
-                    filter(route.trigger, body, header)
-                  ).length,
-                  0,
-                );
-              }
-              header["ce-paramplatform"] = `linux/${arch}`;
-              header["ce-type"] = `net.pingcap.tibuild.hotfix.${event}`;
-              assertEquals(
-                candidates.filter((route) =>
-                  filter(route.trigger, body, header)
-                ).length,
-                0,
-              );
-            },
+        await t.step(`${product}/${kind}/${arch}`, () => {
+          const routeKind = kind === "commit" ? "branch-push" : kind;
+          // Devbuild accepts only the allow-listed upstream repositories;
+          // a renamed/arbitrary fork must not be selectable.
+          const repo = `tidbcloud/${product}`;
+          const body = payload(repo, routeKind);
+          if (kind === "commit") body.ref = sha;
+          // The tag name need not be a formal release version for Devbuild.
+          if (kind === "tag-create") body.ref = "custom-build-tag";
+          const header: Header = {
+            "ce-type": `net.pingcap.tibuild.devbuild.${event}`,
+            "ce-paramproduct": product,
+            "ce-paramgitrevision": sha,
+            "ce-paramplatform": `linux/${arch}`,
+          };
+          const trigger = load<Trigger>(
+            `${routeDirectory}fake-github-${routeKind}-single-platform.yaml`,
           );
-        }
+          assertEquals(
+            trigger.spec.bindings?.find((binding) =>
+              binding.name === "ce-context"
+            )?.value,
+            "$(extensions.ce-context)",
+          );
+          const candidates = routes.filter((route) =>
+            route.trigger.metadata.labels.type ===
+              `fake-github-${routeKind}`
+          );
+          assertEquals(
+            candidates.filter((route) =>
+              filter(route.trigger, body, header)
+            ).length,
+            1,
+          );
+          assertEquals(
+            trigger.spec.template.ref,
+            "build-component-single-platform",
+          );
+          assertEquals(
+            overlay(trigger, "component", body, header),
+            product,
+          );
+          assertEquals(
+            overlay(trigger, "source", body, header, "revision"),
+            sha,
+          );
+          assertEquals(
+            overlay(trigger, "source", body, header, "refspec"),
+            `+${sha}:refs/devbuild/source`,
+          );
+
+          assertEquals(
+            overlay(trigger, "custom-params", body, header, "profile"),
+            "release",
+          );
+          assertEquals(
+            overlay(trigger, "registry", body, header),
+            "us-docker.pkg.dev/pingcap-testing-account/dev",
+          );
+          assertEquals(
+            overlay(
+              trigger,
+              "custom-params",
+              body,
+              header,
+              "credentials-secret",
+            ),
+            "github-pat-secret",
+          );
+          assertEquals(
+            overlay(trigger, "custom-params", body, header, "os"),
+            "linux",
+          );
+          assertEquals(
+            overlay(trigger, "custom-params", body, header, "arch"),
+            arch,
+          );
+          assertEquals(
+            overlay(
+              trigger,
+              "custom-params",
+              body,
+              header,
+              "credentials-workspace",
+            ),
+            "git-credentials",
+          );
+          const resource =
+            product === "tidb-cse" || product === "qdrant-on-tidb"
+              ? "80Gi"
+              : "30Gi";
+          assertEquals(
+            overlay(
+              trigger,
+              "resource-config",
+              body,
+              header,
+              "sourceWsSize",
+            ),
+            resource,
+          );
+          for (
+            const platform of ["linux", "darwin/amd64", "darwin/arm64"]
+          ) {
+            header["ce-paramplatform"] = platform;
+            assertEquals(
+              candidates.filter((route) =>
+                filter(route.trigger, body, header)
+              ).length,
+              0,
+            );
+          }
+          header["ce-paramplatform"] = `linux/${arch}`;
+          header["ce-type"] = `net.pingcap.tibuild.hotfix.${event}`;
+          assertEquals(
+            candidates.filter((route) =>
+              filter(route.trigger, body, header)
+            ).length,
+            0,
+          );
+
+          // A renamed / arbitrary fork keeps a different full name and is
+          // rejected by the strict full_name allowlist.
+          header["ce-type"] = `net.pingcap.tibuild.devbuild.${event}`;
+          const renamedFork = payload("custom-owner/custom-fork", routeKind);
+          if (kind === "commit") renamedFork.ref = sha;
+          if (kind === "tag-create") renamedFork.ref = "custom-build-tag";
+          assertEquals(
+            candidates.filter((route) =>
+              filter(route.trigger, renamedFork, header)
+            ).length,
+            0,
+            `${product}/${kind}/${arch}: renamed fork must be rejected`,
+          );
+        });
       }
     }
   }
@@ -654,11 +661,20 @@ Deno.test("old products retain multi-platform and Darwin routing", () => {
       }),
     ]
       .map((entry) => load<Trigger>(entry.path));
-    for (const repo of ["pingcap/tidb", "custom-owner/tidb"]) {
+    for (
+      const [repo, product, expected] of [
+        // Allow-listed upstream repositories keep multi-platform/Darwin routing.
+        ["pingcap/tidb", "tidb", 1],
+        ["tidbcloud/cloud-storage-engine", "tikv", 1],
+        // Renamed / arbitrary forks are rejected: the allowlist keys on full_name.
+        ["custom-owner/custom-fork", "tidb", 0],
+        ["custom-owner/tidb", "tidb", 0],
+      ] as const
+    ) {
       const body = payload(repo, kind);
       const header: Header = {
         "ce-type": "net.pingcap.tibuild.devbuild.push",
-        "ce-paramproduct": "tidb",
+        "ce-paramproduct": product,
       };
       for (
         const platform of [
@@ -672,7 +688,7 @@ Deno.test("old products retain multi-platform and Darwin routing", () => {
         header["ce-paramplatform"] = platform;
         assertEquals(
           routes.filter((route) => filter(route, body, header)).length,
-          1,
+          expected,
           `${kind}/${repo}/${platform}`,
         );
       }

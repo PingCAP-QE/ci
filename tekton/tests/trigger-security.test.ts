@@ -103,9 +103,14 @@ Deno.test("request headers cannot waive a repository allowlist", () => {
     assert(repoFilters.length > 0, `${path} must filter on body.repository.*`);
     for (const value of repoFilters) {
       assert(
-        value.includes("body.repository.full_name") &&
-          value.includes("body.repository.name in"),
-        `${path} is missing the body-derived allowlist`,
+        value.includes("body.repository.full_name in ["),
+        `${path} must keep a strict repository.full_name allowlist`,
+      );
+      // A repository name is not a unique key across organisations, so it
+      // must never be the allowlist key.
+      assert(
+        !value.includes("body.repository.name in ["),
+        `${path} must not key the repository allowlist on repository.name`,
       );
     }
   }
@@ -143,16 +148,28 @@ Deno.test("a forged devbuild request cannot select an arbitrary repository", () 
       }
     }
   }
-  // ...while a fork of an allowlisted component keeps working (devbuild
-  // intentionally builds forks; the fork keeps the upstream repository name).
-  const fork = payload("custom-owner/tidb", "branch-push");
+  // ...and a renamed / arbitrary fork is rejected too, even when it reuses an
+  // allowlisted repository name: the allowlist keys on full_name, because a
+  // repository name is not unique across organisations. Renamed/temporary fork
+  // devbuild is intentionally blocked until the tibuild transport is
+  // authenticated (follow-up task-9); do not restore it by matching on name.
   const branchPushHeaders: Header = {
     "ce-type": "net.pingcap.tibuild.devbuild.push",
     "ce-paramplatform": "linux/amd64",
   };
+  for (const repo of ["custom-owner/custom-fork", "custom-owner/tidb"]) {
+    const fork = payload(repo, "branch-push");
+    assertEquals(
+      routes.filter((trigger) => filter(trigger, fork, branchPushHeaders)).length,
+      0,
+      `${repo} must not be selectable`,
+    );
+  }
+  // ...while the allow-listed upstream repositories keep working.
+  const upstream = payload("pingcap/tidb", "branch-push");
   assert(
-    routes.some((trigger) => filter(trigger, fork, branchPushHeaders)),
-    "a fork of an allowlisted component must still build",
+    routes.some((trigger) => filter(trigger, upstream, branchPushHeaders)),
+    "an allow-listed upstream repository must still build",
   );
 });
 
