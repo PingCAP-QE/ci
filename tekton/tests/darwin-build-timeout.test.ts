@@ -5,6 +5,8 @@ const darwinTemplatePath =
   "tekton/v1/triggers/templates/_/build-component-darwin-mac.yaml";
 const allPlatformsTemplatePath =
   "tekton/v1/triggers/templates/_/build-component-all-platforms-mac.yaml";
+const allArchTemplatePath =
+  "tekton/v1/triggers/templates/_/build-component-darwin-mac-all-arch.yaml";
 
 const fixedTimeout = "6h";
 const triggerTimeout = "$(tt.params.timeout)";
@@ -43,6 +45,22 @@ Deno.test("darwin build pipelines use a fixed 6h timeout", async (t) => {
     assertEquals(runs[0].spec.timeouts?.pipeline, fixedTimeout);
   });
 
+  await t.step("two-arch darwin template fixes the pipeline timeout", () => {
+    const runs = pipelineRuns(allArchTemplatePath);
+    assertEquals(runs.length, 2);
+    // The platform annotation is built from `$(tt.params.os)`, so normalize it
+    // before comparing: callers keep passing `os` explicitly.
+    assertEquals(
+      runs.map((run) =>
+        (platformOf(run) ?? "").replace("$(tt.params.os)", "darwin")
+      ).sort(),
+      ["darwin/amd64", "darwin/arm64"],
+    );
+    for (const run of runs) {
+      assertEquals(run.spec.timeouts?.pipeline, fixedTimeout);
+    }
+  });
+
   await t.step("all-platforms template only fixes darwin runs", () => {
     const timeoutsByPlatform = new Map(
       pipelineRuns(allPlatformsTemplatePath).map((run) => [
@@ -60,6 +78,7 @@ Deno.test("darwin build pipelines use a fixed 6h timeout", async (t) => {
   await t.step("no darwin run inherits the trigger timeout", () => {
     const runs = [
       ...pipelineRuns(darwinTemplatePath),
+      ...pipelineRuns(allArchTemplatePath),
       ...pipelineRuns(allPlatformsTemplatePath),
     ];
     const darwinRuns = runs.filter(isDarwinRun);
