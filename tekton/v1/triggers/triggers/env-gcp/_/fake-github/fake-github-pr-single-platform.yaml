@@ -24,14 +24,13 @@ spec:
         - name: filter
           value: >-
             extensions.build.serverless ?
-            (header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.pull_request' && header.canonical('ce-paramPlatform') in ['linux/amd64',
-            'linux/arm64']) : (((header.canonical('ce-paramGithubRepo') != '' && extensions.build.product in ['tici', 'ng-monitoring',
-            'ticdc', 'tidb', 'tidb-binlog', 'tidb-dashboard', 'tidb-operator', 'tidb-tools', 'tiflash',
-            'tiflow', 'tiproxy', 'cloud-storage-engine', 'tiflash-cse', 'pd', 'tikv']) || body.repository.full_name in [ 'pingcap-inc/tici',
-            'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard',
-            'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy',
-            'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv' ]) &&
-            header.canonical('ce-paramPlatform') in [ 'linux/amd64', 'linux/arm64' ])
+            (body.repository.full_name in ['tidbcloud/tidb-cse', 'tidbcloud/pd-cse', 'tidbcloud/tidb-operator-cse', 'tidbcloud/cassandra-on-mysql', 'tidbcloud/qdrant-on-tidb'] &&
+            extensions.build.product == body.repository.name &&
+            header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.pull_request' &&
+            header.canonical('ce-paramPlatform') in ['linux/amd64', 'linux/arm64']) :
+            (body.repository.full_name in ['pingcap-inc/tici', 'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard', 'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy', 'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv'] &&
+            (extensions.build.product == body.repository.name || (body.repository.name == 'cloud-storage-engine' && extensions.build.product == 'tikv') || (body.repository.name == 'tiflash-cse' && extensions.build.product == 'tiflash')) &&
+            header.canonical('ce-paramPlatform') in ['linux/amd64', 'linux/arm64'])
         - name: overlays
           value:
             - key: resource-config
@@ -170,7 +169,7 @@ spec:
                 }
 
   bindings:
-    - { name: git-url, value: $(body.repository.clone_url) }
+    - { name: git-url, value: "https://github.com/$(body.repository.full_name).git" }
     - { name: git-ref, value: $(extensions.source.ref) }
     - { name: git-revision, value: $(extensions.source.revision) }
     - { name: git-refspec, value: $(extensions.source.refspec) }

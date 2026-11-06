@@ -121,6 +121,8 @@ Note the double escaping of `\` for YAML strings and the `(?s)` flag for multi-l
 - Over-parsing: avoid repeating `split(...).parseJSON()` in several places; compute once in an overlay.
 - Missing null checks: event fields (like `body.comment`) may be null depending on the webhook type. Guard with `!= null`.
 - Wide-open triggers: add constraints like `body.action == 'created'`, repository allowlists, and perhaps actor/team checks when appropriate.
+- Never make a trust decision from request headers. `header.canonical('ce-param...')` values are chosen by whoever POSTs to the EventListener, so they may only select between options that are already authorized. Repository (and identity) allowlists must be derived from the body, e.g. `body.repository.full_name` or `body.repository.name` plus `body.repository.owner.login`. A header such as the removed `ce-paramGithubRepo` must not be accepted as proof that a repository is allowlisted.
+- Use headers only for metadata the sender is allowed to choose (for example the target platform or the requested build component), and constrain them to a closed set of values.
 - Regex greediness: prefer `.*?` with `(?s)` for multi-line non-greedy matches inside HTML comments.
 - Incorrect brace escaping: in regex, literal `{` and `}` should be matched as part of an object; generally use `\\{.*?\\}` as part of a larger pattern, or anchor them between literal separators you control.
 - Case sensitivity: normalize with `lowerAscii()` before checking commands or keywords.
