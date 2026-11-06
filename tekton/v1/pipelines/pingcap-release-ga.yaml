@@ -23,6 +23,12 @@ spec:
     - name: publisher-url
       type: string
       description: the publisher url,current for publish tiup packages.
+    - name: image-publisher-url
+      type: string
+      default: http://v2-tibuild-v2.tibuild.svc
+      description: >-
+        Base URL of the TiBuild publish API used for image delivery. Leave it
+        empty to keep generating and running the crane script in the pod.
   workspaces:
     - name: s3-secrets
     - name: github
@@ -38,6 +44,8 @@ spec:
           value: $(params.oci-registry)
         - name: publisher-url
           value: $(params.publisher-url)
+        - name: image-publisher-url
+          value: $(params.image-publisher-url)
       taskRef:
         name: tag-and-deliver-rc2ga-on-oci-artifacts
     - name: create-releases

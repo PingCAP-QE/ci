@@ -28,10 +28,18 @@ spec:
         Base URL of the TiBuild publish API, for example
         http://v2-tibuild-v2.tibuild.svc
       default: http://v2-tibuild-v2.tibuild.svc
-  stepTemplate:
-    image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
+    - name: image-publisher-url
+      description: >-
+        Base URL of the TiBuild publish API used for image delivery. When empty
+        (or "false") the task keeps the legacy behaviour of generating a crane
+        script with the deno generator and running it in this pod.
+      default: ""
+    - name: publish-wait-timeout-seconds
+      description: How long to wait for the publication units created for the images
+      default: "3600"
   steps:
     - name: add-tags
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
       args:
         - "$(params.rc-version)"
         - "$(params.ga-version)"
@@ -52,6 +60,7 @@ spec:
         ./tag-rc2ga-on-repos.sh "$rc_ver" "$ga_ver" "$registry" "$force" /workspace/results.yaml
         cat /workspace/results.yaml
     - name: deliver-binaries
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -76,7 +85,62 @@ spec:
           deliver "$url"
         done
 
+    - name: prepare-image-refs
+      when:
+        - input: "$(params.image-publisher-url)"
+          operator: notin
+          values: ["false", ""]
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
+      script: |
+        #! /usr/bin/env bash
+        set -euo pipefail
+
+        # Same shape the legacy generator consumed: one entry per image, with
+        # the reference split into repository and tag.
+        while IFS= read -r image; do
+          [[ -z "$image" ]] && continue
+          printf -- "- { repo: %s, tag: %s }\n" "${image%:*}" "${image##*:}"
+        done < <(yq -r '(.images // [])[]' /workspace/results.yaml) \
+          > /workspace/images.yaml
+        cat /workspace/images.yaml
+    - name: submit-images-to-publisher
+      when:
+        - input: "$(params.image-publisher-url)"
+          operator: notin
+          values: ["false", ""]
+      ref:
+        name: submit-publish-images
+      params:
+        - name: publisher-url
+          value: "$(params.image-publisher-url)"
+        - name: src
+          value: /workspace/images.yaml
+        - name: src-type
+          value: images-file
+        - name: unit-ids-file
+          value: /workspace/publish-unit-ids.txt
+    - name: wait-for-publisher
+      when:
+        - input: "$(params.image-publisher-url)"
+          operator: notin
+          values: ["false", ""]
+      ref:
+        name: wait-publish-units
+      params:
+        - name: publisher-url
+          value: "$(params.image-publisher-url)"
+        - name: unit-ids-file
+          value: /workspace/publish-unit-ids.txt
+        - name: timeout-seconds
+          value: "$(params.publish-wait-timeout-seconds)"
+        - name: summary-file
+          value: /workspace/publish-units.json
     - name: deliver-images
+      when:
+        - input: "$(params.image-publisher-url)"
+          operator: in
+          values: ["false", ""]
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.12.7-4-gf33384f
       env:
         - name: MAX_RETRIES
           value: "3"

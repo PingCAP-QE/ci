@@ -19,7 +19,9 @@ spec:
     rules into per-target steps, so the caller only has to wait. With
     `src-type=images-info` the build result is expanded the way the legacy
     generator did: every tag of every image (`tag`, `tags`, `multi_arch_tags`),
-    de-duplicated.
+    de-duplicated. With `src-type=images-file` `src` is a path to that same
+    build result; use it when the list is produced by an earlier step and can
+    exceed the parameter/result size budget.
 
     The ids are written to `unit-ids-file`, one per line. The file always exists
     afterwards: empty means no delivery rule matched (a successful no-op), which
@@ -30,7 +32,10 @@ spec:
       description: Base URL of the publish API, for example http://v2-tibuild-v2.tibuild.svc
     - name: src
       type: string
-      description: Image reference, or the build result (YAML/JSON) when src-type is images-info
+      description: >-
+        Image reference; the build result (YAML/JSON) when src-type is
+        images-info; or the path to the build result when src-type is
+        images-file
     - name: src-type
       type: string
       description: How to read src
@@ -38,6 +43,7 @@ spec:
       enum:
         - image-url
         - images-info
+        - images-file
     - name: unit-ids-file
       type: string
       description: Where to write the created publication unit ids, one per line
@@ -79,22 +85,33 @@ spec:
       echo "${unit_id}" >> "$ids_file"
     }
 
+    submit_from() {
+      # `yq` reads JSON as YAML, so the build result can be either format.
+      while IFS= read -r ref; do
+        [[ -z "$ref" ]] && continue
+        publish "$ref"
+      done < <(yq -r '
+        (.images? // .)[]
+        | .repo as $repo
+        | ([.tag] + (.tags // []) + (.multi_arch_tags // []))[]
+        | select(. != null and . != "")
+        | $repo + ":" + .' "$1" | sort -u)
+    }
+
     case "$SRC_TYPE" in
       image-url)
         publish "$src"
         ;;
       images-info)
         printf '%s\n' "$src" > "$src_file"
-        # `yq` reads JSON as YAML, so the build result can be either format.
-        while IFS= read -r ref; do
-          [[ -z "$ref" ]] && continue
-          publish "$ref"
-        done < <(yq -r '
-          (if type == "!!seq" then . else .images end)[]
-          | .repo as $repo
-          | ([.tag] + (.tags // []) + (.multi_arch_tags // []))[]
-          | select(. != null and . != "")
-          | $repo + ":" + .' "$src_file" | sort -u)
+        submit_from "$src_file"
+        ;;
+      images-file)
+        if [[ ! -f "$src" ]]; then
+          echo "build result '${src}' does not exist" >&2
+          exit 1
+        fi
+        submit_from "$src"
         ;;
       *)
         echo "unsupported src-type '${SRC_TYPE}'" >&2
