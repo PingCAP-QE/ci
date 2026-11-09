@@ -15,6 +15,11 @@ pipeline {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            // Keep the workspace (and therefore bazel's output root below) on a
+            // PVC. With the default emptyDir workspace, `make check` writes the
+            // ~40 GiB bazel output base into the node's ephemeral storage and
+            // kubelet evicts the agent pod halfway through the build.
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
@@ -60,6 +65,23 @@ pipeline {
                         git config --global --add safe.directory $(pwd)/tidb
                         git config --global --add safe.directory $(pwd)/tidb/pkg/extension/enterprise
                     '''
+                }
+            }
+        }
+        stage('Prepare bazel workspace') {
+            steps {
+                container('golang') {
+                    dir('tidb') {
+                        // Same adjustment the tidb jobs do: move bazel's output
+                        // root and repository cache off the node-local
+                        // /home/jenkins/.tidb into the PVC-backed workspace, drop
+                        // the legacy cache/mirror URLs, and detach
+                        // check-bazel-prepare from `make check`. On top of the
+                        // default emptyDir workspace this used to grow the golang
+                        // container to 35-55 GiB and get the pod evicted by
+                        // kubelet for ephemeral-storage pressure.
+                        script { bazel.prepareWorkspace() }
+                    }
                 }
             }
         }
