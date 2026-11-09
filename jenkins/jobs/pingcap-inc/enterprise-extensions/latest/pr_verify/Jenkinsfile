@@ -15,6 +15,7 @@ pipeline {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
+            workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
     }
@@ -60,6 +61,15 @@ pipeline {
                         git config --global --add safe.directory $(pwd)/tidb
                         git config --global --add safe.directory $(pwd)/tidb/pkg/extension/enterprise
                     '''
+                }
+            }
+        }
+        stage('Prepare bazel workspace') {
+            steps {
+                container('golang') {
+                    dir('tidb') {
+                        script { bazel.prepareWorkspace() }
+                    }
                 }
             }
         }
