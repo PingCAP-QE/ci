@@ -68,14 +68,6 @@ pipeline {
             steps {
                 container('golang') {
                     dir('tidb') {
-                        // Same adjustment the tidb jobs do: move bazel's output
-                        // root and repository cache off the node-local
-                        // /home/jenkins/.tidb into the PVC-backed workspace, drop
-                        // the legacy cache/mirror URLs, and detach
-                        // check-bazel-prepare from `make check`. On top of the
-                        // default emptyDir workspace this used to grow the golang
-                        // container to 35-55 GiB and get the pod evicted by
-                        // kubelet for ephemeral-storage pressure.
                         script { bazel.prepareWorkspace() }
                     }
                 }
