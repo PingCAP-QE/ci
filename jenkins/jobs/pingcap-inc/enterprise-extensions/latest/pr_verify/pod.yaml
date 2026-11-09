@@ -19,6 +19,8 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: tmp
+        - mountPath: /home/jenkins/.tidb
+          name: tmp
         - name: bazel-rc
           mountPath: /data/
           readOnly: true
