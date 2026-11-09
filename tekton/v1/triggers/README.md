@@ -96,30 +96,58 @@ deployment work.
 
 `fake-github-*` Triggers are selected by the `tibuild` EventListener
 (`PingCAP-QE/ee-ops`), which receives CloudEvents from the in-cluster
-`tibuild-v2` service. Those events are not GitHub-signed, so a GitHub HMAC
-interceptor cannot be used. Compensating controls are the strict allow-listed
-`body.repository.full_name` (item 1) and the derived clone URL (item 2), plus
-the fact that the EventListener is a ClusterIP service.
+`tibuild-v2` service. Those events are not GitHub webhooks, but `el-tibuild`
+verifies an HMAC-SHA256 over the raw CloudEvent body with the
+`el-tibuild-webhook` secret on every triggerGroup (`eventTypes` is deliberately
+unset, so the interceptor only checks the signature; `PingCAP-QE/ee-ops` #2653,
+merged 2026-11-06). `tibuild-v2` signs every devbuild and hotfix event with the
+same secret. Compensating controls on top: the strict allow-listed
+`body.repository.full_name` (item 1), the derived clone URL (item 2), and the
+fact that the EventListener is a ClusterIP service.
 
 **Known regression (accepted 2026-11-06).** tibuild regularly builds renamed or
 temporary forks, and the pre-hardening filter allowed those through the
 `ce-paramGithubRepo` escape hatch — i.e. only because of the vulnerability
 itself. With the strict `body.repository.full_name` allowlist in place those
-builds are now rejected by the triggers. This is a deliberate, temporary
-trade-off while the `el-tibuild` transport is unauthenticated: fix the
-transport (follow-up task-9 in `PingCAP-QE/ee-ops`), then re-open fork
-devbuild in a reviewed way. Do **not** restore it by matching on
+builds are now rejected by the triggers. Re-opening fork devbuild needs a
+reviewed way to accept a renamed fork, which has not landed yet; the transport
+itself is authenticated (see above). Do **not** restore it by matching on
 `body.repository.name`.
 
-Remaining work, owned outside this repository: authenticate that transport (for
-example restrict `el-tibuild` ingress to the tibuild namespace with a
-NetworkPolicy, or sign the CloudEvent in `tibuild-v2` / `ee-ops`). A shared
-secret passed in a header is **not** an acceptable substitute — headers are
-attacker-controlled, exactly like the removed `ce-paramGithubRepo`.
+Remaining work, owned outside this repository: a NetworkPolicy restricting
+`el-tibuild` ingress to the tibuild namespace would add defence in depth on top
+of the HMAC check.
 
-The `harbor` (`type: image-push`) and `notify` (`type: ce-notify`) triggers are
-likewise not GitHub webhooks; their listener authentication is owned by the
-ingress/EventListeners in `PingCAP-QE/ee-ops`.
+The `harbor` (`type: image-push`) and `notify` triggers are not GitHub webhooks
+either, and their listener authentication is owned by the EventListeners in
+`PingCAP-QE/ee-ops`:
+
+- `type: github-issue-comment` triggers are selected by `el-github`, which
+  verifies the GitHub HMAC before any triggerGroup runs.
+- `type: ce-notify` triggers are selected by `el-notify`. That EventListener
+  performs no signature check; its callers are in-cluster delivery tasks
+  (`pingcap-deliver-images`, posting to `http://el-notify.ee-cd.svc:8080`), so
+  any pod in the cluster can reach it.
+
+Two content controls compensate inside this repository:
+
+- **Issue-comment routes require a bot or a repository member.** `type:
+  github-issue-comment` triggers feed the TiDB Cloud ops-config and TCMS APIs
+  from a META block in a comment on `tidbcloud/docker-image-controller`. The
+  comment must come from a bot (`body.comment.user.type == 'Bot'`) or from a
+  repository `OWNER`/`MEMBER` (`body.comment.author_association`): only the
+  image controller posts these results, but a maintainer comments by hand when
+  the bot is down, and an arbitrary commenter must not be able to drive those
+  APIs.
+- **The CloudEvent route has no image allowlist here.** The `images` list in
+  `net.pingcap.tibuild.notify.delivery.images.success` holds delivery
+  *destination* references (`result.copied` from the publish units, for example
+  `gcr.io/pingcap-public/...`, `docker.io/pingcap/...`,
+  `uhub.service.ucloud.cn/pingcap/...`, `us.gcr.io/...`). That set comes from
+  `packages/delivery.yaml` in `PingCAP-QE/artifacts` and changes with the
+  delivery rules, so a registry allowlist in the trigger would silently drop
+  legitimate deliveries. The control for this route is listener authentication
+  (`el-notify`), which is owned by `PingCAP-QE/ee-ops`.
 
 ## How to test CEL interceptors
 

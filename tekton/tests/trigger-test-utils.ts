@@ -36,6 +36,18 @@ export function load<T>(path: string): T {
   return parseYaml(Deno.readTextFileSync(new URL(path, root))) as T;
 }
 
+// Tekton's CEL interceptor ships the `parseJSON` conversion, which the notify
+// filters use to read the META block out of an issue comment.
+const parseJSON = celMethod(
+  "parseJSON",
+  CelScalar.STRING,
+  [],
+  CelScalar.DYN,
+  function (this: string) {
+    return JSON.parse(this) as CelInput;
+  },
+);
+
 export function evaluate(
   expression: string,
   body: Body,
@@ -51,7 +63,7 @@ export function evaluate(
     (key) => header[key.toLowerCase()] ?? "",
   );
   const value = run(expression, { body, header, extensions }, {
-    funcs: [...strings, canonical],
+    funcs: [...strings, canonical, parseJSON],
   });
   if (isCelError(value)) throw new Error(`CEL ${expression}: ${value.message}`);
   return value;
