@@ -17,10 +17,16 @@ spec:
           #    for comments produced before the status field existed)
           # 4. The META block has a non-empty "images" array
           # 5. Every image tag matches one of: vX.Y.Z, vX.Y.Z-nextgen, vX.Y.Z-nextgen.YYYYMM.N
+          # 6. The comment was written by a bot or by a repository owner/member.
+          #    Only the image controller posts these results, but a maintainer
+          #    comments by hand when the bot is down; an arbitrary commenter must
+          #    not be able to drive the TiDB Cloud ops-config update.
           value: >-
             body.action == 'created'
             &&
             body.repository.full_name == 'tidbcloud/docker-image-controller'
+            &&
+            (body.comment.user.type == 'Bot' || body.comment.author_association in ['OWNER', 'MEMBER'])
             &&
             body.comment.body != null
             &&
