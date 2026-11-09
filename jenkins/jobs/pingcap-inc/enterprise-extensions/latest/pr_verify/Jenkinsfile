@@ -15,10 +15,6 @@ pipeline {
             namespace K8S_NAMESPACE
             yaml pod_label.withCiLabels(POD_TEMPLATE_FILE, REFS)
             retries 2
-            // Keep the workspace (and therefore bazel's output root below) on a
-            // PVC. With the default emptyDir workspace, `make check` writes the
-            // ~40 GiB bazel output base into the node's ephemeral storage and
-            // kubelet evicts the agent pod halfway through the build.
             workspaceVolume genericEphemeralVolume(accessModes: 'ReadWriteOnce', requestsSize: '200Gi', storageClassName: 'ci-rwo')
             defaultContainer 'golang'
         }
