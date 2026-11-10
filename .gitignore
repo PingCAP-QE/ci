@@ -33,3 +33,6 @@ tools/error-log-review/error-log-review
 
 # Secret local files
 .env
+# Python bytecode from local test runs
+__pycache__/
+*.pyc

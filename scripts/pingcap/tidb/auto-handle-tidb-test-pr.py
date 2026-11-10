@@ -70,6 +70,54 @@ def merge_pr(repo, pr_number):
     return response.status_code == 200
 
 
+# The tidb-test pull request number comes from the tidb pull request title, so
+# the bot has to vet the referenced pull request itself before merging it:
+# approval (Prow turns lgtm into approval in these repos), no blocking label,
+# the same repository as head, and a mergeable state that means every required
+# check and review has passed.
+AUTO_MERGE_APPROVAL_LABELS = ("lgtm", "approved")
+AUTO_MERGE_BLOCKING_LABELS = {
+    "do-not-merge/hold",
+    "do-not-merge/work-in-progress",
+    "do-not-merge/needs-linked-issue",
+    "do-not-merge/invalid-commit-message",
+    "needs-rebase",
+    "hold",
+    "wip",
+}
+
+
+def auto_merge_blockers(pr_info):
+    """Return why this tidb-test pull request must not be auto-merged."""
+    labels = {label.get("name") for label in pr_info.get("labels") or []}
+    blockers = []
+
+    if pr_info.get("draft"):
+        blockers.append("it is a draft")
+
+    if not labels & set(AUTO_MERGE_APPROVAL_LABELS):
+        blockers.append("it has no lgtm/approved label")
+
+    blocked_labels = sorted(labels & AUTO_MERGE_BLOCKING_LABELS)
+    if blocked_labels:
+        blockers.append("it carries blocking labels: " + ", ".join(blocked_labels))
+
+    head_repo = ((pr_info.get("head") or {}).get("repo") or {}).get("full_name")
+    if head_repo != tidb_test_repo:
+        blockers.append(
+            f"its head repository is {head_repo!r}, not {tidb_test_repo!r}")
+
+    if pr_info.get("mergeable") is not True:
+        blockers.append(f"GitHub reports mergeable={pr_info.get('mergeable')!r}")
+
+    mergeable_state = pr_info.get("mergeable_state")
+    if mergeable_state != "clean":
+        blockers.append(
+            f"mergeable_state is {mergeable_state!r}, expected 'clean'")
+
+    return blockers
+
+
 def send_alert(message):
     print(message)
     card_content = {
@@ -163,6 +211,14 @@ def main():
 
     if tidb_test_pr_info['state'] != 'open':
         send_alert(f"tidb-test PR [#{tidb_test_pr_number}](https://github.com/{tidb_test_repo}/pull/{tidb_test_pr_number}) is not open, current state is {tidb_test_pr_info['state']}\n\n"
+                   f"tidb PR: ** {tidb_pr_info['title']} **[#{tidb_pr_number}](https://github.com/{tidb_repo}/pull/{tidb_pr_number})\n"
+                   f"target branch: **{base_ref}**")
+        exit(1)
+
+    blockers = auto_merge_blockers(tidb_test_pr_info)
+    if blockers:
+        details = "\n".join(f"- {blocker}" for blocker in blockers)
+        send_alert(f"tidb-test PR [#{tidb_test_pr_number}](https://github.com/{tidb_test_repo}/pull/{tidb_test_pr_number}) was not auto-merged because:\n\n{details}\n\n"
                    f"tidb PR: ** {tidb_pr_info['title']} **[#{tidb_pr_number}](https://github.com/{tidb_repo}/pull/{tidb_pr_number})\n"
                    f"target branch: **{base_ref}**")
         exit(1)

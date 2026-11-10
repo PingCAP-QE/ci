@@ -10,7 +10,6 @@ resources:
   - _/fake-github/fake-github-tag-create-darwin.yaml
   - _/fake-github/fake-github-tag-create-single-platform.yaml
   - _/fake-github/fake-github-tag-create.yaml
-  - _/git-create-branch-gomod-update.yaml
   - _/git-create-branch-ng.yaml
   - _/git-create-branch.yaml
   - _/git-create-tag-build-ng.yaml
