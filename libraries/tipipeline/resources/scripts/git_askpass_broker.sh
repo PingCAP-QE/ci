@@ -22,6 +22,59 @@ case "${prompt}" in
     *) exit 1 ;;
 esac
 
+# Only GitHub is answered. The pod ServiceAccount is the identity the broker
+# trusts, so a prompt for any other host would hand a freshly minted token to
+# that host: a `.gitmodules` entry or a rewritten remote can point anywhere.
+ALLOWED_HOSTS='github.com git-cdn.cache.svc'
+
+url=$(printf '%s' "${prompt}" | sed -n "s/.*'\([^']*\)'.*/\1/p")
+[ -n "${url}" ] || url="${prompt}"
+
+# A query or a fragment can smuggle an `@` that would look like userinfo.
+case "${url}" in
+    *"?"* | *"#"*)
+        echo "git-askpass(broker): refusing a credential URL with a query or fragment: '${url}'" >&2
+        exit 1
+        ;;
+esac
+
+scheme=""
+case "${url}" in
+    *"://"*) scheme="${url%%://*}" ;;
+esac
+rest="${url#*://}"
+authority="${rest%%/*}"
+host="${authority##*@}" # anything before the last '@' is userinfo
+case "${host}" in
+    '' | *[!A-Za-z0-9.:-]*)
+        echo "git-askpass(broker): refusing a malformed credential URL: '${url}'" >&2
+        exit 1
+        ;;
+esac
+host="${host%%:*}" # drop the port
+host=$(printf '%s' "${host}" | tr '[:upper:]' '[:lower:]')
+
+# git-cdn is reached over plain HTTP inside the cluster; every other allowed
+# host must use https.
+if [ -n "${scheme}" ] && [ "${scheme}" != "https" ] && [ "${scheme}" != "ssh" ]; then
+    if [ "${host}" != "git-cdn.cache.svc" ]; then
+        echo "git-askpass(broker): refusing to send the credential over '${scheme}' to '${host}'" >&2
+        exit 1
+    fi
+fi
+
+allowed=0
+for candidate in ${ALLOWED_HOSTS}; do
+    if [ "${host}" = "${candidate}" ]; then
+        allowed=1
+        break
+    fi
+done
+if [ "${allowed}" -ne 1 ]; then
+    echo "git-askpass(broker): refusing to mint a token for host '${host:-<unknown>}' (not an allow-listed Git host)" >&2
+    exit 1
+fi
+
 broker_url="${TIPIPELINE_BROKER_URL:?TIPIPELINE_BROKER_URL is required}"
 cache_file="${TIPIPELINE_BROKER_CACHE:?TIPIPELINE_BROKER_CACHE is required}"
 # Brace literals cannot be used inside ${VAR:-...} (the shell closes the
@@ -32,8 +85,6 @@ token_file="${TIPIPELINE_BROKER_TOKEN_FILE:-/var/run/secrets/kubernetes.io/servi
 ttl="${TIPIPELINE_BROKER_TTL_SECONDS:-3000}"
 
 repo_from_prompt() {
-    url=$(printf '%s' "${prompt}" | sed -n "s/.*'\([^']*\)'.*/\1/p")
-    [ -n "${url}" ] || return 1
     path=$(printf '%s' "${url}" \
         | sed -e 's#^[A-Za-z][A-Za-z0-9+.-]*://##' \
               -e 's#^[^/]*##' \
