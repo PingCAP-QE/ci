@@ -21,6 +21,7 @@ import static org.junit.Assert.*
     TestMatrixCache.GenerateContextKey,
     TestMatrixCache.ShouldSkip,
     TestMatrixCache.MarkDone,
+    TestMatrixCache.ReplayBypass,
 ])
 class TestMatrixCache {
 
@@ -57,13 +58,48 @@ class TestMatrixCache {
     }
 
     /**
-     * Load matrixCache.groovy with a mocked 'env' binding.
+     * Mock for the Jenkins 'currentBuild' object.
+     *
+     * Only getBuildCauses() is used by matrixCache. Set failOnCauses to model a
+     * Jenkins that cannot expose the causes (old plugin, restricted sandbox).
      */
-    private static def loadScript(Map<String, String> envMap = [:]) {
+    static class CurrentBuildMock {
+        List causes = []
+        boolean failOnCauses = false
+
+        def getBuildCauses() {
+            if (failOnCauses) {
+                throw new IllegalStateException('build causes are not readable')
+            }
+            return causes
+        }
+    }
+
+    /**
+     * Load matrixCache.groovy with mocked 'env', plus optional 'params',
+     * 'currentBuild' and 'echo' bindings for the replay-bypass tests.
+     *
+     * stub keys:
+     *   params       - Map bound to the pipeline 'params' variable (default [:])
+     *   currentBuild - CurrentBuildMock bound to 'currentBuild' (omitted by default)
+     *   logs         - List that receives every echo() message
+     */
+    private static def loadScript(Map<String, String> envMap = [:], Map<String, Object> stub = [:]) {
         def envMock = new EnvMock()
         envMock.configure(envMap)
         def binding = new Binding()
         binding.setVariable('env', envMock)
+        binding.setVariable('params', stub.params ?: [:])
+        if (stub.containsKey('currentBuild')) {
+            binding.setVariable('currentBuild', stub.currentBuild)
+        } else {
+            // A normal build: no replay cause, so caching stays in effect.
+            binding.setVariable('currentBuild', new CurrentBuildMock())
+        }
+        def logs = stub.logs
+        if (logs != null) {
+            binding.setVariable('echo', { Object msg -> logs.add(String.valueOf(msg)) })
+        }
         def shell = new GroovyShell(binding)
         return shell.parse(new File("libraries/tisys/vars/matrixCache.groovy"))
     }
@@ -502,6 +538,203 @@ class TestMatrixCache {
             cacheDir.listFiles().each { file ->
                 assertEquals("marker ${file.name} should be SUCCESS", 'SUCCESS', file.text)
             }
+        }
+    }
+
+    // ============================================================
+    // replay bypass
+    // ============================================================
+
+    /**
+     * A replay rebuild reuses the JOB_SPEC of the original build, so the cache key
+     * is identical and every stage that already succeeded would be skipped. The
+     * cache must therefore be bypassed for replay builds.
+     */
+    static class ReplayBypass {
+
+        private File tmpDir
+        private String jenkinsHome
+        private List<String> logs
+
+        @Before
+        void setUp() {
+            tmpDir = File.createTempDir()
+            jenkinsHome = tmpDir.absolutePath
+            logs = []
+        }
+
+        @After
+        void tearDown() {
+            tmpDir.deleteDir()
+        }
+
+        private Map envFor() {
+            return [
+                'JENKINS_HOME': jenkinsHome,
+                'JOB_NAME'     : 'test/matrix-job',
+            ]
+        }
+
+        /** The cause list Jenkins reports for a replayed build. */
+        private static Map replayCause() {
+            return [
+                '_class'           : 'org.jenkinsci.plugins.workflow.cps.replay.ReplayCause',
+                'shortDescription': 'Replay of #42',
+            ]
+        }
+
+        /** A normal, non-replay cause. */
+        private static Map userCause() {
+            return [
+                '_class'           : 'hudson.model.Cause$UserIdCause',
+                'shortDescription': 'Started by user ci-bot',
+            ]
+        }
+
+        private def load(Map extra = [:]) {
+            Map stub = [logs: logs]
+            stub.putAll(extra)
+            return loadScript(envFor(), stub)
+        }
+
+        /** Create the success marker for the given refs/stage, i.e. a cache hit. */
+        private void writeCacheMarker(def script, Map refs, String stageName, Map extraParams = [:]) {
+            def key = script.invokeMethod('_generateContextKey', [refs, stageName, extraParams])
+            def cacheDir = new File("${jenkinsHome}/matrix-cache/test_matrix-job")
+            cacheDir.mkdirs()
+            new File(cacheDir, "${key}.success").text = 'SUCCESS'
+        }
+
+        private Boolean shouldSkip(def script, Map refs, String stageName, Map extraParams = [:]) {
+            return script.invokeMethod('shouldSkip', [refs, stageName, extraParams])
+        }
+
+        private Boolean isReplayBuild(def script) {
+            return script.invokeMethod('isReplayBuild', [])
+        }
+
+        private Map baseRefs() {
+            return [org: 'pingcap', repo: 'tidb', base_sha: 'abc']
+        }
+
+        @Test
+        void shouldDetectReplayCause() {
+            def script = load([currentBuild: new CurrentBuildMock(causes: [replayCause()])])
+            assertTrue('a ReplayCause must make isReplayBuild true', isReplayBuild(script))
+        }
+
+        @Test
+        void shouldNotDetectReplayForNormalCauses() {
+            def script = load([currentBuild: new CurrentBuildMock(causes: [userCause()])])
+            assertFalse('a normal cause must not be treated as a replay', isReplayBuild(script))
+        }
+
+        @Test
+        void shouldNotSkipCachedStageInReplayBuild() {
+            def script = load([currentBuild: new CurrentBuildMock(causes: [replayCause()])])
+            writeCacheMarker(script, baseRefs(), 'build')
+
+            def result = shouldSkip(script, baseRefs(), 'build')
+
+            assertFalse('a replayed build must not skip a cached stage', result)
+        }
+
+        @Test
+        void shouldNotSkipCachedStageWhenBypassParamIsTrue() {
+            def script = load([params: [MATRIX_CACHE_BYPASS: 'true']])
+            writeCacheMarker(script, baseRefs(), 'build')
+
+            def result = shouldSkip(script, baseRefs(), 'build')
+
+            assertFalse('MATRIX_CACHE_BYPASS=true must bypass the cache', result)
+        }
+
+        @Test
+        void shouldAcceptBypassParamCaseInsensitively() {
+            def cases = ['TRUE', 'True', ' true ']
+
+            cases.each { value ->
+                def script = load([params: [MATRIX_CACHE_BYPASS: value]])
+                writeCacheMarker(script, baseRefs(), 'build')
+
+                assertFalse("bypass value '${value}' should be accepted", shouldSkip(script, baseRefs(), 'build'))
+            }
+        }
+
+        @Test
+        void shouldKeepCacheBehaviourWhenBypassParamIsNotTrue() {
+            def cases = ['false', 'yes', '', null]
+
+            cases.each { value ->
+                def script = load([params: [MATRIX_CACHE_BYPASS: value]])
+                writeCacheMarker(script, baseRefs(), 'build')
+
+                assertTrue("bypass value '${value}' should not bypass the cache",
+                    shouldSkip(script, baseRefs(), 'build'))
+            }
+        }
+
+        @Test
+        void shouldKeepCacheBehaviourForNormalBuilds() {
+            def script = load([currentBuild: new CurrentBuildMock(causes: [userCause()])])
+
+            assertFalse('an uncached stage must still run', shouldSkip(script, baseRefs(), 'build'))
+
+            writeCacheMarker(script, baseRefs(), 'build')
+            assertTrue('a cached stage must still be skipped', shouldSkip(script, baseRefs(), 'build'))
+        }
+
+        @Test
+        void shouldTreatUnreadableBuildCausesAsNormalBuild() {
+            def script = load([currentBuild: new CurrentBuildMock(failOnCauses: true)])
+            writeCacheMarker(script, baseRefs(), 'build')
+
+            assertFalse('an unreadable cause list must not be reported as a replay', isReplayBuild(script))
+            assertTrue('cache behaviour must be unchanged when causes cannot be read',
+                shouldSkip(script, baseRefs(), 'build'))
+        }
+
+        @Test
+        void shouldWarnWhenBuildCausesCannotBeRead() {
+            def script = load([currentBuild: new CurrentBuildMock(failOnCauses: true)])
+
+            isReplayBuild(script)
+
+            assertTrue('an unreadable cause list must be reported in the build log',
+                logs.any { it.contains('matrixCache') && it.contains('build causes') })
+        }
+
+        @Test
+        void shouldReportBypassReasonOncePerBuild() {
+            def script = load([currentBuild: new CurrentBuildMock(causes: [replayCause()])])
+
+            shouldSkip(script, baseRefs(), 'build')
+            shouldSkip(script, baseRefs(), 'test')
+
+            def bypassLogs = logs.findAll { it.contains('matrix cache bypassed because this is a replay build') }
+            assertEquals('the bypass reason must be logged exactly once per build', 1, bypassLogs.size())
+        }
+
+        @Test
+        void shouldNotReportBypassForNormalBuilds() {
+            def script = load([currentBuild: new CurrentBuildMock(causes: [userCause()])])
+
+            shouldSkip(script, baseRefs(), 'build')
+
+            assertTrue('a normal build must not log a bypass', logs.every { !it.contains('matrix cache bypassed') })
+        }
+
+        @Test
+        void shouldStillWriteMarkerInReplayBuilds() {
+            def script = load([currentBuild: new CurrentBuildMock(causes: [replayCause()])])
+            def refs = baseRefs()
+
+            script.invokeMethod('markDone', [refs, 'build', [:]])
+
+            def key = script.invokeMethod('_generateContextKey', [refs, 'build', [:]])
+            def markerFile = new File("${jenkinsHome}/matrix-cache/test_matrix-job/${key}.success")
+            assertTrue('markDone must keep writing markers in replay builds', markerFile.exists())
+            assertEquals('SUCCESS', markerFile.text)
         }
     }
 }
