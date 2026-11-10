@@ -26,7 +26,7 @@ pipeline {
         }
     }
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 80, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
@@ -68,7 +68,7 @@ pipeline {
         }
         stage("prepare") {
             when { expression { !skipRemainingStages} }
-            options { timeout(time: 35, unit: 'MINUTES') }
+            options { timeout(time: 45, unit: 'MINUTES') }
             steps {
                 dir(REFS.repo) {
                         retry(2) {
