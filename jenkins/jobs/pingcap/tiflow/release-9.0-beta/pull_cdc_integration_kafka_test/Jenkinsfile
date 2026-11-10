@@ -21,7 +21,7 @@ pipeline {
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
     }
     options {
-        timeout(time: 65, unit: 'MINUTES')
+        timeout(time: 95, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     stages {
@@ -36,7 +36,7 @@ pipeline {
             }
         }
         stage("prepare") {
-            options { timeout(time: 20, unit: 'MINUTES') }
+            options { timeout(time: 40, unit: 'MINUTES') }
             steps {
                 dir("third_party_download") {
                     retry(2) {
