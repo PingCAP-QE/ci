@@ -9,7 +9,7 @@ spec:
       # and keep image simple,so no need to refresh image to update basic bazel out data.
       image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
       securityContext:
-        privileged: true
+        privileged: false
       tty: true
       resources:
         requests:
