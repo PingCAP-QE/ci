@@ -56,6 +56,10 @@ spec:
       results:
         - name: generated
           type: string
+        - name: commit-title
+          type: string
+        - name: commit-time
+          type: string
       args: ["$(results.pushed.path)"]
       env:
         - name: COMPONENT
@@ -85,6 +89,24 @@ spec:
         if [ "$git_sha" = "$git_ref" ]; then
           git_sha=""
         fi
+
+        # The step that builds and pushes the images runs inside the kaniko
+        # executor image, which ships no git, so it cannot read the commit
+        # message title or time of the commit it builds. Resolve both here,
+        # where git is available, and hand them to that step through results.
+        # A value that cannot be resolved stays empty and the corresponding
+        # image label is omitted instead of failing the build.
+        source_dir="$(workspaces.source.path)/$(params.component)"
+        commit_ref="HEAD"
+        if [ -n "${GIT_SHA}" ] && git -C "${source_dir}" cat-file -e "${GIT_SHA}^{commit}" 2>/dev/null; then
+          commit_ref="${GIT_SHA}"
+        fi
+        commit_title="$(git -C "${source_dir}" log -1 --pretty=%s "${commit_ref}" 2>/dev/null || true)"
+        commit_title="$(printf '%s' "${commit_title}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+        commit_time="$(git -C "${source_dir}" log -1 --pretty=%cI "${commit_ref}" 2>/dev/null || true)"
+        commit_time="$(printf '%s' "${commit_time}" | tr -d '\r')"
+        printf '%s' "${commit_title}" >"$(step.results.commit-title.path)"
+        printf '%s' "${commit_time}" >"$(step.results.commit-time.path)"
 
         out_script="/workspace/build-package-images.sh"
         /workspace/artifacts/packages/scripts/gen-package-images-with-config.sh \
@@ -121,6 +143,10 @@ spec:
           value: /tekton/creds-secrets
         - name: GIT_URL
           value: "$(params.git-url)"
+        - name: COMMIT_TITLE
+          value: "$(steps.generate.results.commit-title)"
+        - name: COMMIT_TIME
+          value: "$(steps.generate.results.commit-time)"
         - name: BUILD_BINARIES
           value: "$(params.build)"
         - name: RELEASE_DIR
