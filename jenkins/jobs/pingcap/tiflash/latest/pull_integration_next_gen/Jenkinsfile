@@ -13,7 +13,7 @@ final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNe
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
 final OCI_TAG_TIKV = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "cloud-engine-nextgen")
 final MINIO_VERSION = 'RELEASE.2026-02-14T12-00-00Z'
-final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
+final TIFLASH_TEST_IMAGE = 'cr-qcloud.pingcap.net/mirrors/ghcr/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
 final WORKSPACE_STASH_NAME = 'tiflash-next-gen-it-workspace'
 final PARALLELISM = 12
 
