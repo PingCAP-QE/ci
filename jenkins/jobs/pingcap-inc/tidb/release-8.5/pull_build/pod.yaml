@@ -6,8 +6,11 @@ spec:
   containers:
     - name: golang
       image: "us-docker.pkg.dev/pingcap-testing-account/internal/test/wangweizhen/tidb_image:go12320241009"
+      # Build-only container: the same image and the same bazel build run
+      # unprivileged in pingcap/tidb/latest/ghpr_build, so pull-request code does
+      # not need a privileged container here.
       securityContext:
-        privileged: true
+        privileged: false
       tty: true
       resources:
         requests:
