@@ -114,33 +114,36 @@ class CommunityParser {
     const tempRet: RightBinding[] = [];
     const scopes = this.communityMemberscopes(member);
 
-    if (Object.keys(scopes).length === 0) {
-      // root owners of the repo
+    // `scopes` is a Map, so it has to be inspected with Map methods: reading it
+    // with Object.keys() always yields [] and turned every member into a root
+    // owner of every repository.
+    if (scopes.size === 0) {
+      // No scope at all: root owner of the repo.
       tempRet.push({
         repo: repository,
         path: "/",
         role: role,
         user: this.communityMemberName(member),
       });
-    } else {
-      if (repository in scopes) {
-        if (scopes.get(repository)!.size === 0) {
+    } else if (scopes.has(repository)) {
+      const paths = scopes.get(repository)!;
+      if (paths.size === 0) {
+        // Scoped to the repository without a path: root owner of that repo.
+        tempRet.push({
+          repo: repository,
+          path: "/",
+          role: role,
+          user: this.communityMemberName(member),
+        });
+      } else {
+        paths.forEach((p) => {
           tempRet.push({
             repo: repository,
-            path: "/",
+            path: p,
             role: role,
             user: this.communityMemberName(member),
           });
-        } else {
-          scopes.get(repository)!.forEach((p) => {
-            tempRet.push({
-              repo: repository,
-              path: p,
-              role: role,
-              user: this.communityMemberName(member),
-            });
-          });
-        }
+        });
       }
     }
 
