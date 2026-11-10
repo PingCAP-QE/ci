@@ -67,13 +67,27 @@ spec:
                     export GH_TOKEN="$(cat $(workspaces.github.path)/token)"
                     pr_url="https://github.com/$(params.owner)/$(params.repo)/pull/$(params.number)"
 
-                    if gh pr view "$pr_url" --json labels --jq '.labels[].name' | grep -E '^lgtm$'; then
-                      # TODO: Judge if we can add approved label by the comments from prow approve plugin
-                      # Add label only if there are sufficient approvals from trusted users
-                      gh pr edit --add-label approved "$pr_url"
-                    else
+                    if ! gh pr view "$pr_url" --json labels --jq '.labels[].name' | grep -E '^lgtm$'; then
                       echo "🚫 there is no 'lgtm' label on the PR."
+                      exit 0
                     fi
+
+                    # Feature branches are merged on `lgtm` alone, so this job turns
+                    # `lgtm` into the `approved` that tide wants. That is only sound
+                    # when the label came from Prow's lgtm plugin, which labels a
+                    # PR after an OWNER/reviewer comments `/lgtm`. Anyone with write
+                    # access can add the label by hand, so check who applied it
+                    # before granting approval.
+                    lgtm_actor=$(gh api \
+                      "repos/$(params.owner)/$(params.repo)/issues/$(params.number)/timeline" \
+                      --paginate \
+                      --jq '[.[] | select(.event == "labeled" and .label.name == "lgtm") | .actor.login] | last // ""')
+                    if [ "$lgtm_actor" != "ti-chi-bot" ]; then
+                      echo "🚫 refusing to approve: the 'lgtm' label was applied by '${lgtm_actor:-unknown}', not by Prow's lgtm plugin."
+                      exit 0
+                    fi
+
+                    gh pr edit --add-label approved "$pr_url"
 
               workspaces:
                 - name: github

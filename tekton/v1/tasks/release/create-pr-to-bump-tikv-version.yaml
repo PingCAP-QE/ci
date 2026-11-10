@@ -208,12 +208,29 @@ spec:
           label_options="$label_options --label cherry-pick-approved"
         fi
 
-        gh pr create -B "$base_branch" -H "$head_branch" -t "$commit_msg" -F pr_body.txt $label_options
+        gh pr create -B "$base_branch" -H "$head_branch" -t "$commit_msg" -F pr_body.txt $label_options > /workspace/pr-url.txt
+        pr_url="$(tr -d '\n' < /workspace/pr-url.txt)"
+        echo "created pull request: ${pr_url}"
+        # Keep the pull request we just created, not "whatever branch name
+        # matches": a same-named branch in a fork is a different pull request
+        # and must never receive the approval labels.
+        repo_slug="${GIT_URL#https://github.com/}"
+        repo_slug="${repo_slug%.git}"
+        case "${pr_url}" in
+          "https://github.com/${repo_slug}/pull/"*) ;;
+          *)
+            echo "❌ unexpected pull request url from gh pr create: '${pr_url}'" >&2
+            exit 1
+            ;;
+        esac
 
         # solve the problem that the prow plugin will remove the approved label.
+        label_args=(--add-label lgtm --add-label approved)
+        if [ "$base_branch" != "master" ]; then
+          label_args+=(--add-label cherry-pick-approved)
+        fi
         sleep 10
-        pr_url=$(gh pr list --repo "${GIT_URL}" --base "$base_branch" --head "$head_branch" --json url --jq .[].url | head -1)
-        gh pr edit --add-label lgtm --add-label approved --add-label cherry-pick-approved "${pr_url}"
+        gh pr edit "${label_args[@]}" "${pr_url}"
 
   workspaces:
     - name: github
