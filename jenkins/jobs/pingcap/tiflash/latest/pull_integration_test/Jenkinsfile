@@ -8,7 +8,6 @@ final GIT_CREDENTIALS_ID = 'github-bot-ssh'
 final POD_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/latest/pull_integration_test/pod-build.yaml"
 final POD_INTEGRATIONTEST_TEMPLATE_FILE = "jenkins/jobs/pingcap/tiflash/latest/pull_integration_test/pod-test.yaml"
 final REFS = readJSON(text: params.JOB_SPEC).refs
-final TIFLASH_TEST_IMAGE = 'ghcr.io/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2'
 final WORKSPACE_STASH_NAME = 'tiflash-it-workspace'
 final PARALLELISM = 12
 
@@ -24,6 +23,7 @@ pipeline {
         }
     }
     environment {
+        OCI_ARTIFACT_HOST_GHCR = "${env._JENKINS_OCI_ARTIFACT_HOST_GHCR}"
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
         OCI_ARTIFACT_HOST_COMMUNITY = "${env._JENKINS_OCI_ARTIFACT_HOST_COMMUNITY}"
     }
@@ -237,7 +237,7 @@ pipeline {
                                             "TIKV_IMAGE=${OCI_ARTIFACT_HOST}/tikv/tikv/image:${tikvBranch}",
                                             "TIDB_IMAGE=${tidbRuntimeImage}",
                                             "TIDB_FAILPOINT_IMAGE=${tidbFailpointImage}",
-                                            "TIFLASH_IMAGE=${TIFLASH_TEST_IMAGE}",
+                                            "TIFLASH_IMAGE=${OCI_ARTIFACT_HOST_GHCR}/pingcap-qe/cd/builders/tiflash:v2025.4.15-rocky8-llvm-17.0.6-v2",
                                         ]) {
     sh label: "prepare docker images", script: '''
             set -eux
@@ -253,7 +253,7 @@ pipeline {
             timeout 300 docker pull "${TIKV_IMAGE}"
             timeout 300 docker pull "${TIDB_IMAGE}"
             timeout 300 docker pull "${TIDB_FAILPOINT_IMAGE}" || true
-            timeout 600 docker pull "${TIFLASH_IMAGE}"
+            timeout 1200 docker pull "${TIFLASH_IMAGE}"
 
             find ../docker . -name '*.yaml' -type f -exec sed -i \
                 -e 's#${PD_IMAGE:[^}]*}#'"${PD_IMAGE}"'#g' \
