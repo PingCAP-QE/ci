@@ -172,6 +172,46 @@ resolve_pod_template_file() {
     printf '%s' "$pod_file"
 }
 
+# Replay hands a PR-authored Pod template to Jenkins with CI credentials, so the
+# template must pass the same policy as a committed one before anything is
+# scheduled. Every `pod*.yaml` beside the Jenkinsfile is checked, because the
+# pipeline may declare more than one template and a replay could reference any
+# of them.
+enforce_pod_policy() {
+    local script_file="$1"
+    local dir
+    dir="$(dirname "$script_file")"
+
+    local -a pod_files=()
+    local pod_file
+    while IFS= read -r pod_file; do
+        [[ -n "$pod_file" ]] && pod_files+=("$pod_file")
+    done < <(find "$dir" -maxdepth 1 -type f -name 'pod*.yaml' | LC_ALL=C sort)
+
+    if (( ${#pod_files[@]} == 0 )); then
+        return 0
+    fi
+
+    # The policy keys on repo-relative `jenkins/jobs/...` paths, so normalise
+    # before handing the files over.
+    local -a rel_paths=()
+    local rel
+    for pod_file in "${pod_files[@]}"; do
+        rel="${pod_file#./}"
+        if [[ "$rel" == "$PWD"/* ]]; then
+            rel="${rel#"$PWD"/}"
+        fi
+        rel_paths+=("$rel")
+    done
+
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    vlog "checking pod policy for ${#rel_paths[@]} template(s) under ${dir}"
+    POD_PRIVILEGE_POLICY_ALLOWLIST_FILE="${script_dir}/pod-privilege-policy-allowlist.txt" \
+        bash "${script_dir}/verify-pod-privilege-policy.sh" "${rel_paths[@]}" || fatal "pod templates under ${dir} violate the pod privilege policy; refusing to replay"
+    sh "${script_dir}/verify-k8s-pod-yaml.sh" "${rel_paths[@]}" || fatal "pod templates under ${dir} failed structural validation; refusing to replay"
+}
+
 build_inline_script_with_pod_yaml() {
     local script_file="$1"
     local pod_template_file="$2"
@@ -309,6 +349,10 @@ prepare_script_for_replay() {
     local script_file="$1"
     REPLAY_SCRIPT_EFFECTIVE="$script_file"
     REPLAY_SCRIPT_TEMP=""
+
+    # Runs even with --no-inline-pod-yaml: in that mode Jenkins still reads the
+    # PR-authored template through yamlFile.
+    enforce_pod_policy "$script_file"
 
     if [[ "$INLINE_POD_YAML" != "true" ]]; then
         return 0
