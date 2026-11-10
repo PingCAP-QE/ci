@@ -242,6 +242,23 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, withSubmodule = false,
 }
 
 def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
+    // These values come from JOB_SPEC and end up in a shell script. Reject
+    // anything that is not a git object name or a plain branch name so a
+    // crafted value cannot turn into shell syntax.
+    final shaPattern = /^[0-9a-f]{7,40}$/
+    final refPattern = /^[A-Za-z0-9._\/-]+$/
+    if (!(refs.base_sha?.trim() ==~ shaPattern)) {
+        error("refusing to check out: base sha '${refs.base_sha}' is not a git object name")
+    }
+    if (!(refs.base_ref?.trim() ==~ refPattern)) {
+        error("refusing to check out: base ref '${refs.base_ref}' is not a plain branch name")
+    }
+    refs.pulls.each { pull ->
+        if (!(pull.sha?.trim() ==~ shaPattern)) {
+            error("refusing to merge pull request #${pull.number}: '${pull.sha}' is not a git object name")
+        }
+    }
+
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
             (refs.pulls && refs.pulls.size() > 0) ? refs.pulls.collect {
@@ -258,7 +275,7 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
         git rev-parse --resolve-git-dir .git
 
         git config --global user.email "ti-chi-bot@ci" && git config --global user.name "TiChiBot"
-        git config remote.origin.url ${remoteUrl}
+        git config remote.origin.url "${remoteUrl}"
         git config core.sparsecheckout true
 
         # reset & clean (worktree only)
@@ -270,13 +287,15 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
         git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 1 -I {} git update-ref -d "{}" || true
 
         # fetch pull requests and target branch.
-        timeout ${timeout}m git fetch --force --verbose --prune --prune-tags -- ${remoteUrl} ${remoteRefSpec}
+        # remoteRefSpec and pullsSHAs are whitespace-separated lists and are
+        # word-split on purpose; every entry was validated as a ref/object name.
+        timeout "${timeout}m" git fetch --force --verbose --prune --prune-tags -- "${remoteUrl}" ${remoteRefSpec}
 
         # checkout to refs.base_sha
-        git checkout -f origin/${refs.base_ref}
+        git checkout -f "origin/${refs.base_ref}"
 
         echo "🚧 Checkouting to base SHA:${refs.base_sha}..."
-        git checkout ${refs.base_sha}
+        git checkout "${refs.base_sha}"
         echo "✅ Checked. 🎉"
 
         echo "🧾 HEAD info:"
@@ -331,25 +350,31 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     """
 }
 
-// get uniq cache save key by refs.
+// Unique cache save key by refs.
+//
+// The key encodes the build kind, the target branch and the shas, so a pull
+// request never shares a key with the branch it targets or with another pull
+// request.
 def getCacheKey(prefixFolder, refs, part = '') {
-    final prefix = ([prefixFolder, refs.org, refs.repo, part, 'rev-'] - '').join('/')
+    final prefix = ([prefixFolder, refs.org, refs.repo, part] - '').join('/')
+    final baseSha = refs.base_sha[0..<7]
     if (refs.pulls && refs.pulls.size() > 0) {
-        // <base>-<p1>_<p2>_...<pN>
-        return prefix + [refs.base_sha[0..<7], refs.pulls.collect { it.sha[0..<7] }.join('_')].join('-')
-    } else {
-        return prefix + refs.base_sha[0..<7]
+        // pr-<base ref>-<base sha>-<p1>_<p2>_...<pN>
+        final pulls = refs.pulls.collect { it.sha[0..<7] }.join('_')
+        return "${prefix}/pr-${refs.base_ref}-${baseSha}-${pulls}".toString()
     }
+    return "${prefix}/branch-${refs.base_ref}-${baseSha}".toString()
 }
 
-// get cache restory keys by refs.
+// Restore only from branch builds of the same target branch.
+//
+// The workspace cache holds `**/*`, including `.git`, so restoring a cache
+// written by a different pull request would hand that pull request's workspace
+// (and its git state) to this build. Branch builds are the reviewed, merged
+// content, so they are the only restore source.
 def getRestoreKeys(prefixFolder, refs, part = '') {
-    final prefix = ([prefixFolder, refs.org, refs.repo, part, 'rev-'] - '').join('/')
-    if (refs.pulls && refs.pulls.size() > 0) {
-        return [prefix + refs.base_sha[0..<7], prefix]
-    } else {
-        return [prefix]
-    }
+    final prefix = ([prefixFolder, refs.org, refs.repo, part] - '').join('/')
+    return ["${prefix}/branch-${refs.base_ref}-".toString()]
 }
 
 /**

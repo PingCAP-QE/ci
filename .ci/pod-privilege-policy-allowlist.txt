@@ -24,6 +24,11 @@
 # list. Remove these entries once the broker accepts a projected token with a
 # dedicated audience.
 automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_build/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/enterprise\-extensions/latest/pr_verify/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_check/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_check2/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_unit_test/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
+automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_unit_test_ddlv1/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
 automount	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/dedicated/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
 automount	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
 

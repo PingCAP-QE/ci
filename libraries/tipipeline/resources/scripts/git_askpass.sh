@@ -42,15 +42,45 @@ esac
 url=$(printf '%s' "${prompt}" | sed -n "s/.*'\([^']*\)'.*/\1/p")
 [ -n "${url}" ] || url="${prompt}"
 
+# Refuse anything that can hide the real host from the parser below: a query or
+# a fragment can smuggle an `@` that would otherwise look like userinfo.
+case "${url}" in
+    *"?"* | *"#"*)
+        echo "git-askpass: refusing a credential URL with a query or fragment: '${url}'" >&2
+        exit 1
+        ;;
+esac
+
+scheme=""
+case "${url}" in
+    *"://"*) scheme="${url%%://*}" ;;
+esac
+
 # Reduce the URL to its bare hostname:
 #   https://x-access-token@github.com/org/repo.git -> github.com
 #   ssh://git@git-cdn.cache.svc:8000/org/repo.git  -> git-cdn.cache.svc
 #   git@github.com:org/repo.git                    -> github.com
-host="${url#*://}" # drop the scheme when present
-host="${host#*@}"  # drop the userinfo ("user@") when present
-host="${host%%/*}" # drop the path
-host="${host%%:*}" # drop the port (and the scp-like ':' separator)
+rest="${url#*://}"
+authority="${rest%%/*}"
+host="${authority##*@}" # anything before the last '@' is userinfo
+case "${host}" in
+    '' | *[!A-Za-z0-9.:-]*)
+        echo "git-askpass: refusing a malformed credential URL: '${url}'" >&2
+        exit 1
+        ;;
+esac
+host="${host%%:*}" # drop the port
 host=$(printf '%s' "${host}" | tr '[:upper:]' '[:lower:]')
+
+# git-cdn is reached over plain HTTP inside the cluster; every other allowed
+# host must use https. A plain-HTTP prompt for an internet host would send the
+# credential in clear text.
+if [ -n "${scheme}" ] && [ "${scheme}" != "https" ] && [ "${scheme}" != "ssh" ]; then
+    if [ "${host}" != "git-cdn.cache.svc" ]; then
+        echo "git-askpass: refusing to send the credential over '${scheme}' to '${host}'" >&2
+        exit 1
+    fi
+fi
 
 allowed=0
 for candidate in ${ALLOWED_HOSTS}; do
