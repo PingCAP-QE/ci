@@ -408,6 +408,9 @@ Deno.test("components without binary or image configuration keep the empty-resul
       );
       const script = step.script.replaceAll("/workspace/", `${tmp}/`)
         .replaceAll("$(step.results.generated.path)", `${tmp}/generated`)
+        .replaceAll("$(step.results.commit-title.path)", `${tmp}/commit-title`)
+        .replaceAll("$(step.results.commit-time.path)", `${tmp}/commit-time`)
+        .replaceAll("$(workspaces.source.path)", `${tmp}/source`)
         .replaceAll(/\$\(params\.[^)]+\)/g, "test")
         // macOS /bin/sh prints -n literally; use the portable equivalent in this fixture.
         .replaceAll("echo -n ", 'printf "%s" ');
@@ -420,9 +423,75 @@ Deno.test("components without binary or image configuration keep the empty-resul
       ]);
       assertEquals(Deno.readTextFileSync(`${tmp}/generated`), "false");
       assertEquals(Deno.readTextFileSync(`${tmp}/pushed`), '"{}"');
+      // The image task also resolves commit metadata; without a resolvable
+      // commit both results stay empty, which turns into "omit the label".
+      if (kind === "images") {
+        assertEquals(Deno.readTextFileSync(`${tmp}/commit-title`), "");
+        assertEquals(Deno.readTextFileSync(`${tmp}/commit-time`), "");
+      }
     } finally {
       Deno.removeSync(tmp, { recursive: true });
     }
+  }
+});
+
+// The step that builds images runs inside the kaniko executor image, which
+// ships no git, so the generate step resolves the commit metadata and hands it
+// to the build step through results and environment variables.
+Deno.test("image builds resolve the commit metadata where git is available", () => {
+  const task = load<{ spec: { steps: Step[] } }>(
+    "tekton/v1/tasks/pingcap-build-images.yaml",
+  );
+  const generate = task.spec.steps.find((step) => step.name === "generate")!;
+  const build = task.spec.steps.find(
+    (step) => step.name === "build-and-publish",
+  )!;
+
+  const buildEnv = Object.fromEntries(
+    (build.env ?? []).map((entry) => [entry.name, entry.value ?? ""]),
+  );
+  assertEquals(buildEnv.COMMIT_TITLE, "$(steps.generate.results.commit-title)");
+  assertEquals(buildEnv.COMMIT_TIME, "$(steps.generate.results.commit-time)");
+
+  const tmp = Deno.makeTempDirSync();
+  try {
+    Deno.mkdirSync(`${tmp}/artifacts/packages/scripts`, { recursive: true });
+    Deno.writeTextFileSync(
+      `${tmp}/artifacts/packages/scripts/gen-package-images-with-config.sh`,
+      "#!/bin/sh\nexit 0\n",
+      { mode: 0o700 },
+    );
+    const script = generate.script.replaceAll("/workspace/", `${tmp}/`)
+      .replaceAll("$(step.results.generated.path)", `${tmp}/generated`)
+      .replaceAll("$(step.results.commit-title.path)", `${tmp}/commit-title`)
+      .replaceAll("$(step.results.commit-time.path)", `${tmp}/commit-time`)
+      .replaceAll("$(workspaces.source.path)", `${tmp}/source`)
+      .replaceAll(/\$\(params\.[^)]+\)/g, "test")
+      // macOS /bin/sh prints -n literally; use the portable equivalent in this fixture.
+      .replaceAll("echo -n ", 'printf "%s" ');
+    // Stand in for the checked-out repository. The title keeps its inner
+    // spaces; the surrounding whitespace is what the step must trim.
+    const gitStub = `git() {
+  for arg in "$@"; do
+    case "$arg" in
+      --pretty=%s) printf '%s\\n' '  tests,cloud_worker: keep   worker configs  '; return 0 ;;
+      --pretty=%cI) printf '%s\\n' '2026-11-09T11:13:02Z'; return 0 ;;
+    esac
+  done
+  return 0
+}
+`;
+    command("sh", ["-c", gitStub + script, "generate-task", `${tmp}/pushed`]);
+    assertEquals(
+      Deno.readTextFileSync(`${tmp}/commit-title`),
+      "tests,cloud_worker: keep   worker configs",
+    );
+    assertEquals(
+      Deno.readTextFileSync(`${tmp}/commit-time`),
+      "2026-11-09T11:13:02Z",
+    );
+  } finally {
+    Deno.removeSync(tmp, { recursive: true });
   }
 });
 
