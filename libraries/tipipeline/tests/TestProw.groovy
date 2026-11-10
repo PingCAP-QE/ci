@@ -63,11 +63,10 @@ class TestProw {
             def pullRefs = refs()
 
             assertEquals(
-                'git/pingcap/tidb/rev-abcdef1-1234567',
+                'git/pingcap/tidb/pr-main-abcdef1-1234567',
                 script.getCacheKey('git', pullRefs))
             assertEquals([
-                'git/pingcap/tidb/rev-abcdef1',
-                'git/pingcap/tidb/rev-',
+                'git/pingcap/tidb/branch-main-',
             ], script.getRestoreKeys('git', pullRefs))
         }
 
@@ -76,11 +75,31 @@ class TestProw {
             def branchRefs = refs() + [pulls: []]
 
             assertEquals(
-                'git/pingcap/tidb/rev-abcdef1',
+                'git/pingcap/tidb/branch-main-abcdef1',
                 script.getCacheKey('git', branchRefs))
             assertEquals(
-                ['git/pingcap/tidb/rev-'],
+                ['git/pingcap/tidb/branch-main-'],
                 script.getRestoreKeys('git', branchRefs))
+        }
+
+        @Test
+        void shouldOnlyRestorePullRequestCachesFromBranchBuilds() {
+            def pullRefs = refs()
+            def restoreKeys = script.getRestoreKeys('git', pullRefs)
+            def cacheKey = script.getCacheKey('git', pullRefs)
+
+            assertTrue('restore keys must be scoped to branch builds',
+                restoreKeys.every { it ==~ /.*\/branch-[^\/]+-$/ })
+            assertFalse('a pull request cache must not start with its own restore prefix',
+                cacheKey.startsWith(restoreKeys[0]))
+        }
+
+        @Test
+        void shouldRestoreBranchCachesFromTheSameBranch() {
+            def branchRefs = refs() + [pulls: []]
+
+            assertTrue(script.getCacheKey('git', branchRefs)
+                .startsWith(script.getRestoreKeys('git', branchRefs)[0]))
         }
     }
 
@@ -96,7 +115,7 @@ class TestProw {
             def checkoutScript = shCalls[0].script
             assertTrue(
                 checkoutScript.contains(
-                    'git config remote.origin.url https://github.example/pingcap/tidb.git'))
+                    'git config remote.origin.url "https://github.example/pingcap/tidb.git"'))
             assertTrue(
                 checkoutScript.contains(
                     '+refs/heads/main:refs/remotes/origin/main'))
@@ -123,6 +142,36 @@ class TestProw {
                 'checkout must leave a file under the resolved refs directory so it survives stash/unstash',
                 checkoutScript.contains('touch "$refs_dir/.keep"'))
         }
+
+        @Test
+        void shouldRefuseAShellInjectionInTheBaseSha() {
+            def script = loadProw(
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutPublicRefs(
+                    refs() + [base_sha: 'abcdef1; rm -rf /'], 7, false, 'https://github.example')
+                fail('expected the base sha to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('not a git object name'))
+            }
+        }
+
+        @Test
+        void shouldRefuseANonBranchBaseRef() {
+            def script = loadProw(
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutPublicRefs(
+                    refs() + [base_ref: 'main$(id)'], 7, false, 'https://github.example')
+                fail('expected the base ref to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('not a plain branch name'))
+            }
+        }
     }
 
     static class PrivateCheckout {
@@ -145,7 +194,7 @@ class TestProw {
                 'sshagent:[github-sre-bot-ssh]', events[0])
             assertTrue(
                 events[1].contains(
-                    'git config remote.origin.url git@github.com:pingcap/tidb.git'))
+                    'git config remote.origin.url "git@github.com:pingcap/tidb.git"'))
             assertTrue(
                 events.every { !it.contains('ssh-keyscan') })
         }
@@ -329,12 +378,13 @@ class TestProw {
             def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud'], events)
 
             script.checkoutRefs([org: 'tidbcloud', repo: 'cloud-storage-engine',
-                                 base_ref: 'cloud-engine', pulls: []], 'github-bot-ssh', 7)
+                                 base_ref: 'cloud-engine', base_sha: 'abcdef1234567890',
+                                 pulls: []], 'github-bot-ssh', 7)
 
             assertTrue('no ssh agent on the broker path', events.every { !it.startsWith('sshagent:') })
             assertTrue('https remote used',
                 events.last().contains(
-                    'git config remote.origin.url https://github.com/tidbcloud/cloud-storage-engine.git'))
+                    'git config remote.origin.url "https://github.com/tidbcloud/cloud-storage-engine.git"'))
         }
 
         @Test
@@ -343,11 +393,12 @@ class TestProw {
             def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud', GIT_CDN_ENABLED: 'true'], events)
 
             script.checkoutRefs([org: 'tidbcloud', repo: 'cloud-storage-engine',
-                                 base_ref: 'cloud-engine', pulls: []], 'github-bot-ssh', 7)
+                                 base_ref: 'cloud-engine', base_sha: 'abcdef1234567890',
+                                 pulls: []], 'github-bot-ssh', 7)
 
             assertTrue('cdn rewrite stays available',
                 events.last().contains(
-                    'git config remote.origin.url git@github.com:tidbcloud/cloud-storage-engine.git'))
+                    'git config remote.origin.url "git@github.com:tidbcloud/cloud-storage-engine.git"'))
         }
 
         @Test
@@ -355,13 +406,14 @@ class TestProw {
             def events = []
             def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud'], events)
 
-            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'main', pulls: []],
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'main',
+                                 base_sha: 'abcdef1234567890', pulls: []],
                 'github-bot-ssh', 7)
 
             assertTrue('ssh agent still used for non-allowlisted orgs',
                 events.any { it == 'sshagent:[github-bot-ssh]' })
             assertTrue('ssh remote kept',
-                events.last().contains('git config remote.origin.url git@github.com:pingcap/tidb.git'))
+                events.last().contains('git config remote.origin.url "git@github.com:pingcap/tidb.git"'))
         }
 
         @Test
