@@ -1,63 +1,63 @@
 # matrixCache
 
-`matrixCache` 是一个面向 Jenkins matrix stage 重跑场景的小型缓存工具。它会在某个 matrix axis 成功后写入一个本地 marker 文件；同一代码上下文再次重跑时，已经成功过的 axis 可以直接跳过，只执行尚未成功的部分。
+`matrixCache` is a small cache for rerunning Jenkins matrix stages. When a matrix axis succeeds, it writes a local marker file; the next run of the same code context can skip the axes that already succeeded and only execute the ones that still need to run.
 
-## 背景
+## Background
 
-在大型 CI pipeline 里，matrix stage 往往会把同一类测试拆成很多 axis 并行执行，例如按 `TEST_GROUP`、`OS`、`ARCH` 或其他维度拆分。
+Large CI pipelines usually split one kind of test across many parallel axes, for example by `TEST_GROUP`, `OS`, `ARCH` or another dimension.
 
-这类任务有一个常见问题：如果某一次构建里只有少数 axis 因为偶发环境问题失败，重跑整个 pipeline 时，之前已经成功的 axis 也会被完整再跑一遍。这会带来几个直接问题：
+That has a common problem: if only a few axes failed in one build because of a transient environment issue, rerunning the whole pipeline also re-runs every axis that already passed. The cost is direct:
 
-- 拉长重跑时间，反馈更慢
-- 占用更多 Jenkins agent、容器和存储资源
-- 让真正需要关注的失败 axis 淹没在重复执行里
+- longer reruns and slower feedback
+- more Jenkins agents, containers and storage consumed
+- the axes that actually need attention drowned out by repetition
 
-`matrixCache` 的目标就是解决这个问题：在不改变原有 stage 逻辑的前提下，让 matrix stage 在重跑时自动跳过已经成功的 axis。
+`matrixCache` solves that: without changing the stage logic, a matrix stage skips the axes that already succeeded when it is rerun.
 
-## 设计
+## Design
 
-`matrixCache` 的核心思路很简单：为“当前代码上下文 + 当前 stage + 当前 axis 参数”生成一个稳定 key，并在 Jenkins master 本地文件系统上保存一个 success marker。
+The idea is simple: build a stable key from "current code context + current stage + current axis parameters" and keep a success marker on the Jenkins controller's local filesystem.
 
-### key 组成
+### Key composition
 
-共享库位于 `libraries/tisys/vars/matrixCache.groovy`。它会把下面这些信息拼成原始字符串：
+The shared library lives at `libraries/tisys/vars/matrixCache.groovy`. It concatenates:
 
 - `refs.org`
 - `refs.repo`
 - `refs.base_sha`
 - `refs.pulls[*].sha`
-- 调用方传入的 `stageName`
-- 调用方传入的 `extraParams`
+- the caller's `stageName`
+- the caller's `extraParams`
 
-原始格式等价于：
+The raw format is equivalent to:
 
 ```text
 org/repo/baseSha/pullShas/stageName/extras
 ```
 
-其中 `extraParams` 会先按 key 排序再拼接，因此同一组参数即使 Map 的书写顺序不同，最终 key 仍然稳定。
+`extraParams` is sorted by key before it is joined, so the same set of parameters yields the same key regardless of how the map was written.
 
-为了避免文件名过长，库会对这个原始字符串做一次 MD5，得到最终缓存 key。
+To keep file names short, the library hashes that raw string with MD5; the digest is the final cache key.
 
-### marker 存储位置
+### Marker location
 
-marker 文件保存在：
+Markers are stored at:
 
 ```text
 ${JENKINS_HOME}/matrix-cache/${JOB_NAME.replaceAll('/', '_')}/${key}.success
 ```
 
-这意味着缓存具有下面几个边界：
+So the cache is bounded in a few ways:
 
-- 缓存范围按 `JOB_NAME` 隔离，不同 Jenkins job 不共享
-- 缓存存储在 Jenkins master 本地文件系统，不是远端共享缓存
-- 只要 `refs`、`stageName`、`extraParams` 中任意一个维度变化，就会命中新 key
+- scope is per `JOB_NAME`; different Jenkins jobs do not share entries
+- it lives on the Jenkins controller's local filesystem, not in a remote shared cache
+- changing `refs`, `stageName` or `extraParams` maps to a different key
 
-## 实现
+## Implementation
 
-### 共享库接口
+### Shared library interface
 
-`matrixCache` 暴露了两个最核心的方法：
+`matrixCache` exposes two core methods:
 
 ```groovy
 def shouldSkip(Map refs, String stageName, Map extraParams = [:]) {
@@ -79,22 +79,22 @@ def markDone(Map refs, String stageName, Map extraParams = [:]) {
 }
 ```
 
-行为分别是：
+Their behaviour:
 
-- `shouldSkip()`：在 stage 开始前检查 success marker 是否已存在
-- `markDone()`：在 stage 成功后写入 success marker
+- `shouldSkip()`: before the stage starts, check whether the success marker already exists
+- `markDone()`: after the stage succeeds, write the success marker
 
-`markDone()` 只会在 `post { success {} }` 中调用，因此失败的 axis 不会污染缓存。
+`markDone()` is only called from `post { success {} }`, so a failed axis never pollutes the cache.
 
-### Pipeline 集成方式
+### Pipeline integration
 
-在 pipeline 里，推荐的接入方式是：
+The recommended wiring in a pipeline is:
 
-1. 在 `when` 中调用 `shouldSkip()`
-2. 在 `post { success {} }` 中调用 `markDone()`
-3. 两次调用必须使用完全相同的 `stageName` 和 `extraParams`
+1. call `shouldSkip()` in `when`
+2. call `markDone()` in `post { success {} }`
+3. both calls must use exactly the same `stageName` and `extraParams`
 
-ticdc 试点任务 `jenkins/jobs/pingcap/ticdc/latest/pull_cdc_storage_integration_light_next_gen/Jenkinsfile` 的接入方式如下：
+The ticdc pilot job `jenkins/jobs/pingcap/ticdc/latest/pull_cdc_storage_integration_light_next_gen/Jenkinsfile` is wired like this:
 
 ```groovy
 stage("Test") {
@@ -118,27 +118,27 @@ stage("Test") {
 }
 ```
 
-这里使用了稳定的 stage key `'Test'`，并把 matrix 维度 `[test_group: env.TEST_GROUP]` 显式传给两个调用点，使读写缓存时使用的 key 完全一致。
+It uses the stable stage key `'Test'` and passes the matrix dimension `[test_group: env.TEST_GROUP]` explicitly to both call sites, so reads and writes use exactly the same key.
 
-## 用法
+## Usage
 
-### 适用场景
+### When it fits
 
-`matrixCache` 适合下面这类 stage：
+`matrixCache` suits stages that:
 
-- stage 本身是幂等的，重跑不会依赖上一次残留状态
-- 某个 axis 成功后，再跑一次通常只是在重复消耗资源
-- 你希望只对“同一代码上下文”复用结果，而不是跨提交共享结果
+- are idempotent, so a rerun does not depend on state left by the previous attempt
+- would only burn resources if a successful axis were run again
+- should reuse results within the same code context, not across commits
 
-### 接入步骤
+### Integration steps
 
-1. 选一个稳定的 `stageName`
-2. 选出能够唯一标识当前 axis 的参数，放进 `extraParams`
-3. 在 `when` 中调用 `!matrixCache.shouldSkip(...)`
-4. 在 `post { success {} }` 中调用 `matrixCache.markDone(...)`
-5. 确保两次调用的 `refs`、`stageName`、`extraParams` 完全一致
+1. pick a stable `stageName`
+2. pick the parameters that uniquely identify the current axis and put them in `extraParams`
+3. call `!matrixCache.shouldSkip(...)` in `when`
+4. call `matrixCache.markDone(...)` in `post { success {} }`
+5. make sure both calls use identical `refs`, `stageName` and `extraParams`
 
-通用示例如下：
+A generic example:
 
 ```groovy
 stage("Unit Test") {
@@ -168,25 +168,53 @@ stage("Unit Test") {
 }
 ```
 
-### 注意事项
+### Caveats
 
-- 不要在 matrix 场景里依赖 `env.STAGE_NAME` 作为缓存 key 的一部分。Jenkins 存在 `JENKINS-69394`，`when` 和 `post` 上下文里的 `env.STAGE_NAME` 可能不一致。
-- `shouldSkip()` 和 `markDone()` 的 `stageName`、`extraParams` 必须完全相同，否则会出现“读一个 key、写另一个 key”的情况。
-- `extraParams` 必须覆盖所有真正影响结果的 axis 维度。漏掉某个维度会导致错误命中缓存。
-- 缓存落在 Jenkins master 本地文件系统；如果切换了 Jenkins master、清理了 `${JENKINS_HOME}`，或者 job 名称变化，旧缓存不会继续生效。
+- Do not use `env.STAGE_NAME` as part of the cache key in matrix scenarios. Because of `JENKINS-69394`, `env.STAGE_NAME` may differ between the `when` and `post` contexts.
+- `shouldSkip()` and `markDone()` must use identical `stageName` and `extraParams`, otherwise one key is read and another is written.
+- `extraParams` must cover every axis dimension that really affects the result. A missing dimension causes false cache hits.
+- The cache lives on the Jenkins controller's local filesystem. Switching controllers, wiping `${JENKINS_HOME}`, or renaming the job means old entries stop applying.
 
-## 效果例子
+## Replays and the cache
 
-下面的截图来自 ticdc 试点任务 `pull_cdc_storage_integration_light_next_gen`。
+A Jenkins replay is a new build of the same job with the same `JOB_SPEC`, so `refs`, `stageName` and `extraParams` are identical and `_generateContextKey()` returns exactly the key of the original build. If the cache applied, the replay would skip every stage that had already passed: a green log for a build that re-ran nothing.
 
-### 初次执行
+`matrixCache` recognises that case itself:
 
-第一次运行时，所有 `TEST_GROUP` axis 都会正常执行 `Test` stage。
+- `isReplayBuild()` reads `currentBuild.getBuildCauses()` and looks for `org.jenkinsci.plugins.workflow.cps.replay.ReplayCause`, the cause Jenkins attaches to a replayed build.
+- When it matches, `shouldSkip()` returns `false` and the build log gets
+  `matrix cache bypassed because this is a replay build; every stage runs and no marker is read`.
+  It is logged once per build, because a matrix `when` is evaluated once per axis.
+- `markDone()` is unchanged: a successful replay still writes markers under the same key as a normal build, so caching semantics do not change.
+- When the causes cannot be read (plugin version, sandbox restriction, no pipeline context), the library logs one warning and treats the build as "not replayed", so the pipeline never fails because of the check.
 
-![初次运行时所有 axis 正常执行](./images/matrix-cache/first-run.png)
+`.ci/replay-jenkins-build.sh` therefore re-runs every stage without passing anything. It could not pass anything either: the second argument of `ReplayAction.run2(mainScript, map)` replaces loaded scripts by class name, and `run2` copies the source build's parameters as they are.
 
-### 同一上下文重跑
+### Manual bypass
 
-当相同代码上下文再次重跑时，已经成功过的 axis 会被快速跳过，界面上可以看到 `Test` 直接进入 `SKIPPED`/跳过状态，只保留真正需要补跑的部分。
+To skip the cache on purpose, pass the parameter explicitly (case-insensitive; the job has to declare it, `matrixCache` only reads it):
 
-![重跑时已成功 axis 被跳过](./images/matrix-cache/rerun-skipped.png)
+```groovy
+parameters {
+    booleanParam(name: 'MATRIX_CACHE_BYPASS', defaultValue: false,
+                 description: 'Re-run every matrix stage instead of skipping cached ones')
+}
+```
+
+Ordinary (non-replay) builds behave exactly as before when the parameter is absent or not `true`.
+
+## Examples in practice
+
+The screenshots below come from the ticdc pilot job `pull_cdc_storage_integration_light_next_gen`.
+
+### First run
+
+On the first run every `TEST_GROUP` axis executes the `Test` stage.
+
+![All axes running on the first run](./images/matrix-cache/first-run.png)
+
+### Rerun of the same context
+
+When the same code context is rerun, the axes that already succeeded are skipped quickly: in the UI the `Test` stage goes straight to `SKIPPED`, leaving only the parts that really need a rerun.
+
+![Previously succeeded axes skipped on rerun](./images/matrix-cache/rerun-skipped.png)
