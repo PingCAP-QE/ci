@@ -17,7 +17,7 @@ spec:
           memory: 16Gi
           cpu: "8"
       securityContext:
-        privileged: true
+        privileged: false
       volumeMounts:
       - mountPath: "/home/jenkins/agent/memvolume"
         name: "volume-memory"
