@@ -22,7 +22,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {
-        timeout(time: 80, unit: 'MINUTES')
+        timeout(time: 110, unit: 'MINUTES')
     }
     environment {
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
@@ -51,7 +51,7 @@ pipeline {
                     }
                 }
                 stage("Prepare") {
-                    options { timeout(time: 20, unit: 'MINUTES') }
+                    options { timeout(time: 40, unit: 'MINUTES') }
                     steps {
                         dir("third_party_download") {
                             retry(2) {

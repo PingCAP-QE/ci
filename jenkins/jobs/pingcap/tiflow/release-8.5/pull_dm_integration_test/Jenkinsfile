@@ -22,7 +22,7 @@ prow.setPRDescription(REFS)
 pipeline {
     agent none
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 100, unit: 'MINUTES')
         parallelsAlwaysFailFast()
     }
     environment {
@@ -75,7 +75,7 @@ pipeline {
                 }
                 stage("Prepare") {
                     when { expression { !skipRemainingStages} }
-                    options { timeout(time: 20, unit: 'MINUTES') }
+                    options { timeout(time: 40, unit: 'MINUTES') }
                     steps {
                         dir("third_party_download") {
                             retry(2) {
