@@ -15,12 +15,19 @@ set -euo pipefail
 #   * Prow job definitions: `prow-jobs/**/*.yaml`
 #     (`.presubmits.<repo>[].spec`, `.postsubmits.<repo>[].spec`, `.periodics[].spec`)
 #
-# Four checks:
+# Six checks:
 #   1. `securityContext.privileged: true` on a container   -> allowlist
 #   2. a `hostPath` volume                                -> allowlist
 #   3. UID 0: `runAsUser: 0` on a container or the Pod    -> allowlist
 #   4. a Pod spec that runs a privileged container must set
 #      `automountServiceAccountToken: false`              -> allowlist
+#   5. a container or volume that binds a Secret           -> allowlist
+#   6. a `serviceAccountName` other than `default`         -> allowlist
+#
+# Checks 5 and 6 exist because the merge ACL is delegated per OWNERS subtree
+# while the Secrets and ServiceAccounts a pod may bind are namespace-wide: a
+# SIG approver could otherwise add a job that mounts the Jenkins admin token or
+# the org GitHub token without the central approvers seeing it.
 #
 # Check 4 exists because the projected ServiceAccount token turns a container
 # escape into an API-server credential. A privileged container almost never
@@ -129,7 +136,12 @@ list_violations() {
         (select(($spec.securityContext.runAsUser // null) == 0) | [$job.unit, "runAsUser", "<pod>"]),
         (select((($containers | map(select((.securityContext.privileged // false) == true)) | length) > 0)
                 and ($spec.automountServiceAccountToken != false))
-          | [$job.unit, "automount", "<pod>"])
+          | [$job.unit, "automount", "<pod>"]),
+        ($containers[] | (.env // [])[]? | select(.valueFrom.secretKeyRef.name? != null) | [$job.unit, "secret", .valueFrom.secretKeyRef.name]),
+        ($containers[] | (.envFrom // [])[]? | select(.secretRef.name? != null) | [$job.unit, "secret", .secretRef.name]),
+        (($spec.volumes // [])[] | select(.secret.secretName? != null) | [$job.unit, "secret", .secret.secretName]),
+        (($spec.volumes // [])[] | (.projected.sources // [])[]? | select(.secret.name? != null) | [$job.unit, "secret", .secret.name]),
+        ($spec.serviceAccountName // "" | select(. != "" and . != "default") | [$job.unit, "serviceAccount", .])
       ] | .[] | join("|")
     ' 2>/dev/null || true
 }
@@ -183,6 +195,12 @@ violation_message() {
       ;;
     automount)
       echo "privileged container reaches the ServiceAccount token: set automountServiceAccountToken: false (or record why it is needed)"
+      ;;
+    secret)
+      echo "secret \"${subject}\": pod binds this Secret without an allowlist entry"
+      ;;
+    serviceAccount)
+      echo "serviceAccount \"${subject}\": pod binds this ServiceAccount without an allowlist entry"
       ;;
   esac
 }

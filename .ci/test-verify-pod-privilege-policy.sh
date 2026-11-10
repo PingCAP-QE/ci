@@ -90,6 +90,49 @@ spec:
   return 1
 }
 
+SECRET_ENV_POD='apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: golang
+      image: example.invalid/image:1
+      env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: token'
+
+SECRET_VOLUME_POD='apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: golang
+      image: example.invalid/image:1
+      volumeMounts:
+        - name: creds
+          mountPath: /creds
+  volumes:
+    - name: creds
+      secret:
+        secretName: ci-job-params-mono'
+
+NON_DEFAULT_SA_POD='apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: prow-pusher
+  containers:
+    - name: golang
+      image: example.invalid/image:1'
+
+DEFAULT_SA_POD='apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: default
+  containers:
+    - name: golang
+      image: example.invalid/image:1'
+
 PLAIN_POD='apiVersion: v1
 kind: Pod
 spec:
@@ -227,6 +270,16 @@ PROW_PERIODIC_HOSTPATH='periodics:
 
 failed=0
 run_case "plain_pod" "pass" "${POD_PATH}" "${PLAIN_POD}" || failed=1
+run_case "secret_env_without_allowlist" "fail" "${POD_PATH}" "${SECRET_ENV_POD}" || failed=1
+run_case "secret_env_allowlisted" "pass" "${POD_PATH}" "${SECRET_ENV_POD}" \
+  "secret\t${POD_REGEX}\tgithub-token\t2999-12-31\ttest exemption" || failed=1
+run_case "secret_volume_without_allowlist" "fail" "${POD_PATH}" "${SECRET_VOLUME_POD}" || failed=1
+run_case "secret_volume_allowlisted" "pass" "${POD_PATH}" "${SECRET_VOLUME_POD}" \
+  "secret\t${POD_REGEX}\tci-job-params-mono\t2999-12-31\ttest exemption" || failed=1
+run_case "non_default_service_account_without_allowlist" "fail" "${POD_PATH}" "${NON_DEFAULT_SA_POD}" || failed=1
+run_case "non_default_service_account_allowlisted" "pass" "${POD_PATH}" "${NON_DEFAULT_SA_POD}" \
+  "serviceAccount\t${POD_REGEX}\tprow-pusher\t2999-12-31\ttest exemption" || failed=1
+run_case "default_service_account_is_fine" "pass" "${POD_PATH}" "${DEFAULT_SA_POD}" || failed=1
 run_case "privileged_container" "fail" "${POD_PATH}" "${PRIVILEGED_POD}" || failed=1
 run_case "privileged_init_container" "fail" "${POD_PATH}" "${PRIVILEGED_INIT_POD}" || failed=1
 run_case "privileged_false_is_fine" "pass" "${POD_PATH}" "${NOT_PRIVILEGED_POD}" || failed=1

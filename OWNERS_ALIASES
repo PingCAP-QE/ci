@@ -2,14 +2,12 @@
 aliases:
   sig-approvers-docs:
     # approvers for CI scope of tidb document repository.
-    - hfxsd
     - lilin90
-    - Oreoxmt
     - qiancai
 
   sig-approvers-tidb-tools:
     # approvers for CI scope of tidb-tools project.
-    - Benjamin2037
+    - bb7133
 
   sig-approvers-ee:
     # approvers for engineering efficiency scopes.
@@ -58,6 +56,8 @@ aliases:
     # reviewers:
     - lijie0123 # emeritus since 2024-04
     - lybcodes # emeritus since 2026-07
+    - hfxsd # left the company; GitHub organization membership removed
+    - Oreoxmt # left the company
 
     # approvers:
     - purelind # emeritus since 2026-04

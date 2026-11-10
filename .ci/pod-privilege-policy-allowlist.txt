@@ -2,9 +2,11 @@
 # .ci/verify-pod-privilege-policy.sh.
 #
 # Format: <check>\t<path-regex>\t<subject>\t<review-date>\t<reason>
-# <check> is privileged | hostPath | runAsUser | automount, or * for all four.
+# <check> is privileged | hostPath | runAsUser | automount | secret |
+# serviceAccount, or * for all of them.
 # <subject> is the container name (a volume name for hostPath, <pod> for a
-# Pod-level securityContext), or * for any subject.
+# Pod-level securityContext), the Secret name for `secret`, the
+# ServiceAccount name for `serviceAccount`, or * for any subject.
 # Entries whose review date has passed stop exempting: renewing one means
 # "go and check this Pod still needs it", removing one means the privilege
 # is gone.
@@ -95,3 +97,45 @@ runAsUser	^jenkins/jobs/pingcap/tiproxy/latest/pull_integration_nodejs_test/pod\
 runAsUser	^jenkins/jobs/pingcap\-qe/tidb\-test/latest/ghpr_integration_nodejs_test/pod\.yaml$	<pod>	2027-05-31	nodejs integration tooling writes root-owned paths; revisit when the image owns a non-root home
 runAsUser	^prow\-jobs/pingcap\-qe/ci/presubmits\.yaml$	verify-gitops	2027-05-31	flux-cli image ships no non-root default user; the kustomize build writes into the shared workspace
 runAsUser	^prow\-jobs/pingcap\-qe/ci/presubmits\.yaml$	verify-kustomization	2027-05-31	yq image ships no non-root default user; revisit when the presubmit gets a dedicated image
+
+# --- pre-existing Secret / ServiceAccount bindings (added together with
+# checks 5/6). Each entry names one file: a new job that starts binding a
+# namespace-wide credential needs its own review line.
+secret	^prow\-jobs/pingcap\-inc/enterprise\-extensions/postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap\-qe/ci/periodics\.yaml$	ci-job-params-mono	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap\-qe/ci/periodics\.yaml$	ci-smtp	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap\-qe/ci/periodics\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap\-qe/ci/postsubmits\.yaml$	ci-job-params-mono	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap\-qe/ci/presubmits\.yaml$	ci-job-params-mono	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap\-qe/ci/presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/community/postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/docs\-cn/latest\-postsubmits\.yaml$	docs-cn	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/docs\-tidb\-operator/latest\-postsubmits\.yaml$	docs-cn	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/docs/latest\-postsubmits\.yaml$	docs-cn	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/monitoring/periodics\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/ng\-monitoring/postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/ticdc/common\-postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/ticdc/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tidb\-operator/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tidb\-operator/release\-1\.x\-presubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tidb/common\-postsubmits\.yaml$	ci-job-params-mono	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tidb/common\-postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tidb/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tiflash/common\-postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tiflash/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tiflow/common\-postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tiflow/latest\-presubmits\-wip\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tiflow/latest\-presubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tiflow/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tiflow/release\-8\.5\-presubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap/tiproxy/latest\-presubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/ti\-community\-infra/configs/postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/ti\-community\-infra/configs/presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/ti\-community\-infra/periodics\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+serviceAccount	^prow\-jobs/ti\-community\-infra/prow/presubmits\.yaml$	prow-pusher	2027-05-31	pre-existing binding, reviewed 2026-11-10
+serviceAccount	^prow\-jobs/tikv/client\-go/latest\-presubmits\-nextgen\.yaml$	tidbx-puller	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/tikv/community/postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/tikv/pd/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/tikv/tikv/latest\-postsubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/tikv/tikv/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^jenkins/jobs/pingcap/tidb/latest/pull_check_next_gen/pod\.yaml$	bazel	2027-05-31	pre-existing binding, reviewed 2026-11-10
