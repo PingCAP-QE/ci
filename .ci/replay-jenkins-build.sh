@@ -45,6 +45,14 @@ Options:
   --dry-run                Print actions only.
   -h, --help               Show this help.
 
+Notes:
+  A replay is a new build of the same job with the same JOB_SPEC, so a cache keyed
+  on the build context (e.g. the shared library's matrixCache) would hit the
+  original build's entries and skip every stage that already passed. Jenkins records
+  a ReplayCause on replayed builds; the shared library bypasses the matrix cache for
+  them, so replayed pipelines run every stage. No extra parameter is needed or
+  supported: run2() at submit time only takes replacement loaded scripts.
+
 Environment:
   JENKINS_URL              Jenkins root URL fallback.
   JENKINS_USER             Jenkins username (required for replay submit).
@@ -617,6 +625,9 @@ if (sourceRun == null) { throw new RuntimeException("build not found: " + jobFul
 def replayAction = sourceRun.getAction(ReplayAction)
 if (replayAction == null) { throw new RuntimeException("ReplayAction not found on " + jobFullName + "#" + sourceBuildNo) }
 def mainScript = new String(Base64.decoder.decode('${script_b64}'), 'UTF-8')
+// The second argument replaces loaded library scripts, keyed by class name; it does
+// not carry build parameters. run2() copies the source build's parameters and adds a
+// ReplayCause, which is what lets the shared library bypass its matrix cache.
 def queueItem = replayAction.run2(mainScript, [:])
 def rootUrl = j.getRootUrl() ?: '${JENKINS_URL}/'
 println("job=" + jobFullName)
