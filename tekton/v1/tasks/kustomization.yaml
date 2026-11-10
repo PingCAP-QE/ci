@@ -10,7 +10,6 @@ resources:
   - delivery/pingcap-notify-to-update-ops-tidbx.yaml
   - delivery/pingcap-notify-to-update-tcms-tidbx.yaml
   - hotfix/create-pr-to-sync-owners.yaml
-  - hotfix/create-pr-to-update-gomod-fix-ladp.yaml
   - multi-arch-image-collect.yaml
   - pingcap-build-binaries-linux.yaml
   - pingcap-build-images.yaml
