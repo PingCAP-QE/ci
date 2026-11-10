@@ -66,7 +66,6 @@ privileged	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/dedicated/pull_integra
 privileged	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^jenkins/jobs/tikv/pd/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^jenkins/jobs/tikv/tikv/latest/pull_integration_test/pod\.yaml$	runner	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
-privileged	^jenkins/jobs/tikv/tikv/latest/pull_unit_test/pod\.yaml$	runner	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^jenkins/jobs/tikv/tikv/release\-6\.5/pull_integration_test/pod\.yaml$	runner	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^jenkins/jobs/tikv/tikv/release\-6\.5/pull_unit_test/pod\.yaml$	runner	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^jenkins/jobs/tikv/tikv/release\-7\.1/pull_integration_test/pod\.yaml$	runner	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
