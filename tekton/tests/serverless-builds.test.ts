@@ -495,7 +495,9 @@ Deno.test("image builds resolve the commit metadata where git is available", () 
   }
 });
 
-const routeDirectory = "tekton/v1/triggers/triggers/env-gcp/_/fake-github/";function overlay(
+const routeDirectory = "tekton/v1/triggers/triggers/env-gcp/_/fake-github/";
+
+function overlay(
   trigger: Trigger,
   key: string,
   body: ReturnType<typeof payload>,
