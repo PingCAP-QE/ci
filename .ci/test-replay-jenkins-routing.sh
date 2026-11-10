@@ -55,6 +55,45 @@ if "$repo_root/.ci/replay-jenkins-build.sh" \
 fi
 rg -q 'JENKINS_MASTER_0_USER and JENKINS_MASTER_0_TOKEN are required' output.log
 
+# Pod policy: a PR-authored privileged template must be refused before replay,
+# and a compliant template must still be accepted.
+replay_pod_dry_run() {
+    "$repo_root/.ci/replay-jenkins-build.sh" \
+        --script-file "jenkins/jobs/example/repo/latest/$1/Jenkinsfile" \
+        --job-url https://example.invalid/job/example/job/repo/job/$1 --dry-run 2>&1
+}
+
+mkdir -p jenkins/jobs/example/repo/latest/poddy
+printf 'pipeline {}\n' > jenkins/jobs/example/repo/latest/poddy/Jenkinsfile
+cat > jenkins/jobs/example/repo/latest/poddy/pod.yaml <<'YAML'
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: main
+      image: alpine:3.20
+      securityContext:
+        privileged: true
+YAML
+
+if replay_pod_dry_run poddy > output.log 2>&1; then
+    echo 'expected a privileged pod template to be refused' >&2
+    exit 1
+fi
+rg -q 'violate the pod privilege policy' output.log
+
+cat > jenkins/jobs/example/repo/latest/poddy/pod.yaml <<'YAML'
+apiVersion: v1
+kind: Pod
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: main
+      image: alpine:3.20
+YAML
+replay_pod_dry_run poddy > output.log 2>&1
+rg -q 'replay summary' output.log
+
 cat > prow-jobs/example/repo/conflict.yaml <<'YAML'
 postsubmits:
   example/repo:
