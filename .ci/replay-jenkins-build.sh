@@ -206,10 +206,45 @@ enforce_pod_policy() {
 
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # The fence must not be the code it is supposed to guard: this script runs
+    # from the pull request checkout, so a PR can weaken .ci/ together with its
+    # pod templates. Take the policy scripts and the allowlist from the reviewed
+    # base revision; only local runs without a base commit fall back to the
+    # checkout, where the Prow self-mod guard covers those files.
+    local policy_dir
+    policy_dir="$(mktemp -d)"
+    local base="${PULL_BASE_SHA:-}"
+    local from_base=true
+    if [[ -z "${base}" ]] || ! git -C "${PWD}" cat-file -e "${base}^{commit}" 2>/dev/null; then
+        from_base=false
+    else
+        local policy_file
+        for policy_file in verify-pod-privilege-policy.sh verify-k8s-pod-yaml.sh pod-privilege-policy-allowlist.txt; do
+            if ! git -C "${PWD}" show "${base}:.ci/${policy_file}" > "${policy_dir}/${policy_file}" 2>/dev/null; then
+                from_base=false
+                break
+            fi
+        done
+    fi
+    if [[ "${from_base}" != "true" ]]; then
+        vlog "base revision has no .ci policy files; using the checkout copies"
+        cp "${script_dir}/verify-pod-privilege-policy.sh" "${policy_dir}/"
+        cp "${script_dir}/verify-k8s-pod-yaml.sh" "${policy_dir}/"
+        cp "${script_dir}/pod-privilege-policy-allowlist.txt" "${policy_dir}/"
+    fi
+
     vlog "checking pod policy for ${#rel_paths[@]} template(s) under ${dir}"
-    POD_PRIVILEGE_POLICY_ALLOWLIST_FILE="${script_dir}/pod-privilege-policy-allowlist.txt" \
-        bash "${script_dir}/verify-pod-privilege-policy.sh" "${rel_paths[@]}" || fatal "pod templates under ${dir} violate the pod privilege policy; refusing to replay"
-    sh "${script_dir}/verify-k8s-pod-yaml.sh" "${rel_paths[@]}" || fatal "pod templates under ${dir} failed structural validation; refusing to replay"
+    local policy_rc=0
+    POD_PRIVILEGE_POLICY_ALLOWLIST_FILE="${policy_dir}/pod-privilege-policy-allowlist.txt" \
+        bash "${policy_dir}/verify-pod-privilege-policy.sh" "${rel_paths[@]}" || policy_rc=1
+    if [[ "${policy_rc}" -eq 0 ]]; then
+        sh "${policy_dir}/verify-k8s-pod-yaml.sh" "${rel_paths[@]}" || policy_rc=1
+    fi
+    rm -rf "${policy_dir}"
+    if [[ "${policy_rc}" -ne 0 ]]; then
+        fatal "pod templates under ${dir} violate the pod privilege policy or failed structural validation; refusing to replay"
+    fi
 }
 
 build_inline_script_with_pod_yaml() {

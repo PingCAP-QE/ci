@@ -121,8 +121,11 @@ presubmits:
                 # the tokens.
                 base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required to verify the script}"
                 git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
-                if ! git diff --quiet "${base_sha}" -- .ci/replay-jenkins-build.sh; then
-                  echo "ERROR: .ci/replay-jenkins-build.sh is modified by this PR; it runs with CI credentials here. Land the script change in a separate PR and rerun." >&2
+                if ! git diff --quiet "${base_sha}" -- \
+                  .ci/replay-jenkins-build.sh \
+                  .ci/verify-pod-privilege-policy.sh \
+                  .ci/verify-k8s-pod-yaml.sh; then
+                  echo "ERROR: .ci/replay-jenkins-build.sh or its pod-policy fence is modified by this PR; they run with CI credentials here. Land the change in a separate PR and rerun." >&2
                   exit 1
                 fi
                 .ci/replay-jenkins-build.sh \

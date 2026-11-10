@@ -80,7 +80,7 @@ if replay_pod_dry_run poddy > output.log 2>&1; then
     echo 'expected a privileged pod template to be refused' >&2
     exit 1
 fi
-rg -q 'violate the pod privilege policy' output.log
+rg -q 'violate the pod' output.log
 
 cat > jenkins/jobs/example/repo/latest/poddy/pod.yaml <<'YAML'
 apiVersion: v1
@@ -93,6 +93,45 @@ spec:
 YAML
 replay_pod_dry_run poddy > output.log 2>&1
 rg -q 'replay summary' output.log
+
+# The pod-policy fence must use the reviewed base revision, not the pull
+# request checkout: a PR that weakens .ci/ together with its pod template has to
+# be refused anyway.
+fence_repo="$fixture/fence-repo"
+mkdir -p "$fence_repo/.ci" "$fence_repo/jenkins/jobs/example/repo/latest/fency"
+cp "$repo_root/.ci/verify-pod-privilege-policy.sh" "$fence_repo/.ci/"
+cp "$repo_root/.ci/verify-k8s-pod-yaml.sh" "$fence_repo/.ci/"
+cp "$repo_root/.ci/pod-privilege-policy-allowlist.txt" "$fence_repo/.ci/"
+printf 'pipeline {}\n' > "$fence_repo/jenkins/jobs/example/repo/latest/fency/Jenkinsfile"
+cat > "$fence_repo/jenkins/jobs/example/repo/latest/fency/pod.yaml" <<'YAML'
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: main
+      image: alpine:3.20
+      securityContext:
+        privileged: true
+YAML
+(
+    cd "$fence_repo"
+    git init -q .
+    git add -A
+    git -c user.name=test -c user.email=test@example.com commit -q -m base
+    base_sha="$(git rev-parse HEAD)"
+
+    # The pull request weakens the fence in its own tree.
+    printf '#!/bin/sh\nexit 0\n' > .ci/verify-pod-privilege-policy.sh
+
+    if PULL_BASE_SHA="$base_sha" "$repo_root/.ci/replay-jenkins-build.sh" \
+        --script-file jenkins/jobs/example/repo/latest/fency/Jenkinsfile \
+        --job-url https://example.invalid/job/example/job/repo/job/fency --dry-run \
+        > "$fixture/fence-out.log" 2>&1; then
+        echo 'expected the fence to use the base policy and refuse the privileged template' >&2
+        exit 1
+    fi
+    rg -q 'violate the pod' "$fixture/fence-out.log"
+)
 
 cat > prow-jobs/example/repo/conflict.yaml <<'YAML'
 postsubmits:
