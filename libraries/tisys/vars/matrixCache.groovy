@@ -33,8 +33,12 @@ def _generateContextKey(Map refs, String stageName, Map extraParams = [:]) {
     // Assemble the raw string
     def rawKey = "${org}/${repo}/${baseSha}/${pullShas}/${stageName}/${extras}"
 
-    // Use MD5 to compress the key length, preventing overly long filenames or JSON keys.
-    return MessageDigest.getInstance("MD5").digest(rawKey.getBytes()).encodeHex().toString()
+    // Compress the key to a fixed length so it stays usable as a filename or a
+    // JSON key. SHA-256, not MD5: the key decides whether a test stage is
+    // skipped as "already passed", so a collision would silently drop coverage.
+    // Changing the digest invalidates the markers written by earlier builds, so
+    // every matrix stage runs once more and then caches normally.
+    return MessageDigest.getInstance("SHA-256").digest(rawKey.getBytes()).encodeHex().toString()
 }
 
 /**
