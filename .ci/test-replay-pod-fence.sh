@@ -17,6 +17,9 @@ cd "$fixture"
 
 # Image resolution is a different gate (and needs a registry); keep the fence
 # tests offline.
+# These tests run the replay locally, without a base revision; allow the
+# checkout copies of the pod policy explicitly (CI always has a base).
+export CI_ALLOW_UNFENCED_POD_POLICY=1
 export CRANE_BIN="crane-not-installed-for-this-test"
 export JENKINS_MASTER_0_URL="https://jenkins.example/0"
 export JENKINS_MASTER_1_URL="https://jenkins.example/1"

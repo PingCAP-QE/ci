@@ -689,8 +689,8 @@ class TestMatrixCache {
             def script = load([currentBuild: new CurrentBuildMock(failOnCauses: true)])
             writeCacheMarker(script, baseRefs(), 'build')
 
-            assertFalse('an unreadable cause list must not be reported as a replay', isReplayBuild(script))
-            assertTrue('cache behaviour must be unchanged when causes cannot be read',
+            assertTrue('an unreadable cause list must be treated as a replay', isReplayBuild(script))
+            assertFalse('a stage must not be skipped when the replay state is unknown',
                 shouldSkip(script, baseRefs(), 'build'))
         }
 

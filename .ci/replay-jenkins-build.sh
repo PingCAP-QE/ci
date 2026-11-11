@@ -351,7 +351,13 @@ enforce_pod_policy() {
         done
     fi
     if [[ "${from_base}" != "true" ]]; then
-        vlog "base revision has no .ci policy files; using the checkout copies"
+        # Falling back to the checkout would hand the policy to the code it
+        # guards. Local runs opt in explicitly; CI always has a base revision.
+        if [[ "${CI_ALLOW_UNFENCED_POD_POLICY:-}" != "1" ]]; then
+            rm -rf "${policy_dir}"
+            fatal "cannot read the pod policy from the base revision ${base:-<unset>}; refusing to replay (set CI_ALLOW_UNFENCED_POD_POLICY=1 for a local run)"
+        fi
+        vlog "base revision has no .ci policy files; using the checkout copies (explicitly allowed)"
         cp "${script_dir}/verify-pod-privilege-policy.sh" "${policy_dir}/"
         cp "${script_dir}/verify-k8s-pod-yaml.sh" "${policy_dir}/"
         cp "${script_dir}/pod-privilege-policy-allowlist.txt" "${policy_dir}/"

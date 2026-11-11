@@ -46,8 +46,9 @@ def _generateContextKey(Map refs, String stageName, Map extraParams = [:]) {
  *
  * The answer comes from the build causes, which are only readable through
  * `currentBuild`. When that is unavailable (older workflow-cps, restricted
- * sandbox, no pipeline context) the build is reported as "not replayed" so the
- * pipeline keeps working with its normal caching behaviour.
+ * sandbox, no pipeline context) the build is treated as a replay: the only
+ * consequence is that cached stages run again, whereas guessing "not replayed"
+ * could let a replay skip a stage it was supposed to re-run.
  */
 def isReplayBuild() {
     try {
@@ -57,9 +58,9 @@ def isReplayBuild() {
         if (!causeWarningReported) {
             causeWarningReported = true
             _log("WARNING: matrixCache cannot read the build causes (${e}); " +
-                "treating this build as not replayed")
+                "treating this build as a replay so cached stages are not skipped")
         }
-        return false
+        return true
     }
 }
 

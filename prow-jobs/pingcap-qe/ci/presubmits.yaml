@@ -310,7 +310,7 @@ presubmits:
         containers:
           - name: main
             image: alpine:3.24
-            command: [sh, -ce]
+            command: [bash, -ceo, pipefail]
             args:
               - |
                 apk add --no-cache kubectl yq-go git
