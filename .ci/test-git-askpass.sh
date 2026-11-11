@@ -109,6 +109,11 @@ expect_reject "rejects a quoted URL that hides the real host" "$broker" \
     "Password for 'https://evil.example/'https://github.com': "
 expect_reject "rejects a quote that moves the allow-listed host into userinfo" "$broker" \
     "Password for 'https://github.com/x'@evil.example/': "
+expect_reject "refuses a write-scoped permission request" "$broker" \
+    "Password for 'https://github.com/org/repo.git': " \
+    TIPIPELINE_BROKER_PERMISSIONS='{"contents":"write"}'
+broker_reaches_mint "accepts the read-only permission set" \
+    "Password for 'https://github.com/org/repo.git': "
 expect_reject "ignores non-credential prompts" "$broker" \
     "Enter passphrase for key '/root/.ssh/id_rsa': "
 

@@ -97,6 +97,15 @@ cache_file="${TIPIPELINE_BROKER_CACHE:?TIPIPELINE_BROKER_CACHE is required}"
 # expansion at the first '}'), so default them explicitly.
 permissions="${TIPIPELINE_BROKER_PERMISSIONS-}"
 [ -n "${permissions}" ] || permissions='{"contents":"read"}'
+# The caller runs pull-request code, so it can set this variable. Cap it at the
+# read-only set dependency fetching needs instead of forwarding whatever it asks
+# for to the broker: "contents: write" would let PR code push to the repository.
+normalized=$(printf '%s' "${permissions}" | tr -d '[:space:]')
+if [ "${normalized}" != '{"contents":"read"}' ]; then
+    echo "git-askpass(broker): refusing permissions '${permissions}'; only {\"contents\":\"read\"} is allowed" >&2
+    exit 1
+fi
+permissions='{"contents":"read"}'
 token_file="${TIPIPELINE_BROKER_TOKEN_FILE:-/var/run/secrets/kubernetes.io/serviceaccount/token}"
 ttl="${TIPIPELINE_BROKER_TTL_SECONDS:-3000}"
 

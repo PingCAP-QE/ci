@@ -111,4 +111,3 @@ secret	^prow\-jobs/tikv/community/postsubmits\.yaml$	github-token	2027-05-31	pre
 secret	^prow\-jobs/tikv/pd/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/tikv/tikv/latest\-postsubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/tikv/tikv/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
-secret	^jenkins/jobs/pingcap/tidb/latest/pull_check_next_gen/pod\.yaml$	bazel	2027-05-31	pre-existing binding, reviewed 2026-11-10

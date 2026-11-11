@@ -50,8 +50,8 @@ spec:
                 storage: 100Gi
             storageClassName: ci-rwo
     - name: bazel-rc
-      secret:
-        secretName: bazel
+      configMap:
+        name: bazel
     - name: containerinfo
       downwardAPI:
         items:
