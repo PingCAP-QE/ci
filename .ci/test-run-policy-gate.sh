@@ -94,6 +94,17 @@ else
     fail "unexpected failure without a base revision: $(head -1 "${fixture}/out3")"
 fi
 
+# The presubmit materialises the runner into $TMPDIR, so it has to locate the
+# repository from git rather than from its own path.
+runner_copy="$(mktemp -d)/run-policy-gate.sh"
+cp .ci/run-policy-gate.sh "${runner_copy}"
+if PULL_BASE_SHA="${base_sha}" PULL_PULL_SHA="HEAD" \
+    bash "${runner_copy}" pod-privilege >"${fixture}/out4" 2>&1; then
+    pass "the runner works when it is executed from outside the repository"
+else
+    fail "the runner failed when executed from outside the repository: $(tail -2 "${fixture}/out4" | head -1)"
+fi
+
 if [ "$failures" -ne 0 ]; then
     echo "run-policy-gate tests failed: $failures" >&2
     exit 1
