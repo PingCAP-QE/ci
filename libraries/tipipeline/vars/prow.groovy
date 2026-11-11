@@ -434,6 +434,13 @@ def uploadCoverageToCodecov(refs, flags = "", file = "") {
                 echo "INFO: codecov not found in image; downloading from uploader.codecov.io."
                 curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 120 \
                     -o codecov "https://uploader.codecov.io/v0.8.0/linux/codecov"
+                # The uploader is executed with the coverage token in its environment
+                # and with the workspace in reach, so pin it to the digest the release
+                # publishes instead of trusting whatever the URL returned.
+                echo "b37359013b48fbc3b0790d59fc474a52a260fb96e28e1b2c2ae001dc9b9cc996  codecov" | sha256sum -c - || {
+                    echo "ERROR: codecov uploader digest mismatch; refusing to execute it"
+                    exit 1
+                }
                 chmod +x codecov
                 codecov_bin="./codecov"
             fi
