@@ -27,13 +27,29 @@ esac
 # that host: a `.gitmodules` entry or a rewritten remote can point anywhere.
 ALLOWED_HOSTS='github.com git-cdn.cache.svc'
 
-url=$(printf '%s' "${prompt}" | sed -n "s/.*'\([^']*\)'.*/\1/p")
-[ -n "${url}" ] || url="${prompt}"
+# Extract the URL git quotes in the prompt: `... for '<url>': `. Strip exactly
+# that wrapper and refuse any URL that still contains a quote. Matching the
+# "last pair of quotes" instead is attacker controlled: a remote whose URL
+# contains a `'` makes git print
+#   Password for 'https://evil.example/'https://github.com':
+# and a last-quote match would mint a github.com token for a request git sends
+# to evil.example.
+url=""
+case "${prompt}" in
+    *" for '"*"': "*)
+        url="${prompt#* for \'}"
+        url="${url%\': *}"
+        ;;
+esac
+if [ -z "${url}" ]; then
+    url="${prompt}"
+fi
 
-# A query or a fragment can smuggle an `@` that would look like userinfo.
+# A quote makes the URL boundary ambiguous; a query or a fragment can smuggle
+# an `@` that would look like userinfo.
 case "${url}" in
-    *"?"* | *"#"*)
-        echo "git-askpass(broker): refusing a credential URL with a query or fragment: '${url}'" >&2
+    *"'"* | *"?"* | *"#"* | *' '* | *"	"*)
+        echo "git-askpass(broker): refusing a credential URL with a quote, query, fragment or whitespace: '${url}'" >&2
         exit 1
         ;;
 esac
