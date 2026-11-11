@@ -20,7 +20,10 @@ spec:
               )
               || body.repository.full_name in [
                 'pingcap/tiflash',
-                'tikv/pd'
+                'pingcap/ticdc',
+                'pingcap/tiflow',
+                'tikv/tikv'
+                'tikv/pd',
               ]
             )
             && header.match('X-GitHub-Event', 'pull_request_review')
