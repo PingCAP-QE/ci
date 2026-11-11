@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -50,6 +51,16 @@ func LoadConfig(configPath string) (*Config, error) {
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	// Fail closed on an incomplete settings block. A zero threshold means "no
+	// approval needed" and an empty mode means "do not fail the check", so a
+	// missing or truncated config would silently turn the gate off.
+	if config.Settings.MinApprovals <= 0 {
+		config.Settings.MinApprovals = 1
+	}
+	if strings.TrimSpace(config.Settings.CheckBehavior.Mode) == "" {
+		config.Settings.CheckBehavior.Mode = "check_and_fail"
 	}
 
 	// Compile regex patterns
