@@ -83,7 +83,10 @@ trap cleanup EXIT
 new_gate_script() {
   local src="$1"
   local dst
-  dst="$(mktemp ".ci/.policy-base-$(basename "${src}" .sh)-XXXXXX.sh")"
+  # busybox mktemp only accepts a trailing XXXXXX template, so build the name
+  # ourselves; the file lives for one gate run and is removed by the trap.
+  dst=".ci/.policy-base-$(basename "${src}" .sh)-$$.sh"
+  rm -f "${dst}"
   if ! git show "${base}:${src}" >"${dst}" 2>/dev/null; then
     rm -f "${dst}"
     echo "ERROR: cannot read ${src} at base revision ${base}" >&2

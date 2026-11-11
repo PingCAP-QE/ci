@@ -22,7 +22,11 @@ presubmits:
             command: [bash, -ceo, pipefail]
             args:
               - |
-                .ci/check-pr-content-policy.sh --base-sha "${PULL_BASE_SHA:?missing PULL_BASE_SHA}"
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required: the gate comes from the base revision}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                gate_runner="$(mktemp)"
+                git show "${base_sha}:.ci/run-policy-gate.sh" > "${gate_runner}"
+                bash "${gate_runner}" pr-content
             resources:
               limits:
                 memory: 128Mi
@@ -238,8 +242,11 @@ presubmits:
             args:
               - |
                 apk add --no-cache bash git ripgrep
-                bash .ci/verify-jenkins-credential-policy.sh
-                sh .ci/verify-secret-scan.sh
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required: the gate comes from the base revision}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                gate_runner="$(mktemp)"
+                git show "${base_sha}:.ci/run-policy-gate.sh" > "${gate_runner}"
+                bash "${gate_runner}" secret-scan
             resources:
               limits:
                 memory: 256Mi
@@ -281,8 +288,12 @@ presubmits:
             args:
               - |
                 apk add --no-cache bash git grep sed
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required: the gate comes from the base revision}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                gate_runner="$(mktemp)"
+                git show "${base_sha}:.ci/run-policy-gate.sh" > "${gate_runner}"
+                bash "${gate_runner}" storage-class
                 bash .ci/test-verify-storage-class-policy.sh
-                bash .ci/verify-storage-class-policy.sh
             resources:
               limits:
                 memory: 256Mi
@@ -426,8 +437,12 @@ presubmits:
             args:
               - |
                 apk add --no-cache bash git grep sed findutils yq-go
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required: the gate comes from the base revision}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                gate_runner="$(mktemp)"
+                git show "${base_sha}:.ci/run-policy-gate.sh" > "${gate_runner}"
+                bash "${gate_runner}" pod-resource
                 bash .ci/test-verify-pod-resource-policy.sh
-                bash .ci/verify-pod-resource-policy.sh
             resources:
               limits:
                 memory: 256Mi
@@ -436,7 +451,7 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^(jenkins/jobs/.*/pod.*\\.ya?ml|prow-jobs/.*\\.ya?ml|\\.ci/verify-pod-privilege-policy\\.sh|\\.ci/test-verify-pod-privilege-policy\\.sh|\\.ci/pod-privilege-policy-allowlist\\.txt)$"
+      run_if_changed: "^(jenkins/jobs/.*/pod.*\\.ya?ml|prow-jobs/.*\\.ya?ml|\\.ci/(run-policy-gate|verify-pod-privilege-policy|test-verify-pod-privilege-policy|test-run-policy-gate)\\.sh|\\.ci/pod-privilege-policy-allowlist\\.txt)$"
       branches:
         - ^main$
       spec:
@@ -447,8 +462,13 @@ presubmits:
             args:
               - |
                 apk add --no-cache bash git grep sed findutils yq-go
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required: the gate comes from the base revision}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                gate_runner="$(mktemp)"
+                git show "${base_sha}:.ci/run-policy-gate.sh" > "${gate_runner}"
+                bash "${gate_runner}" pod-privilege
                 bash .ci/test-verify-pod-privilege-policy.sh
-                bash .ci/verify-pod-privilege-policy.sh
+                bash .ci/test-run-policy-gate.sh
             resources:
               limits:
                 memory: 256Mi
@@ -468,9 +488,13 @@ presubmits:
             args:
               - |
                 apk add --no-cache bash git grep sed findutils
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required: the gate comes from the base revision}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                gate_runner="$(mktemp)"
+                git show "${base_sha}:.ci/run-policy-gate.sh" > "${gate_runner}"
+                bash "${gate_runner}" jenkins-job-references
                 bash .ci/test-check-jenkins-job-references.sh
                 bash .ci/test-migrate-jenkins-jobs.sh
-                bash .ci/check-jenkins-job-references.sh --quiet
             resources:
               limits:
                 memory: 256Mi
