@@ -20,7 +20,6 @@ resources:
   - _/git-push-branch-build-failpoint.yaml
   - _/git-push-branch-build-hotfix-linux.yaml
   - _/git-push-branch-build-ng.yaml
-  - _/git-push-on-fips-branches.yaml
   - _/github-pr-coderabbit-review-label.yaml
   - _/github-pr-labeled-with-lgtm.yaml
   - _/github-pr-labeled-with-needs-ok-to-test.yaml
