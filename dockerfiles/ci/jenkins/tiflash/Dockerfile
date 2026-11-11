@@ -13,8 +13,9 @@ RUN --mount=type=cache,target=/var/cache/dnf \
 
 RUN --mount=type=cache,target=/var/cache/dnf \
     dnf install -y https://dev.mysql.com/get/mysql80-community-release-el8-1.noarch.rpm && \
+    rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 && \
     dnf module disable mysql -y && \
-    dnf install -y mysql-community-client --nogpgcheck
+    dnf install -y mysql-community-client
 
 # install ccache
 ARG CCACHE_VERSION=4.10.2

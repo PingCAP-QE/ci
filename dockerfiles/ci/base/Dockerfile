@@ -26,9 +26,13 @@ RUN if [ "$(arch)" = "x86_64" ]; then \
     dnf module disable mysql -y && \
     echo '[mysql57-community]' > /etc/yum.repos.d/mysql57.repo && \
     echo 'name=MySQL 5.7 Community Server' >> /etc/yum.repos.d/mysql57.repo && \
-    echo 'baseurl=http://repo.mysql.com/yum/mysql-5.7-community/el/7/$basearch/' >> /etc/yum.repos.d/mysql57.repo && \
+    echo 'baseurl=https://repo.mysql.com/yum/mysql-5.7-community/el/7/$basearch/' >> /etc/yum.repos.d/mysql57.repo && \
     echo 'enabled=1' >> /etc/yum.repos.d/mysql57.repo && \
-    echo 'gpgcheck=0' >> /etc/yum.repos.d/mysql57.repo && \
+    echo 'gpgcheck=1' >> /etc/yum.repos.d/mysql57.repo && \
+    echo 'gpgkey=https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 https://repo.mysql.com/RPM-GPG-KEY-mysql' >> /etc/yum.repos.d/mysql57.repo && \
+    rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 && \
+    rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 && \
+    rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql && \
     dnf install -y mysql-community-server && \
     dnf clean all && \
     rm -rf /var/cache/dnf; \
@@ -131,6 +135,7 @@ ENV PATH=$PATH:/usr/local/pulsar/bin
 # linux amd64 only
 RUN if [ "$(arch)" = "x86_64" ]; then \
     echo "Detected amd64 architecture, proceeding with installation" && \
+    rpm --import https://repo.percona.com/yum/PERCONA-PACKAGING-KEY && \
     dnf install -y https://repo.percona.com/testing/centos/7/RPMS/x86_64/percona-toolkit-3.0.12-1.el7.x86_64.rpm; \
     else \
     echo "Architecture not supported: $(arch)"; \
