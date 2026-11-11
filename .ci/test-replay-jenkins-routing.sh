@@ -22,6 +22,9 @@ presubmits:
         master: "0"
 YAML
 
+# These tests run the replay locally, without a base revision; allow the
+# checkout copies of the pod policy explicitly (CI always has a base).
+export CI_ALLOW_UNFENCED_POD_POLICY=1
 export JENKINS_MASTER_0_URL=https://new.example/jenkins
 export JENKINS_MASTER_1_URL=https://old.example/jenkins
 
