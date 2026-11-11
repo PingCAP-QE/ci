@@ -17,22 +17,6 @@ presubmits:
             args:
               - |
                 make dm_unit_test_in_verify_ci
-                codecov -Z --flags unit,dm -f /tmp/dm_test/cov.unit.out \
-                  --pr ${PULL_NUMBER} \
-                  --sha ${PULL_PULL_SHA} \
-                  --branch origin/pr/${PULL_NUMBER}
-            env:
-              - name: CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiflow # format <ORG>-<REPO>
-              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
-              - name: TICDC_CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiflow # format <ORG>-<REPO>
             resources:
               requests:
                 memory: 12Gi
@@ -56,22 +40,6 @@ presubmits:
             args:
               - |
                 make engine_unit_test_in_verify_ci
-                codecov -Z --flags unit,engine -f /tmp/engine_test/cov.unit.out \
-                  --pr ${PULL_NUMBER} \
-                  --sha ${PULL_PULL_SHA} \
-                  --branch origin/pr/${PULL_NUMBER}
-            env:
-              - name: CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiflow # format <ORG>-<REPO>
-              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
-              - name: TICDC_CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiflow # format <ORG>-<REPO>
             resources:
               requests:
                 memory: 12Gi

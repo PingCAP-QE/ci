@@ -67,21 +67,6 @@ presubmits:
                 trap archive_junit_reports EXIT
 
                 make unit_test_in_verify_ci
-                if [ -f /tmp/tidb_cdc_test/cov.unit.out ] && [ "${JOB_TYPE:-}" != "batch" ]; then
-                  codecov -f /tmp/tidb_cdc_test/cov.unit.out -F unit,cdc -r "pingcap/tiflow" -C "${PULL_PULL_SHA}" -B "${PULL_BASE_REF}" --pr "${PULL_NUMBER}" -Z || true
-                fi
-            env:
-              - name: CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiflow # format <ORG>-<REPO>
-              # FIXME(wuhuizuo): should delete it when refactored the Makefile.
-              - name: TICDC_CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiflow # format <ORG>-<REPO>
             resources:
               requests:
                 memory: 24Gi
