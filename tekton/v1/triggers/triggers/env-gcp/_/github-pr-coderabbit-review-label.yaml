@@ -22,7 +22,7 @@ spec:
                 'pingcap/tiflash',
                 'pingcap/ticdc',
                 'pingcap/tiflow',
-                'tikv/tikv'
+                'tikv/tikv',
                 'tikv/pd'
               ]
             )
