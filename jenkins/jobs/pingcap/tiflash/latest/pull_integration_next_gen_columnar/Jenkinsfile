@@ -93,19 +93,24 @@ pipeline {
                 stage('Build TiFlash') {
                     steps {
                         dir(REFS.repo) {
-                            sshagent(credentials: [GIT_CREDENTIALS_ID]) {
-                                sh label: "prepare git auth for cargo", script: """
-                                    [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-                                    ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
-                                    git config --global url."git@github.com:tidbcloud/cloud-storage-engine.git".insteadOf "https://github.com/tidbcloud/cloud-storage-engine.git"
-                                """
-                                withEnv(['CARGO_NET_GIT_FETCH_WITH_CLI=true']) {
-                                    sh label: "build tiflash", script: """
-                                        cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
-                                        cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
-                                        ccache -s
-                                        ls -alh ${WORKSPACE}/install/tiflash
-                                    """
+                            // This stage compiles the pull request's own tree, so the CMake
+                            // custom commands and Rust build scripts in it run here. Holding an
+                            // org-write SSH agent socket in that environment (the previous
+                            // `sshagent` block) let them push branches and tags as the bot.
+                            // The one private cargo dependency is fetched over HTTPS with a
+                            // repository-scoped, short-lived token from the in-cluster broker
+                            // instead: no agent socket, no long-lived key, and the askpass
+                            // helper only answers for the allow-listed Git hosts.
+                            script {
+                                prow.withGitAskPassFromBroker([repo: 'tidbcloud/cloud-storage-engine']) {
+                                    withEnv(['CARGO_NET_GIT_FETCH_WITH_CLI=true']) {
+                                        sh label: "build tiflash", script: """
+                                            cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
+                                            cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
+                                            ccache -s
+                                            ls -alh ${WORKSPACE}/install/tiflash
+                                        """
+                                    }
                                 }
                             }
                         }
