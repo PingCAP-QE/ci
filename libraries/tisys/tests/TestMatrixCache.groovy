@@ -123,11 +123,11 @@ class TestMatrixCache {
         }
 
         @Test
-        void shouldProduceValidMD5HashFormat() {
+        void shouldProduceValidSha256HashFormat() {
             def k = key([org: 'pingcap', repo: 'tidb', base_sha: 'abc123'], 'build', [:])
             assertNotNull('key should not be null', k)
-            assertEquals('MD5 hash should be 32 characters', 32, k.length())
-            assertTrue('MD5 hash should be a hexadecimal string', k ==~ /[a-f0-9]{32}/)
+            assertEquals('SHA-256 hash should be 64 characters', 64, k.length())
+            assertTrue('SHA-256 hash should be a hexadecimal string', k ==~ /[a-f0-9]{64}/)
         }
 
         @Test
@@ -191,7 +191,7 @@ class TestMatrixCache {
         void shouldUseDefaultsWhenRefsAreEmpty() {
             def k = key([:], 'test', [:])
             assertNotNull('empty refs should still produce a key', k)
-            assertTrue('key should be a 32-char hex string', k ==~ /[a-f0-9]{32}/)
+            assertTrue('key should be a 64-char hex string', k ==~ /[a-f0-9]{64}/)
         }
 
         @Test
