@@ -412,7 +412,12 @@ def withCache(Map args, Closure body) {
     }
 }
 
-def uploadCoverageToCodecov(refs, flags = "", file = "") {
+def uploadCoverageToCodecov(refs, flags = "", file = "", credentialsId = 'codecov-token-tidb') {
+    // The token is bound only for the upload step. Pipelines used to put it in
+    // the `environment` block of the stage that runs the pull request's own
+    // build/test scripts, so any contributor could read it (and Codecov upload
+    // tokens allow uploading coverage, and therefore appear as the repository).
+
     // Skip for batch build.
     if (refs.pulls && refs.pulls.size() > 1) {
         return
@@ -423,7 +428,8 @@ def uploadCoverageToCodecov(refs, flags = "", file = "") {
          "--branch origin/${refs.base_ref} --sha ${refs.base_sha}"
     )
 
-    sh label: "upload coverage to codecov", script: """#!/usr/bin/env bash
+    withCredentials([string(credentialsId: credentialsId, variable: 'CODECOV_TOKEN')]) {
+        sh label: "upload coverage to codecov", script: """#!/usr/bin/env bash
         coverageFile=${file}
         if [ -f \$coverageFile ]; then
             # Prefer the codecov binary bundled in the CI base image; download from
@@ -438,8 +444,9 @@ def uploadCoverageToCodecov(refs, flags = "", file = "") {
                 codecov_bin="./codecov"
             fi
             \${codecov_bin} --rootDir . --flags ${flags} --file \${coverageFile} ${codecovGitOptions}
-        fi
-    """
+            fi
+        """
+    }
 }
 
 // send test case run report to cloudevents server

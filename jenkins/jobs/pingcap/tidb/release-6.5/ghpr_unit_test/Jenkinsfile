@@ -40,7 +40,6 @@ pipeline {
             }
         }
         stage('Test') {
-            environment { TIDB_CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
                     sh './build/jenkins_unit_test.sh'

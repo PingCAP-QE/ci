@@ -60,7 +60,6 @@ pipeline {
             }
         }
         stage('Test') {
-            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
                     sh """
@@ -106,7 +105,6 @@ pipeline {
                     return REFS.base_ref != 'master' || REFS.pulls == null || REFS.pulls.size() == 0
                 }
             }
-            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
                     sh(

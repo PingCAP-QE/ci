@@ -104,9 +104,6 @@ pipeline {
                 }
                 stages {
                     stage('Test') {
-                        environment {
-                            CODECOV_TOKEN = credentials('codecov-token-tidb')
-                        }
                         steps {
                             dir(REFS.repo) {
                                 unstash 'ws'
