@@ -9,8 +9,7 @@ FROM $BASE_IMG
 # pull request's own build scripts, which is what the pod policy's
 # runAsUser != 0 rule is meant to prevent.
 RUN groupadd -g 1000 jenkins && \
-    useradd -u 1000 -g 1000 -m -s /bin/bash jenkins && \
-    install -d -o jenkins -g jenkins -m 0755 /var/lib/mysql
+    useradd -u 1000 -g 1000 -m -s /bin/bash jenkins
 
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
