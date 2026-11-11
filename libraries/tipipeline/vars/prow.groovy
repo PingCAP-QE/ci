@@ -232,13 +232,41 @@ def checkoutPrivateRefs(refs, credentialsId, timeout = 5, withSubmodule = false,
         // unnecessary GitHub network call there. Keep host-key setup for
         // direct SSH and non-GitHub SSH hosts.
         if (!env.GIT_CDN_ENABLED?.trim()?.toBoolean() || knownHost != 'github.com') {
-            sh label: 'Know hosts', script: """
-                [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-                ssh-keyscan -t rsa,ecdsa,ed25519 ${knownHost} >> ~/.ssh/known_hosts
-            """
+            seedSshHostKeys(knownHost)
         }
         _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
     }
+}
+
+// Record a host's SSH host keys before the checkout loads the deploy key.
+//
+// `ssh-keyscan` answers from the network: the first answer is trusted without
+// any proof, so a party on the path can supply its own key and then read
+// everything the agent signs with the bot's key. GitHub publishes its host keys
+// over TLS at https://api.github.com/meta; fetch them from there instead and
+// let ssh require a match.
+def seedSshHostKeys(String host) {
+    final safeHost = host?.trim() ?: ''
+    if (!(safeHost ==~ /^[A-Za-z0-9.-]+$/)) {
+        error("refusing to seed SSH host keys for '${host}': not a plain host name")
+    }
+    sh label: "Seed SSH host keys for ${safeHost}", script: """#!/usr/bin/env bash
+        set -eu
+        mkdir -p ~/.ssh && chmod 0700 ~/.ssh
+        keys="\$(mktemp)"
+        curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 30 \
+            https://api.github.com/meta \
+            | tr ',' '\\n' \
+            | grep -oE '"(ssh-[a-z0-9]|ecdsa-sha2)[^"]*"' \
+            | tr -d '"' \
+            | sed 's/^/${safeHost} /' > "\${keys}"
+        if [ ! -s "\${keys}" ]; then
+            echo "ERROR: could not read GitHub's published SSH host keys for ${safeHost}" >&2
+            exit 1
+        fi
+        cat "\${keys}" >> ~/.ssh/known_hosts
+        rm -f "\${keys}"
+    """
 }
 
 def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
@@ -332,8 +360,17 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
             # with the bot's SSH credential. Verify the host key instead of
             # disabling the check: seed it once, then require a match, so a
             # rewritten URL cannot be served by an impostor.
-            mkdir -p ~/.ssh && chmod 700 ~/.ssh
-            ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+            # The CDN path skips the seeding above, but submodules still resolve
+            # to github.com, so seed the published keys here as well.
+            mkdir -p ~/.ssh && chmod 0700 ~/.ssh
+            {
+                curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 30 \
+                    https://api.github.com/meta \
+                    | tr ',' '\\n' \
+                    | grep -oE '"(ssh-[a-z0-9]|ecdsa-sha2)[^"]*"' \
+                    | tr -d '"' \
+                    | sed 's/^/github.com /'
+            } >> ~/.ssh/known_hosts || true
             GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes" git submodule update --init --recursive
             echo "✅ update submodules done"
         fi
