@@ -23,7 +23,7 @@ spec:
                 'pingcap/ticdc',
                 'pingcap/tiflow',
                 'tikv/tikv'
-                'tikv/pd',
+                'tikv/pd'
               ]
             )
             && header.match('X-GitHub-Event', 'pull_request_review')
