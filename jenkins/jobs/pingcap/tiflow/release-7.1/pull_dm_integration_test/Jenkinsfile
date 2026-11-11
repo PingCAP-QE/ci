@@ -193,12 +193,14 @@ pipeline {
                                         set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                     """
                                 }
-                                if (env.TEST_GROUP == 'TLS_GROUP') {
-                                    container('mysql1') {
-                                        sh label: "stage mysql TLS certs", script: """
-                                            cp -f ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
-                                            ls -alh /var/lib/mysql/
-                                        """
+                                script {
+                                    if (env.TEST_GROUP == 'TLS_GROUP') {
+                                        container('mysql1') {
+                                            sh label: "stage mysql TLS certs", script: """
+                                                cp -f ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
+                                                ls -alh /var/lib/mysql/
+                                            """
+                                        }
                                     }
                                 }
                                 sh label: "${TEST_GROUP}", script: """
