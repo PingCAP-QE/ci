@@ -45,7 +45,6 @@ pipeline {
             }
         }
         stage("Checks") {
-            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             // !!! concurrent go builds will encounter conflicts probabilistically.
             steps {
                 dir(REFS.repo) {

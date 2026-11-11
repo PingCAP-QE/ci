@@ -131,9 +131,6 @@ pipeline {
                 stages {
                     stage("Test") {
                         options { timeout(time: 60, unit: 'MINUTES') }
-                        environment {
-                            TICDC_CODECOV_TOKEN = credentials('codecov-token-tiflow')
-                        }
                         steps {
                             dir(REFS.repo) {
                                 unstash name: WORKSPACE_STASH_NAME

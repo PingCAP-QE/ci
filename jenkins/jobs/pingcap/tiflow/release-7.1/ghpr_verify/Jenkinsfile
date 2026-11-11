@@ -40,9 +40,6 @@ pipeline {
                 stages {
                     stage("Test") {
                         options { timeout(time: 40, unit: 'MINUTES') }
-                        environment {
-                            CODECOV_TOKEN = credentials('codecov-token-tiflow')
-                        }
                         steps {
                             dir(REFS.repo) {
                                 script {
@@ -65,7 +62,7 @@ pipeline {
                                         ]
                                         def config = testConfigs[TEST_CMD]
                                         if (config && config.coverage_file) {
-                                            prow.uploadCoverageToCodecov(REFS, config.flags, config.coverage_file)
+                                            prow.uploadCoverageToCodecov(REFS, config.flags, config.coverage_file, 'codecov-token-tiflow')
                                         }
                                     }
                                 }

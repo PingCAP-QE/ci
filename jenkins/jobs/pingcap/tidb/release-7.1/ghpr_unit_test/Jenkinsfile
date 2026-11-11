@@ -40,7 +40,6 @@ pipeline {
             }
         }
         stage('Test') {
-            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
                     sh '''#! /usr/bin/env bash

@@ -56,7 +56,6 @@ pipeline {
             }
         }
         stage('Test') {
-            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
                     sh """
@@ -104,7 +103,6 @@ pipeline {
                     return changesInExtensionDir
                 }
             }
-            environment { CODECOV_TOKEN = credentials('codecov-token-tidb') }
             steps {
                 dir(REFS.repo) {
                     sh(
