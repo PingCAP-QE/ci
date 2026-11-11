@@ -37,16 +37,32 @@ case "${prompt}" in
     *) exit 1 ;;
 esac
 
-# Extract the URL git quotes in the prompt; fall back to the raw prompt for
-# unquoted forms (scp-like `git@host:path` prompts).
-url=$(printf '%s' "${prompt}" | sed -n "s/.*'\([^']*\)'.*/\1/p")
-[ -n "${url}" ] || url="${prompt}"
+# Extract the URL git quotes in the prompt: `... for '<url>': `.
+#
+# A quoted-URL match that scans for the *last* pair of quotes is attacker
+# controlled: a remote whose URL itself contains a `'` makes git print
+#   Password for 'https://evil.example/'https://github.com':
+# and a last-quote match would answer for github.com while git sends the
+# credential to evil.example. Strip the exact prompt wrapper instead, and
+# refuse any URL that still contains a quote — no allow-listed Git host has one
+# in its URL, so a quoted URL is either a bug or that trick.
+url=""
+case "${prompt}" in
+    *" for '"*"': "*)
+        url="${prompt#* for \'}"
+        url="${url%\': *}"
+        ;;
+esac
+if [ -z "${url}" ]; then
+    url="${prompt}"
+fi
 
-# Refuse anything that can hide the real host from the parser below: a query or
-# a fragment can smuggle an `@` that would otherwise look like userinfo.
+# Refuse anything that can hide the real host from the parser below: a quote
+# makes the URL boundary ambiguous, and a query or a fragment can smuggle an
+# `@` that would otherwise look like userinfo.
 case "${url}" in
-    *"?"* | *"#"*)
-        echo "git-askpass: refusing a credential URL with a query or fragment: '${url}'" >&2
+    *"'"* | *"?"* | *"#"* | *' '* | *"	"*)
+        echo "git-askpass: refusing a credential URL with a quote, query, fragment or whitespace: '${url}'" >&2
         exit 1
         ;;
 esac
