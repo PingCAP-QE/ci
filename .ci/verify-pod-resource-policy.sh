@@ -18,28 +18,48 @@ set -euo pipefail
 
 BASE_SHA="${PULL_BASE_SHA:-}"
 HEAD_SHA="${PULL_PULL_SHA:-${PULL_HEAD_SHA:-HEAD}}"
-ALLOWLIST_FILE="${POD_RESOURCE_POLICY_ALLOWLIST_FILE:-.ci/pod-resource-policy-allowlist.txt}"
-TODAY="${POD_RESOURCE_POLICY_TODAY:-$(date -u +%Y-%m-%d)}"
 
 usage() {
   cat <<'USAGE'
 Check changed Pod templates for Guaranteed-QoS memory resources.
 
 Usage:
-  .ci/verify-pod-resource-policy.sh [file ...]
+  .ci/verify-pod-resource-policy.sh [--allowlist FILE] [--today YYYY-MM-DD] [file ...]
 
 With file arguments only those files are checked. Otherwise the Pod templates
 changed in PULL_BASE_SHA..PULL_PULL_SHA are checked (PULL_BASE_SHA defaults to
 HEAD~1).
+
+The allowlist and the expiry clock are command-line options, not environment
+variables, so the inputs the gate trusts are visible in the reviewed job
+definition.
 USAGE
 }
 
-case "${1:-}" in
-  -h | --help)
-    usage
-    exit 0
-    ;;
-esac
+ALLOWLIST_FILE=".ci/pod-resource-policy-allowlist.txt"
+TODAY="$(date -u +%Y-%m-%d)"
+file_args=()
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --allowlist)
+      ALLOWLIST_FILE="${2:?--allowlist needs a file}"
+      shift 2
+      ;;
+    --today)
+      TODAY="${2:?--today needs a date}"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      file_args+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${file_args[@]+"${file_args[@]}"}"
 
 if ! command -v yq >/dev/null 2>&1; then
   echo "ERROR: yq (mikefarah/yq v4) is required" >&2

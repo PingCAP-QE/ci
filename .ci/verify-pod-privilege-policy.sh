@@ -47,28 +47,50 @@ set -euo pipefail
 
 BASE_SHA="${PULL_BASE_SHA:-}"
 HEAD_SHA="${PULL_PULL_SHA:-${PULL_HEAD_SHA:-HEAD}}"
-ALLOWLIST_FILE="${POD_PRIVILEGE_POLICY_ALLOWLIST_FILE:-.ci/pod-privilege-policy-allowlist.txt}"
-TODAY="${POD_PRIVILEGE_POLICY_TODAY:-$(date -u +%Y-%m-%d)}"
 
 usage() {
   cat <<'USAGE'
 Check changed Pod specs for unrecorded privileged access.
 
 Usage:
-  .ci/verify-pod-privilege-policy.sh [file ...]
+  .ci/verify-pod-privilege-policy.sh [--allowlist FILE] [--today YYYY-MM-DD] [file ...]
 
 With file arguments only those files are checked. Otherwise the Pod templates
 and Prow job definitions changed in PULL_BASE_SHA..PULL_PULL_SHA are checked
 (PULL_BASE_SHA defaults to HEAD~1).
+
+The allowlist and the expiry clock are command-line options, not environment
+variables: this gate is the only thing that stops a delegated OWNERS subtree
+from granting itself a namespace-wide Secret or ServiceAccount, so the inputs it
+trusts must be visible in the reviewed job definition rather than set by
+whatever invokes the script.
 USAGE
 }
 
-case "${1:-}" in
-  -h | --help)
-    usage
-    exit 0
-    ;;
-esac
+ALLOWLIST_FILE=".ci/pod-privilege-policy-allowlist.txt"
+TODAY="$(date -u +%Y-%m-%d)"
+file_args=()
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --allowlist)
+      ALLOWLIST_FILE="${2:?--allowlist needs a file}"
+      shift 2
+      ;;
+    --today)
+      TODAY="${2:?--today needs a date}"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      file_args+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${file_args[@]+"${file_args[@]}"}"
 
 if ! command -v yq >/dev/null 2>&1; then
   echo "ERROR: yq (mikefarah/yq v4) is required" >&2
