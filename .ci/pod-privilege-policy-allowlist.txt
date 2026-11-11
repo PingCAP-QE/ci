@@ -100,7 +100,6 @@ secret	^prow\-jobs/pingcap/tiflow/latest\-presubmits\-wip\.yaml$	codecov-tokens	
 secret	^prow\-jobs/pingcap/tiflow/latest\-presubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/pingcap/tiflow/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/pingcap/tiflow/release\-8\.5\-presubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
-secret	^prow\-jobs/pingcap/tiproxy/latest\-presubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/ti\-community\-infra/configs/postsubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/ti\-community\-infra/configs/presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/ti\-community\-infra/periodics\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
