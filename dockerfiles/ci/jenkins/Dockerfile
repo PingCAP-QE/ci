@@ -2,15 +2,14 @@
 ARG BASE_IMG
 FROM $BASE_IMG
 
-# create user jenkins and add it to sudoers.
-# The account is created without a password on purpose: `useradd` leaves it
-# locked in /etc/shadow. Jenkins agents connect over the agent channel, never
-# by logging into the OS, so keep the account locked here.
-RUN --mount=type=cache,target=/var/cache/dnf \
-    dnf install -y sudo
+# create the user jenkins. The account is created without a password on
+# purpose: `useradd` leaves it locked in /etc/shadow, and Jenkins agents connect
+# over the agent channel rather than logging into the OS. The account is NOT in
+# sudoers: a passwordless `sudo` would hand uid 0 inside the container to the
+# pull request's own build scripts, which is what the pod policy's
+# runAsUser != 0 rule is meant to prevent.
 RUN groupadd -g 1000 jenkins && \
-    useradd -u 1000 -g 1000 -m -s /bin/bash jenkins && \
-    echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+    useradd -u 1000 -g 1000 -m -s /bin/bash jenkins
 
 # pulsar permission
 # linux amd64 only

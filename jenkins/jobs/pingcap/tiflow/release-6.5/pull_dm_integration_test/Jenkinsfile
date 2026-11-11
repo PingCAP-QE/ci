@@ -194,18 +194,6 @@ pipeline {
                                     chmod +x ../scripts/pingcap/tiflow/release-6.5/dm_run_group.sh
                                     cp ../scripts/pingcap/tiflow/release-6.5/dm_run_group.sh dm/tests/
 
-                                    if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
-                                        echo "run tls test"
-                                        echo "copy mysql certs"
-                                        sudo mkdir -p /var/lib/mysql
-                                        sudo chmod 777 /var/lib/mysql
-                                        sudo chown -R 1000:1000 /var/lib/mysql
-                                        sudo cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
-                                        sudo chown -R 1000:1000 /var/lib/mysql/*
-                                        ls -alh /var/lib/mysql/
-                                    else
-                                        echo "run ${TEST_GROUP} test"
-                                    fi
                                     export PATH=/usr/local/go/bin:\$PATH
                                     mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
                                     echo "install python requirments for test"
