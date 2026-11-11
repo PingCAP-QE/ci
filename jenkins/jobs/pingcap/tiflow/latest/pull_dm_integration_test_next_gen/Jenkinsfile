@@ -159,11 +159,10 @@ pipeline {
                                     if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
                                         echo "run tls test"
                                         echo "copy mysql certs"
-                                        sudo mkdir -p /var/lib/mysql
-                                        sudo chmod 777 /var/lib/mysql
-                                        sudo chown -R 1000:1000 /var/lib/mysql
-                                        sudo cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
-                                        sudo chown -R 1000:1000 /var/lib/mysql/*
+                                        # /var/lib/mysql is created and owned by the
+                                        # jenkins user in the CI image, so the TLS
+                                        # fixtures need no root.
+                                        cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
                                         ls -alh /var/lib/mysql/
                                     else
                                         echo "run ${TEST_GROUP} test"
