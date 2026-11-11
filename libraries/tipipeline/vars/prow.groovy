@@ -317,7 +317,13 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
         git clean -ffdx
         if [ "${withSubmodule}" == "true" ]; then
             echo "📁 update submodules ..."
-            GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git submodule update --init --recursive
+            # Submodule URLs come from the pull request's tree, and the fetch runs
+            # with the bot's SSH credential. Verify the host key instead of
+            # disabling the check: seed it once, then require a match, so a
+            # rewritten URL cannot be served by an impostor.
+            mkdir -p ~/.ssh && chmod 700 ~/.ssh
+            ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+            GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes" git submodule update --init --recursive
             echo "✅ update submodules done"
         fi
 
