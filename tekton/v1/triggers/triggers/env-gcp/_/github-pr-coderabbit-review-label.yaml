@@ -20,6 +20,9 @@ spec:
               )
               || body.repository.full_name in [
                 'pingcap/tiflash',
+                'pingcap/ticdc',
+                'pingcap/tiflow',
+                'tikv/tikv',
                 'tikv/pd'
               ]
             )
