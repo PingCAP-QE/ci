@@ -28,8 +28,8 @@ spec:
             extensions.build.product == body.repository.name &&
             header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.pull_request' &&
             header.canonical('ce-paramPlatform') in ['linux/amd64', 'linux/arm64']) :
-            (body.repository.full_name in ['pingcap-inc/tici', 'pingcap-inc/enterprise-plugin', 'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard', 'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy', 'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv'] &&
-            (extensions.build.product == body.repository.name || (body.repository.name == 'cloud-storage-engine' && extensions.build.product == 'tikv') || (body.repository.name == 'tiflash-cse' && extensions.build.product == 'tiflash')) &&
+            (body.repository.full_name in ['pingcap-inc/tici', 'pingcap-inc/enterprise-plugin', 'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/ticse', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard', 'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy', 'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv'] &&
+            (extensions.build.product == body.repository.name || (body.repository.full_name in ['tidbcloud/cloud-storage-engine', 'pingcap/ticse'] && extensions.build.product == 'tikv') || (body.repository.name == 'tiflash-cse' && extensions.build.product == 'tiflash')) &&
             header.canonical('ce-paramPlatform') in ['linux/amd64', 'linux/arm64'])
         - name: overlays
           value:
@@ -131,7 +131,7 @@ spec:
                     'cpu': '12',
                     'memory': '56Gi'
                   }
-                }[extensions.build.serverless ? extensions.build.product : body.repository.name]
+                }[extensions.build.serverless ? extensions.build.product : body.repository.full_name == 'pingcap/ticse' ? 'cloud-storage-engine' : body.repository.name]
             - key: custom-params
               expression: >-
                 {
@@ -149,9 +149,10 @@ spec:
               expression: >-
                 extensions.build.serverless ?
                 extensions.build.product :
-                body.repository.full_name.startsWith('tidbcloud/') ? {
+                (body.repository.full_name.startsWith('tidbcloud/') || body.repository.full_name == 'pingcap/ticse') ? {
                   'tidbcloud/tiflash-cse': 'tiflash',
                   'tidbcloud/cloud-storage-engine': 'tikv',
+                  'pingcap/ticse': 'tikv',
                 }[body.repository.full_name]
                 : body.repository.name
             - key: registry

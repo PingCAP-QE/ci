@@ -17,6 +17,7 @@ spec:
           value: >-
             body.repository.full_name in [
             'pingcap/ticdc',
+            'pingcap/ticse',
             'pingcap/tidb',
             'pingcap/tiflash',
             'pingcap/tiflow',
@@ -73,10 +74,10 @@ spec:
                     'cpu': '12',
                     'memory': '48Gi',
                   },
-                }[body.repository.full_name]
+                }[body.repository.full_name == 'pingcap/ticse' ? 'tidbcloud/cloud-storage-engine' : body.repository.full_name]
             - key: component
               expression: >-
-                body.repository.full_name == 'tidbcloud/cloud-storage-engine'
+                body.repository.full_name in ['tidbcloud/cloud-storage-engine', 'pingcap/ticse']
                 ?
                 'tikv'
                 :

@@ -11,8 +11,8 @@ spec:
       params:
         - name: filter
           value: >-
-            (body.repository.full_name in ['pingcap-inc/tici', 'pingcap-inc/enterprise-plugin', 'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard', 'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy', 'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv'] &&
-            ((header.canonical('ce-paramProduct') == '' || header.canonical('ce-paramProduct') == body.repository.name) || (body.repository.name == 'cloud-storage-engine' && header.canonical('ce-paramProduct') == 'tikv') || (body.repository.name == 'tiflash-cse' && header.canonical('ce-paramProduct') == 'tiflash')) &&
+            (body.repository.full_name in ['pingcap-inc/tici', 'pingcap-inc/enterprise-plugin', 'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/ticse', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard', 'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy', 'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv'] &&
+            ((header.canonical('ce-paramProduct') == '' || header.canonical('ce-paramProduct') == body.repository.name) || (body.repository.full_name in ['tidbcloud/cloud-storage-engine', 'pingcap/ticse'] && header.canonical('ce-paramProduct') == 'tikv') || (body.repository.name == 'tiflash-cse' && header.canonical('ce-paramProduct') == 'tiflash')) &&
             body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$') &&
             ! (header.canonical('ce-paramPlatform') in [
               'linux/amd64',
@@ -115,7 +115,7 @@ spec:
                     'cpu': '12',
                     'memory': '56Gi'
                   }
-                }[body.repository.name]
+                }[body.repository.full_name == 'pingcap/ticse' ? 'cloud-storage-engine' : body.repository.name]
             - key: custom-params
               expression: >-
                 {
@@ -129,9 +129,10 @@ spec:
                 }
             - key: component
               expression: >-
-                body.repository.full_name.startsWith('tidbcloud/') ? {
+                (body.repository.full_name.startsWith('tidbcloud/') || body.repository.full_name == 'pingcap/ticse') ? {
                   'tidbcloud/tiflash-cse': 'tiflash',
                   'tidbcloud/cloud-storage-engine': 'tikv',
+                  'pingcap/ticse': 'tikv',
                 }[body.repository.full_name]
                 : body.repository.name
             - key: registry

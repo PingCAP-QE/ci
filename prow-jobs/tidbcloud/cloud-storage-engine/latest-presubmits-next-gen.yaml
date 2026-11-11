@@ -14,7 +14,7 @@ global_definitions:
 
 # struct ref: https://pkg.go.dev/sigs.k8s.io/prow/pkg/config#Presubmit
 presubmits:
-  tidbcloud/cloud-storage-engine:
+  tidbcloud/cloud-storage-engine: &next_gen_presubmits
     - <<: [*brancher, *jenkins_job]
       name: tidbcloud/cloud-storage-engine/pull_integration_realcluster_test_next_gen
       labels:
@@ -24,3 +24,4 @@ presubmits:
       context: pull-integration-realcluster-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-integration-realcluster-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-integration-realcluster-test-next-gen"
+  pingcap/ticse: *next_gen_presubmits

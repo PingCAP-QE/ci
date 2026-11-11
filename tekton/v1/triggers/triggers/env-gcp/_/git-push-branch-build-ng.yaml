@@ -21,6 +21,7 @@ spec:
                 'pingcap/tiproxy',
                 'tidbcloud/cloud-storage-engine',
                 'tikv/pd',
+                'pingcap/ticse',
               ] && body.ref.matches('^refs/heads/(release-nextgen-[0-9]+|release-nextgen-[0-9]+[.][0-9]+[.][0-9]+-[0-9]{8}|feature/tidb-zero)$')
             ) || (
               body.repository.full_name in [
@@ -33,6 +34,7 @@ spec:
             ) || (
               body.repository.full_name in [
                 'tidbcloud/cloud-storage-engine',
+                'pingcap/ticse',
               ] && body.ref.matches('^refs/heads/(dedicated|cloud-engine)$')
             ) || (
               body.repository.full_name in [
@@ -87,10 +89,10 @@ spec:
                     'cpu': '12',
                     'memory': '48Gi',
                   },
-                }[body.repository.full_name]
+                }[body.repository.full_name == 'pingcap/ticse' ? 'tidbcloud/cloud-storage-engine' : body.repository.full_name]
             - key: component
               expression: >-
-                body.repository.full_name == 'tidbcloud/cloud-storage-engine'
+                body.repository.full_name in ['tidbcloud/cloud-storage-engine', 'pingcap/ticse']
                 ?
                 'tikv'
                 :
