@@ -45,17 +45,22 @@ git add -A
 git commit -q -m base
 base_sha="$(git rev-parse HEAD)"
 
-# The PR widens the pod and neuters the gate it would be judged by.
-python3 - <<'PY'
-import pathlib
-p = pathlib.Path("jenkins/jobs/example/repo/latest/demo/pod.yaml")
-t = p.read_text().replace(
-    "    - name: runner\n      image:",
-    "    - name: runner\n      securityContext:\n        privileged: true\n      image:",
-)
-p.write_text(t)
-pathlib.Path(".ci/verify-pod-privilege-policy.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
-PY
+# The PR widens the pod and neuters the gate it would be judged by. Write the
+# files directly instead of editing them with python: the presubmit image is
+# alpine and only guarantees bash/sed/git.
+cat >jenkins/jobs/example/repo/latest/demo/pod.yaml <<'YAML'
+apiVersion: v1
+kind: Pod
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: runner
+      securityContext:
+        privileged: true
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.22-4-gd9d1135
+YAML
+printf '#!/usr/bin/env bash\nexit 0\n' >.ci/verify-pod-privilege-policy.sh
+
 git add -A
 git commit -q -m "widen pod and neuter gate"
 
