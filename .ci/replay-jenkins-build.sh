@@ -359,8 +359,8 @@ enforce_pod_policy() {
 
     vlog "checking pod policy for ${#rel_paths[@]} template(s) under ${dir}"
     local policy_rc=0
-    POD_PRIVILEGE_POLICY_ALLOWLIST_FILE="${policy_dir}/pod-privilege-policy-allowlist.txt" \
-        bash "${policy_dir}/verify-pod-privilege-policy.sh" "${rel_paths[@]}" || policy_rc=1
+    bash "${policy_dir}/verify-pod-privilege-policy.sh" \
+        --allowlist "${policy_dir}/pod-privilege-policy-allowlist.txt" "${rel_paths[@]}" || policy_rc=1
     if [[ "${policy_rc}" -eq 0 ]]; then
         sh "${policy_dir}/verify-k8s-pod-yaml.sh" "${rel_paths[@]}" || policy_rc=1
     fi
