@@ -228,6 +228,39 @@ class TestProw {
             assertTrue(
                 events.every { !it.contains('ssh-keyscan') })
         }
+
+        @Test
+        void shouldSeedGithubHostKeysFromThePublishedList() {
+            def events = []
+            def script = loadProw(
+                env: [:],
+                sshagent: { Map args, Closure body -> body() },
+                sh: { Map args -> events << (args.script ?: '').toString() },
+            )
+
+            script.checkoutPrivateRefs(refs(), 'github-bot-ssh', 7, false, 'github.com')
+
+            def seed = events.find { it.contains('api.github.com/meta') }
+            assertNotNull('host keys must come from the published list', seed)
+            assertTrue('every key is recorded for the host', seed.contains("sed 's/^/github.com /'"))
+            assertFalse('no trust-on-first-use scan', events.any { it.contains('ssh-keyscan') })
+        }
+
+        @Test
+        void shouldRefuseANonPlainHostName() {
+            def script = loadProw(
+                env: [:],
+                sshagent: { Map args, Closure body -> body() },
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.seedSshHostKeys('github.com; rm -rf /')
+                fail('expected the host name to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('not a plain host name'))
+            }
+        }
     }
 
     static class AskPass {
