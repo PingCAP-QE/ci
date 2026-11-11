@@ -101,14 +101,16 @@ pipeline {
                             // repository-scoped, short-lived token from the in-cluster broker
                             // instead: no agent socket, no long-lived key, and the askpass
                             // helper only answers for the allow-listed Git hosts.
-                            prow.withGitAskPassFromBroker([repo: 'tidbcloud/cloud-storage-engine']) {
-                                withEnv(['CARGO_NET_GIT_FETCH_WITH_CLI=true']) {
-                                    sh label: "build tiflash", script: """
-                                        cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
-                                        cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
-                                        ccache -s
-                                        ls -alh ${WORKSPACE}/install/tiflash
-                                    """
+                            script {
+                                prow.withGitAskPassFromBroker([repo: 'tidbcloud/cloud-storage-engine']) {
+                                    withEnv(['CARGO_NET_GIT_FETCH_WITH_CLI=true']) {
+                                        sh label: "build tiflash", script: """
+                                            cmake --build '${WORKSPACE}/build' --target tiflash --parallel ${PARALLELISM}
+                                            cmake --install '${WORKSPACE}/build' --component=tiflash-release --prefix='${WORKSPACE}/install/tiflash'
+                                            ccache -s
+                                            ls -alh ${WORKSPACE}/install/tiflash
+                                        """
+                                    }
                                 }
                             }
                         }
