@@ -269,10 +269,32 @@ def seedSshHostKeys(String host) {
     """
 }
 
+// Every job in this repository lives in `<org>/<repo>/<branch>/<job>` and is
+// bound to that repository's credential, but the repository actually cloned comes
+// from JOB_SPEC. Refuse a JOB_SPEC that names a different repository: otherwise a
+// job could be pointed at another repository while still holding this one's
+// credential.
+def assertRefsMatchJob(refs) {
+    final jobName = env.JOB_NAME?.trim()
+    if (!jobName) {
+        return
+    }
+    final parts = jobName.split('/')
+    if (parts.length < 4) {
+        return
+    }
+    final expected = "${parts[0]}/${parts[1]}"
+    final actual = "${refs?.org}/${refs?.repo}"
+    if (!expected.equalsIgnoreCase(actual)) {
+        error("refusing to check out ${actual}: job ${jobName} is bound to ${expected}")
+    }
+}
+
 def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     // These values come from JOB_SPEC and end up in a shell script. Reject
     // anything that is not a git object name or a plain branch name so a
     // crafted value cannot turn into shell syntax.
+    assertRefsMatchJob(refs)
     final shaPattern = /^[0-9a-f]{7,40}$/
     final refPattern = /^[A-Za-z0-9._\/-]+$/
     // The organization and repository are interpolated into the remote URL and

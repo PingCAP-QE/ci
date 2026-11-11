@@ -14,6 +14,11 @@ import static org.junit.Assert.*
 class TestProw {
     private static def loadProw(Map steps = [:]) {
         def binding = new Binding()
+        // `env` is a Jenkins global; give the script an empty one unless a test
+        // wants specific values.
+        if (!steps.containsKey('env')) {
+            binding.setVariable('env', [:])
+        }
         steps.each { name, value -> binding.setVariable(name, value) }
         new GroovyShell(binding).parse(
             new File("libraries/tipipeline/vars/prow.groovy"))
@@ -156,6 +161,34 @@ class TestProw {
             } catch (IllegalStateException expected) {
                 assertTrue(expected.message.contains('not a git object name'))
             }
+        }
+
+        @Test
+        void shouldRefuseARefsRepoThatDiffersFromTheJobFolder() {
+            def script = loadProw(
+                env: [JOB_NAME: 'pingcap/tidb/latest/ghpr_build'],
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutPublicRefs(refs() + [repo: 'tiflow'], 7, false, 'https://github.example')
+                fail('expected the mismatched repository to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('is bound to pingcap/tidb'))
+            }
+        }
+
+        @Test
+        void shouldAcceptARefsRepoThatMatchesTheJobFolderIgnoringCase() {
+            def events = []
+            def script = loadProw(
+                env: [JOB_NAME: 'pingcap-qe/tidb-test/latest/pull_unit_test'],
+                sh: { Map args -> events << args })
+
+            script.checkoutPublicRefs(
+                refs() + [org: 'PingCAP-QE', repo: 'tidb-test'], 7, false, 'https://github.example')
+
+            assertEquals('one checkout shell call', 1, events.size())
         }
 
         @Test
