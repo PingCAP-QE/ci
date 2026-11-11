@@ -1,3 +1,4 @@
+# canary: re-check the six policy gates after #5522
 apiVersion: v1
 kind: Pod
 spec:
