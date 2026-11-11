@@ -1,3 +1,4 @@
+# canary: verify the six policy gates on the fixed runner
 apiVersion: v1
 kind: Pod
 spec:
