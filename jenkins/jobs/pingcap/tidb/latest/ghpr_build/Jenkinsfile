@@ -32,18 +32,12 @@ pipeline {
                     }
                 }
             }
-            post {
-                always { reportDiskUsage() }
-            }
         }
         stage('Prepare bazel workspace') {
             steps {
                 dir(REFS.repo) {
                     script { bazel.prepareWorkspace() }
                 }
-            }
-            post {
-                always { reportDiskUsage() }
             }
         }
         stage("Build tidb-server community edition"){
@@ -53,7 +47,6 @@ pipeline {
                 }
             }
             post {
-                always { reportDiskUsage() }
                 failure {
                     dir(REFS.repo) {
                         archiveArtifacts(artifacts: 'importer.log,tidb-server-check.log', allowEmptyArchive: true)
@@ -66,9 +59,6 @@ pipeline {
                 dir(REFS.repo) {
                     sh "make enterprise-prepare enterprise-server-build && ./bin/tidb-server -V"
                 }
-            }
-            post {
-                always { reportDiskUsage() }
             }
         }
         stage("Test plugin") {
@@ -103,16 +93,6 @@ pipeline {
                     killall -9 -r tidb-server
                 """
             }
-            post {
-                always { reportDiskUsage() }
-            }
         }
     }
-}
-
-def reportDiskUsage() {
-    // Diagnostics must not change the build result if a directory is unavailable.
-    sh label: 'Report directory sizes', returnStatus: true, script: '''#!/bin/sh
-        du -x -s -BG "${WORKSPACE}" "${HOME}/.cache" /tmp || true
-    '''
 }
