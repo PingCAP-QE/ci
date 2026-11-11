@@ -16,4 +16,10 @@ secret_echo	^libraries/tipipeline/resources/scripts/git_askpass\.sh$
 hardcoded_literal	^\.ci/test-verify-jenkins-credential-policy\.sh$
 secret_echo	^\.ci/test-verify-jenkins-credential-policy\.sh$
 
+# The client-go presubmits run a throwaway MinIO sidecar that the integration
+# tests talk to over localhost. `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` are the
+# vendor's published defaults for that sidecar, not a credential: the instance
+# lives for the length of one pod, is reachable only from inside it, and holds
+# only the test's own fixtures. Everything else in these jobs (the ServiceAccount
+# token, the pull-request code boundary) is governed by the pod policy.
 secret_env_plain_value	^prow-jobs/tikv/client-go/latest-presubmits-nextgen\.yaml$
