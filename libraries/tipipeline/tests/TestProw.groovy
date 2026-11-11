@@ -172,6 +172,36 @@ class TestProw {
                 assertTrue(expected.message.contains('not a plain branch name'))
             }
         }
+
+        @Test
+        void shouldRefuseAnOrgNameThatIsNotPlain() {
+            def script = loadProw(
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutPublicRefs(
+                    refs() + [org: 'pingcap/../evil'], 7, false, 'https://github.example')
+                fail('expected the org name to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('not a plain GitHub organization name'))
+            }
+        }
+
+        @Test
+        void shouldRefuseARepoNameThatIsNotPlain() {
+            def script = loadProw(
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutPublicRefs(
+                    refs() + [repo: 'tidb$(id)'], 7, false, 'https://github.example')
+                fail('expected the repo name to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('not a plain GitHub repository name'))
+            }
+        }
     }
 
     static class PrivateCheckout {

@@ -247,6 +247,17 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     // crafted value cannot turn into shell syntax.
     final shaPattern = /^[0-9a-f]{7,40}$/
     final refPattern = /^[A-Za-z0-9._\/-]+$/
+    // The organization and repository are interpolated into the remote URL and
+    // then into the shell, and the checkout runs with a credential scoped to
+    // this repository. Neither name may contain a separator, whitespace or any
+    // other character that could point the fetch somewhere else.
+    final namePattern = /^[A-Za-z0-9._-]+$/
+    if (!(refs.org?.toString()?.trim() ==~ namePattern)) {
+        error("refusing to check out: org '${refs.org}' is not a plain GitHub organization name")
+    }
+    if (!(refs.repo?.toString()?.trim() ==~ namePattern)) {
+        error("refusing to check out: repo '${refs.repo}' is not a plain GitHub repository name")
+    }
     if (!(refs.base_sha?.trim() ==~ shaPattern)) {
         error("refusing to check out: base sha '${refs.base_sha}' is not a git object name")
     }
