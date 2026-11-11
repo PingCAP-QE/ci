@@ -190,21 +190,18 @@ pipeline {
                                         set +e && for i in {1..90}; do mysqladmin ping -h127.0.0.1 -P 3307 -p123456 -uroot --silent; if [ \$? -eq 0 ]; then set -e; break; else if [ \$i -eq 90 ]; then set -e; exit 2; fi; sleep 2; fi; done
                                     """
                                 }
+                                if (env.TEST_GROUP == 'TLS_GROUP') {
+                                    container('mysql1') {
+                                        sh label: "stage mysql TLS certs", script: """
+                                            cp -f ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
+                                            ls -alh /var/lib/mysql/
+                                        """
+                                    }
+                                }
                                 sh label: "${TEST_GROUP}", script: """
                                     chmod +x ../scripts/pingcap/tiflow/release-6.5/dm_run_group.sh
                                     cp ../scripts/pingcap/tiflow/release-6.5/dm_run_group.sh dm/tests/
 
-                                    if [ "TLS_GROUP" == "${TEST_GROUP}" ] ; then
-                                        echo "run tls test"
-                                        echo "copy mysql certs"
-                                        # /var/lib/mysql is created and owned by the
-                                        # jenkins user in the CI image, so the TLS
-                                        # fixtures need no root.
-                                        cp -r ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
-                                        ls -alh /var/lib/mysql/
-                                    else
-                                        echo "run ${TEST_GROUP} test"
-                                    fi
                                     export PATH=/usr/local/go/bin:\$PATH
                                     mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
                                     echo "install python requirments for test"
