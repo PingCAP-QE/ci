@@ -1,3 +1,4 @@
+# canary: exercises the base-revision policy gates
 apiVersion: v1
 kind: Pod
 spec:
