@@ -87,12 +87,6 @@ presubmits:
                   codecov -f coverage.dat -F unit -r "pingcap/tiproxy" -C "${PULL_PULL_SHA}" -B "${PULL_BASE_REF}" --pr "${PULL_NUMBER}" -Z || true
                 fi
                 exit ${test_rc}
-            env:
-              - name: CODECOV_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: codecov-tokens
-                    key: pingcap-tiproxy
             resources:
               requests:
                 memory: 12Gi
