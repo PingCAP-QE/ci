@@ -29,8 +29,9 @@ RUN if [ "$(arch)" = "x86_64" ]; then \
     echo 'baseurl=https://repo.mysql.com/yum/mysql-5.7-community/el/7/$basearch/' >> /etc/yum.repos.d/mysql57.repo && \
     echo 'enabled=1' >> /etc/yum.repos.d/mysql57.repo && \
     echo 'gpgcheck=1' >> /etc/yum.repos.d/mysql57.repo && \
-    echo 'gpgkey=https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 https://repo.mysql.com/RPM-GPG-KEY-mysql' >> /etc/yum.repos.d/mysql57.repo && \
+    echo 'gpgkey=https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 https://repo.mysql.com/RPM-GPG-KEY-mysql' >> /etc/yum.repos.d/mysql57.repo && \
     rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 && \
+    rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 && \
     rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql && \
     dnf install -y mysql-community-server && \
     dnf clean all && \
