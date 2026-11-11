@@ -65,7 +65,9 @@ git cat-file -e "${base}^{commit}" 2>/dev/null || {
   exit 1
 }
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The presubmit materialises this runner into $TMPDIR and runs it from there, so
+# the repository has to come from git rather than from the script's own path.
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "${repo_root}"
 
 # Materialise the base copy inside `.ci/` so the gate keeps resolving the
