@@ -32,7 +32,6 @@ automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_check2/pod\.yaml$	<p
 automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_unit_test/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
 automount	^jenkins/jobs/pingcap-inc/tidb/release\-8\.5/pull_unit_test_ddlv1/pod\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
 automount	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/dedicated/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
-automount	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	<pod>	2026-12-31	checkout mints a broker token; the Pod ServiceAccount is the caller identity
 
 # --- privileged containers: docker-in-docker and kind (a real requirement) ---
 privileged	^jenkins/jobs/pingcap/tiflash/latest/pull_integration_next_gen/pod\-test\.yaml$	dockerd	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
@@ -63,7 +62,6 @@ privileged	^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_check2/pod\.yaml$	
 privileged	^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_unit_test/pod\.yaml$	golang	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^jenkins/jobs/pingcap\-inc/tidb/release\-8\.5/pull_unit_test_ddlv1/pod\.yaml$	golang	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/dedicated/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
-privileged	^jenkins/jobs/tidbcloud/cloud\-storage\-engine/latest/pull_integration_realcluster_test_next_gen/pod\-test\.yaml$	golang	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^prow\-jobs/pingcap/tidb\-operator/latest\-presubmits\.yaml$	dind-daemon	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^prow\-jobs/pingcap/tidb\-operator/release\-1\.x\-presubmits\.yaml$	dind-daemon	2027-05-31	dind sidecar: docker-in-docker needs privileged to create containers and mount storage
 privileged	^prow\-jobs/ti\-community\-infra/prow/presubmits\.yaml$	<unnamed>	2027-05-31	image builder: builds container images in-cluster and needs privileged for the container runtime
