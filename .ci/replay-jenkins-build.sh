@@ -180,11 +180,103 @@ resolve_pod_template_file() {
     printf '%s' "$pod_file"
 }
 
+# Print the repo-relative pod templates the replayed script would hand to
+# Jenkins, so the policy inspects the YAML Jenkins will actually read rather
+# than only the files that happen to sit beside the Jenkinsfile.
+#
+# `yamlFile VAR`, `yaml VAR` and `yaml pod_label.withCiLabels(VAR, ...)` are the
+# shapes the job folders use, and each resolves through a `final/def VAR =
+# '<path>'` declaration. Anything else — a literal `yaml """..."""`, a computed
+# spec — cannot be validated, and a reference that does not resolve to a
+# `jenkins/jobs/.../pod*.yaml` file is either a mistake or an attempt to get an
+# unchecked template onto a credentialed build.
+#
+# On a reference it cannot validate the function explains why on stderr and
+# returns 1; the caller turns that into a hard failure.
+collect_referenced_pod_files() {
+    local script_file="$1"
+    local dir
+    dir="$(dirname "$script_file")"
+
+    local decl_re="^[[:space:]]*(final|def)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*[\"']([^\"']+\.ya?ml)[\"'][[:space:]]*\$"
+    # Match anywhere on the line: a PR can write `kubernetes { yamlFile POD }`
+    # on a single line, and the fence has to see that too. Only full-line `//`
+    # comments are skipped.
+    local yamlfile_re="yamlFile[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)"
+    local cilabels_re="yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*([A-Za-z_][A-Za-z0-9_]*)"
+    local yamlvar_re="yaml[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*(#.*)?\$"
+    local anyyaml_re="yaml[[:space:]]"
+
+    local -a decl_vars=()
+    local -a decl_paths=()
+    local line
+    while IFS= read -r line; do
+        if [[ "$line" =~ $decl_re ]]; then
+            decl_vars+=("${BASH_REMATCH[2]}")
+            decl_paths+=("${BASH_REMATCH[3]}")
+        fi
+    done < "$script_file"
+
+    local i want path candidate rel trimmed
+    while IFS= read -r line; do
+        trimmed="${line#"${line%%[![:space:]]*}"}"
+        case "${trimmed}" in
+            "//"*) continue ;;
+        esac
+        local var=""
+        if [[ "$line" =~ $yamlfile_re ]]; then
+            var="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $cilabels_re ]]; then
+            var="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $yamlvar_re ]]; then
+            var="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $anyyaml_re ]]; then
+            echo "${script_file}: agent pod spec is not a reference to a pod template file ('$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')'); the pod-policy fence cannot validate it" >&2
+            return 1
+        fi
+        [[ -n "$var" ]] || continue
+
+        path=""
+        for (( i = 0; i < ${#decl_vars[@]}; i++ )); do
+            if [[ "${decl_vars[$i]}" == "$var" ]]; then
+                path="${decl_paths[$i]}"
+                break
+            fi
+        done
+        if [[ -z "$path" ]]; then
+            echo "${script_file}: uses '${var}' as its agent pod template but does not declare it; the pod-policy fence cannot validate it" >&2
+            return 1
+        fi
+
+        if [[ "$path" == *'$'* ]]; then
+            candidate="${dir}/${path##*/}"
+        elif [[ "$path" == jenkins/* ]]; then
+            candidate="$path"
+        else
+            candidate="${dir}/${path}"
+        fi
+        if [[ ! -f "$candidate" ]]; then
+            echo "${script_file}: agent pod template '${var}' resolves to '${candidate}', which does not exist; the pod-policy fence cannot validate it" >&2
+            return 1
+        fi
+        rel="${candidate#./}"
+        if [[ "$rel" == "$PWD"/* ]]; then
+            rel="${rel#"$PWD"/}"
+        fi
+        if [[ ! "$rel" =~ ^jenkins/jobs/[^/]+/[^/]+/[^/]+/[^/]+/pod[^/]*\.ya?ml$ ]]; then
+            echo "${script_file}: agent pod template '${var}' resolves to '${rel}', which is outside a jenkins/jobs job folder; the pod-policy fence can only validate those" >&2
+            return 1
+        fi
+        printf '%s\n' "$rel"
+    done < "$script_file"
+}
+
 # Replay hands a PR-authored Pod template to Jenkins with CI credentials, so the
 # template must pass the same policy as a committed one before anything is
 # scheduled. Every `pod*.yaml` beside the Jenkinsfile is checked, because the
 # pipeline may declare more than one template and a replay could reference any
-# of them.
+# of them; the templates the script declares are resolved and checked as well,
+# so a reference outside the sibling set cannot dodge the check.
 enforce_pod_policy() {
     local script_file="$1"
     local dir
@@ -195,6 +287,29 @@ enforce_pod_policy() {
     while IFS= read -r pod_file; do
         [[ -n "$pod_file" ]] && pod_files+=("$pod_file")
     done < <(find "$dir" -maxdepth 1 -type f -name 'pod*.yaml' | LC_ALL=C sort)
+
+    local refs_file
+    refs_file="$(mktemp)"
+    local rc=0
+    collect_referenced_pod_files "$script_file" > "$refs_file" || rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+        rm -f "$refs_file"
+        fatal "refusing to replay ${script_file}: its agent pod template cannot be validated by the pod-policy fence"
+    fi
+
+    local line ref seen
+    while IFS= read -r line; do
+        [[ -n "$line" ]] || continue
+        seen=false
+        for pod_file in "${pod_files[@]+"${pod_files[@]}"}"; do
+            if [[ "${pod_file#./}" == "${line#./}" ]]; then
+                seen=true
+                break
+            fi
+        done
+        [[ "$seen" == "true" ]] || pod_files+=("$line")
+    done < "$refs_file"
+    rm -f "$refs_file"
 
     if (( ${#pod_files[@]} == 0 )); then
         return 0
