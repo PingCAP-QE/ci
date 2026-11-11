@@ -180,7 +180,7 @@ pipeline {
                                     """
                                 }
                                 script {
-                                    if (env.TEST_GROUP == 'TLS_GROUP') {
+                                    if ("${TEST_GROUP}" == 'TLS_GROUP') {
                                         container('mysql1') {
                                             sh label: "stage mysql TLS certs", script: """
                                                 cp -f ${WORKSPACE}/mysql-ssl/*.pem /var/lib/mysql/
