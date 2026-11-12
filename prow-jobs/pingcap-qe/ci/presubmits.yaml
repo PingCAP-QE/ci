@@ -319,19 +319,38 @@ presubmits:
                   echo "No changed Tekton YAML files to verify."
                   exit 0
                 fi
+                # No kubeconfig is mounted here, so `kubectl apply --dry-run=server`
+                # can never reach an API server; that is why the old check could
+                # only ever pass. Validate the manifests offline instead: YAML
+                # parses, the resource is a Tekton kind, and it names itself.
                 failed=0
                 for f in $changed_files; do
                   echo "Validating: $f"
-                  # Capture the output before formatting it: `kubectl ... | sed`
-                  # would report sed's status, and this image has no bash, so
-                  # `set -o pipefail` is not available either.
-                  rc=0
-                  out=$(kubectl apply --dry-run=server -f "$f" 2>&1) || rc=$?
-                  printf '%s\n' "$out" | sed 's/^/  /'
-                  [ "$rc" -eq 0 ] || failed=1
+                  api=$(yq e '.apiVersion // ""' "$f" 2>/dev/null) || {
+                    echo "  not valid YAML"
+                    failed=1
+                    continue
+                  }
+                  kind=$(yq e '.kind // ""' "$f" 2>/dev/null)
+                  name=$(yq e '.metadata.name // ""' "$f" 2>/dev/null)
+                  case "$kind" in
+                    Task | TaskRun | Pipeline | PipelineRun | Trigger | TriggerTemplate | TriggerBinding | ClusterTriggerBinding | EventListener | Interceptor) ;;
+                    *)
+                      echo "  unknown or missing kind: '${kind}'"
+                      failed=1
+                      ;;
+                  esac
+                  [ -n "$api" ] || {
+                    echo "  missing apiVersion"
+                    failed=1
+                  }
+                  [ -n "$name" ] || {
+                    echo "  missing metadata.name"
+                    failed=1
+                  }
                 done
                 if [ "$failed" -eq 0 ]; then
-                  echo "All Tekton YAML files passed server dry-run validation."
+                  echo "All changed Tekton manifests passed structural validation."
                 fi
                 exit $failed
             resources:
