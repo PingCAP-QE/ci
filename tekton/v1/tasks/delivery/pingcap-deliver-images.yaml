@@ -40,7 +40,7 @@ spec:
       default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
     - name: generator-script-url
       description: URL of the generator script (legacy mode only)
-      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@01c93d68ad2cd20d87a39ae1102f96e941234879/packages/scripts/gen-delivery-image-commands.ts
     - name: retries
       description: Number of retries for image delivery step (legacy mode only)
       default: "3"

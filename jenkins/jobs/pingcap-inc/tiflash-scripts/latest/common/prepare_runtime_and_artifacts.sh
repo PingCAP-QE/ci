@@ -101,7 +101,7 @@ if [[ -z "${oci_script}" && -n "${WORKSPACE:-}" && -f "${WORKSPACE}/scripts/arti
 fi
 if [[ -z "${oci_script}" || ! -f "${oci_script}" ]]; then
   oci_script="/tmp/download_pingcap_oci_artifact.sh"
-  curl -fsSL "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/artifacts/download_pingcap_oci_artifact.sh" -o "${oci_script}"
+  curl -fsSL "https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/scripts/artifacts/download_pingcap_oci_artifact.sh" -o "${oci_script}"
 fi
 
 branch="${TEST_BRANCH:-master}"

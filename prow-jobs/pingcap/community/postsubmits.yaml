@@ -15,7 +15,7 @@ postsubmits:
               - deno
               - run
               - --allow-all
-              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/community/update-prow-owners.ts
+              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/scripts/pingcap/community/update-prow-owners.ts
             args:
               - --owner=pingcap
               - --github_private_token=$(GITHUB_API_TOKEN)
@@ -55,7 +55,7 @@ postsubmits:
               - deno
               - run
               - --allow-all
-              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/community/update-prow-owners.ts
+              - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/scripts/pingcap/community/update-prow-owners.ts
             args:
               - --owner=pingcap
               - --only_repo.repo=tidb

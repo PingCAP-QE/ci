@@ -13,7 +13,7 @@ periodics:
             - deno
             - run
             - --allow-net
-            - https://cdn.jsdelivr.net/gh/PingCAP-QE/ee-apps@main/insight/crawlers/ci/prow-jobs.ts
+            - https://cdn.jsdelivr.net/gh/PingCAP-QE/ee-apps@ba65735ce3e912bd8665b67ed17e6c72079f52ae/insight/crawlers/ci/prow-jobs.ts
           args: [--dsn=$(DSN)]
           env:
             - name: DSN
@@ -44,7 +44,7 @@ periodics:
               #!/usr/bin/env bash
               set -euo pipefail
 
-              script_url="https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/tools/reporters/ci/flaky-tests/main.ts"
+              script_url="https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/tools/reporters/ci/flaky-tests/main.ts"
               start_date=$(date -d "1 days ago" +%Y-%m-%d)
               end_date=$(date +%Y-%m-%d)
               email_subject="Flaky Tests Report of $PARAM_REPO repository (branch: $PARAM_BRANCH) between ${start_date} and ${end_date}"
