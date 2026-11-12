@@ -353,6 +353,44 @@ class TestComponent {
     // ============================================================
     // Git CDN aware component checkouts (git-cdn askpass)
     // ============================================================
+    static class TargetBranchValidation {
+        @Test
+        void shouldRefuseShellSyntaxInTheMergeBaseTargetBranch() {
+            def shCalls = []
+            def script = loadScriptWithBindings([
+                env: [:],
+                sh: { Map args -> shCalls << (args.label ?: 'sh') },
+            ])
+
+            try {
+                script.checkoutWithMergeBase('https://github.com/pingcap/tidb.git', 'tidb',
+                    'main$(id)', 'title', 'master', 5, '')
+                fail('expected the target branch to be refused')
+            } catch (IllegalArgumentException expected) {
+                assertTrue(expected.message.contains('refusing unsafe branch value'))
+            }
+            assertEquals('nothing may run before the branch is checked', 0, shCalls.size())
+        }
+
+        @Test
+        void shouldRefuseShellSyntaxInThePreMergeTargetBranch() {
+            def shCalls = []
+            def script = loadScriptWithBindings([
+                env: [:],
+                sh: { Map args -> shCalls << (args.label ?: 'sh') },
+            ])
+
+            try {
+                script.checkoutPRWithPreMerge('https://github.com/pingcap/tidb.git',
+                    'main; rm -rf /', [], 'github-bot-ssh')
+                fail('expected the target branch to be refused')
+            } catch (IllegalArgumentException expected) {
+                assertTrue(expected.message.contains('refusing unsafe branch value'))
+            }
+            assertEquals('nothing may run before the branch is checked', 0, shCalls.size())
+        }
+    }
+
     static class GitCdnCheckout {
         @Test
         void shouldInstallHttpAskPassWhenCdnEnabled() {
