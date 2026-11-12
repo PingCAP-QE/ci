@@ -34,7 +34,7 @@ spec:
         #!/usr/bin/env bash
         set -euo pipefail
 
-        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/get-delivery-target-images.ts \
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@01c93d68ad2cd20d87a39ae1102f96e941234879/packages/scripts/get-delivery-target-images.ts \
           --version="${VERSION}" \
           --registry="${OCI_REGISTRY}" \
           --config="${DELIVERY_CONFIG}" \

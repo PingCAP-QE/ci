@@ -35,7 +35,7 @@ spec:
         tiup mirror set "${tiup_mirror}"
 
         # check the tiup pkgs
-        wget --tries 3 -c -O check-tiup.sh https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/artifacts/check-tiup.sh
+        wget --tries 3 -c -O check-tiup.sh https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/scripts/artifacts/check-tiup.sh
         chmod +x check-tiup.sh
 
         while true; do

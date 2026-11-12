@@ -121,7 +121,7 @@ spec:
         echo "pr dest branch: $(cat /workspace/inner-results-branch)"
         echo "pr placeholder version: $(cat /workspace/inner-results-version)"
 
-        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/pingcap/add-placeholder-version-in-readme.ts \
+        deno run --allow-all https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/scripts/pingcap/add-placeholder-version-in-readme.ts \
           --owner="${owner}" \
           --repo="${repo}" \
           --branch="$(cat /workspace/inner-results-branch)" \

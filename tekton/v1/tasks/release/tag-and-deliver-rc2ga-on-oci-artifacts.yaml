@@ -22,7 +22,7 @@ spec:
       default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/delivery.yaml
     - name: generator-script-url
       description: URL of the generator script
-      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@main/packages/scripts/gen-delivery-image-commands.ts
+      default: https://cdn.jsdelivr.net/gh/PingCAP-QE/artifacts@01c93d68ad2cd20d87a39ae1102f96e941234879/packages/scripts/gen-delivery-image-commands.ts
     - name: publisher-url
       description: >-
         Base URL of the TiBuild publish API, for example
@@ -54,7 +54,7 @@ spec:
         registry="$3"
         force="$4"
 
-        wget -c --tries=3 https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/artifacts/tag-rc2ga-on-repos.sh
+        wget -c --tries=3 https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/scripts/artifacts/tag-rc2ga-on-repos.sh
         chmod +x tag-rc2ga-on-repos.sh
 
         ./tag-rc2ga-on-repos.sh "$rc_ver" "$ga_ver" "$registry" "$force" /workspace/results.yaml
