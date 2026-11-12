@@ -1,9 +1,10 @@
 # GitHub Actions flaky case collection
 
 `periodic-collect-case-runs-cse` runs hourly in the **existing GCP Prow
-cluster** (`cluster: default`, namespace `prow-test-pods`). It reads CSE's
-existing Unit test / Integrations JUnit artifacts and sends recovered nextest
-failures to **the same internal service used by TiDB Jenkins pipelines**:
+cluster** (`cluster: default`, inheriting namespace `prow-test-pods` from Prow
+configuration). It reads CSE's existing Unit test / Integrations JUnit artifacts
+and sends recovered nextest failures to **the same internal service used by TiDB
+Jenkins pipelines**:
 
 ```
 http://cloudevents-server.cs.svc/events

@@ -30,7 +30,6 @@ periodics:
   - name: periodic-collect-case-runs-cse
     agent: kubernetes
     cluster: default
-    namespace: prow-test-pods
     decorate: true
     hidden: true
     cron: "23 * * * *"
