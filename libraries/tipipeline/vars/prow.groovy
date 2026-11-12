@@ -295,6 +295,63 @@ def assertRefsMatchJob(refs) {
     }
 }
 
+// Organizations whose repositories the bot SSH key may reach through a
+// submodule, on top of the organization the job itself belongs to.
+def defaultSubmoduleSshOrgs() {
+    return 'pingcap,tikv,pingcap-qe,pingcap-inc,tidbcloud'
+}
+
+def submoduleSshOrgs() {
+    final configured = env.GIT_SUBMODULE_SSH_ORGS?.trim()
+    return configured ? configured : defaultSubmoduleSshOrgs()
+}
+
+def readGitmodules() {
+    try {
+        return readFile(file: '.gitmodules')
+    } catch (Exception ignored) {
+        return ''
+    }
+}
+
+// Submodule URLs come from the pull request's own tree and are fetched inside
+// the `sshagent` scope, so a pull request to a public repository could otherwise
+// make the build clone any private repository the bot key can read — landing its
+// contents in the pull request's workspace — or point the fetch at a host of its
+// choosing. Relative URLs (`../x.git`) resolve inside the superproject's own
+// organization and are always fine.
+def submoduleRemoteViolations(String gitmodules, String parentOrg, String sshOrgs) {
+    final allowedOrgs = (splitBrokerAllowlist(sshOrgs) + [(parentOrg ?: '').trim().toLowerCase()])
+        .findAll { it }
+    final httpsPattern = /(?i)^https:\/\/github\.com\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+?)(\.git)?\/?$/
+    final sshPattern = /(?i)^(?:git@github\.com:|ssh:\/\/git@github\.com\/)([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+?)(\.git)?\/?$/
+    final relativePattern = /^\.\.?\/[A-Za-z0-9._\/-]+$/
+    final violations = []
+    (gitmodules ?: '').readLines().each { String line ->
+        final urlMatch = line =~ /^\s*url\s*=\s*(\S+)\s*$/
+        if (!urlMatch.find()) {
+            return
+        }
+        final url = urlMatch.group(1)
+        if (url ==~ relativePattern) {
+            return
+        }
+        if (url ==~ httpsPattern) {
+            return
+        }
+        def sshMatch = url =~ sshPattern
+        if (sshMatch.matches()) {
+            final owner = sshMatch.group(1).toLowerCase()
+            if (!allowedOrgs.contains(owner)) {
+                violations << "${url} would spend the SSH credential on organization '${owner}', which is not on the submodule allowlist"
+            }
+            return
+        }
+        violations << "${url} is not a github.com URL"
+    }
+    return violations
+}
+
 def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     // These values come from JOB_SPEC and end up in a shell script. Reject
     // anything that is not a git object name or a plain branch name so a
@@ -383,26 +440,6 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
         fi
 
         git clean -ffdx
-        if [ "${withSubmodule}" == "true" ]; then
-            echo "📁 update submodules ..."
-            # Submodule URLs come from the pull request's tree, and the fetch runs
-            # with the bot's SSH credential. Verify the host key instead of
-            # disabling the check: seed it once, then require a match, so a
-            # rewritten URL cannot be served by an impostor.
-            # The CDN path skips the seeding above, but submodules still resolve
-            # to github.com, so seed the published keys here as well.
-            mkdir -p ~/.ssh && chmod 0700 ~/.ssh
-            {
-                curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 30 \
-                    https://api.github.com/meta \
-                    | tr ',' '\\n' \
-                    | grep -oE '"(ssh-[a-z0-9]|ecdsa-sha2)[^"]*"' \
-                    | tr -d '"' \
-                    | sed 's/^/github.com /'
-            } >> ~/.ssh/known_hosts || true
-            GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes" git submodule update --init --recursive
-            echo "✅ update submodules done"
-        fi
 
         # Git maintenance to keep cached workspaces bounded in size.
         # Also run gc in submodules if present (workspace cache includes them).
@@ -431,6 +468,37 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
 
         echo "✅ ~~~~~All done.~~~~~~"
     """
+
+    if (withSubmodule) {
+        // `.gitmodules` in the worktree now comes from the merged pull request,
+        // so it can only be read once the checkout above has run.
+        final violations = submoduleRemoteViolations(
+            readGitmodules(), refs.org, submoduleSshOrgs())
+        if (violations) {
+            error("refusing to update submodules: ${violations.join('; ')}")
+        }
+        sh label: 'Update submodules', script: """#!/usr/bin/env bash
+            set -e
+            echo "📁 update submodules ..."
+            # Submodule URLs come from the pull request's tree, and the fetch runs
+            # with the bot's SSH credential. Verify the host key instead of
+            # disabling the check: seed it once, then require a match, so a
+            # rewritten URL cannot be served by an impostor.
+            # The CDN path skips the seeding above, but submodules still resolve
+            # to github.com, so seed the published keys here as well.
+            mkdir -p ~/.ssh && chmod 0700 ~/.ssh
+            {
+                curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 30 \
+                    https://api.github.com/meta \
+                    | tr ',' '\\n' \
+                    | grep -oE '"(ssh-[a-z0-9]|ecdsa-sha2)[^"]*"' \
+                    | tr -d '"' \
+                    | sed 's/^/github.com /'
+            } >> ~/.ssh/known_hosts || true
+            GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes" git submodule update --init --recursive
+            echo "✅ update submodules done"
+    """
+    }
 }
 
 // Unique cache save key by refs.

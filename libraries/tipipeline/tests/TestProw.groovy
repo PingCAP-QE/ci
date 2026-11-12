@@ -301,6 +301,92 @@ class TestProw {
         }
     }
 
+    static class SubmoduleRemotes {
+        @Test
+        void shouldAllowSubmodulesInsideTheJobsOwnOrganization() {
+            def script = loadProw()
+            assertEquals([], script.submoduleRemoteViolations("""
+                [submodule "extension"]
+                    path = pkg/extension/enterprise
+                    url = git@github.com:pingcap/tidb-engine-ext.git
+            """, 'pingcap', script.defaultSubmoduleSshOrgs()))
+        }
+
+        @Test
+        void shouldAllowAnyPublicHttpsSubmodule() {
+            // tiflash vendors dozens of third-party repositories over https.
+            def script = loadProw()
+            assertEquals([], script.submoduleRemoteViolations("""
+                [submodule "zstd"]
+                    url = https://github.com/facebook/zstd.git
+                [submodule "grpc"]
+                    url = https://github.com/grpc/grpc
+                [submodule "cse"]
+                    url = git@github.com:tidbcloud/cloud-storage-engine.git
+            """, 'pingcap', script.defaultSubmoduleSshOrgs()))
+        }
+
+        @Test
+        void shouldRefuseAnSshSubmoduleOutsideTheAllowlist() {
+            def script = loadProw()
+            def violations = script.submoduleRemoteViolations("""
+                [submodule "secret"]
+                    url = git@github.com:other-org/private-repo.git
+            """, 'pingcap', script.defaultSubmoduleSshOrgs())
+
+            assertEquals(1, violations.size())
+            assertTrue(violations[0].contains("other-org"))
+        }
+
+        @Test
+        void shouldRefuseASubmoduleOnAnotherHost() {
+            def script = loadProw()
+            def violations = script.submoduleRemoteViolations("""
+                [submodule "x"]
+                    url = git@example.com:pingcap/tidb.git
+                [submodule "y"]
+                    url = http://github.com/pingcap/tidb.git
+            """, 'pingcap', script.defaultSubmoduleSshOrgs())
+
+            assertEquals(2, violations.size())
+            assertTrue(violations.every { it.contains('is not a github.com URL') })
+        }
+
+        @Test
+        void shouldResolveRelativeSubmoduleUrlsInsideTheJobsOrganization() {
+            def script = loadProw()
+            assertEquals([], script.submoduleRemoteViolations("""
+                [submodule "tipb"]
+                    url = ../tipb.git
+                [submodule "kvproto"]
+                    url = ./kvproto.git
+            """, 'pingcap', script.defaultSubmoduleSshOrgs()))
+        }
+
+        @Test
+        void shouldRefuseTheUpdateWithoutFetchingAnything() {
+            def events = []
+            def script = loadProw(
+                env: [JOB_NAME: 'pingcap/tidb/latest/pull_build', GIT_CDN_ENABLED: 'true'],
+                readFile: { Map args -> "url = git@github.com:other-org/private-repo.git\n" },
+                sshagent: { Map args, Closure body -> body() },
+                sh: { Map args -> events << (args.label ?: 'sh') },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                     base_sha: 'abcdef1234567890',
+                                     pulls: [[number: 12, sha: '1234567890abcdef']]],
+                    'github-bot-ssh', 7, true)
+                fail('expected the submodule update to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('refusing to update submodules'))
+            }
+            assertFalse('no submodule fetch may run',
+                events.any { it == 'Update submodules' })
+        }
+    }
+
     static class PrivateCheckout {
         @Test
         void shouldSkipGithubHostKeyScanWhenCdnIsEnabled() {
