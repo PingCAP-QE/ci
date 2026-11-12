@@ -286,8 +286,11 @@ presubmits:
                   echo "JOB_TYPE is batch, skipping error log review check"
                   exit 0
                 fi
-                wget -O /tmp/config.yaml https://cdn.jsdelivr.net/gh/pingcap-qe/ci@main/configs/error-log-review/config.yaml
-                go run github.com/PingCAP-QE/ci/tools/error-log-review@eb8212b575c315a2d127ec71cc5a653bc4cba54f \
+                # The checker and this policy are pinned to one commit on purpose: a mutable
+                # ref would let an unreviewed push run code with GITHUB_API_TOKEN set. Bump
+                # both refs together (see tools/error-log-review/README.md).
+                wget -O /tmp/config.yaml https://cdn.jsdelivr.net/gh/pingcap-qe/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/configs/error-log-review/config.yaml
+                go run github.com/PingCAP-QE/ci/tools/error-log-review@10bcc6134c6540cb7996f7313c96d0a6eadc2683 \
                   -config /tmp/config.yaml \
                   -pr "${REPO_OWNER}/${REPO_NAME}#${PULL_NUMBER}"
             env:

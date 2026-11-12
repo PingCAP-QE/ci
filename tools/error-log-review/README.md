@@ -26,6 +26,33 @@ A lightweight Go program to automatically check PR diffs for error logging chang
 ./error-log-review -pr "pingcap/tidb#12345" -dry-run
 ```
 
+### Pinned reference in CI
+
+The `pull-error-log-review` presubmits run this tool straight out of this
+repository, so they pin **both** the binary and the policy to a single commit:
+
+```
+go run github.com/PingCAP-QE/ci/tools/error-log-review@<sha> -config /tmp/config.yaml ...
+wget -O /tmp/config.yaml https://cdn.jsdelivr.net/gh/pingcap-qe/ci@<sha>/configs/error-log-review/config.yaml
+```
+
+A mutable ref (`@main`) would let a push that did not go through review — or a
+compromise of the CDN — change both the code and the approver list while
+`GITHUB_API_TOKEN` is in the environment of the job. When you change this tool or
+`configs/error-log-review/config.yaml`, bump the two refs to the merge commit in
+these six files, which is a mechanical search for the old SHA:
+
+- `prow-jobs/tikv/pd/latest-presubmits.yaml`
+- `prow-jobs/tikv/tikv/latest-presubmits.yaml`
+- `prow-jobs/pingcap/ticdc/latest-presubmits.yaml`
+- `prow-jobs/pingcap/tiflow/latest-presubmits.yaml`
+- `prow-jobs/pingcap/tidb/latest-presubmits.yaml`
+- `prow-jobs/pingcap/tiflash/latest-presubmits.yaml`
+
+The pin is deliberately not automatic: a change to the approver list does not
+take effect until one of the above is updated, and that update is visible in
+review.
+
 ### Environment Variables
 
 The program can also read configuration from environment variables:
