@@ -214,7 +214,9 @@ collect_referenced_pod_files() {
     # `yaml`/`yamlFile` used as a call: followed by `(` or whitespace and an
     # argument. A file name such as `pod.yaml` must not match, hence the
     # exclusion of a leading `.`.
-    local anyyaml_re="(^|[^A-Za-z0-9_.])(yaml|yamlFile)([[:space:]]*\(|[[:space:]]+[^[:space:]])"
+    # Includes the named-argument form `podTemplate(yaml: …)`.
+    local anyyaml_re="(^|[^A-Za-z0-9_.])(yaml|yamlFile)([[:space:]]*\(|[[:space:]]+[^[:space:]]|:)"
+    local token_re="(^|[^A-Za-z0-9_.])(yaml|yamlFile)"
 
     local -a decl_vars=()
     local -a decl_paths=()
@@ -232,6 +234,16 @@ collect_referenced_pod_files() {
         case "${trimmed}" in
             "//"*) continue ;;
         esac
+        # A line declares the agent pod spec at most once. Two references let a
+        # decoy get a clean sibling validated while the spec Jenkins uses is the
+        # other one, so refuse the line instead of picking the first match.
+        local token_count
+        token_count=$(printf '%s' "$line" | grep -oE "$token_re" | wc -l | tr -d ' ')
+        if [[ "${token_count:-0}" -gt 1 ]]; then
+            echo "${script_file}: agent pod spec is declared more than once on one line ('$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')'); the pod-policy fence cannot validate it" >&2
+            return 1
+        fi
+
         local var=""
         if [[ "$line" =~ $yamlfile_re ]]; then
             var="${BASH_REMATCH[1]}"

@@ -157,6 +157,24 @@ unprivileged_pod > "$(job_dir example/repo custom-name)/agent-template.yaml"
 expect_allowed "a template namespaced by another file name is checked" \
     "$(job_dir example/repo custom-name)/Jenkinsfile"
 
+# 4f. A decoy comment must not get a clean sibling validated while the spec
+#     Jenkins uses is inline.
+mkdir -p "$(job_dir example/repo decoy)"
+unprivileged_pod > "$(job_dir example/repo decoy)/pod.yaml"
+{
+    printf "final POD_TEMPLATE_FILE = '%s'\n" "$(job_dir example/repo decoy)/pod.yaml"
+    printf 'pipeline { agent { kubernetes { yaml EVIL_SPEC } } } // yamlFile POD_TEMPLATE_FILE\n'
+} > "$(job_dir example/repo decoy)/Jenkinsfile"
+expect_refused "a decoy yamlFile comment is refused" \
+    "$(job_dir example/repo decoy)/Jenkinsfile" "declared more than once"
+
+# 4g. The named-argument form cannot be validated either.
+mkdir -p "$(job_dir example/repo named-arg)"
+printf 'pipeline { agent { podTemplate(yaml: """kind: Pod""") } }\n' \
+    > "$(job_dir example/repo named-arg)/Jenkinsfile"
+expect_refused "the podTemplate(yaml: ...) form is refused" \
+    "$(job_dir example/repo named-arg)/Jenkinsfile" "cannot validate"
+
 # 5. A Jenkinsfile that declares no pod spec at all has nothing to check.
 mkdir -p "$(job_dir example/repo budget)"
 printf 'pipeline { agent { kubernetes {} } }\n' > "$(job_dir example/repo budget)/Jenkinsfile"
