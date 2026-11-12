@@ -138,7 +138,7 @@ periodics:
             - name: PARAM_CASE_THRESHOLD_MS
               value: "100000"
             - name: PARAM_ISSUE_OPS_OPTIONS
-              value: --issue-comment
+              value: --issue-create --issue-comment
             - name: PARAM_ISSUE_LABELS
               value: "component/test,flaky-test,type/enhancement,affects-8.5"
             - name: ISSUE_MUTATION_LIMIT
