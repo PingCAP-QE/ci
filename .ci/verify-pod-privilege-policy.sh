@@ -97,8 +97,14 @@ if ! command -v yq >/dev/null 2>&1; then
   exit 1
 fi
 
+# A job folder may keep its agent template under any name — `pod.yaml` is the
+# convention, not a constraint the gate can rely on: `pod_label.withCiLabels()`
+# loads whatever path the Jenkinsfile names. Treat any YAML under `jenkins/jobs/`
+# that parses as a Pod as a template.
 is_pod_template() {
-  [[ "$1" == *'/pod'*.yaml || "$1" == *'/pod'*.yml ]] && [[ "$1" == jenkins/jobs/* ]]
+  local f="$1"
+  [[ "$f" == jenkins/jobs/*.yaml || "$f" == jenkins/jobs/*.yml ]] || return 1
+  yq e -e '(.spec.containers | type) == "!!seq"' "$f" >/dev/null 2>&1
 }
 
 is_prow_jobs_file() {

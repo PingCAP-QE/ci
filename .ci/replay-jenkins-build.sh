@@ -272,8 +272,8 @@ collect_referenced_pod_files() {
         if [[ "$rel" == "$PWD"/* ]]; then
             rel="${rel#"$PWD"/}"
         fi
-        if [[ ! "$rel" =~ ^jenkins/jobs/[^/]+/[^/]+/[^/]+/[^/]+/pod[^/]*\.ya?ml$ ]]; then
-            echo "${script_file}: agent pod template '${var}' resolves to '${rel}', which is outside a jenkins/jobs job folder; the pod-policy fence can only validate those" >&2
+        if [[ ! "$rel" =~ ^jenkins/jobs/[^/]+/[^/]+/[^/]+/[^/]+/[^/]+\.ya?ml$ ]]; then
+            echo "${script_file}: agent pod template '${var}' resolves to '${rel}', which is outside a jenkins/jobs job folder; the pod-policy fence can only validate files there" >&2
             return 1
         fi
         printf '%s\n' "$rel"

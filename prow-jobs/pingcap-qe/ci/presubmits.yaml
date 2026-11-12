@@ -426,7 +426,7 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^(jenkins/jobs/.*/pod.*\\.ya?ml|\\.ci/verify-pod-resource-policy\\.sh|\\.ci/test-verify-pod-resource-policy\\.sh|\\.ci/pod-resource-policy-allowlist\\.txt)$"
+      run_if_changed: "^(jenkins/jobs/.*\\.ya?ml|\\.ci/verify-pod-resource-policy\\.sh|\\.ci/test-verify-pod-resource-policy\\.sh|\\.ci/pod-resource-policy-allowlist\\.txt)$"
       branches:
         - ^main$
       spec:
@@ -451,7 +451,7 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^(jenkins/jobs/.*/pod.*\\.ya?ml|prow-jobs/.*\\.ya?ml|\\.ci/(run-policy-gate|verify-pod-privilege-policy|test-verify-pod-privilege-policy|test-run-policy-gate)\\.sh|\\.ci/pod-privilege-policy-allowlist\\.txt)$"
+      run_if_changed: "^(jenkins/jobs/.*\\.ya?ml|prow-jobs/.*\\.ya?ml|\\.ci/(run-policy-gate|verify-pod-privilege-policy|test-verify-pod-privilege-policy|test-run-policy-gate)\\.sh|\\.ci/pod-privilege-policy-allowlist\\.txt)$"
       branches:
         - ^main$
       spec:
