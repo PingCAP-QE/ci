@@ -14,12 +14,17 @@ import static org.junit.Assert.*
 class TestProw {
     private static def loadProw(Map steps = [:]) {
         def binding = new Binding()
-        // `env` is a Jenkins global; give the script an empty one unless a test
-        // wants specific values.
-        if (!steps.containsKey('env')) {
-            binding.setVariable('env', [:])
+        // `env` is a Jenkins global; give the script a minimal one unless a test
+        // wants specific values. Every real build carries a JOB_NAME, and the
+        // checkout refuses to run without one, so the default is a job name whose
+        // repository matches `refs()`.
+        // A test asks for "this build has no job name" with `JOB_NAME: null`.
+        def env = steps.containsKey('env') ? steps['env'] : [:]
+        if (!env.containsKey('JOB_NAME')) {
+            env = env + [JOB_NAME: 'pingcap/tidb/latest/pull_unit_test']
         }
         steps.each { name, value -> binding.setVariable(name, value) }
+        binding.setVariable('env', env)
         new GroovyShell(binding).parse(
             new File("libraries/tipipeline/vars/prow.groovy"))
     }
@@ -175,6 +180,65 @@ class TestProw {
                 fail('expected the mismatched repository to be refused')
             } catch (IllegalStateException expected) {
                 assertTrue(expected.message.contains('is bound to pingcap/tidb'))
+            }
+        }
+
+        @Test
+        void shouldRefuseARefsRepoThatDiffersFromAThreeSegmentAliasJob() {
+            // `latest` alias jobs are registered as `<org>/<repo>/<job>`: the
+            // repository is still the first two segments.
+            def script = loadProw(
+                env: [JOB_NAME: 'pingcap/tidb/ghpr_build'],
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutPublicRefs(refs() + [repo: 'tiflow'], 7, false, 'https://github.example')
+                fail('expected the mismatched repository to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('is bound to pingcap/tidb'))
+            }
+        }
+
+        @Test
+        void shouldAcceptAThreeSegmentAliasJobName() {
+            def events = []
+            def script = loadProw(
+                env: [JOB_NAME: 'pingcap/tidb/ghpr_build'],
+                sh: { Map args -> events << args })
+
+            script.checkoutPublicRefs(refs(), 7, false, 'https://github.example')
+
+            assertEquals('one checkout shell call', 1, events.size())
+        }
+
+        @Test
+        void shouldRefuseAJobNameThatCannotNameARepository() {
+            def script = loadProw(
+                env: [JOB_NAME: 'ghpr_build'],
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutPublicRefs(refs(), 7, false, 'https://github.example')
+                fail('expected a job name with no repository to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('cannot be verified'))
+            }
+        }
+
+        @Test
+        void shouldRefuseWhenTheBuildHasNoJobName() {
+            def script = loadProw(
+                env: [JOB_NAME: null],
+                sh: { Map args -> },
+                error: { String message -> throw new IllegalStateException(message) })
+
+            try {
+                script.checkoutPublicRefs(refs(), 7, false, 'https://github.example')
+                fail('expected the missing job name to be refused')
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.message.contains('JOB_NAME is not set'))
             }
         }
 
@@ -448,10 +512,11 @@ class TestProw {
     }
 
     static class BrokerCheckout {
-        private def loadWithBroker(Map extraEnv, List events) {
+        private def loadWithBroker(Map extraEnv, List events,
+                                   String jobName = 'pingcap/tidb/latest/pull_unit_test') {
             return loadProw(
                 env: [WORKSPACE: '/tmp/ws', GIT_BROKER_ENABLED: 'true',
-                      GIT_BROKER_URL: 'http://broker.example'] + extraEnv,
+                      GIT_BROKER_URL: 'http://broker.example', JOB_NAME: jobName] + extraEnv,
                 libraryResource: { String path -> 'broker askpass' },
                 writeFile: { Map args -> },
                 sh: { Map args ->
@@ -471,7 +536,8 @@ class TestProw {
         @Test
         void shouldUseHttpsAndBrokerForAllowlistedOrgWithoutCdn() {
             def events = []
-            def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud'], events)
+            def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud'], events,
+                'tidbcloud/cloud-storage-engine/cloud-engine/pull_integration_test')
 
             script.checkoutRefs([org: 'tidbcloud', repo: 'cloud-storage-engine',
                                  base_ref: 'cloud-engine', base_sha: 'abcdef1234567890',
@@ -486,7 +552,8 @@ class TestProw {
         @Test
         void shouldKeepSshUrlForCdnInstances() {
             def events = []
-            def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud', GIT_CDN_ENABLED: 'true'], events)
+            def script = loadWithBroker([GIT_BROKER_ORGS: 'tidbcloud', GIT_CDN_ENABLED: 'true'], events,
+                'tidbcloud/cloud-storage-engine/cloud-engine/pull_integration_test')
 
             script.checkoutRefs([org: 'tidbcloud', repo: 'cloud-storage-engine',
                                  base_ref: 'cloud-engine', base_sha: 'abcdef1234567890',
