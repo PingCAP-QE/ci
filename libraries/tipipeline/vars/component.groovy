@@ -654,6 +654,9 @@ def checkoutSingle(gitUrl, prTargetBranch, branchOrCommit, credentialsId, timeou
 }
 
 def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentialsId) {
+    // Same as checkoutWithMergeBase: the target branch is interpolated into the
+    // shell (`git checkout -f origin/${prTargetBranch}`), so validate it first.
+    validateBranchToken('prTargetBranch', prTargetBranch)
     // iterate over tidbTestRefs and checkout all pr with pre-merge
     withGitCdnAskPass {
         sshagent(credentials: [credentialsId]) {
@@ -722,6 +725,10 @@ def checkoutPRWithPreMerge(gitUrl, prTargetBranch, tidbTestRefsList, credentials
 // default fetch targetBranch
 // if title contains | tidb=pr/xxx，fetch tidb from pr/xxx (with merge base branch)
 def checkoutWithMergeBase(gitUrl, component, prTargetBranch, prTitle, trunkBranch="master", timeout=5, credentialsId="") {
+    // `prTargetBranch` is REFS.base_ref and is interpolated into the shell below
+    // (`git merge origin/${prTargetBranch}`), so apply the same grammar check the
+    // shared checkout uses before it can reach bash.
+    validateBranchToken(component, prTargetBranch)
     // example pr tilte : "feat: add new feature | tidb=pr/123"
     // componentBranch = pr/123
     // componentBranch = release-6.2
