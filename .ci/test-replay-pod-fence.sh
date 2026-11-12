@@ -146,6 +146,17 @@ printf 'pipeline { agent { kubernetes { yaml(POD_SPEC) } } }\n' \
 expect_refused "a computed yaml(POD_SPEC) argument is refused" \
     "$(job_dir example/repo computed)/Jenkinsfile" "cannot validate"
 
+# 4e. A template the job folder names something other than pod*.yaml is still
+#     resolved and checked.
+mkdir -p "$(job_dir example/repo custom-name)"
+unprivileged_pod > "$(job_dir example/repo custom-name)/agent-template.yaml"
+{
+    printf "final POD_TEMPLATE_FILE = '%s'\n" "$(job_dir example/repo custom-name)/agent-template.yaml"
+    printf 'pipeline { agent { kubernetes { yamlFile POD_TEMPLATE_FILE } } }\n'
+} > "$(job_dir example/repo custom-name)/Jenkinsfile"
+expect_allowed "a template namespaced by another file name is checked" \
+    "$(job_dir example/repo custom-name)/Jenkinsfile"
+
 # 5. A Jenkinsfile that declares no pod spec at all has nothing to check.
 mkdir -p "$(job_dir example/repo budget)"
 printf 'pipeline { agent { kubernetes {} } }\n' > "$(job_dir example/repo budget)/Jenkinsfile"

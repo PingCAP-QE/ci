@@ -71,7 +71,11 @@ if [[ "$#" -gt 0 ]]; then
   for f in "$@"; do
     [[ -n "${f}" ]] || continue
     case "$(basename "${f}")" in
-      pod*.yaml | pod*.yml) changed_files+=("${f}") ;;
+      *.yaml | *.yml)
+        if yq e -e '(.spec.containers | type) == "!!seq"' "$f" >/dev/null 2>&1; then
+          changed_files+=("${f}")
+        fi
+        ;;
     esac
   done
 else
