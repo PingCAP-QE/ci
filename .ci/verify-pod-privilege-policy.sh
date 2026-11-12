@@ -145,9 +145,9 @@ list_violations() {
   else
     document='
       [
-        ((.presubmits // {}) | to_entries[] | .key as $repo | .value[] | {"unit": "presubmit \($repo)/\(.name)", "spec": (.spec)}),
-        ((.postsubmits // {}) | to_entries[] | .key as $repo | .value[] | {"unit": "postsubmit \($repo)/\(.name)", "spec": (.spec)}),
-        ((.periodics // []) | .[] | {"unit": "periodic \(.name)", "spec": (.spec)})
+        ((.presubmits // {}) | to_entries[] | .key as $repo | .value[] | {"unit": "presubmit \($repo)/\(.name)", "spec": (.spec), "decoration": (.decoration_config // {})}),
+        ((.postsubmits // {}) | to_entries[] | .key as $repo | .value[] | {"unit": "postsubmit \($repo)/\(.name)", "spec": (.spec), "decoration": (.decoration_config // {})}),
+        ((.periodics // []) | .[] | {"unit": "periodic \(.name)", "spec": (.spec), "decoration": (.decoration_config // {})})
       ]
     '
   fi
@@ -169,7 +169,14 @@ list_violations() {
         ($containers[] | (.envFrom // [])[]? | select(.secretRef.name? != null) | [$job.unit, "secret", .secretRef.name]),
         (($spec.volumes // [])[] | select(.secret.secretName? != null) | [$job.unit, "secret", .secret.secretName]),
         (($spec.volumes // [])[] | (.projected.sources // [])[]? | select(.secret.name? != null) | [$job.unit, "secret", .secret.name]),
-        ($spec.serviceAccountName // "" | select(. != "" and . != "default") | [$job.unit, "serviceAccount", .])
+        ($spec.serviceAccountName // "" | select(. != "" and . != "default") | [$job.unit, "serviceAccount", .]),
+        # The Prow decoration injects its own credentials into the job pod: the
+        # SSH key used for the clone, the OAuth token for the GitHub client and
+        # the GCS writer key. They are namespace-wide Secrets like any other, so
+        # they need the same review.
+        ($job.decoration.ssh_key_secrets // [] | .[] | [$job.unit, "secret", .]),
+        ($job.decoration.oauth_token_secret.name // "" | select(. != "") | [$job.unit, "secret", .]),
+        ($job.decoration.gcs_credentials_secret // "" | select(. != "") | [$job.unit, "secret", .])
       ] | .[] | join("|")
     ' 2>/dev/null || true
 }

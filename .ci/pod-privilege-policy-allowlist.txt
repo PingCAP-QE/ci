@@ -106,3 +106,10 @@ secret	^prow\-jobs/tikv/community/postsubmits\.yaml$	github-token	2027-05-31	pre
 secret	^prow\-jobs/tikv/pd/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/tikv/tikv/latest\-postsubmits\.yaml$	codecov-tokens	2027-05-31	pre-existing binding, reviewed 2026-11-10
 secret	^prow\-jobs/tikv/tikv/latest\-presubmits\.yaml$	github-token	2027-05-31	pre-existing binding, reviewed 2026-11-10
+secret	^prow\-jobs/pingcap\-inc/enterprise\-plugin/presubmits\.yaml$	github-token	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
+secret	^prow\-jobs/pingcap\-inc/ticdc/release\-presubmits\.yaml$	github-ssh-secret	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
+secret	^prow\-jobs/pingcap\-inc/tici/presubmits\.yaml$	github-token	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
+secret	^prow\-jobs/pingcap\-inc/tiflash\-scripts/presubmits\.yaml$	github-token	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
+secret	^prow\-jobs/pingcap\-inc/tiflow/release\-presubmits\.yaml$	github-ssh-secret	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
+secret	^prow\-jobs/pingcap\-qe/ee\-infra/presubmits\.yaml$	github-token	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
+secret	^prow\-jobs/pingcap/tiflash/latest\-presubmits\.yaml$	github-ssh-secret	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
