@@ -1,4 +1,9 @@
-import { assert, assertEquals, assertFalse } from "jsr:@std/assert@1.0.11";
+import {
+  assert,
+  assertEquals,
+  assertFalse,
+  assertMatch,
+} from "jsr:@std/assert@1.0.11";
 import { expandGlobSync } from "jsr:@std/fs@1.0.19/expand-glob";
 import {
   evaluate,
@@ -72,9 +77,11 @@ Deno.test("Serverless keeps raw Git versions and the legacy version CLI", async 
     step.name === "compute-version"
   )!;
   assert(cleanup?.script);
-  assertEquals(
+  // The version CLI runs from the release pipeline's credential scope, so it is
+  // pinned to a commit rather than resolved from a branch at run time.
+  assertMatch(
     compute.command.join(" "),
-    "deno run --allow-read --allow-write https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/scripts/flow/build/versioning-strategy.ts",
+    /^deno run --allow-read --allow-write https:\/\/cdn\.jsdelivr\.net\/gh\/PingCAP-QE\/ci@[0-9a-f]{40}\/scripts\/flow\/build\/versioning-strategy\.ts$/,
   );
   assertEquals(
     compute.args.join(" "),
