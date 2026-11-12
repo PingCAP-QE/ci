@@ -11,7 +11,7 @@ postsubmits:
         containers:
           - &container
             name: master-0-staging
-            image: wbitt/network-multitool
+            image: wbitt/network-multitool@sha256:98d24ba5e94c74b153603dc4022aa15100ce33bccf7d0d59f8c2a3e088c90471
             env:
               - name: JENKINS_URL
                 valueFrom:
