@@ -310,7 +310,7 @@ presubmits:
         containers:
           - name: main
             image: alpine:3.24
-            command: [bash, -ceo, pipefail]
+            command: [sh, -ce]
             args:
               - |
                 apk add --no-cache kubectl yq-go git
@@ -322,9 +322,13 @@ presubmits:
                 failed=0
                 for f in $changed_files; do
                   echo "Validating: $f"
-                  if ! kubectl apply --dry-run=server -f "$f" 2>&1 | sed 's/^/  /'; then
-                    failed=1
-                  fi
+                  # Capture the output before formatting it: `kubectl ... | sed`
+                  # would report sed's status, and this image has no bash, so
+                  # `set -o pipefail` is not available either.
+                  rc=0
+                  out=$(kubectl apply --dry-run=server -f "$f" 2>&1) || rc=$?
+                  printf '%s\n' "$out" | sed 's/^/  /'
+                  [ "$rc" -eq 0 ] || failed=1
                 done
                 if [ "$failed" -eq 0 ]; then
                   echo "All Tekton YAML files passed server dry-run validation."
