@@ -3,6 +3,20 @@
 This document describes the versioning strategy and build git tag generation.
 The table below maps the input git version and branches to the expected version and new build tag.
 
+## Triggering Ref
+
+A released version is only reported when the tag itself triggered the build, i.e.
+when the triggering ref is under `refs/tags/`. The same `git describe` output
+also appears when a branch is pushed at a released commit — a branch cut from a
+release tag, for example — and there the build is published as a candidate so an
+unreleased ref cannot fabricate, or overwrite, a released artifact.
+
+| Description | Git Show Version | Commit in Branches | Triggering ref | Release version | New Build Tag |
+|-------------|------------------|-------------------|----------------|-----------------|---------------|
+| Tag build at a GA tag | v8.5.0 | release-8.5 | refs/tags/v8.5.0 | v8.5.0 | |
+| Branch pushed at a GA tag | v8.5.0 | release-8.5 | release-8.5 | v8.5.1-pre | |
+| Pull request at a GA tag | v8.5.0 | master, release-8.5 | pull/123 | v8.5.1-pre | |
+
 ## Versioning Strategy Table
 
 | Description | Git Show Version | Commit in Branches | Release version | New Build Tag |

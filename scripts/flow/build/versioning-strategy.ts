@@ -60,6 +60,21 @@ function isGaVer(version: semver.SemVer): boolean {
 }
 
 /**
+ * The version a build may report when its checkout resolves to a released
+ * version but the tag itself did not trigger the build — a branch cut from a
+ * release or hotfix tag, for example.
+ *
+ * Bumping to the next patch with a `pre` prerelease keeps the build published as
+ * a candidate. No git tag is created: fabricating `vX.Y.(Z+1)` in the worktree
+ * would make the following steps treat the build as an official tag build.
+ */
+function candidateVersion(rv: semver.SemVer): builtControl {
+  return {
+    releaseVersion: `v${rv.major}.${rv.minor}.${rv.patch + 1}-pre`,
+  };
+}
+
+/**
  * Computes the release version and new git tag based on the raw version and commit branches.
  * @param {string} rawVersion The raw version string.
  * @param {string[]} commitInBranches The branches the commit is in.
@@ -68,10 +83,14 @@ function isGaVer(version: semver.SemVer): boolean {
 export function compute(
   rawVersion: string,
   commitInBranches: string[],
+  gitRef: string = "",
 ): builtControl {
   const normalizedRawVersion = rawVersion.trim();
   const rv = semver.parse(normalizedRawVersion);
   const hasNextgenReleaseBranch = commitInBranches.some(isNextgenReleaseBranch);
+  // Only a tag push may report a released version. Everything else — a branch
+  // push, a pull request — uses the branch semantics below.
+  const triggeredByTag = /^refs\/tags\//.test((gitRef ?? "").trim());
 
   if (
     hasNextgenReleaseBranch &&
@@ -84,6 +103,19 @@ export function compute(
       normalizedRawVersion,
     );
     return { releaseVersion: normalizedRawVersion };
+  }
+
+  // A released version belongs to the tag that carries it. A branch push whose
+  // head sits on `v8.5.7` — a branch cut from a release tag, for example — makes
+  // `git describe` return that same version, and reporting it would publish, or
+  // overwrite, the released artifact from a ref nobody released.
+  if (!triggeredByTag && isGaVer(rv)) {
+    console.warn(
+      "Not a tag build, so the released version",
+      normalizedRawVersion,
+      "becomes a candidate:",
+    );
+    return candidateVersion(rv);
   }
 
   // If it's a GA version, return it directly
@@ -220,6 +252,7 @@ function main() {
       "git_version_file",
       "contain_branches",
       "contain_branches_file",
+      "git_ref",
       "save_release_version_file",
       "save_build_git_tag_file",
     ],
@@ -243,6 +276,9 @@ function main() {
         --git_version_file=<file>       The file containing the current git version
         --contain_branches=<branch>     The branch to contain
         --contain_branches_file=<file>  The file containing the branches to contain
+        --git_ref=<ref>                 The git ref that triggered the build; a
+                                        ref outside refs/tags/ never reports a
+                                        released version
         --save_release_version_file=<file>  The file to save the release version (default: release_version.txt)
         --save_build_git_tag_file=<file>    The file to save the build git tag (default: build_git_tag.txt)
     `);
@@ -253,7 +289,11 @@ function main() {
     Deno.readTextFileSync(flags.git_version_file!);
   const currentBranch = flags.contain_branches ||
     Deno.readTextFileSync(flags.contain_branches_file!);
-  const ret = compute(rawVersion, currentBranch.split("\n"));
+  const ret = compute(
+    rawVersion,
+    currentBranch.split("\n"),
+    flags.git_ref ?? "",
+  );
 
   // Save results for next step
   Deno.writeTextFileSync(flags.save_release_version_file, ret.releaseVersion);

@@ -6,6 +6,9 @@ Deno.test("compute", () => {
     description?: string;
     gitVer: string;
     branches: string[];
+    // The ref that triggered the build; only `refs/tags/...` may report a
+    // released version.
+    gitRef?: string;
     expect: { version: string; newBuildTag?: string };
   }[] = [
     {
@@ -48,8 +51,27 @@ Deno.test("compute", () => {
       description: "history style - added GA tag",
       gitVer: "v8.5.0",
       branches: ["release-8.5"],
+      gitRef: "refs/tags/v8.5.0",
       expect: {
         version: "v8.5.0",
+      },
+    },
+    {
+      description: "branch pushed at a released GA tag becomes a candidate",
+      gitVer: "v8.5.0",
+      branches: ["release-8.5"],
+      gitRef: "release-8.5",
+      expect: {
+        version: "v8.5.1-pre",
+      },
+    },
+    {
+      description: "pull request at a released GA tag becomes a candidate",
+      gitVer: "v8.5.0",
+      branches: ["master", "release-8.5"],
+      gitRef: "pull/123",
+      expect: {
+        version: "v8.5.1-pre",
       },
     },
     {
@@ -117,6 +139,7 @@ Deno.test("compute", () => {
       description:
         "new style - nextgen GA tag with patch sequence starting at zero",
       gitVer: "v26.3.0",
+      gitRef: "refs/tags/v26.3.0",
       branches: ["release-nextgen-20260301"],
       expect: {
         version: "v26.3.0",
@@ -134,6 +157,7 @@ Deno.test("compute", () => {
     {
       description: "new style - nextgen GA tag on release branch",
       gitVer: "v26.3.1",
+      gitRef: "refs/tags/v26.3.1",
       branches: ["release-nextgen-20260301"],
       expect: {
         version: "v26.3.1",
@@ -143,6 +167,7 @@ Deno.test("compute", () => {
       description:
         "new style - nextgen GA tag on release branch and master branch",
       gitVer: "v26.3.1",
+      gitRef: "refs/tags/v26.3.1",
       branches: ["master", "release-nextgen-20260301"],
       expect: {
         version: "v26.3.1",
@@ -161,6 +186,7 @@ Deno.test("compute", () => {
       description:
         "new style - nextgen GA tag on version+date nextgen release branch",
       gitVer: "v26.3.0",
+      gitRef: "refs/tags/v26.3.0",
       branches: ["release-nextgen-26.3.0-20260817"],
       expect: {
         version: "v26.3.0",
@@ -334,6 +360,7 @@ Deno.test("compute", () => {
     {
       description: "new style - release GA version on release-X.Y branch",
       gitVer: "v9.0.0",
+      gitRef: "refs/tags/v9.0.0",
       branches: ["release-9.0"],
       expect: {
         version: "v9.0.0",
@@ -426,10 +453,10 @@ Deno.test("compute", () => {
     },
   ];
 
-  for (const { description, gitVer, branches, expect } of tests) {
+  for (const { description, gitVer, branches, gitRef, expect } of tests) {
     console.group("🧪 ", description);
     console.debug("🚀", `gitVer: ${gitVer} & branches: ${branches}`);
-    const result = compute(gitVer, branches);
+    const result = compute(gitVer, branches, gitRef ?? "");
     console.debug("🛬️", result);
     assertEquals(
       result.releaseVersion,

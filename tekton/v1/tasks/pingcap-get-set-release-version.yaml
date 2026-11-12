@@ -87,6 +87,9 @@ spec:
       args:
         - --git_version_file=/workspace/raw-version.txt
         - --contain_branches_file=/workspace/branches.txt
+        # Only a tag push may report a released version; a branch pushed at a
+        # released commit becomes a candidate instead.
+        - --git_ref=$(params.git-ref)
         - --save_build_git_tag_file=/workspace/new-tag
         - --save_release_version_file=$(results.version.path)
     - name: apply-tags
