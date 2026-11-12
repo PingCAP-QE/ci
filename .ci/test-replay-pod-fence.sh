@@ -120,6 +120,29 @@ printf 'pipeline { agent { kubernetes { yamlFile POD_TEMPLATE_FILE } } }\n' \
 expect_refused "an undeclared template variable is refused" \
     "$(job_dir example/repo undeclared)/Jenkinsfile" "does not declare it"
 
+# 4b. The parenthesised call form must resolve to the same checked template.
+mkdir -p "$(job_dir example/repo parens)"
+unprivileged_pod > "$(job_dir example/repo parens)/pod.yaml"
+{
+    printf "final POD_TEMPLATE_FILE = '%s'\n" "$(job_dir example/repo parens)/pod.yaml"
+    printf 'pipeline { agent { kubernetes { yamlFile(POD_TEMPLATE_FILE) } } }\n'
+} > "$(job_dir example/repo parens)/Jenkinsfile"
+expect_allowed "the yamlFile(...) form is resolved and allowed" "$(job_dir example/repo parens)/Jenkinsfile"
+
+# 4c. A parenthesised literal cannot be validated.
+mkdir -p "$(job_dir example/repo parens-literal)"
+printf 'pipeline { agent { kubernetes { yaml("""kind: Pod""") } } }\n' \
+    > "$(job_dir example/repo parens-literal)/Jenkinsfile"
+expect_refused "a yaml(...) literal agent pod spec is refused" \
+    "$(job_dir example/repo parens-literal)/Jenkinsfile" "cannot validate"
+
+# 4d. A computed argument cannot be validated.
+mkdir -p "$(job_dir example/repo computed)"
+printf 'pipeline { agent { kubernetes { yaml(POD_SPEC) } } }\n' \
+    > "$(job_dir example/repo computed)/Jenkinsfile"
+expect_refused "a computed yaml(POD_SPEC) argument is refused" \
+    "$(job_dir example/repo computed)/Jenkinsfile" "cannot validate"
+
 # 5. A Jenkinsfile that declares no pod spec at all has nothing to check.
 mkdir -p "$(job_dir example/repo budget)"
 printf 'pipeline { agent { kubernetes {} } }\n' > "$(job_dir example/repo budget)/Jenkinsfile"

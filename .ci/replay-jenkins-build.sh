@@ -202,10 +202,19 @@ collect_referenced_pod_files() {
     # Match anywhere on the line: a PR can write `kubernetes { yamlFile POD }`
     # on a single line, and the fence has to see that too. Only full-line `//`
     # comments are skipped.
-    local yamlfile_re="yamlFile[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)"
-    local cilabels_re="yaml[[:space:]]+pod_label\.withCiLabels\([[:space:]]*([A-Za-z_][A-Za-z0-9_]*)"
-    local yamlvar_re="yaml[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*(#.*)?\$"
-    local anyyaml_re="yaml[[:space:]]"
+    # Both call styles are accepted: `yaml VAR` and `yaml(VAR)`, likewise for
+    # `yamlFile`. Anything else that mentions a pod spec — a string literal, a
+    # computed value — is refused below, so the parentheses form cannot be used to
+    # slip an unchecked spec past the fence.
+    local yamlfile_re="yamlFile[[:space:]]*\(?[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)"
+    local cilabels_re="yaml[[:space:]]*\(?[[:space:]]*pod_label\.withCiLabels\([[:space:]]*([A-Za-z_][A-Za-z0-9_]*)"
+    local yamlvar_re="yaml[[:space:]]*\(?[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\)?[[:space:]]*(#.*)?\$"
+    # Any other mention of an agent pod spec (`yaml("""…""")`, `yaml(SPEC)`,
+    # `yamlFile 'file.yaml'`) cannot be validated against a checked template.
+    # `yaml`/`yamlFile` used as a call: followed by `(` or whitespace and an
+    # argument. A file name such as `pod.yaml` must not match, hence the
+    # exclusion of a leading `.`.
+    local anyyaml_re="(^|[^A-Za-z0-9_.])(yaml|yamlFile)([[:space:]]*\(|[[:space:]]+[^[:space:]])"
 
     local -a decl_vars=()
     local -a decl_paths=()
