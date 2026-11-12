@@ -85,7 +85,7 @@ Deno.test("Serverless keeps raw Git versions and the legacy version CLI", async 
   );
   assertEquals(
     compute.args.join(" "),
-    "--git_version_file=/workspace/raw-version.txt --contain_branches_file=/workspace/branches.txt --save_build_git_tag_file=/workspace/new-tag --save_release_version_file=$(results.version.path)",
+    "--git_version_file=/workspace/raw-version.txt --contain_branches_file=/workspace/branches.txt --git_ref=$(params.git-ref) --save_build_git_tag_file=/workspace/new-tag --save_release_version_file=$(results.version.path)",
   );
   assertEquals(compute.when, [{
     input: "$(params.component)",
