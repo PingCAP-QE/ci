@@ -269,19 +269,24 @@ def seedSshHostKeys(String host) {
     """
 }
 
-// Every job in this repository lives in `<org>/<repo>/<branch>/<job>` and is
-// bound to that repository's credential, but the repository actually cloned comes
-// from JOB_SPEC. Refuse a JOB_SPEC that names a different repository: otherwise a
-// job could be pointed at another repository while still holding this one's
-// credential.
+// Every job in this repository lives in `<org>/<repo>/<job>` (a `latest` alias)
+// or `<org>/<repo>/<branch>/<job>`, and is bound to that repository's credential,
+// but the repository actually cloned comes from JOB_SPEC. Refuse a JOB_SPEC that
+// names a different repository: otherwise a job could be pointed at another
+// repository while still holding this one's credential.
+//
+// Both shapes start with the repository, so the check is the same for either.
+// A job whose name cannot name a repository — or no name at all — is refused
+// rather than skipped: skipping is what made this control inert for the alias
+// jobs, which are exactly the ones holding the credentials.
 def assertRefsMatchJob(refs) {
     final jobName = env.JOB_NAME?.trim()
     if (!jobName) {
-        return
+        error("refusing to check out ${refs?.org}/${refs?.repo}: JOB_NAME is not set, so the repository this job is bound to cannot be verified")
     }
     final parts = jobName.split('/')
-    if (parts.length < 4) {
-        return
+    if (parts.length < 3) {
+        error("refusing to check out ${refs?.org}/${refs?.repo}: job name '${jobName}' does not have the <org>/<repo>[/<branch>]/<job> shape, so the repository it is bound to cannot be verified")
     }
     final expected = "${parts[0]}/${parts[1]}"
     final actual = "${refs?.org}/${refs?.repo}"
@@ -294,7 +299,6 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     // These values come from JOB_SPEC and end up in a shell script. Reject
     // anything that is not a git object name or a plain branch name so a
     // crafted value cannot turn into shell syntax.
-    assertRefsMatchJob(refs)
     final shaPattern = /^[0-9a-f]{7,40}$/
     final refPattern = /^[A-Za-z0-9._\/-]+$/
     // The organization and repository are interpolated into the remote URL and
@@ -319,6 +323,9 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
             error("refusing to merge pull request #${pull.number}: '${pull.sha}' is not a git object name")
         }
     }
+    // The names are plain, but that does not make them *this job's* repository:
+    // bind them to the job before anything is fetched with its credential.
+    assertRefsMatchJob(refs)
 
     final remoteRefSpec = (
         ["+refs/heads/${refs.base_ref}:refs/remotes/origin/${refs.base_ref}"] + (
