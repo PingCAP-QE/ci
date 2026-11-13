@@ -65,7 +65,7 @@ pipeline {
                     }
                 }
                 dir('test-assets') {
-                    cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/euclidean-hdf5") {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('test-assets', REFS, 'vector-search-test/euclidean-hdf5'), restoreKeys: prow.getRestoreKeys('test-assets', REFS, 'vector-search-test/euclidean-hdf5')) {
                         sh label: 'download test assets', script: """
                         wget -q https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
                         wget -q https://ann-benchmarks.com/mnist-784-euclidean.hdf5
@@ -73,7 +73,7 @@ pipeline {
                     }
                 }
                 dir('v8.5.1') {
-                    cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/tiup-v8.5.1") {
+                    cache(path: "./", includes: '**/*', key: prow.getCacheKey('test-assets', REFS, 'vector-search-test/tiup-v8.5.1'), restoreKeys: prow.getRestoreKeys('test-assets', REFS, 'vector-search-test/tiup-v8.5.1')) {
                         sh label: 'download v8.5.1 if not cached', script: """
                             # Only download if components directory doesn't exist (cache miss)
                             if [ ! -d "components" ]; then
@@ -133,14 +133,14 @@ pipeline {
                                 }
                             }
                             dir('test-assets') {
-                                cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/euclidean-hdf5") {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('test-assets', REFS, 'vector-search-test/euclidean-hdf5'), restoreKeys: prow.getRestoreKeys('test-assets', REFS, 'vector-search-test/euclidean-hdf5')) {
                                 sh label: 'print assets', script: """
                                         ls -alh
                                     """
                                 }
                             }
                             dir('v8.5.1') {
-                                cache(path: "./", includes: '**/*', key: "test-assets/tidb/vector-search-test/tiup-v8.5.1") {
+                                cache(path: "./", includes: '**/*', key: prow.getCacheKey('test-assets', REFS, 'vector-search-test/tiup-v8.5.1'), restoreKeys: prow.getRestoreKeys('test-assets', REFS, 'vector-search-test/tiup-v8.5.1')) {
                                     sh label: 'print v8.5.1', script: """
                                         ls -alh
                                         curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
