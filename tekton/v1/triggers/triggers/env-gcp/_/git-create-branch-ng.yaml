@@ -19,6 +19,7 @@ spec:
           value: >-
             body.repository.full_name in [
             'pingcap/ticdc',
+            'pingcap/ticse',
             'pingcap/tidb',
             'pingcap/tiflash',
             'pingcap/tiflow',
