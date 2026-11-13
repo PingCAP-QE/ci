@@ -6,10 +6,12 @@ import {
 } from "jsr:@std/assert@1.0.11";
 import { expandGlobSync } from "jsr:@std/fs@1.0.19/expand-glob";
 import {
+  type Body,
   evaluate,
   filter,
   type Header,
   load,
+  overlay,
   payload,
   precedingExtensions,
   products,
@@ -506,28 +508,6 @@ Deno.test("image builds resolve the commit metadata where git is available", () 
 
 const routeDirectory = "tekton/v1/triggers/triggers/env-gcp/_/fake-github/";
 const cseRepositories = ["tidbcloud/cloud-storage-engine", "pingcap/ticse"];
-function overlay(
-  trigger: Trigger,
-  key: string,
-  body: ReturnType<typeof payload>,
-  header: Header,
-  field = "",
-) {
-  const expressions =
-    trigger.spec.interceptors.slice(-1).flatMap((interceptor) =>
-      interceptor.params
-    )
-      .find((param) => param.name === "overlays")!.value;
-  assert(typeof expressions !== "string");
-  const expression =
-    expressions.find((overlay) => overlay.key === key)!.expression;
-  return evaluate(
-    `(${expression})${field ? `["${field}"]` : ""}`,
-    body,
-    header,
-    precedingExtensions(trigger, body, header),
-  );
-}
 
 Deno.test("shared Devbuild routes pin product/revision and select one platform run", async (t) => {
   const routes = [
@@ -930,10 +910,17 @@ Deno.test("TiCSE keeps both source identities and TiKV manual-build contracts", 
                       : "$(body.ref)",
                   );
                 }
+                // The product header cannot pick a component: the component
+                // is derived from the allowlisted repository, so naming
+                // another one changes neither the route nor the build.
                 header["ce-paramproduct"] = "tidb";
+                const hijack = routes.filter((route) =>
+                  filter(route, body, header)
+                );
+                assertEquals(hijack.length, 1);
                 assertEquals(
-                  routes.filter((route) => filter(route, body, header)).length,
-                  0,
+                  overlay(hijack[0], "component", body, header),
+                  "tikv",
                 );
               },
             );
@@ -988,20 +975,24 @@ Deno.test("TiCSE formal routes preserve branches, tags and the version placehold
       body.ref = `refs/heads/${name}`;
       assertFalse(filter(push, body), `${repo}/${name}`);
     }
+    // A tag event carries `ref_type`, which the tag trigger requires.
+    const tagBody = payload(repo, "tag-create");
     for (const version of ["v26.3.21", "v8.5.4-nextgen.202510.1"]) {
-      body.ref = version;
-      assert(filter(tag, body), `${repo}/${version}`);
+      tagBody.ref = version;
+      assert(filter(tag, tagBody), `${repo}/${version}`);
     }
     for (const version of ["v8.5.4", "custom-build-tag", "v26.3.21-rc.1"]) {
-      body.ref = version;
-      assertFalse(filter(tag, body), `${repo}/${version}`);
+      tagBody.ref = version;
+      assertFalse(filter(tag, tagBody), `${repo}/${version}`);
     }
-    for (const trigger of [push, tag]) {
+    // The branch-push route was raised to 1h in #5588; the tag route still
+    // carries the older 30m budget.
+    for (const [trigger, timeout] of [[push, "1h"], [tag, "30m"]] as const) {
       assertEquals(overlay(trigger, "component", body, {}), "tikv");
       assertEquals(overlay(trigger, "profile", body, {}), "nextgen");
       for (
         const [field, expected] of Object.entries({
-          timeout: "30m",
+          timeout,
           sourceWsSize: "100Gi",
           cpu: "12",
           memory: "48Gi",
@@ -1014,17 +1005,22 @@ Deno.test("TiCSE formal routes preserve branches, tags and the version placehold
       }
       assertEquals(trigger.spec.template.ref, "build-component-linux");
     }
+    // A branch-creation event carries `ref_type` too.
+    const branchBody: Body = {
+      ...payload(repo, "branch-push"),
+      ref_type: "branch",
+    };
     for (
       const name of [
         "release-nextgen-202609",
         "release-nextgen-26.3.21-20261111",
       ]
     ) {
-      body.ref = name;
-      assert(filter(branch, body), `${repo}/${name}`);
+      branchBody.ref = name;
+      assert(filter(branch, branchBody), `${repo}/${name}`);
     }
-    body.ref = "cloud-engine";
-    assertFalse(filter(branch, body));
+    branchBody.ref = "cloud-engine";
+    assertFalse(filter(branch, branchBody));
     assertEquals(
       branch.spec.template.ref,
       "bump-placeholder-version-in-readme",
@@ -1045,12 +1041,14 @@ Deno.test("TiCSE formal routes preserve branches, tags and the version placehold
       "dillon-zheng/cse-migration",
     ]
   ) {
-    const body = payload(repo, "branch-push");
+    const body: Body = payload(repo, "branch-push");
     body.ref = "refs/heads/cloud-engine";
     assertFalse(filter(push, body));
     body.ref = "v26.3.21";
+    body.ref_type = "tag";
     assertFalse(filter(tag, body));
     body.ref = "release-nextgen-202609";
+    body.ref_type = "branch";
     assertFalse(filter(branch, body));
   }
 });
