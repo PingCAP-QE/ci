@@ -175,6 +175,29 @@ groovy libraries/tipipeline/tests/TestComponent.groovy || {
 }
 ```
 
+## Testing the Shell a Step Generates
+
+Some steps are not pure: they write files and run `sh` inside `dir(...)`. String
+assertions on the generated script cannot see the failure modes that actually
+hurt — a path resolved one directory away, a file written but never made
+executable. Render the step, give it a workspace shaped like a real build, and run
+it with stubs on `PATH`:
+
+- `libraries/tipipeline/tests/TestProwCheckoutStep.groovy` renders the
+  `Update submodules` step, lays out `$WORKSPACE` plus a `tidb/` checkout, and runs
+  it from the checkout — the way `dir(REFS.repo)` does.
+- The stub `git` fails exactly as the real one does when `GIT_SSH_COMMAND` names a
+  file that does not exist or is not executable. That is the contract the step
+  cannot break silently.
+- Mock `writeFile` the way Jenkins resolves it: relative to the current directory,
+  not `$WORKSPACE`. A mock that resolves against `$WORKSPACE` hides the very bug
+  the test exists for.
+- Keep a negative-control test that reproduces the historical bug, so the harness
+  cannot rot silently: if the stub stops enforcing, the control fails first.
+
+Nothing in these tests reaches the network, and they run with `/bin/sh`, so the
+`groovy:*-jdk17` presubmit image can execute them.
+
 ## Best Practices
 
 ### DO
