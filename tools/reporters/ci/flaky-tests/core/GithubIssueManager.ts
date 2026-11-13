@@ -202,12 +202,13 @@ async function addComment(
 
 /**
  * Resolve the started_at timestamp from a build URL.
- * Tries Jenkins first, then Prow.
+ * Uses attempt-specific GitHub Actions metadata, or Jenkins/Prow timestamps.
  */
 async function resolveBuildStartedAt(
   buildUrl: string,
   fetchFn: typeof fetch,
   cache: Map<string, { startedAt: Date; source: string } | null>,
+  octokit?: Octokit,
 ): Promise<{ startedAt: Date; source: string } | null> {
   const normalized = String(buildUrl ?? "").trim();
   if (!normalized) return null;
@@ -217,6 +218,29 @@ async function resolveBuildStartedAt(
   }
 
   let out: { startedAt: Date; source: string } | null = null;
+  const githubAttempt = parseGitHubActionsAttemptUrl(normalized);
+  if (githubAttempt) {
+    try {
+      // Octokit sends the existing credential only to the GitHub API, not to
+      // the build URL supplied in a database row.
+      const data =
+        (await octokit?.rest.actions.getWorkflowRunAttempt(githubAttempt))
+          ?.data;
+      if (
+        data?.id === githubAttempt.run_id &&
+        data.run_attempt === githubAttempt.attempt_number && data.run_started_at
+      ) {
+        const startedAt = new Date(data.run_started_at);
+        if (!Number.isNaN(startedAt.getTime())) {
+          out = { startedAt, source: "github-actions.run_started_at" };
+        }
+      }
+    } catch {
+      // Missing/private/unavailable attempts must not reopen from ingestion time.
+    }
+    cache.set(normalized, out);
+    return out;
+  }
   try {
     const j = await tryResolveJenkinsBuildStartedAt(normalized, fetchFn);
     if (j) out = { startedAt: j, source: "jenkins.timestamp" };
@@ -235,6 +259,27 @@ async function resolveBuildStartedAt(
 
   cache.set(normalized, out);
   return out;
+}
+
+function parseGitHubActionsAttemptUrl(buildUrl: string) {
+  try {
+    const url = new URL(buildUrl);
+    if (url.origin !== "https://github.com" || url.username || url.password) {
+      return null;
+    }
+    const match = url.pathname.match(
+      /^\/([\w.-]+)\/([\w.-]+)\/actions\/runs\/([1-9]\d*)\/attempts\/([1-9]\d*)\/?$/,
+    );
+    if (!match) return null;
+    const run_id = Number(match[3]);
+    const attempt_number = Number(match[4]);
+    if (
+      !Number.isSafeInteger(run_id) || !Number.isSafeInteger(attempt_number)
+    ) return null;
+    return { owner: match[1], repo: match[2], run_id, attempt_number };
+  } catch {
+    return null;
+  }
 }
 
 async function tryResolveJenkinsBuildStartedAt(
@@ -817,7 +862,11 @@ export class GithubIssueManager {
         buildUrl,
         this.fetchFn,
         this.buildStartedAtCache,
+        this.octokit,
       );
+      // A polled Actions report may arrive hours after the actual flaky run.
+      // Keep Jenkins/Prow's existing fallback, but fail closed for Actions.
+      if (!resolved && parseGitHubActionsAttemptUrl(buildUrl)) continue;
       const fallback = c.latestFlakyFoundAt;
       if (!resolved && !fallback) continue;
 

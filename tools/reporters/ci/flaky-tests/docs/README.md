@@ -212,9 +212,15 @@ Defaults:
   branch) that observed the flaky case started after the issue's `closed_at`
   timestamp.
   - Build `started_at` is resolved best-effort from `build_url`:
+    - GitHub Actions attempt: authenticated
+      `GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}`
+      using `run_started_at`. The returned run/attempt must match the build URL.
+      If unavailable, reopening is skipped: delayed ingestion time is not
+      evidence of a new failure.
     - Jenkins build: `GET <build_url>/api/json?tree=timestamp`
     - Prow (view/gs or view/gcs URL): `GET <build_url>/started.json`
-    - Fallback: latest flaky `report_time` (max report_time where flaky > 0)
+    - Jenkins/Prow fallback: latest flaky `report_time` (max report_time where
+      flaky > 0)
   - When reopening, an evidence comment is always added (includes branch, build
     link, and the started_at vs closed_at comparison).
 - The configured labels are applied to any matched/created issue.
