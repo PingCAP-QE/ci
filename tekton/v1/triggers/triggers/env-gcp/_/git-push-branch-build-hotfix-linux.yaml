@@ -69,7 +69,7 @@ spec:
                     'memory': '4Gi',
                   },
                   'pingcap/tiflash': {
-                    'timeout': '2h',
+                    'timeout': '3h',
                     'sourceWsSize': '100Gi',
                     'cpu': '12',
                     'memory': '48Gi',
