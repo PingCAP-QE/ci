@@ -93,3 +93,83 @@
 ^jenkins/jobs/tikv/tikv/release\-8\.1/pull_unit_test/pod\.yaml$	runner	2027-05-31	memory limit unset (requests only) predates this change; capping a unit-test runner needs the job owners' decision
 ^jenkins/jobs/tikv/tikv/release\-8\.5/pull_unit_test/pod\.yaml$	runner	2027-05-31	memory limit unset (requests only) predates this change; capping a unit-test runner needs the job owners' decision
 ^jenkins/jobs/tikv/tikv/release\-9\.0\-beta/pull_unit_test/pod\.yaml$	runner	2027-05-31	memory limit unset (requests only) predates this change; capping a unit-test runner needs the job owners' decision
+
+# CDC / Kafka / binlog integration Pods (14 templates).
+#
+# These templates carry a third-party sidecar set (zookeeper, kafka,
+# canal-adapter, connect, mysql) plus the golang builder, and they have never
+# satisfied the Guaranteed-QoS rule: most containers declare a limit but no
+# request, or a request but no limit. The rule only inspects changed files, so
+# this debt stayed invisible until a change touched the templates; pinning the
+# sidecar images by digest surfaced 62 of them at once.
+#
+# Raising the requests to the limits is not free: `golang` alone would reserve
+# 8 CPU / 24 Gi per Pod, against cluster headroom nobody has measured. Capping
+# the limits instead risks new OOMKills in the kafka sidecars - the same trap
+# the canal-adapter entries above document (PingCAP-QE/ci#1893).
+#
+# So these are registered as exceptions with a 2026-12-31 review date, not a
+# far-future rubber stamp. Removing a line requires right-sizing that container
+# with usage evidence.
+^jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	golang	2026-12-31	memory request/limit not both set (request= limit=24Gi); right-sizing pending
+^jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_kafka_integration_light/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_kafka_integration_light/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_kafka_integration_light/pod-test\.yaml$	golang	2026-12-31	memory request/limit not both set (request= limit=16Gi); right-sizing pending
+^jenkins/jobs/pingcap-inc/ticdc/latest/pull_cdc_kafka_integration_light/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap-inc/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap-inc/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap-inc/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	golang	2026-12-31	memory request/limit not both set (request= limit=24Gi); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_light/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_light/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_light/pod-test\.yaml$	golang	2026-12-31	memory request/limit not both set (request= limit=24Gi); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/latest/pull_cdc_kafka_integration_light/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/release-9\.0-beta/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/release-9\.0-beta/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/release-9\.0-beta/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	golang	2026-12-31	memory request/limit not both set (request= limit=16Gi); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/release-9\.0-beta/pull_cdc_kafka_integration_heavy/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/release-9\.0-beta/pull_cdc_kafka_integration_light/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/release-9\.0-beta/pull_cdc_kafka_integration_light/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/release-9\.0-beta/pull_cdc_kafka_integration_light/pod-test\.yaml$	golang	2026-12-31	memory request/limit not both set (request= limit=16Gi); right-sizing pending
+^jenkins/jobs/pingcap/ticdc/release-9\.0-beta/pull_cdc_kafka_integration_light/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/latest/pull_cdc_integration_kafka_test/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/latest/pull_cdc_integration_kafka_test/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/latest/pull_cdc_integration_kafka_test/pod-test\.yaml$	golang	2026-12-31	memory requests 16Gi != limits 32Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/latest/pull_cdc_integration_kafka_test/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-6\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-6\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	golang	2026-12-31	memory requests 12Gi != limits 16Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=2Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=1Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	golang	2026-12-31	memory requests 16Gi != limits 24Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	kafka	2026-12-31	memory requests 6Gi != limits 8Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=1Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	zookeeper	2026-12-31	memory requests 2Gi != limits 4Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=2Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=1Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	golang	2026-12-31	memory requests 16Gi != limits 24Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	kafka	2026-12-31	memory requests 6Gi != limits 8Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=1Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-7\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	zookeeper	2026-12-31	memory requests 2Gi != limits 4Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=2Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=1Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	golang	2026-12-31	memory requests 16Gi != limits 24Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	kafka	2026-12-31	memory requests 6Gi != limits 8Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=1Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.1/pull_cdc_integration_kafka_test/pod-test\.yaml$	zookeeper	2026-12-31	memory requests 2Gi != limits 4Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=2Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	connect	2026-12-31	memory request/limit not both set (request=1Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	golang	2026-12-31	memory requests 16Gi != limits 24Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	kafka	2026-12-31	memory requests 6Gi != limits 8Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=1Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-8\.5/pull_cdc_integration_kafka_test/pod-test\.yaml$	zookeeper	2026-12-31	memory requests 2Gi != limits 4Gi; right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_cdc_integration_kafka_test/pod\.yaml$	canal-adapter	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_cdc_integration_kafka_test/pod\.yaml$	connect	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_cdc_integration_kafka_test/pod\.yaml$	golang	2026-12-31	memory request/limit not both set (request= limit=16Gi); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_cdc_integration_kafka_test/pod\.yaml$	kafka	2026-12-31	memory request/limit not both set (request= limit=6Gi); right-sizing pending
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_cdc_integration_kafka_test/pod\.yaml$	mysql	2026-12-31	memory request/limit not both set (request=4Gi limit=); right-sizing pending

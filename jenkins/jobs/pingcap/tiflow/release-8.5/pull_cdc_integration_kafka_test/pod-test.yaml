@@ -4,7 +4,7 @@ spec:
   securityContext:
     fsGroup: 1000
   containers:
-    - image: wurstmeister/zookeeper
+    - image: wurstmeister/zookeeper@sha256:7a7fd44a72104bfbd24a77844bad5fabc86485b036f988ea927d1780782a6680
       imagePullPolicy: IfNotPresent
       name: zookeeper
       resources:
@@ -62,7 +62,7 @@ spec:
           value: /tmp/kafka.server.truststore.jks
         - name: RACK_COMMAND
           value: curl -sfL https://cdn.jsdelivr.net/gh/pingcap/tiflow@6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.keystore.jks -o /tmp/kafka.server.keystore.jks && curl -sfL https://cdn.jsdelivr.net/gh/pingcap/tiflow@6e62afcfecc4e3965d8818784327d4bf2600d9fa/tests/_certificates/kafka.server.truststore.jks -o /tmp/kafka.server.truststore.jks
-      image: wurstmeister/kafka:2.12-2.4.1
+      image: wurstmeister/kafka@sha256:21b9367ff68e379b196a9c1a0bb5dc6a51740e4f87c630d2c2d672e10c9e9de7
       imagePullPolicy: IfNotPresent
       name: kafka
       resources:
@@ -89,7 +89,7 @@ spec:
           value: "3306"
         - name: DB_NAME
           value: test
-      image: rustinliu/ticdc-canal-json-adapter:latest
+      image: rustinliu/ticdc-canal-json-adapter@sha256:02c644197d63cecd2de3ff9967fa2e25e0ef3a42c46752c3ca3ca6f4d7c91a1e
       imagePullPolicy: IfNotPresent
       name: canal-adapter
       # TODO: add resource limit
