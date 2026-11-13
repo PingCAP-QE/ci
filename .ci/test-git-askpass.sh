@@ -117,6 +117,55 @@ broker_reaches_mint "accepts the read-only permission set" \
 expect_reject "ignores non-credential prompts" "$broker" \
     "Enter passphrase for key '/root/.ssh/id_rsa': "
 
+echo "repository scope (GIT_CREDENTIAL_ALLOWED_REPOS)"
+# The host allowlist keeps the credential on GitHub. The scope keeps it off
+# other people's repositories, which matters because `.gitmodules` (at any
+# depth) chooses the repository git asks for.
+expect_answer "answers the repository the scope names" "$askpass" \
+    "Password for 'https://x-access-token@github.com/pingcap/tidb.git': " "secret" \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb"
+expect_answer "answers a repository under an allowed organization" "$askpass" \
+    "Password for 'https://x-access-token@github.com/pingcap-inc/enterprise-extensions.git': " "secret" \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb pingcap-inc/*"
+expect_answer "matches the scope case-insensitively" "$askpass" \
+    "Password for 'https://x-access-token@github.com/PingCAP/TiDB.git': " "secret" \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="PINGCAP/tidb"
+expect_answer "answers an scp-like submodule url under an allowed organization" "$askpass" \
+    "Password for 'git@github.com:pingcap-inc/enterprise-extensions.git': " "secret" \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap-inc/*"
+expect_reject "rejects a private repository outside the scope" "$askpass" \
+    "Password for 'https://x-access-token@github.com/pingcap/private-repo.git': " \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb tikv/*"
+expect_reject "rejects an scp-like submodule url outside the scope" "$askpass" \
+    "Password for 'git@github.com:someone-else/private.git': " \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb pingcap-inc/*"
+expect_reject "rejects a prompt that names no repository" "$askpass" \
+    "Username for 'https://github.com': " "${applypass_env[@]}" \
+    GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/*"
+
+broker_reaches_mint_scoped() {
+    local name="$1" prompt="$2"
+    shift 2
+    if run_askpass "$broker" "$prompt" "$@" 2>"$tmp/err"; then
+        fail "$name (unexpectedly succeeded)"
+        return
+    fi
+    if grep -q 'TIPIPELINE_BROKER_URL is required' "$tmp/err"; then
+        pass "$name"
+    else
+        fail "$name (failed before the scope check: $(head -1 "$tmp/err"))"
+    fi
+}
+broker_reaches_mint_scoped "the broker path mints only for a scoped repository" \
+    "Password for 'https://x-access-token@github.com/pingcap/tidb.git': " \
+    GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb"
+expect_reject "the broker path refuses a repository outside the scope" "$broker" \
+    "Password for 'https://x-access-token@github.com/someone-else/private.git': " \
+    GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb"
+expect_reject "the broker path refuses a scp-like url outside the scope" "$broker" \
+    "Password for 'https://x-access-token@github.com/pingcap-inc/x.git': " \
+    GIT_CREDENTIAL_ALLOWED_REPOS="tidbcloud/*"
+
 if [ "$failures" -ne 0 ]; then
     echo "git-askpass tests failed: $failures" >&2
     exit 1

@@ -25,6 +25,11 @@ esac
 # Only GitHub is answered. The pod ServiceAccount is the identity the broker
 # trusts, so a prompt for any other host would hand a freshly minted token to
 # that host: a `.gitmodules` entry or a rewritten remote can point anywhere.
+#
+# The host is one bound; the other is the repository, in the "repository" section
+# below: the caller names the repositories this scope may mint a token for
+# (GIT_CREDENTIAL_ALLOWED_REPOS), so a pull request cannot ask the broker for a
+# private repository it may not read.
 ALLOWED_HOSTS='github.com git-cdn.cache.svc'
 
 # Extract the URL git quotes in the prompt: `... for '<url>': `. Strip exactly
@@ -127,6 +132,51 @@ repo=$(repo_from_prompt || true)
 if [ -z "${repo}" ]; then
     echo "git-askpass(broker): cannot determine owner/repository from '${prompt}'" >&2
     exit 1
+fi
+
+# ------------------------------------------------------------------ repository
+#
+# The host allowlist keeps the token on GitHub; it does not keep it off other
+# people's repositories. The repository above comes from the URL git quoted,
+# which is content-controlled (.gitmodules at any depth, or a rewritten remote),
+# so a pull request could otherwise ask the broker for any repository the App can
+# read. The caller names the repositories this scope may mint tokens for:
+#
+#   GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb pingcap/* pingcap-inc/*"
+#
+# Entries are `owner/repo` or `owner/*`, case-insensitive. Unset keeps the
+# historical behaviour for callers outside the shared library; every caller
+# inside it sets the variable.
+allowed_repos="${GIT_CREDENTIAL_ALLOWED_REPOS-}"
+if [ -n "${allowed_repos}" ]; then
+    repo_lc=$(printf '%s' "${repo}" | tr '[:upper:]' '[:lower:]')
+    case "${repo_lc}" in
+        */*) ;;
+        *)
+            echo "git-askpass(broker): refusing a token for '${repo}': not an owner/repository" >&2
+            exit 1
+            ;;
+    esac
+    allowed=0
+    for entry in $(printf '%s' "${allowed_repos}" | tr ',' ' '); do
+        entry=$(printf '%s' "${entry}" | tr '[:upper:]' '[:lower:]')
+        [ -n "${entry}" ] || continue
+        if [ "${entry}" = "${repo_lc}" ]; then
+            allowed=1
+        fi
+        case "${entry}" in
+            */\*)
+                if [ "${repo_lc%%/*}" = "${entry%/*}" ]; then
+                    allowed=1
+                fi
+                ;;
+        esac
+        [ "${allowed}" -eq 1 ] && break
+    done
+    if [ "${allowed}" -ne 1 ]; then
+        echo "git-askpass(broker): refusing a token for '${repo}': not in GIT_CREDENTIAL_ALLOWED_REPOS (${allowed_repos})" >&2
+        exit 1
+    fi
 fi
 
 cached_token() {

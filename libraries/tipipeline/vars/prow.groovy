@@ -32,7 +32,7 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
         final remoteUrl = cdnEnabled
             ? "git@github.com:${refs.org}/${refs.repo}.git"
             : publicRemoteUrl(refs, gitBaseUrl)
-        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}"]) {
+        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}", allowedRepos: credentialAllowedRepos(refs)]) {
             _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
         }
         return
@@ -51,7 +51,7 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
 
     def checkoutWithHttpCredentials = {
         if (cdnEnabled && httpCredentialsId) {
-            withGitAskPass(httpCredentialsId, checkout)
+            withGitAskPass(httpCredentialsId, checkout, credentialAllowedRepos(refs))
         } else {
             checkout()
         }
@@ -90,6 +90,7 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
             'withGitAskPassFromBroker requires cfg.brokerUrl or the GIT_BROKER_URL environment variable')
     }
     final repo = cfg.repo?.toString()?.trim() ?: ''
+    final allowedRepos = cfg.allowedRepos?.toString()?.trim() ?: ''
     final permissions = cfg.permissions ?: '{"contents":"read"}'
     // The controllers already provide git configuration through GIT_CONFIG_*
     // (git-cdn insteadOf rewrites). Append to it instead of resetting the count.
@@ -116,12 +117,39 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
             "GIT_CONFIG_VALUE_${baseConfigCount}=git@github.com:",
             "GIT_CONFIG_KEY_${baseConfigCount + 1}=credential.useHttpPath",
             "GIT_CONFIG_VALUE_${baseConfigCount + 1}=true",
-        ]) {
+        ] + (allowedRepos ? ["GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos}"] : [])) {
             body()
         }
     } finally {
         sh label: 'Remove Git HTTP credential helper (token broker)', script: "rm -f '${askPassScript}' '${cacheFile}'"
     }
+}
+
+/*
+ * Repositories the checkout scope may spend its Git credential on.
+ *
+ * The askpass helpers have a host allowlist, which keeps the credential on
+ * GitHub; it does not keep it off other people's repositories. The URLs a fetch
+ * follows come from the pull request's own content (`.gitmodules` at any depth,
+ * a rewritten remote), so the scope is named here, before that content is read:
+ * the repository this job belongs to, its organization, and the organizations
+ * submodules may use.
+ *
+ * Entries are `owner/repo` or `owner/*`, the same vocabulary
+ * GIT_CREDENTIAL_ALLOWED_REPOS understands in the askpass scripts.
+ */
+def credentialAllowedRepos(refs, String sshOrgs = '') {
+    final org = refs?.org?.toString()?.trim()?.toLowerCase()
+    final repo = refs?.repo?.toString()?.trim()?.toLowerCase()
+    final entries = []
+    if (org && repo) {
+        entries << "${org}/${repo}"
+    }
+    if (org) {
+        entries << "${org}/*"
+    }
+    splitBrokerAllowlist(sshOrgs ?: submoduleSshOrgs()).each { entries << "${it}/*" }
+    return entries.unique().join(' ')
 }
 
 /*
@@ -134,7 +162,7 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
  * every other host gets no credential, so a PR-controlled .gitmodules cannot
  * redirect the bot credential to an attacker host.
  */
-def withGitAskPass(String credentialsId, Closure body) {
+def withGitAskPass(String credentialsId, Closure body, String allowedRepos = '') {
     // Keep the askpass script inside the shared workspace volume but outside
     // the Git worktree. Every caller clones into a workspace subdirectory via
     // dir(), so the workspace root is never touched by git clean/checkout.
@@ -149,7 +177,11 @@ def withGitAskPass(String credentialsId, Closure body) {
         writeFile(file: tmpAskPassScript, text: askPassScript)
         sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
         withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
-            withEnv(["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']) {
+            final envs = ["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']
+            if (allowedRepos?.trim()) {
+                envs << "GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos.trim()}"
+            }
+            withEnv(envs) {
                 body()
             }
         }
