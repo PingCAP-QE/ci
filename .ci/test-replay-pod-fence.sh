@@ -175,6 +175,20 @@ printf 'pipeline { agent { podTemplate(yaml: """kind: Pod""") } }\n' \
 expect_refused "the podTemplate(yaml: ...) form is refused" \
     "$(job_dir example/repo named-arg)/Jenkinsfile" "cannot validate"
 
+# 4h. Groovy accepts a string literal directly after a command expression, so an
+#     inline spec can follow `yaml` with no separator at all.
+for form in "yaml'''apiVersion: v1" 'yaml"""apiVersion: v1' "yaml/*c*/'''apiVersion: v1"; do
+    slug="unquoted-$(printf '%s' "$form" | tr -cd 'a-z')"
+    mkdir -p "$(job_dir example/repo "$slug")"
+    unprivileged_pod > "$(job_dir example/repo "$slug")/pod.yaml"
+    {
+        printf "final POD_TEMPLATE_FILE = '%s'\n" "$(job_dir example/repo "$slug")/pod.yaml"
+        printf 'pipeline { agent { kubernetes { %s\n' "$form"
+    } > "$(job_dir example/repo "$slug")/Jenkinsfile"
+    expect_refused "an inline spec written as '${form%%apiVersion*}' is refused" \
+        "$(job_dir example/repo "$slug")/Jenkinsfile" "cannot validate"
+done
+
 # 5. A Jenkinsfile that declares no pod spec at all has nothing to check.
 mkdir -p "$(job_dir example/repo budget)"
 printf 'pipeline { agent { kubernetes {} } }\n' > "$(job_dir example/repo budget)/Jenkinsfile"
