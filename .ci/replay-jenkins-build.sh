@@ -23,6 +23,20 @@ Options:
   --auto-changed           Replay changed job-folder Jenkinsfiles
                            and Jenkinsfiles with changed sibling pod.yaml or
                            pod-<purpose>.yaml files, from git diff.
+                           A change under libraries/<name>/ also replays the jobs
+                           listed in .ci/replay-library-jobs.txt, with
+                           @Library('<name>') pinned to the head revision: a
+                           replay replaces the pipeline script only, so without
+                           the pin it would still load the library from main and
+                           prove nothing about the change.
+  --library-version <name=ref>
+                           Pin library <name> to <ref> (repeatable). Derived from
+                           the diff in --auto-changed mode.
+  --library-jobs-file <path>
+                           Jobs replayed for a library change.
+                           Default: .ci/replay-library-jobs.txt
+  --dump-script <path>     Write the script that would be submitted (after pod
+                           yaml inlining and library pinning) to <path>.
   --base-sha <sha>         Base SHA for --auto-changed.
   --head-sha <sha>         Head SHA for --auto-changed.
   --jenkins-url <url>      Jenkins root URL. Default: $JENKINS_URL or https://prow.tidb.net/jenkins.
@@ -544,6 +558,13 @@ prepare_script_for_replay() {
     # PR-authored template through yamlFile.
     enforce_pod_policy "$script_file"
 
+    inline_pod_yaml_for_replay "$script_file"
+    pin_libraries_for_replay "$script_file"
+}
+
+inline_pod_yaml_for_replay() {
+    local script_file="$1"
+
     if [[ "$INLINE_POD_YAML" != "true" ]]; then
         return 0
     fi
@@ -576,6 +597,23 @@ prepare_script_for_replay() {
     fatal "failed to inline pod yaml for replay script: ${script_file}"
 }
 
+# Apply the library pins to the script that will be submitted. The library a
+# replay loads comes from `@Library(...)` plus the configured default version, so
+# the annotation is the only place a replay can be pointed at another revision.
+pin_libraries_for_replay() {
+    local script_file="$1"
+
+    (( ${#LIBRARY_PINS[@]} > 0 )) || return 0
+
+    local pinned
+    pinned="$(mktemp)"
+    pin_library_versions "$REPLAY_SCRIPT_EFFECTIVE" "$pinned" ${LIBRARY_PINS[@]+"${LIBRARY_PINS[@]}"}
+    [[ -n "$REPLAY_SCRIPT_TEMP" ]] && rm -f "$REPLAY_SCRIPT_TEMP"
+    REPLAY_SCRIPT_EFFECTIVE="$pinned"
+    REPLAY_SCRIPT_TEMP="$pinned"
+    vlog "library pins applied: ${LIBRARY_PINS[*]}"
+}
+
 job_url_to_full_name() {
     local job_url="$1"
     local p
@@ -590,15 +628,7 @@ discover_changed_scripts() {
     local base_sha="$1"
     local head_sha="$2"
 
-    if [[ -z "$base_sha" || -z "$head_sha" ]]; then
-        if git rev-parse --verify -q origin/main >/dev/null 2>&1; then
-            base_sha="$(git merge-base origin/main HEAD)"
-            head_sha="$(git rev-parse HEAD)"
-        else
-            base_sha="$(git rev-parse HEAD~1)"
-            head_sha="$(git rev-parse HEAD)"
-        fi
-    fi
+    [[ -n "$base_sha" && -n "$head_sha" ]] || fatal "discover_changed_scripts needs a base and a head revision"
 
     log "collect changed pipeline files from ${base_sha}..${head_sha}"
     # Map changed pod templates to their sibling Jenkinsfile. Replay each job
@@ -612,6 +642,122 @@ discover_changed_scripts() {
             fi
             [[ -f "$path" ]] && printf '%s\n' "$path"
         done | awk '!seen[$0]++' || true
+}
+
+# Base and head revisions for --auto-changed.
+resolve_replay_revisions() {
+    local base_sha="${BASE_SHA:-}"
+    local head_sha="${HEAD_SHA:-}"
+
+    if [[ -z "$base_sha" || -z "$head_sha" ]]; then
+        if git rev-parse --verify -q origin/main >/dev/null 2>&1; then
+            base_sha="$(git merge-base origin/main HEAD)"
+            head_sha="$(git rev-parse HEAD)"
+        else
+            base_sha="$(git rev-parse HEAD~1)"
+            head_sha="$(git rev-parse HEAD)"
+        fi
+    fi
+
+    printf '%s %s\n' "$base_sha" "$head_sha"
+}
+
+# Shared libraries changed between two revisions, as `<name>=<ref>` pins.
+#
+# A library change is not replayable as a pipeline change: a replay replaces the
+# pipeline script only, and the shared library is loaded from its configured
+# version (`main`), so the replayed build would run unchanged library code and
+# prove nothing while looking green. The library is pinned instead — the global
+# library allows the version override — and the replayed script's
+# `@Library('<name>')` is rewritten to `@Library('<name>@<head>')`.
+discover_library_pins() {
+    local base_sha="$1"
+    local head_sha="$2"
+
+    git diff --name-only "$base_sha" "$head_sha" |
+        sed -n 's#^libraries/\([^/][^/]*\)/.*#\1#p' |
+        sort -u |
+        while IFS= read -r name; do
+            printf '%s=%s\n' "$name" "$head_sha"
+        done
+}
+
+# Jobs replayed when a shared library changes, into LIBRARY_JOBS. Without this
+# file a library change replays nothing, which is the failure mode this whole
+# mode exists to remove, so a missing file is fatal rather than an empty
+# selection. Filled in the current shell so that `fatal` actually stops the run.
+LIBRARY_JOBS=()
+collect_library_jobs() {
+    LIBRARY_JOBS=()
+    [[ -f "$LIBRARY_JOBS_FILE" ]] || \
+        fatal "a shared library changed but ${LIBRARY_JOBS_FILE} is missing: list the jobs that must replay it"
+    local script_file
+    while IFS= read -r script_file; do
+        [[ -n "$script_file" ]] || continue
+        [[ -f "$script_file" ]] || fatal "job listed in ${LIBRARY_JOBS_FILE} not found: ${script_file}"
+        LIBRARY_JOBS+=("$script_file")
+    done < <(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$LIBRARY_JOBS_FILE" | awk 'NF')
+}
+
+# Rewrite the library annotations of a replay script to the pinned revisions.
+#
+# `@Library('x')`, `@Library("x")`, `@Library(['x'])` and an already versioned
+# annotation all become `@Library('x@<ref>')`. A pin that finds no annotation is
+# reported: the job was chosen because it should load that library, so a script
+# without it would replay something that cannot exercise the change.
+pin_library_versions() {
+    local script_file="$1"
+    local out_file="$2"
+    shift 2
+
+    cp "$script_file" "$out_file"
+    local pin name ref applied=0
+    for pin in "$@"; do
+        name="${pin%%=*}"
+        ref="${pin#*=}"
+        sed -E -i.bak \
+            -e "s#@Library\(\[['\"]${name}(@[^'\"]*)?['\"]\]\)#@Library('${name}@${ref}')#" \
+            -e "s#@Library\(['\"]${name}(@[^'\"]*)?['\"]\)#@Library('${name}@${ref}')#" \
+            "$out_file"
+        rm -f "${out_file}.bak"
+        if grep -Eq "@Library\(.*['\"]${name}@${ref}['\"]" "$out_file"; then
+            applied=$((applied + 1))
+            vlog "pinned library ${name} to ${ref}"
+        elif grep -Eq "@Library\(\[[^]]*['\"]${name}(@[^'\"]*)?['\"][^]]*\]\)" "$out_file"; then
+            # Rewriting a multi-library list would mean editing inside the list;
+            # refuse rather than replay a script whose pin silently did not apply.
+            fatal "${script_file} declares '${name}' inside a multi-library @Library([...]) list, which the pin cannot rewrite; use a single @Library('${name}') annotation"
+        else
+            fatal "${script_file} does not load library '${name}': a replay of it cannot exercise that change"
+        fi
+    done
+    (( applied > 0 )) || fatal "no library pin was applied to ${script_file}"
+}
+
+# A pinned replay only means something if the run really loaded that version, so
+# read the console back instead of trusting the submission.
+verify_library_pinned() {
+    local build_url="$1"
+    shift
+
+    local log_file
+    log_file="$(mktemp)"
+    if ! api_get "${build_url}/consoleText" >"$log_file" 2>/dev/null; then
+        rm -f "$log_file"
+        fatal "cannot read ${build_url}/consoleText to confirm the library version"
+    fi
+
+    local pin name ref
+    for pin in "$@"; do
+        name="${pin%%=*}"
+        ref="${pin#*=}"
+        if ! grep -q "Loading library ${name}@${ref}" "$log_file"; then
+            rm -f "$log_file"
+            fatal "the replay did not load ${name}@${ref}: it ran some other revision of the library (see ${build_url}/consoleText). A pull request from a fork cannot be pinned by commit — push the branch to PingCAP-QE/ci."
+        fi
+        log "confirmed library ${name}@${ref} in the replay"
+    done
+    rm -f "$log_file"
 }
 
 setup_auth_and_crumb() {
@@ -892,6 +1038,11 @@ replay_one() {
         vlog "effective replay script file: ${replay_script_file}"
     fi
 
+    if [[ -n "$DUMP_SCRIPT" ]]; then
+        cp "$replay_script_file" "$DUMP_SCRIPT"
+        log "📝 wrote the replay script to ${DUMP_SCRIPT}"
+    fi
+
     if [[ "$DRY_RUN" == "true" ]]; then
         [[ -n "$REPLAY_SCRIPT_TEMP" ]] && rm -f "$REPLAY_SCRIPT_TEMP"
         REPLAY_LAST_RESULT="dry-run"
@@ -911,6 +1062,10 @@ replay_one() {
             return 1
         fi
         printf '🎉 replay success: %s\n' "$replay_build_url"
+        # The library version is a claim about what ran; read it back.
+        if (( ${#LIBRARY_PINS[@]} > 0 )); then
+            verify_library_pinned "$replay_build_url" "${LIBRARY_PINS[@]}"
+        fi
     fi
     REPLAY_LAST_RESULT="submitted"
 }
@@ -942,6 +1097,9 @@ init_defaults() {
     SUMMARY_SKIPPED=0
     SUMMARY_FAILED=0
     SUMMARY_DRY_RUN=0
+    LIBRARY_PINS=()
+    LIBRARY_JOBS_FILE=".ci/replay-library-jobs.txt"
+    DUMP_SCRIPT=""
 }
 
 parse_args() {
@@ -973,6 +1131,18 @@ parse_args() {
                 ;;
             --head-sha)
                 HEAD_SHA="$2"
+                shift 2
+                ;;
+            --library-version)
+                LIBRARY_PINS+=("$2")
+                shift 2
+                ;;
+            --library-jobs-file)
+                LIBRARY_JOBS_FILE="$2"
+                shift 2
+                ;;
+            --dump-script)
+                DUMP_SCRIPT="$2"
                 shift 2
                 ;;
             --jenkins-url)
@@ -1064,6 +1234,18 @@ validate_inputs() {
         # wait -n -p is used by the parallel runner.
         [[ "${BASH_VERSINFO[0]}" -ge 5 ]] || fatal "--parallel > 1 requires bash 5.1+ (found ${BASH_VERSION})"
         [[ "${BASH_VERSINFO[0]}" -gt 5 || "${BASH_VERSINFO[1]}" -ge 1 ]] || fatal "--parallel > 1 requires bash 5.1+ (found ${BASH_VERSION})"
+    fi
+
+    local pin
+    for pin in ${LIBRARY_PINS[@]+"${LIBRARY_PINS[@]}"}; do
+        [[ "$pin" == *=* ]] && [[ -n "${pin%%=*}" ]] && [[ -n "${pin#*=}" ]] || \
+            fatal "--library-version expects <name=ref>, got: ${pin}"
+    done
+    if (( ${#LIBRARY_PINS[@]} > 0 )); then
+        # Without --wait the build is never read back, so a pin that did not take
+        # effect would report success. A dry run submits nothing to confirm.
+        [[ "$WAIT_BUILD" == "true" || "$DRY_RUN" == "true" ]] || \
+            fatal "--library-version requires --wait so the loaded library can be confirmed"
     fi
 
     if [[ "$AUTO_CHANGED" == "true" ]]; then
@@ -1207,6 +1389,29 @@ print_summary() {
 
 run_main_flow() {
     local failed=0
+    local base_sha=""
+    local head_sha=""
+
+    if [[ "$AUTO_CHANGED" == "true" ]]; then
+        read -r base_sha head_sha <<<"$(resolve_replay_revisions)"
+
+        # A library change carries no pipeline script, so it is pinned and
+        # replayed through the jobs listed for it. Resolved before the
+        # credentials are set up: a library change without --wait is a footing
+        # error, and it must not surface as a credentials problem.
+        if (( ${#LIBRARY_PINS[@]} == 0 )); then
+            local pin=""
+            while IFS= read -r pin; do
+                [[ -n "$pin" ]] || continue
+                LIBRARY_PINS+=("$pin")
+            done < <(discover_library_pins "$base_sha" "$head_sha")
+        fi
+
+        if (( ${#LIBRARY_PINS[@]} > 0 )) && [[ "$WAIT_BUILD" != "true" && "$DRY_RUN" != "true" ]]; then
+            # The pin is only a claim until the build is read back.
+            fatal "a shared library change (${LIBRARY_PINS[*]}) needs --wait so the loaded library can be confirmed"
+        fi
+    fi
 
     if [[ "$ROUTE_BY_PROW_MASTER" != "true" && "$DRY_RUN" != "true" ]]; then
         setup_auth_and_crumb
@@ -1219,7 +1424,25 @@ run_main_flow() {
         while IFS= read -r script; do
             [[ -n "$script" ]] || continue
             changed_scripts+=("$script")
-        done < <(discover_changed_scripts "$BASE_SHA" "$HEAD_SHA")
+        done < <(discover_changed_scripts "$base_sha" "$head_sha")
+
+        if (( ${#LIBRARY_PINS[@]} > 0 )); then
+            log "shared library changed (${LIBRARY_PINS[*]}); adding the jobs listed in ${LIBRARY_JOBS_FILE}"
+            collect_library_jobs
+            local library_script=""
+            for library_script in ${LIBRARY_JOBS[@]+"${LIBRARY_JOBS[@]}"}; do
+                changed_scripts+=("$library_script")
+            done
+        fi
+
+        local deduped_scripts=()
+        local seen_scripts=" "
+        for script in ${changed_scripts[@]+"${changed_scripts[@]}"}; do
+            [[ "$seen_scripts" == *" ${script} "* ]] && continue
+            seen_scripts+="${script} "
+            deduped_scripts+=("$script")
+        done
+        changed_scripts=(${deduped_scripts[@]+"${deduped_scripts[@]}"})
 
         if (( ${#changed_scripts[@]} == 0 )); then
             log "no changed pipeline scripts detected; nothing to replay"
