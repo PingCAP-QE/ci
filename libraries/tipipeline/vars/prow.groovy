@@ -556,6 +556,39 @@ def getRestoreKeys(prefixFolder, refs, part = '') {
     return ["${prefix}/branch-${refs.base_ref}-".toString()]
 }
 
+// Cache key for a repository other than the one the job builds.
+//
+// Many jobs cache a peer repository's working tree (a job in PingCAP-QE/tidb-test
+// caches pingcap/tidb, and so on). Those caches must obey the same invariant as
+// getCacheKey: a pull request never shares a key with another pull request, and
+// a pull request never writes under the `branch-` prefix that branch builds
+// restore from.
+def getPeerCacheKey(prefixFolder, org, repo, refs, part = '') {
+    final name = [org, repo].collect { it?.toString()?.trim() }
+    if (name.any { !it }) {
+        throw new IllegalArgumentException("refusing to build a cache key without an organization and a repository: '${org}/${repo}'")
+    }
+    final prefix = ([prefixFolder] + name + [part] - '').join('/')
+    final baseSha = refs.base_sha[0..<7]
+    if (refs.pulls && refs.pulls.size() > 0) {
+        final pulls = refs.pulls.collect { it.sha[0..<7] }.join('_')
+        return "${prefix}/pr-${refs.base_ref}-${baseSha}-${pulls}".toString()
+    }
+    return "${prefix}/branch-${refs.base_ref}-${baseSha}".toString()
+}
+
+// Restore keys for a peer repository's cache: branch builds only, same rule as
+// getRestoreKeys. A pull request cache key starts with `pr-`, so it can never
+// match one of these prefixes.
+def getPeerRestoreKeys(prefixFolder, org, repo, refs, part = '') {
+    final name = [org, repo].collect { it?.toString()?.trim() }
+    if (name.any { !it }) {
+        throw new IllegalArgumentException("refusing to build restore keys without an organization and a repository: '${org}/${repo}'")
+    }
+    final prefix = ([prefixFolder] + name + [part] - '').join('/')
+    return ["${prefix}/branch-${refs.base_ref}-".toString()]
+}
+
 /**
  * Run the body only when the cache identified by `key` is missing.
  *

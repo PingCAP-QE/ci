@@ -40,7 +40,7 @@ pipeline {
                     }
                 }
                 dir("tidb-binlog") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb-binlog/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-binlog/rev-']) {
+                    cache(path: "./", includes: '**/*', key: prow.getPeerCacheKey('git', 'pingcap', 'tidb-binlog', REFS), restoreKeys: prow.getPeerRestoreKeys('git', 'pingcap', 'tidb-binlog', REFS)) {
                         retry(2) {
                             script {
                                 component.checkout('https://github.com/pingcap/tidb-binlog.git', 'tidb-binlog', REFS.base_ref, REFS.pulls[0].title, "")
@@ -53,7 +53,7 @@ pipeline {
                     }
                 }
                 dir("tidb-tools") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tidb-tools/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tidb-tools/rev-']) {
+                    cache(path: "./", includes: '**/*', key: prow.getPeerCacheKey('git', 'pingcap', 'tidb-tools', REFS), restoreKeys: prow.getPeerRestoreKeys('git', 'pingcap', 'tidb-tools', REFS)) {
                         retry(2) {
                             script {
                                 // from v6.0.0, tidb-tools only maintain master branch

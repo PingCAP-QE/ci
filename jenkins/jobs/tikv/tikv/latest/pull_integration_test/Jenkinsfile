@@ -9,7 +9,6 @@ final REFS = readJSON(text: params.JOB_SPEC).refs
 final OCI_TAG_PD = component.computeArtifactOciTagFromPR('pd', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIKV = component.computeArtifactOciTagFromPR('tikv', REFS.base_ref, REFS.pulls[0].title, 'master')
 final OCI_TAG_TIDB = component.computeArtifactOciTagFromPR('tidb', REFS.base_ref, REFS.pulls[0].title, 'master')
-final SUPPORT_REPO_CACHE_REV = REFS.base_sha
 
 prow.setPRDescription(REFS)
 pipeline {
@@ -63,7 +62,7 @@ pipeline {
                     options { timeout(time: 30, unit: 'MINUTES') }
                     steps {
                         dir('tidb') {
-                            cache(path: "./", includes: '**/*', key: "git/pingcap/tidb/rev-${SUPPORT_REPO_CACHE_REV}", restoreKeys: ['git/pingcap/tidb/rev-']) {
+                            cache(path: "./", includes: '**/*', key: prow.getPeerCacheKey('git', 'pingcap', 'tidb', REFS), restoreKeys: prow.getPeerRestoreKeys('git', 'pingcap', 'tidb', REFS)) {
                                 retry(2) {
                                     script {
                                         component.checkoutSupportBatch('https://github.com/pingcap/tidb.git', 'tidb', REFS.base_ref, REFS.pulls[0].title, REFS, GIT_CREDENTIALS_ID)
@@ -72,7 +71,7 @@ pipeline {
                             }
                         }
                         dir('copr-test') {
-                            cache(path: "./", includes: '**/*', key: "git/tikv/copr-test/rev-${SUPPORT_REPO_CACHE_REV}", restoreKeys: ['git/tikv/copr-test/rev-']) {
+                            cache(path: "./", includes: '**/*', key: prow.getPeerCacheKey('git', 'tikv', 'copr-test', REFS), restoreKeys: prow.getPeerRestoreKeys('git', 'tikv', 'copr-test', REFS)) {
                                 retry(2) {
                                     script {
                                         component.checkoutSupportBatch('https://github.com/tikv/copr-test.git', 'copr-test', REFS.base_ref, REFS.pulls[0].title, REFS, GIT_CREDENTIALS_ID)
@@ -115,7 +114,7 @@ pipeline {
                 stage('compatible test') {
                     steps {
                         dir("tidb-test") {
-                            cache(path: "./", includes: '**/*', key: "git/PingCAP-QE/tidb-test/rev-${SUPPORT_REPO_CACHE_REV}", restoreKeys: ['git/PingCAP-QE/tidb-test/rev-']) {
+                            cache(path: "./", includes: '**/*', key: prow.getPeerCacheKey('git', 'PingCAP-QE', 'tidb-test', REFS), restoreKeys: prow.getPeerRestoreKeys('git', 'PingCAP-QE', 'tidb-test', REFS)) {
                                 retry(2) {
                                     script {
                                         component.checkoutSupportBatch('git@github.com:PingCAP-QE/tidb-test.git', 'tidb-test', REFS.base_ref, REFS.pulls[0].title, REFS, GIT_CREDENTIALS_ID)
