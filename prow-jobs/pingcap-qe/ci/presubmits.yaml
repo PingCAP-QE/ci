@@ -423,6 +423,12 @@ presubmits:
       branches:
         - ^main$
       spec:
+        # Resolves every image a changed template references with `crane`. The
+        # `internal` Artifact Registry repository is private, so this pod needs a
+        # Google identity: `gar-reader` via GKE Workload Identity (bound in
+        # PingCAP-QE/ee-infra). Without it the check can only pull anonymously,
+        # which is why `internal` still grants `allUsers` a reader.
+        serviceAccountName: gar-reader
         containers:
           - name: main
             image: alpine:3.24
