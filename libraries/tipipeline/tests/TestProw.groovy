@@ -364,6 +364,33 @@ class TestProw {
         }
 
         @Test
+        void shouldGuardTheSubmoduleUpdateAtTheTransport() {
+            def events = []
+            def written = [:]
+            def script = loadProw(
+                env: [JOB_NAME: 'pingcap/tidb/latest/pull_build', GIT_CDN_ENABLED: 'true'],
+                readFile: { Map args -> "url = git@github.com:pingcap/tidb-engine-ext.git\n" },
+                libraryResource: { String path -> '#!/bin/sh\n' },
+                writeFile: { Map args -> written[args.file] = args.text },
+                sshagent: { Map args, Closure body -> body() },
+                sh: { Map args -> events << (args.script ?: '') })
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890',
+                                 pulls: [[number: 12, sha: '1234567890abcdef']]],
+                'github-bot-ssh', 7, true)
+
+            assertTrue('the SSH guard is installed', written.containsKey('git_ssh_guard.sh'))
+            def update = events.find { it.contains('git submodule update') }
+            assertTrue('the update runs the guard',
+                update.contains('GIT_SSH_COMMAND="\${WORKSPACE:-.}/git_ssh_guard.sh"'))
+            assertTrue('and spends no HTTP credential',
+                update.contains('GIT_ASKPASS=/bin/false'))
+            assertTrue('with the allowlist in the environment',
+                update.contains('GIT_SUBMODULE_PARENT_ORG="pingcap"'))
+        }
+
+        @Test
         void shouldRefuseTheUpdateWithoutFetchingAnything() {
             def events = []
             def script = loadProw(
@@ -384,6 +411,54 @@ class TestProw {
             }
             assertFalse('no submodule fetch may run',
                 events.any { it == 'Update submodules' })
+        }
+    }
+
+    static class SubmoduleSshGuard {
+        private static int run(String host, String cmd, Map extraEnv = [:]) {
+            def pb = new ProcessBuilder(
+                'sh', 'libraries/tipipeline/resources/scripts/git_ssh_guard.sh', host, cmd)
+            def env = pb.environment()
+            env.put('GIT_SSH_GUARD_SSH', '/bin/echo')
+            env.put('GIT_SUBMODULE_PARENT_ORG', 'pingcap')
+            env.put('GIT_SUBMODULE_SSH_ORGS', 'pingcap,tikv,pingcap-qe,pingcap-inc,tidbcloud')
+            extraEnv.each { k, v -> env.put(k as String, v as String) }
+            def p = pb.start()
+            p.inputStream.text
+            p.errorStream.text
+            return p.waitFor()
+        }
+
+        @Test
+        void shouldAllowTheJobsOwnOrganization() {
+            assertEquals(0, run('git@github.com', "git-upload-pack 'pingcap/tidb-engine-ext.git'"))
+        }
+
+        @Test
+        void shouldAllowAnAllowlistedOrganization() {
+            assertEquals(0, run('git@github.com', "git-upload-pack 'tidbcloud/cloud-storage-engine.git'"))
+        }
+
+        @Test
+        void shouldAllowALeadingSlashInTheRepositoryPath() {
+            assertEquals(0, run('git@github.com', "git-upload-pack '/tidbcloud/cloud-storage-engine.git'"))
+        }
+
+        @Test
+        void shouldRefuseAnOrganizationOutsideTheAllowlist() {
+            // The nested-`.gitmodules` case: the URL was never seen by the
+            // superproject check, so the transport has to refuse it.
+            assertEquals(1, run('git@github.com', "git-upload-pack 'other-org/private-repo.git'"))
+        }
+
+        @Test
+        void shouldRefuseAnotherHost() {
+            assertEquals(1, run('git@evil.example.com', "git-upload-pack 'pingcap/tidb.git'"))
+        }
+
+        @Test
+        void shouldRefuseACommandItCannotRead() {
+            assertEquals(1, run('git@github.com', 'ssh-keyscan'))
         }
     }
 
