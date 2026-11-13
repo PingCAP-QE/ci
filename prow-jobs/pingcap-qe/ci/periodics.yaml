@@ -161,6 +161,57 @@ periodics:
               cpu: 200m
             limits:
               memory: 1Gi
+  - name: periodic-reporter-flaky-tests-cse
+    cluster: default
+    decorate: true
+    hidden: true
+    cron: "55 0 * * *" # Daily at 08:55 UTC+8.
+    max_concurrency: 1
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-tidb-container
+          args:
+            - |
+              set -euo pipefail
+              # Follow repository renames, using the collector's stable identity.
+              repo=$(deno eval '
+                const response = await fetch("https://api.github.com/repositories/492109999", {
+                  headers: { Authorization: `Bearer ${Deno.env.get("GITHUB_TOKEN")}` },
+                  redirect: "error",
+                  signal: AbortSignal.timeout(30000),
+                });
+                if (!response.ok) throw new Error("Repository lookup failed");
+                console.log((await response.json()).full_name);
+              ')
+              start_date=$(date -u -d "1 days ago" +%Y-%m-%d)
+              end_date=$(date -u +%Y-%m-%d)
+              script_url="https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/tools/reporters/ci/flaky-tests/main.ts"
+              # The shared reporter can log private case names; keep both streams
+              # and generated HTML pod-local, outside public Prow artifacts.
+              if deno run --allow-env --allow-net --allow-write=/tmp "${script_url}" \
+                --repo "${repo}" --branch cloud-engine \
+                --from "${start_date}" --to "${end_date}" \
+                --issue-create --issue-comment --issue-reopen \
+                --issue-labels "component/test,flaky-test,type/enhancement" \
+                --issue-mutation-limit 10000 --html /tmp/cse-flaky-report.html \
+                >/tmp/cse-flaky-reporter.log 2>&1; then
+                echo "CSE flaky issue reporter completed"
+              else
+                echo "CSE flaky issue reporter failed; detailed logs are pod-local"
+                exit 1
+              fi
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-token
+                  key: token
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ci-job-params-mono
+                  key: ci-job-flay-report-dsn
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
     cluster: tke-pingcap-cicd
