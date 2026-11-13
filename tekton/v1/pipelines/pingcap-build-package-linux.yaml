@@ -181,7 +181,6 @@ spec:
         - name: force-builder-image
           value: "$(params.force-builder-image)"
     - name: build-binaries
-      retries: 2
       taskRef:
         name: pingcap-build-binaries-linux
       params:
@@ -223,7 +222,6 @@ spec:
         - name: cypress-cache
           workspace: cypress-cache
     - name: build-images
-      retries: 2
       when:
         - input: "$(params.push)"
           operator: in
@@ -259,7 +257,6 @@ spec:
         - name: source
           workspace: source
     - name: deliver-binaries
-      retries: 2
       when:
         - input: $(tasks.build-binaries.results.pushed)
           operator: notin

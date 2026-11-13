@@ -64,7 +64,7 @@ spec:
                     'memory': '24Gi',
                   },
                   'pingcap/tiflash': {
-                    'timeout': '2h',
+                    'timeout': '3h',
                     'sourceWsSize': '100Gi',
                     'cpu': '12',
                     'memory': '48Gi',
@@ -76,13 +76,13 @@ spec:
                     'memory': '24Gi',
                   },
                   'tikv/pd': {
-                    'timeout': '20m',
+                    'timeout': '30m',
                     'sourceWsSize': '50Gi',
                     'cpu': '6',
                     'memory': '24Gi',
                   },
                   'tidbcloud/cloud-storage-engine': {
-                    'timeout': '30m',
+                    'timeout': '1h',
                     'sourceWsSize': '100Gi',
                     'cpu': '12',
                     'memory': '48Gi',
