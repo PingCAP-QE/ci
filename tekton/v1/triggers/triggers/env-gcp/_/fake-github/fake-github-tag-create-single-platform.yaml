@@ -29,7 +29,6 @@ spec:
             header.canonical('ce-type') == 'net.pingcap.tibuild.devbuild.create' &&
             header.canonical('ce-paramPlatform') in ['linux/amd64', 'linux/arm64']) :
             (body.repository.full_name in ['pingcap-inc/tici', 'pingcap-inc/enterprise-plugin', 'pingcap/ng-monitoring', 'pingcap/ticdc', 'pingcap/ticse', 'pingcap/tidb', 'pingcap/tidb-binlog', 'pingcap/tidb-dashboard', 'pingcap/tidb-operator', 'pingcap/tidb-tools', 'pingcap/tiflash', 'pingcap/tiflow', 'pingcap/tiproxy', 'tidbcloud/cloud-storage-engine', 'tidbcloud/tiflash-cse', 'tikv/pd', 'tikv/tikv'] &&
-            (extensions.build.product == body.repository.name || (body.repository.full_name in ['tidbcloud/cloud-storage-engine', 'pingcap/ticse'] && extensions.build.product == 'tikv') || (body.repository.name == 'tiflash-cse' && extensions.build.product == 'tiflash')) &&
             body.ref.matches('^v[0-9]+[.][0-9]+[.][0-9]+(-.+)?$') &&
             header.canonical('ce-paramPlatform') in ['linux/amd64', 'linux/arm64'])
         - name: overlays

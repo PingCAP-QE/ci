@@ -110,6 +110,30 @@ function applyOverlays(
   Object.assign(extensions, result);
 }
 
+// Evaluates one overlay of the last interceptor — the one that carries the
+// values a trigger binds (`component`, `resource-config`, `source`, ...).
+export function overlay(
+  trigger: Trigger,
+  key: string,
+  body: Body,
+  header: Header,
+  field = "",
+) {
+  const expressions = trigger.spec.interceptors.slice(-1).flatMap((interceptor) =>
+    interceptor.params
+  ).find((param) => param.name === "overlays")!.value;
+  if (typeof expressions === "string") {
+    throw new Error(`trigger ${key}: expected an overlays list`);
+  }
+  const expression = expressions.find((entry) => entry.key === key)!.expression;
+  return evaluate(
+    `(${expression})${field ? `["${field}"]` : ""}`,
+    body,
+    header,
+    precedingExtensions(trigger, body, header),
+  );
+}
+
 export function precedingExtensions(
   trigger: Trigger,
   body: Body,

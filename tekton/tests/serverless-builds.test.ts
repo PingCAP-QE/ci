@@ -10,6 +10,7 @@ import {
   filter,
   type Header,
   load,
+  overlay,
   payload,
   precedingExtensions,
   products,
@@ -506,28 +507,6 @@ Deno.test("image builds resolve the commit metadata where git is available", () 
 
 const routeDirectory = "tekton/v1/triggers/triggers/env-gcp/_/fake-github/";
 const cseRepositories = ["tidbcloud/cloud-storage-engine", "pingcap/ticse"];
-function overlay(
-  trigger: Trigger,
-  key: string,
-  body: ReturnType<typeof payload>,
-  header: Header,
-  field = "",
-) {
-  const expressions =
-    trigger.spec.interceptors.slice(-1).flatMap((interceptor) =>
-      interceptor.params
-    )
-      .find((param) => param.name === "overlays")!.value;
-  assert(typeof expressions !== "string");
-  const expression =
-    expressions.find((overlay) => overlay.key === key)!.expression;
-  return evaluate(
-    `(${expression})${field ? `["${field}"]` : ""}`,
-    body,
-    header,
-    precedingExtensions(trigger, body, header),
-  );
-}
 
 Deno.test("shared Devbuild routes pin product/revision and select one platform run", async (t) => {
   const routes = [
@@ -930,10 +909,17 @@ Deno.test("TiCSE keeps both source identities and TiKV manual-build contracts", 
                       : "$(body.ref)",
                   );
                 }
+                // The product header cannot pick a component: the component
+                // is derived from the allowlisted repository, so naming
+                // another one changes neither the route nor the build.
                 header["ce-paramproduct"] = "tidb";
+                const hijack = routes.filter((route) =>
+                  filter(route, body, header)
+                );
+                assertEquals(hijack.length, 1);
                 assertEquals(
-                  routes.filter((route) => filter(route, body, header)).length,
-                  0,
+                  overlay(hijack[0], "component", body, header),
+                  "tikv",
                 );
               },
             );

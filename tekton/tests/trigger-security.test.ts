@@ -4,6 +4,7 @@ import {
   filter,
   type Header,
   load,
+  overlay,
   payload,
   root,
   type Trigger,
@@ -212,4 +213,91 @@ Deno.test("devbuild routes derive git-url from the allowlisted full_name", () =>
       `${path} must derive git-url from repository.full_name`,
     );
   }
+});
+
+// tibuild labels a component that legitimately lives in a repository with a
+// different name — `ticdc-newarch` in pingcap/ticdc, `br` / `dumpling` /
+// `tidb-lightning` in pingcap/tidb, `drainer` / `pump` in pingcap/tidb-binlog,
+// `dm` in pingcap/tiflow — and a caller may pair a component with an explicit
+// repository. The component is derived from the allow-listed
+// `body.repository.full_name`, so the product header cannot change what is
+// built; requiring it to equal the repository name only dropped those
+// legitimate builds (2026-11-06 .. 2026-11-13, see the README).
+//
+// The Serverless routes are the exception: there the product *is* the
+// component, so it must still name the Serverless repository.
+Deno.test("ce-paramProduct cannot select the component or the repository", () => {
+  const eventTypes: Record<string, string> = {
+    "branch-push": "push",
+    pr: "pull_request",
+    "tag-create": "create",
+  };
+  const cases: [string, string, string][] = [
+    ["pingcap/ticdc", "ticdc-newarch", "ticdc"],
+    ["pingcap/ticdc", "ticdc", "ticdc"],
+    ["pingcap/tidb", "br", "tidb"],
+    ["pingcap/tidb", "dumpling", "tidb"],
+    ["pingcap/tidb", "tidb-lightning", "tidb"],
+    ["pingcap/tidb-binlog", "drainer", "tidb-binlog"],
+    ["pingcap/tidb-binlog", "pump", "tidb-binlog"],
+    ["pingcap/tiflow", "dm", "tiflow"],
+    // A product may not hijack a component from another repository either.
+    ["tikv/pd", "tidb", "pd"],
+    ["tidbcloud/cloud-storage-engine", "tikv", "tikv"],
+  ];
+  // The event type selects the trigger group, so only one kind of route is
+  // ever in play for a single event.
+  for (const kind of ["branch-push", "pr", "tag-create"]) {
+    const routes = ["", "-single-platform", "-darwin"].map((suffix) =>
+      load<NamedTrigger>(
+        `${fakeGithubDirectory}fake-github-${kind}${suffix}.yaml`,
+      )
+    );
+    for (const [repo, product, component] of cases) {
+      for (const platform of ["linux/amd64", "darwin/arm64", ""]) {
+        const body = payload(repo, kind);
+        const header: Header = {
+          "ce-type": `net.pingcap.tibuild.devbuild.${eventTypes[kind]}`,
+          "ce-paramproduct": product,
+        };
+        if (platform) header["ce-paramplatform"] = platform;
+        const matched = routes.filter((route) => filter(route, body, header));
+        assertEquals(
+          matched.length,
+          1,
+          `${repo} + ${product} (${platform || "all"}) must match one route`,
+        );
+        assertEquals(
+          overlay(matched[0], "component", body, header),
+          component,
+          `${repo} + ${product}: the component comes from the repository`,
+        );
+      }
+    }
+  }
+});
+
+Deno.test("a Serverless product still names its own repository", () => {
+  const routes = ["", "-single-platform", "-darwin"].map((suffix) =>
+    load<NamedTrigger>(`${fakeGithubDirectory}fake-github-branch-push${suffix}.yaml`)
+  );
+  const header: Header = {
+    "ce-type": "net.pingcap.tibuild.devbuild.push",
+    "ce-paramplatform": "linux/amd64",
+    "ce-paramproduct": "tidb-cse",
+  };
+  assertEquals(
+    routes.filter((route) => filter(route, payload("pingcap/ticdc", "branch-push"), header))
+      .length,
+    0,
+    "a Serverless product must not route a repository it does not name",
+  );
+  const body = payload("tidbcloud/tidb-cse", "branch-push");
+  const matched = routes.filter((route) => filter(route, body, header));
+  assertEquals(matched.length, 1);
+  assertEquals(
+    overlay(matched[0], "component", body, header),
+    "tidb-cse",
+    "the Serverless route takes its component from the product",
+  );
 });
