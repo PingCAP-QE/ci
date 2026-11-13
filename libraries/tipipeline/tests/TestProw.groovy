@@ -597,6 +597,89 @@ class TestProw {
         }
     }
 
+    static class CredentialScope {
+        private def loadWithEnvCapture(Map env, List envs) {
+            return loadProw(
+                env: [WORKSPACE: '/tmp/ws', JOB_NAME: 'pingcap/tidb/release-8.5/pull_build'] + env,
+                libraryResource: { String path -> 'askpass' },
+                writeFile: { Map args -> },
+                readFile: { Map args -> '' },
+                sh: { Map args -> },
+                usernamePassword: { Map args -> 'credentials' },
+                withCredentials: { List args, Closure body -> body() },
+                withEnv: { List environment, Closure body ->
+                    envs << environment.collect { it.toString() }
+                    body()
+                },
+                sshagent: { Map args, Closure body -> body() },
+            )
+        }
+
+        private static def scopeOf(List envs) {
+            return envs.flatten().find { it.toString().startsWith('GIT_CREDENTIAL_ALLOWED_REPOS=') }
+        }
+
+        @Test
+        void shouldScopeTheHttpCredentialToTheJobRepositoryAndSubmoduleOrgs() {
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https'], envs)
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, true)
+
+            final scope = scopeOf(envs)
+            assertTrue('the checkout names the repositories its credential may be spent on',
+                scope != null)
+            assertTrue("this repository: ${scope}", scope.contains('pingcap/tidb'))
+            assertTrue("its organization: ${scope}", scope.contains('pingcap/*'))
+            assertTrue("the submodule organizations: ${scope}", scope.contains('pingcap-inc/*'))
+        }
+
+        @Test
+        void shouldScopeTheBrokerCredentialTheSameWay() {
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_BROKER_ENABLED: 'true', GIT_BROKER_URL: 'http://broker.example',
+                 GIT_BROKER_ORGS: 'tidbcloud',
+                 JOB_NAME: 'tidbcloud/cloud-storage-engine/cloud-engine/pull_integration_test'], envs)
+
+            script.checkoutRefs([org: 'tidbcloud', repo: 'cloud-storage-engine',
+                                 base_ref: 'cloud-engine', base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, false)
+
+            final scope = scopeOf(envs)
+            assertTrue('the broker path is scoped too', scope != null)
+            assertTrue("this repository: ${scope}", scope.contains('tidbcloud/cloud-storage-engine'))
+            assertTrue("the submodule organizations: ${scope}", scope.contains('pingcap-inc/*'))
+        }
+
+        @Test
+        void shouldHonourTheSubmoduleOrganizationOverrideInTheScope() {
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https',
+                 GIT_SUBMODULE_SSH_ORGS: 'acme, other'], envs)
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, true)
+
+            final scope = scopeOf(envs)
+            assertTrue("the override replaces the default organizations: ${scope}",
+                scope.contains('acme/*') && scope.contains('other/*'))
+            assertTrue("and the default list is gone: ${scope}", !scope.contains('tidbcloud/*'))
+        }
+
+        @Test
+        void shouldNotNameARepositoryItDoesNotHave() {
+            final scope = loadProw().credentialAllowedRepos([:], '')
+            assertTrue("only organizations, no repository: ${scope}",
+                scope.split(' ').every { it.endsWith('/*') })
+        }
+    }
+
     static class BrokerCheckout {
         private def loadWithBroker(Map extraEnv, List events,
                                    String jobName = 'pingcap/tidb/latest/pull_unit_test') {

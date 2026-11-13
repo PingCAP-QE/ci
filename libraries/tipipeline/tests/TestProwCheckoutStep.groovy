@@ -176,6 +176,23 @@ exit 0
     }
 
     @Test
+    void shouldKeepTheInheritedCredentialAvailableToTheUpdate() {
+        // PingCAP-QE/ci#5568 also set GIT_ASKPASS=/bin/false and cleared the
+        // credential helper for the recursive update. With the SSH key unable to
+        // reach a SAML-enforcing organization, that removed the only credential
+        // that could, and the fetch died with a SAML error instead of fetching.
+        // The credential scope is enforced by the askpass helper (per repository,
+        // through GIT_CREDENTIAL_ALLOWED_REPOS), not by disabling it here.
+        final ws = new Workspace()
+        final rendered = renderSubmoduleStep(ws)
+
+        assertTrue("the update must not disable the inherited credential:\n${rendered.script}",
+            !rendered.script.contains('GIT_ASKPASS=/bin/false'))
+        assertTrue("and must not clear the credential helper:\n${rendered.script}",
+            !rendered.script.contains('credential.helper'))
+    }
+
+    @Test
     void shouldInstallTheTransportWhereTheUpdateExecutesIt() {
         final ws = new Workspace()
         final rendered = renderSubmoduleStep(ws)
