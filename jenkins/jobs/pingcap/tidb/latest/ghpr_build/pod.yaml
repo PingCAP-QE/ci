@@ -70,3 +70,6 @@ spec:
                 operator: In
                 values:
                   - amd64
+
+# Reviewed 2026-11-13: pod-YAML presubmit now resolves images through the
+# gar-reader Workload Identity; this line touches the file so the check runs.
