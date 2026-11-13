@@ -111,6 +111,53 @@ class TestProw {
             assertTrue(script.getCacheKey('git', branchRefs)
                 .startsWith(script.getRestoreKeys('git', branchRefs)[0]))
         }
+
+        @Test
+        void shouldBuildPeerRepositoryCacheKeysForAPullRequest() {
+            def pullRefs = refs()
+
+            assertEquals(
+                'git/pingcap/tidb/pr-main-abcdef1-1234567',
+                script.getPeerCacheKey('git', 'pingcap', 'tidb', pullRefs))
+            assertEquals([
+                'git/pingcap/tidb/branch-main-',
+            ], script.getPeerRestoreKeys('git', 'pingcap', 'tidb', pullRefs))
+        }
+
+        @Test
+        void shouldBuildPeerRepositoryCacheKeysForABranch() {
+            def branchRefs = refs() + [pulls: []]
+
+            assertEquals(
+                'git/PingCAP-QE/tidb-test/branch-main-abcdef1',
+                script.getPeerCacheKey('git', 'PingCAP-QE', 'tidb-test', branchRefs))
+            assertEquals([
+                'git/PingCAP-QE/tidb-test/branch-main-',
+            ], script.getPeerRestoreKeys('git', 'PingCAP-QE', 'tidb-test', branchRefs))
+        }
+
+        @Test
+        void shouldNeverLetAPeerCacheKeyMatchItsOwnRestorePrefix() {
+            def pullRefs = refs()
+
+            def cacheKey = script.getPeerCacheKey('git', 'pingcap', 'tidb', pullRefs)
+            script.getPeerRestoreKeys('git', 'pingcap', 'tidb', pullRefs).each { restoreKey ->
+                assertFalse('a pull request cache must not start with its restore prefix',
+                    cacheKey.startsWith(restoreKey))
+            }
+        }
+
+        @Test
+        void shouldRefusePeerCacheKeysWithoutARepository() {
+            def pullRefs = refs()
+
+            try {
+                script.getPeerCacheKey('git', 'pingcap', '', pullRefs)
+                fail('a cache key without a repository must be refused')
+            } catch (IllegalArgumentException expected) {
+                assertTrue(expected.message.contains('without an organization and a repository'))
+            }
+        }
     }
 
     static class PublicCheckout {

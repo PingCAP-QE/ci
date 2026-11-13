@@ -35,7 +35,7 @@ pipeline {
                     }
                 }
                 dir("tiflash") {
-                    cache(path: "./", includes: '**/*', key: "git/pingcap/tiflash/rev-${REFS.pulls[0].sha}", restoreKeys: ['git/pingcap/tiflash/rev-']) {
+                    cache(path: "./", includes: '**/*', key: prow.getPeerCacheKey('git', 'pingcap', 'tiflash', REFS), restoreKeys: prow.getPeerRestoreKeys('git', 'pingcap', 'tiflash', REFS)) {
                         retry(2) {
                             script {
                                 component.checkout('https://github.com/pingcap/tiflash.git', 'tiflash', REFS.base_ref, REFS.pulls[0].title, GIT_CREDENTIALS_ID)
