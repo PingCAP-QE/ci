@@ -6,6 +6,11 @@ metadata:
     type: github-branch-create
 spec:
   interceptors:
+    - name: only branch creation runs the branch tasks
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: body.ref_type == 'branch'
     - name: filter on repo and branches
       ref:
         name: cel
@@ -40,6 +45,11 @@ metadata:
     github-owner: pingcap
 spec:
   interceptors:
+    - name: only branch creation runs the branch tasks
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: body.ref_type == 'branch'
     - name: filter on repo owner and name and branches
       ref: { name: cel }
       params:

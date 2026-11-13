@@ -8,6 +8,11 @@ metadata:
     github-repo: advanced-statefulset
 spec:
   interceptors:
+    - name: only tag creation builds a release
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: body.ref_type == 'tag'
     - name: filter on repo owner and name and tags
       ref: { name: cel }
       params:
