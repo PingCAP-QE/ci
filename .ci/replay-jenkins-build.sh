@@ -209,13 +209,12 @@ collect_referenced_pod_files() {
     local yamlfile_re="yamlFile[[:space:]]*\(?[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)"
     local cilabels_re="yaml[[:space:]]*\(?[[:space:]]*pod_label\.withCiLabels\([[:space:]]*([A-Za-z_][A-Za-z0-9_]*)"
     local yamlvar_re="yaml[[:space:]]*\(?[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\)?[[:space:]]*(#.*)?\$"
-    # Any other mention of an agent pod spec (`yaml("""…""")`, `yaml(SPEC)`,
-    # `yamlFile 'file.yaml'`) cannot be validated against a checked template.
-    # `yaml`/`yamlFile` used as a call: followed by `(` or whitespace and an
-    # argument. A file name such as `pod.yaml` must not match, hence the
-    # exclusion of a leading `.`.
-    # Includes the named-argument form `podTemplate(yaml: …)`.
-    local anyyaml_re="(^|[^A-Za-z0-9_.])(yaml|yamlFile)([[:space:]]*\(|[[:space:]]+[^[:space:]]|:)"
+    # Every mention of `yaml`/`yamlFile` that is not one of the three accepted
+    # forms above is refused, whatever punctuation follows the token: Groovy
+    # accepts a string literal directly after a command expression
+    # (println'x' is valid), so matching "token followed by ( / space / colon"
+    # left a way to write an inline spec that no pattern describes. A file name
+    # such as `pod.yaml` must not match, hence the exclusion of a leading `.`.
     local token_re="(^|[^A-Za-z0-9_.])(yaml|yamlFile)"
 
     local -a decl_vars=()
@@ -251,7 +250,13 @@ collect_referenced_pod_files() {
             var="${BASH_REMATCH[1]}"
         elif [[ "$line" =~ $yamlvar_re ]]; then
             var="${BASH_REMATCH[1]}"
-        elif [[ "$line" =~ $anyyaml_re ]]; then
+        fi
+
+        # Fail closed. A line that mentions `yaml`/`yamlFile` but matched none of
+        # the accepted forms carries a spec this fence cannot resolve — an inline
+        # literal, a file path, the named-argument form — so refuse the line
+        # instead of skipping it.
+        if [[ -z "$var" ]] && printf '%s' "$line" | grep -qE "$token_re"; then
             echo "${script_file}: agent pod spec is not a reference to a pod template file ('$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')'); the pod-policy fence cannot validate it" >&2
             return 1
         fi
