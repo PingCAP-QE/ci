@@ -172,6 +172,16 @@ def withGitAskPass(String credentialsId, Closure body, String allowedRepos = '')
     // different filesystem than the container that runs Git.
     final askPassScript = libraryResource 'scripts/git_askpass.sh'
     final tmpAskPassScript = "${env.WORKSPACE}/git-askpass-${UUID.randomUUID().toString()}"
+    // Git asks its credential helper for a bare host unless the path is part of
+    // the credential context, and the helper cannot tell which repository it is
+    // answering for — it would have to refuse, which is a blocked checkout:
+    //   Username for 'http://git-cdn.cache.svc:8000':
+    // With credential.useHttpPath the same prompt names the repository:
+    //   Username for 'http://git-cdn.cache.svc:8000/pingcap-inc/x.git':
+    // The broker helper already sets this; a scoped helper cannot work without it.
+    // Append to whatever GIT_CONFIG_* the controller provided instead of
+    // resetting the count.
+    final baseConfigCount = (env.GIT_CONFIG_COUNT?.toString()?.trim() ?: '0') as int
 
     try {
         writeFile(file: tmpAskPassScript, text: askPassScript)
@@ -180,6 +190,9 @@ def withGitAskPass(String credentialsId, Closure body, String allowedRepos = '')
             final envs = ["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']
             if (allowedRepos?.trim()) {
                 envs << "GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos.trim()}"
+                envs << "GIT_CONFIG_COUNT=${baseConfigCount + 1}".toString()
+                envs << "GIT_CONFIG_KEY_${baseConfigCount}=credential.useHttpPath".toString()
+                envs << "GIT_CONFIG_VALUE_${baseConfigCount}=true".toString()
             }
             withEnv(envs) {
                 body()
