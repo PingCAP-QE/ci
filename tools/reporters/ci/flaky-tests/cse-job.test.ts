@@ -47,7 +47,7 @@ Deno.test("CSE issue job uses the existing GCP credentials and daily schedule", 
     container.env.map((env) => [env.name, env.valueFrom.secretKeyRef]),
     [
       ["GITHUB_TOKEN", { name: "github-token", key: "token" }],
-      ["PARAM_DSN", {
+      ["DB_URL", {
         name: "ci-job-params-mono",
         key: "ci-job-flay-report-dsn",
       }],
@@ -123,7 +123,7 @@ esac
         env: {
           PATH: `${dir}:/usr/bin:/bin`,
           GITHUB_TOKEN: "synthetic-token",
-          PARAM_DSN: "mysql://synthetic:synthetic@localhost:3306/test",
+          DB_URL: "mysql://synthetic:synthetic@localhost:3306/test",
           MOCK_REPO: scenario.repo,
           MOCK_EXIT: String(scenario.exit),
           MOCK_LOOKUP_FAILURE: scenario.lookupFailure ? "1" : "0",
@@ -163,6 +163,7 @@ esac
         `${dir}/cse-flaky-report.html`,
       );
       assertEquals(args.some((arg) => arg.startsWith("--email")), false);
+      assertEquals(args.some((arg) => arg.startsWith("--db-url")), false);
       const privateLog = await Deno.readTextFile(
         `${dir}/cse-flaky-reporter.log`,
       );

@@ -107,7 +107,6 @@ periodics:
               if deno run --allow-env --allow-net --allow-write=/tmp "${script_url}" \
                 --repo "${repo}" --branch cloud-engine \
                 --from "${start_date}" --to "${end_date}" \
-                --db-url="${PARAM_DSN}" \
                 --issue-create --issue-comment --issue-reopen \
                 --issue-labels type/bug --issue-mutation-limit 10000 \
                 --html /tmp/cse-flaky-report.html \
@@ -123,7 +122,7 @@ periodics:
                 secretKeyRef:
                   name: github-token
                   key: token
-            - name: PARAM_DSN
+            - name: DB_URL
               valueFrom:
                 secretKeyRef:
                   name: ci-job-params-mono
