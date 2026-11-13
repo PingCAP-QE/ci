@@ -638,6 +638,24 @@ class TestProw {
         }
 
         @Test
+        void shouldAskGitForTheRepositoryPathWhenTheCredentialIsScoped() {
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https'], envs)
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, true)
+
+            final flat = envs.flatten().collect { it.toString() }
+            assertTrue("the helper is told the repository, so git must put it in the prompt: ${flat}",
+                flat.contains('GIT_CONFIG_KEY_0=credential.useHttpPath') &&
+                    flat.contains('GIT_CONFIG_VALUE_0=true'))
+            assertTrue("and it must append to the controller's config: ${flat}",
+                flat.contains('GIT_CONFIG_COUNT=1'))
+        }
+
+        @Test
         void shouldScopeTheBrokerCredentialTheSameWay() {
             def envs = []
             def script = loadWithEnvCapture(

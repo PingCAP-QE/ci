@@ -160,7 +160,7 @@ repo_from_url() {
 
 if [ -n "${allowed_repos}" ]; then
     repo=$(repo_from_url) || {
-        echo "git-askpass: refusing a credential for a request that names no repository: '${url}'" >&2
+        echo "git-askpass: refusing a credential for a request that names no repository: '${url}' (set credential.useHttpPath=true so the prompt carries the repository)" >&2
         exit 1
     }
     allowed=0

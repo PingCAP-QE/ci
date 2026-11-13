@@ -117,6 +117,35 @@ broker_reaches_mint "accepts the read-only permission set" \
 expect_reject "ignores non-credential prompts" "$broker" \
     "Enter passphrase for key '/root/.ssh/id_rsa': "
 
+echo "credential.useHttpPath (why the library sets it)"
+# Git describes the credential context, and without `credential.useHttpPath` that
+# description is the bare host — the helper then cannot tell which repository it
+# is answering for and has to refuse. This is a real `git credential fill`, so it
+# exercises git's own prompt text rather than a hand-written string.
+helper_copy="$tmp/askpass-copy"
+cp "$askpass" "$helper_copy"
+chmod +x "$helper_copy"
+
+fill_credential() {
+    printf 'protocol=http\nhost=git-cdn.cache.svc:8000\npath=pingcap-inc/enterprise-extensions.git\n\n' |
+        env -i PATH="$PATH" HOME="$tmp" \
+            GIT_ASKPASS="$helper_copy" GIT_TERMINAL_PROMPT=0 \
+            TIPIPELINE_GIT_USERNAME=bot TIPIPELINE_GIT_PASSWORD=secret \
+            GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb pingcap-inc/*" \
+            git -c credential.useHttpPath="$1" credential fill 2>"$tmp/err"
+}
+
+if fill_credential true | grep -qx 'password=secret'; then
+    pass "answers when the prompt carries the repository (useHttpPath=true)"
+else
+    fail "useHttpPath=true should let the helper answer for an allowed repository: $(head -1 "$tmp/err")"
+fi
+if fill_credential false >/dev/null 2>&1; then
+    fail "useHttpPath=false must not produce a credential: the prompt names no repository"
+else
+    pass "refuses the bare-host prompt (useHttpPath=false), which is why the library sets it"
+fi
+
 echo "repository scope (GIT_CREDENTIAL_ALLOWED_REPOS)"
 # The host allowlist keeps the credential on GitHub. The scope keeps it off
 # other people's repositories, which matters because `.gitmodules` (at any
