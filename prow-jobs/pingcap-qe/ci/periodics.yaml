@@ -27,6 +27,45 @@ periodics:
               cpu: 200m
             limits:
               memory: 1Gi
+  - name: periodic-collect-case-runs-cse
+    agent: kubernetes
+    cluster: default
+    decorate: true
+    hidden: true
+    cron: "23 * * * *"
+    max_concurrency: 1
+    spec:
+      activeDeadlineSeconds: 900
+      containers:
+        - name: main
+          image: denoland/deno:2.9.8
+          command:
+            - deno
+            - run
+            - --allow-env
+            - --allow-net
+            - https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@main/tools/collectors/github-case-runs/main.ts
+          env:
+            # Stable GitHub ID: resolve the current repo name on every run.
+            - name: REPOSITORY_ID
+              value: "492109999"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-token
+                  key: token
+            # SELECT-only dedup; INSERTs go through the CloudEvents consumer.
+            - name: PARAM_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: ci-job-params-mono
+                  key: ci-job-flay-report-dsn
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              memory: 1Gi
   - name: periodic-reporter-flaky-tests-tidb
     decorate: true # need add this.
     cluster: tke-pingcap-cicd
