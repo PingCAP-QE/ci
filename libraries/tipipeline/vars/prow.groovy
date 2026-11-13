@@ -320,13 +320,6 @@ def readGitmodules() {
 // contents in the pull request's workspace — or point the fetch at a host of its
 // choosing. Relative URLs (`../x.git`) resolve inside the superproject's own
 // organization and are always fine.
-//
-// HTTPS submodules may name any owner: the update runs with no HTTP credential
-// at all (askpass off, helpers cleared), so such a URL can only fetch public
-// content, which is what the vendored third-party submodules are. The decision
-// that matters — who may spend the SSH key — is enforced for every depth by
-// `git_ssh_guard.sh`, because this function only ever sees the superproject's
-// file.
 def submoduleRemoteViolations(String gitmodules, String parentOrg, String sshOrgs) {
     final allowedOrgs = (splitBrokerAllowlist(sshOrgs) + [(parentOrg ?: '').trim().toLowerCase()])
         .findAll { it }
@@ -478,34 +471,14 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
 
     if (withSubmodule) {
         // `.gitmodules` in the worktree now comes from the merged pull request,
-        // so it can only be read once the checkout above has run. This check only
-        // sees the superproject's file and is here to fail early and clearly; the
-        // recursive update is guarded at the transport instead (see below), which
-        // is what covers nested submodules.
+        // so it can only be read once the checkout above has run.
         final violations = submoduleRemoteViolations(
             readGitmodules(), refs.org, submoduleSshOrgs())
         if (violations) {
             error("refusing to update submodules: ${violations.join('; ')}")
         }
-        // Enforce the same decision at the transport, where the credential is
-        // actually spent: it holds for every depth, including `.gitmodules` files
-        // this job never reads.
-        //
-        // Both ends of this file are addressed by the same absolute path:
-        // `writeFile` resolves a bare name against the step's current directory,
-        // which is the repository (`dir(REFS.repo)`) in every job that passes
-        // `withSubmodule`, and the update below then runs the guard from the
-        // workspace root. A relative name therefore lands in the repository while
-        // the fetch looks for it one level up, and git fails with
-        // `cannot exec '<workspace>/git_ssh_guard.sh': No such file or directory`
-        // — after `chmod` has already succeeded in the other directory.
-        final guardScript = "${env.WORKSPACE}/git_ssh_guard.sh"
-        writeFile(
-            file: guardScript,
-            text: libraryResource('scripts/git_ssh_guard.sh'))
         sh label: 'Update submodules', script: """#!/usr/bin/env bash
             set -e
-            chmod +x "${guardScript}"
             echo "📁 update submodules ..."
             # Submodule URLs come from the pull request's tree, and the fetch runs
             # with the bot's SSH credential. Verify the host key instead of
@@ -522,18 +495,7 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
                     | tr -d '"' \
                     | sed 's/^/github.com /'
             } >> ~/.ssh/known_hosts || true
-            # No HTTP credential is available to the recursive update at any
-            # depth (askpass off, helpers cleared), so a nested `.gitmodules`
-            # cannot redirect the PAT, and an HTTPS submodule spends no
-            # credential at all. SSH goes through the guard, which allows
-            # github.com and the allowlisted organizations only.
-            GIT_TERMINAL_PROMPT=0 \
-            GIT_ASKPASS=/bin/false \
-            GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0= \
-            GIT_SSH_COMMAND="${guardScript}" \
-            GIT_SUBMODULE_PARENT_ORG="${refs.org}" \
-            GIT_SUBMODULE_SSH_ORGS="${submoduleSshOrgs()}" \
-            git submodule update --init --recursive
+            GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes" git submodule update --init --recursive
             echo "✅ update submodules done"
     """
     }
