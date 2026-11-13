@@ -212,15 +212,9 @@ Defaults:
   branch) that observed the flaky case started after the issue's `closed_at`
   timestamp.
   - Build `started_at` is resolved best-effort from `build_url`:
-    - GitHub Actions attempt: authenticated
-      `GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}`
-      using `run_started_at`. The returned run/attempt must match the build URL.
-      If unavailable, reopening is skipped: delayed ingestion time is not
-      evidence of a new failure.
     - Jenkins build: `GET <build_url>/api/json?tree=timestamp`
     - Prow (view/gs or view/gcs URL): `GET <build_url>/started.json`
-    - Jenkins/Prow fallback: latest flaky `report_time` (max report_time where
-      flaky > 0)
+    - Fallback: latest flaky `report_time` (max report_time where flaky > 0)
   - When reopening, an evidence comment is always added (includes branch, build
     link, and the started_at vs closed_at comparison).
 - The configured labels are applied to any matched/created issue.
@@ -240,35 +234,6 @@ Defaults:
   titles include the original repo to avoid collisions.
 
 ---
-
-## CSE daily issue reporter
-
-`periodic-reporter-flaky-tests-cse` runs in the existing GCP Prow cluster daily
-at 08:55 UTC+8. It resolves repository ID `492109999` (the same identity as the
-collector), reads the previous UTC day's rows for **cloud-engine only**, and
-enables `--issue-create --issue-comment --issue-reopen`. The job uses the
-existing GitHub token and reporter DSN, the existing CSE `type/bug` label, and
-TiDB's mutation limit of 10000 cases. It does not send email.
-
-The script is pinned to the commit adding Actions attempt-time verification;
-existing TiDB jobs retain their original pin and configuration. A closed CSE
-issue is reopened only when its recorded Actions attempt started after closure.
-If that attempt's metadata is unavailable, reopening is skipped rather than
-using delayed database ingestion time.
-
-The reporter and SDK may include private case names in output even without
-`--verbose`. Both stdout and stderr stay in `/tmp/cse-flaky-reporter.log`, and
-the HTML stays in `/tmp/cse-flaky-report.html`; neither is uploaded to public
-Prow artifacts. Public logs contain only generic completion/failure messages.
-Authorized operators must inspect detailed output while the pod is retained,
-without copying it into public logs or comments.
-
-The job's shell regression tests run with a fake Deno CLI, synthetic credentials
-and no network access. Run them with the other reporter tests:
-
-```bash
-deno test --frozen --allow-env --allow-read --allow-write --allow-run
-```
 
 ## Examples
 

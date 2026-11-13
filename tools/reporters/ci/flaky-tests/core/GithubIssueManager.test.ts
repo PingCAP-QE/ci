@@ -15,20 +15,6 @@ type TestIssue = {
  */
 type MockOctokit = {
   rest: {
-    actions: {
-      getWorkflowRunAttempt: (params: {
-        owner: string;
-        repo: string;
-        run_id: number;
-        attempt_number: number;
-      }) => Promise<{
-        data: {
-          id: number;
-          run_attempt: number;
-          run_started_at?: string | null;
-        };
-      }>;
-    };
     search: {
       issuesAndPullRequests: (
         params: { q: string },
@@ -103,10 +89,6 @@ function buildCase(): CaseAgg {
 }
 
 type MockOverrides = {
-  actions?: {
-    getWorkflowRunAttempt?:
-      MockOctokit["rest"]["actions"]["getWorkflowRunAttempt"];
-  };
   search?: {
     issuesAndPullRequests?:
       MockOctokit["rest"]["search"]["issuesAndPullRequests"];
@@ -122,12 +104,6 @@ type MockOverrides = {
 function mockOctokit(overrides: MockOverrides = {}): MockOctokit {
   return {
     rest: {
-      actions: {
-        getWorkflowRunAttempt: overrides.actions?.getWorkflowRunAttempt ??
-          (async () => {
-            throw new Error("unexpected workflow attempt lookup");
-          }),
-      },
       search: {
         issuesAndPullRequests: overrides.search?.issuesAndPullRequests ??
           (async () => ({ data: { items: [] as TestIssue[] } })),
@@ -642,172 +618,3 @@ Deno.test("GithubIssueManager.sync creates shared issue from the top-ranked case
   assertEquals(mainCase.issue?.status, "new");
   assertEquals(releaseCase.issue?.status, "new");
 });
-
-for (
-  const scenario of [
-    { name: "new attempt", started: "2026-03-12T00:00:00Z", reopen: true },
-    {
-      name: "old attempt ingested late",
-      started: "2026-03-09T00:00:00Z",
-      reopen: false,
-    },
-    {
-      name: "attempt at closure",
-      started: "2026-03-10T12:00:00Z",
-      reopen: false,
-    },
-    { name: "missing start time", started: null, reopen: false },
-    { name: "invalid start time", started: "invalid", reopen: false },
-    {
-      name: "API unavailable",
-      started: null,
-      unavailable: true,
-      reopen: false,
-    },
-    {
-      name: "wrong run metadata",
-      started: "2026-03-12T00:00:00Z",
-      id: 43,
-      reopen: false,
-    },
-    {
-      name: "wrong attempt metadata",
-      started: "2026-03-12T00:00:00Z",
-      attempt: 3,
-      reopen: false,
-    },
-  ]
-) {
-  Deno.test(`GithubIssueManager uses Actions attempt time: ${scenario.name}`, async () => {
-    const buildUrl =
-      "https://github.com/tidbcloud/cloud-storage-engine/actions/runs/42/attempts/2";
-    const issue: TestIssue = {
-      number: 42,
-      title:
-        "Flaky test: synthetic_module::recovers in synthetic_crate::integration",
-      state: "closed",
-      html_url: "https://github.com/tidbcloud/cloud-storage-engine/issues/42",
-      closed_at: "2026-03-10T12:00:00Z",
-    };
-    let lookupCalls = 0;
-    let reopenCalls = 0;
-    const comments: string[] = [];
-    const manager = createManager(mockOctokit({
-      actions: {
-        getWorkflowRunAttempt: async (params) => {
-          lookupCalls++;
-          assertEquals(params, {
-            owner: "tidbcloud",
-            repo: "cloud-storage-engine",
-            run_id: 42,
-            attempt_number: 2,
-          });
-          if (scenario.unavailable) throw new Error("unavailable");
-          return {
-            data: {
-              id: scenario.id ?? 42,
-              run_attempt: scenario.attempt ?? 2,
-              run_started_at: scenario.started,
-            },
-          };
-        },
-      },
-      search: {
-        issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
-      },
-      issues: {
-        update: async () => {
-          reopenCalls++;
-          return { data: { ...issue, state: "open", closed_at: null } };
-        },
-        createComment: async (params) => {
-          comments.push(params.body);
-        },
-      },
-    }));
-    const sample: CaseAgg = {
-      ...buildCase(),
-      repo: "tidbcloud/cloud-storage-engine",
-      branch: "cloud-engine",
-      suite_name: "synthetic_crate::integration",
-      case_name: "synthetic_module::recovers",
-      latestFlakyBuildUrl: buildUrl,
-      // Delayed ingestion must never substitute for the actual attempt time.
-      latestFlakyFoundAt: new Date("2026-03-13T00:00:00Z"),
-    };
-    const releaseSample = { ...sample, branch: "synthetic-release" };
-    await manager.sync(buildReport(), [sample, releaseSample]);
-    assertEquals(
-      lookupCalls,
-      1,
-      "Cache the same attempt across branch records",
-    );
-    assertEquals(reopenCalls, scenario.reopen ? 1 : 0);
-    assertEquals(sample.issue?.status, scenario.reopen ? "reopened" : "closed");
-    assertEquals(comments.length, scenario.reopen ? 1 : 0);
-    if (scenario.reopen) {
-      assertEquals(comments[0].includes("github-actions.run_started_at"), true);
-      assertEquals(comments[0].includes(buildUrl), true);
-    }
-  });
-}
-
-for (const state of ["missing", "open"] as const) {
-  Deno.test(`GithubIssueManager ${state === "missing" ? "creates" : "comments on"} CSE issues without timestamp lookup`, async () => {
-    const buildUrl =
-      "https://github.com/tidbcloud/cloud-storage-engine/actions/runs/42/attempts/2";
-    const issue: TestIssue = {
-      number: 42,
-      title:
-        "Flaky test: synthetic_module::recovers in synthetic_crate::integration",
-      state: "open",
-      html_url: "https://github.com/tidbcloud/cloud-storage-engine/issues/42",
-    };
-    let creates = 0;
-    let comments = 0;
-    let lookups = 0;
-    const manager = createManager(
-      mockOctokit({
-        actions: {
-          getWorkflowRunAttempt: () => {
-            lookups++;
-            return Promise.reject(new Error("Unexpected attempt lookup"));
-          },
-        },
-        search: {
-          issuesAndPullRequests: async () => ({
-            data: { items: state === "open" ? [issue] : [] },
-          }),
-        },
-        issues: {
-          create: async (params) => {
-            creates++;
-            assertEquals(params.owner, "tidbcloud");
-            assertEquals(params.repo, "cloud-storage-engine");
-            assertEquals(params.title, issue.title);
-            assertEquals(params.body.includes(buildUrl), true);
-            return { data: issue };
-          },
-          createComment: async (params) => {
-            comments++;
-            assertEquals(params.body.includes("- Branch: cloud-engine"), true);
-            assertEquals(params.body.includes(buildUrl), true);
-          },
-        },
-      }),
-      { allowCreate: true, allowComment: true },
-    );
-    await manager.sync(buildReport(), [{
-      ...buildCase(),
-      repo: "tidbcloud/cloud-storage-engine",
-      branch: "cloud-engine",
-      suite_name: "synthetic_crate::integration",
-      case_name: "synthetic_module::recovers",
-      latestBuildUrl: buildUrl,
-      latestFlakyBuildUrl: buildUrl,
-    }]);
-    assertEquals(creates, state === "missing" ? 1 : 0);
-    assertEquals(comments, state === "open" ? 1 : 0);
-    assertEquals(lookups, 0);
-  });
-}
