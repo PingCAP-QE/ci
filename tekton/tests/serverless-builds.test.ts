@@ -6,6 +6,7 @@ import {
 } from "jsr:@std/assert@1.0.11";
 import { expandGlobSync } from "jsr:@std/fs@1.0.19/expand-glob";
 import {
+  type Body,
   evaluate,
   filter,
   type Header,
@@ -974,20 +975,24 @@ Deno.test("TiCSE formal routes preserve branches, tags and the version placehold
       body.ref = `refs/heads/${name}`;
       assertFalse(filter(push, body), `${repo}/${name}`);
     }
+    // A tag event carries `ref_type`, which the tag trigger requires.
+    const tagBody = payload(repo, "tag-create");
     for (const version of ["v26.3.21", "v8.5.4-nextgen.202510.1"]) {
-      body.ref = version;
-      assert(filter(tag, body), `${repo}/${version}`);
+      tagBody.ref = version;
+      assert(filter(tag, tagBody), `${repo}/${version}`);
     }
     for (const version of ["v8.5.4", "custom-build-tag", "v26.3.21-rc.1"]) {
-      body.ref = version;
-      assertFalse(filter(tag, body), `${repo}/${version}`);
+      tagBody.ref = version;
+      assertFalse(filter(tag, tagBody), `${repo}/${version}`);
     }
-    for (const trigger of [push, tag]) {
+    // The branch-push route was raised to 1h in #5588; the tag route still
+    // carries the older 30m budget.
+    for (const [trigger, timeout] of [[push, "1h"], [tag, "30m"]] as const) {
       assertEquals(overlay(trigger, "component", body, {}), "tikv");
       assertEquals(overlay(trigger, "profile", body, {}), "nextgen");
       for (
         const [field, expected] of Object.entries({
-          timeout: "30m",
+          timeout,
           sourceWsSize: "100Gi",
           cpu: "12",
           memory: "48Gi",
@@ -1000,17 +1005,22 @@ Deno.test("TiCSE formal routes preserve branches, tags and the version placehold
       }
       assertEquals(trigger.spec.template.ref, "build-component-linux");
     }
+    // A branch-creation event carries `ref_type` too.
+    const branchBody: Body = {
+      ...payload(repo, "branch-push"),
+      ref_type: "branch",
+    };
     for (
       const name of [
         "release-nextgen-202609",
         "release-nextgen-26.3.21-20261111",
       ]
     ) {
-      body.ref = name;
-      assert(filter(branch, body), `${repo}/${name}`);
+      branchBody.ref = name;
+      assert(filter(branch, branchBody), `${repo}/${name}`);
     }
-    body.ref = "cloud-engine";
-    assertFalse(filter(branch, body));
+    branchBody.ref = "cloud-engine";
+    assertFalse(filter(branch, branchBody));
     assertEquals(
       branch.spec.template.ref,
       "bump-placeholder-version-in-readme",
@@ -1031,12 +1041,14 @@ Deno.test("TiCSE formal routes preserve branches, tags and the version placehold
       "dillon-zheng/cse-migration",
     ]
   ) {
-    const body = payload(repo, "branch-push");
+    const body: Body = payload(repo, "branch-push");
     body.ref = "refs/heads/cloud-engine";
     assertFalse(filter(push, body));
     body.ref = "v26.3.21";
+    body.ref_type = "tag";
     assertFalse(filter(tag, body));
     body.ref = "release-nextgen-202609";
+    body.ref_type = "branch";
     assertFalse(filter(branch, body));
   }
 });

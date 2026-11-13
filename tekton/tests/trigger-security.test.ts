@@ -279,16 +279,18 @@ Deno.test("ce-paramProduct cannot select the component or the repository", () =>
 
 Deno.test("a Serverless product still names its own repository", () => {
   const routes = ["", "-single-platform", "-darwin"].map((suffix) =>
-    load<NamedTrigger>(`${fakeGithubDirectory}fake-github-branch-push${suffix}.yaml`)
+    load<NamedTrigger>(
+      `${fakeGithubDirectory}fake-github-branch-push${suffix}.yaml`,
+    )
   );
   const header: Header = {
     "ce-type": "net.pingcap.tibuild.devbuild.push",
     "ce-paramplatform": "linux/amd64",
     "ce-paramproduct": "tidb-cse",
   };
+  const cdc = payload("pingcap/ticdc", "branch-push");
   assertEquals(
-    routes.filter((route) => filter(route, payload("pingcap/ticdc", "branch-push"), header))
-      .length,
+    routes.filter((route) => filter(route, cdc, header)).length,
     0,
     "a Serverless product must not route a repository it does not name",
   );
