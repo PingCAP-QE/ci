@@ -101,10 +101,26 @@ fi
 # convention, not a constraint the gate can rely on: `pod_label.withCiLabels()`
 # loads whatever path the Jenkinsfile names. Treat any YAML under `jenkins/jobs/`
 # that parses as a Pod as a template.
+#
+# Returns 0 for a Pod template, 1 for anything else, and 2 for a file under
+# `jenkins/jobs/` that yq cannot parse. 2 is not "not a template": a template
+# the gate cannot read is a template whose privileges it cannot bound, so the
+# caller must fail rather than skip it.
+#
+# `explode(.)` resolves anchors, aliases and merge keys first. Without it a
+# template written as `containers: *c` does not look like a sequence node to a
+# bare yq query, so the file was dropped and, when it was the only changed file,
+# the gate printed "No changed Pod specs to check." and passed. Merge keys
+# (`<<: *base`) are resolved by yq either way; they are pinned by a test so a
+# future tightening of this function cannot regress them.
 is_pod_template() {
   local f="$1"
   [[ "$f" == jenkins/jobs/*.yaml || "$f" == jenkins/jobs/*.yml ]] || return 1
-  yq e -e '(.spec.containers | type) == "!!seq"' "$f" >/dev/null 2>&1
+  local containers
+  if ! containers=$(yq e '(.spec.containers | explode(.)) | type' "${f}" 2>/dev/null); then
+    return 2
+  fi
+  [[ "${containers}" == "!!seq" ]]
 }
 
 is_prow_jobs_file() {
@@ -112,21 +128,42 @@ is_prow_jobs_file() {
 }
 
 changed_files=()
+unparseable_files=()
+collect_candidate() {
+  local f="$1"
+  [[ -n "${f}" ]] || return 0
+  local state=0
+  is_pod_template "${f}" || state=$?
+  case "${state}" in
+    0)
+      changed_files+=("${f}")
+      ;;
+    2)
+      unparseable_files+=("${f}")
+      ;;
+    *)
+      is_prow_jobs_file "${f}" && changed_files+=("${f}")
+      ;;
+  esac
+}
+
 if [[ "$#" -gt 0 ]]; then
   for f in "$@"; do
-    [[ -n "${f}" ]] || continue
-    if is_pod_template "${f}" || is_prow_jobs_file "${f}"; then
-      changed_files+=("${f}")
-    fi
+    collect_candidate "${f}"
   done
 else
   [[ -n "${BASE_SHA}" ]] || BASE_SHA="HEAD~1"
   while IFS= read -r line; do
-    [[ -n "${line}" ]] || continue
-    if is_pod_template "${line}" || is_prow_jobs_file "${line}"; then
-      changed_files+=("${line}")
-    fi
+    collect_candidate "${line}"
   done < <(git diff --name-only --diff-filter=d "${BASE_SHA}..${HEAD_SHA}" -- 'jenkins/jobs/**' 'prow-jobs/**' || true)
+fi
+
+if [[ "${#unparseable_files[@]}" -gt 0 ]]; then
+  for f in "${unparseable_files[@]}"; do
+    echo "ERROR: ${f} is under jenkins/jobs/ but is not valid YAML (or not a Pod spec yq can read)" >&2
+  done
+  echo "ERROR: refusing to skip ${#unparseable_files[@]} unreadable template(s) — a template the gate cannot parse is a template whose privileges it cannot bound" >&2
+  exit 1
 fi
 
 if [[ "${#changed_files[@]}" -eq 0 ]]; then
@@ -141,7 +178,7 @@ list_violations() {
   local document
 
   if is_pod_template "${file}"; then
-    document='[{"unit": "<pod>", "spec": (.spec)}]'
+    document='[{"unit": "<pod>", "spec": (.spec | explode(.))}]'
   else
     document='
       [
