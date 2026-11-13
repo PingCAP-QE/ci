@@ -490,12 +490,22 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
         // Enforce the same decision at the transport, where the credential is
         // actually spent: it holds for every depth, including `.gitmodules` files
         // this job never reads.
+        //
+        // Both ends of this file are addressed by the same absolute path:
+        // `writeFile` resolves a bare name against the step's current directory,
+        // which is the repository (`dir(REFS.repo)`) in every job that passes
+        // `withSubmodule`, and the update below then runs the guard from the
+        // workspace root. A relative name therefore lands in the repository while
+        // the fetch looks for it one level up, and git fails with
+        // `cannot exec '<workspace>/git_ssh_guard.sh': No such file or directory`
+        // — after `chmod` has already succeeded in the other directory.
+        final guardScript = "${env.WORKSPACE}/git_ssh_guard.sh"
         writeFile(
-            file: 'git_ssh_guard.sh',
+            file: guardScript,
             text: libraryResource('scripts/git_ssh_guard.sh'))
         sh label: 'Update submodules', script: """#!/usr/bin/env bash
             set -e
-            chmod +x ./git_ssh_guard.sh
+            chmod +x "${guardScript}"
             echo "📁 update submodules ..."
             # Submodule URLs come from the pull request's tree, and the fetch runs
             # with the bot's SSH credential. Verify the host key instead of
@@ -520,7 +530,7 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
             GIT_TERMINAL_PROMPT=0 \
             GIT_ASKPASS=/bin/false \
             GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0= \
-            GIT_SSH_COMMAND="\${WORKSPACE:-.}/git_ssh_guard.sh" \
+            GIT_SSH_COMMAND="${guardScript}" \
             GIT_SUBMODULE_PARENT_ORG="${refs.org}" \
             GIT_SUBMODULE_SSH_ORGS="${submoduleSshOrgs()}" \
             git submodule update --init --recursive
