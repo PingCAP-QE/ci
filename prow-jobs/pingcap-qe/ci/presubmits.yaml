@@ -314,7 +314,8 @@ presubmits:
             args:
               - |
                 apk add --no-cache kubectl yq-go git
-                changed_files=$(git diff --name-only --diff-filter=d "${PULL_BASE_SHA:?}" -- 'tekton/v1/**/*.yaml' | LC_ALL=C sort)
+                changed_files=$(git diff --name-only --diff-filter=d "${PULL_BASE_SHA:?}" -- 'tekton/v1/**/*.yaml' \
+                  | grep -v -E '(^|/)kustomization\.yaml$' | LC_ALL=C sort)
                 if [ -z "$changed_files" ]; then
                   echo "No changed Tekton YAML files to verify."
                   exit 0
@@ -326,28 +327,25 @@ presubmits:
                 failed=0
                 for f in $changed_files; do
                   echo "Validating: $f"
-                  api=$(yq e '.apiVersion // ""' "$f" 2>/dev/null) || {
+                  # A manifest file may hold more than one document, so evaluate
+                  # every document and report the ones that are not a named Tekton
+                  # resource. Reading `.kind` once per file returned "Trigger
+                  # --- Trigger" for a two-document file.
+                  bad=$(yq e '
+                    select(
+                      (((.kind // "") | test("^(Task|TaskRun|Pipeline|PipelineRun|StepAction|Trigger|TriggerTemplate|TriggerBinding|ClusterTriggerBinding|EventListener|Interceptor)$")) | not)
+                      or ((((.apiVersion // "") | length) == 0))
+                      or ((((.metadata.name // "") | length) == 0))
+                    ) | "  invalid document: apiVersion=\"" + (.apiVersion // "") + "\" kind=\"" + (.kind // "") + "\" name=\"" + (.metadata.name // "") + "\""' "$f" 2>&1) || {
                     echo "  not valid YAML"
+                    printf '%s\n' "$bad" | sed 's/^/  /'
                     failed=1
                     continue
                   }
-                  kind=$(yq e '.kind // ""' "$f" 2>/dev/null)
-                  name=$(yq e '.metadata.name // ""' "$f" 2>/dev/null)
-                  case "$kind" in
-                    Task | TaskRun | Pipeline | PipelineRun | Trigger | TriggerTemplate | TriggerBinding | ClusterTriggerBinding | EventListener | Interceptor) ;;
-                    *)
-                      echo "  unknown or missing kind: '${kind}'"
-                      failed=1
-                      ;;
-                  esac
-                  [ -n "$api" ] || {
-                    echo "  missing apiVersion"
+                  if [ -n "$bad" ]; then
+                    printf '%s\n' "$bad"
                     failed=1
-                  }
-                  [ -n "$name" ] || {
-                    echo "  missing metadata.name"
-                    failed=1
-                  }
+                  fi
                 done
                 if [ "$failed" -eq 0 ]; then
                   echo "All changed Tekton manifests passed structural validation."
