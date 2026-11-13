@@ -35,6 +35,66 @@ function yamlFiles(directory: string, pattern = "**/*.yaml"): string[] {
     .sort();
 }
 
+// GitHub delivers branch creation and tag creation as the same `create` event;
+// `body.ref_type` is the only discriminator, and `body.ref` carries the bare
+// name in both cases. A trigger that filters only on the name therefore fires for
+// a branch whose name happens to look like a release tag.
+Deno.test("every create-event trigger checks body.ref_type", () => {
+  let tagTriggers = 0;
+  let branchTriggers = 0;
+
+  for (const path of yamlFiles(triggerDirectory)) {
+    const text = Deno.readTextFileSync(path);
+    if (text.includes("type: github-tag-create")) {
+      tagTriggers++;
+      assert(
+        text.includes("body.ref_type == 'tag'"),
+        `${path}: a tag-creation trigger must require body.ref_type == 'tag'`,
+      );
+    }
+    if (text.includes("type: github-branch-create")) {
+      branchTriggers++;
+      assert(
+        text.includes("body.ref_type == 'branch'"),
+        `${path}: a branch-creation trigger must require body.ref_type == 'branch'`,
+      );
+    }
+  }
+
+  assert(tagTriggers > 0, "expected tag-creation triggers to exist");
+  assert(branchTriggers > 0, "expected branch-creation triggers to exist");
+});
+
+Deno.test("a branch named like a release tag does not drive a release build", () => {
+  const tagTrigger = load<NamedTrigger>(
+    `${triggerDirectory}pingcap/tiproxy/git-create-tag.yaml`,
+  );
+  const tagCreation = payload("pingcap/tiproxy", "tag-create");
+  assertEquals(filter(tagTrigger, tagCreation), true);
+
+  // Same repository, same tag-shaped name, but the event is a branch creation.
+  assertEquals(
+    filter(tagTrigger, { ...tagCreation, ref_type: "branch" }),
+    false,
+  );
+
+  const branchTrigger = load<NamedTrigger>(
+    `${triggerDirectory}tikv/tikv/git-create-branch.yaml`,
+  );
+  const branchCreation = payload("tikv/tikv", "push");
+  branchCreation.repository = {
+    ...(branchCreation.repository as Record<string, unknown>),
+    owner: { login: "tikv" },
+  };
+  branchCreation.ref = "release-8.5";
+  branchCreation.ref_type = "branch";
+  assertEquals(filter(branchTrigger, branchCreation), true);
+  assertEquals(
+    filter(branchTrigger, { ...branchCreation, ref_type: "tag" }),
+    false,
+  );
+});
+
 Deno.test("request headers cannot waive a repository allowlist", () => {
   // The devbuild routes used to accept ce-paramGithubRepo as proof that the
   // request came from an allowlisted repository, which waived the allowlist

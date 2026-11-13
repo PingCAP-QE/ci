@@ -7,6 +7,11 @@ metadata:
     profile: nextgen
 spec:
   interceptors:
+    - name: only tag creation builds a release
+      ref: { name: cel }
+      params:
+        - name: filter
+          value: body.ref_type == 'tag'
     - name: filter on repo and git tags
       ref: { name: cel }
       params:
