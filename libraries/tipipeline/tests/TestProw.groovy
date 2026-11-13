@@ -368,7 +368,8 @@ class TestProw {
             def events = []
             def written = [:]
             def script = loadProw(
-                env: [JOB_NAME: 'pingcap/tidb/latest/pull_build', GIT_CDN_ENABLED: 'true'],
+                env: [JOB_NAME: 'pingcap/tidb/latest/pull_build', GIT_CDN_ENABLED: 'true',
+                      WORKSPACE: '/tmp/ws'],
                 readFile: { Map args -> "url = git@github.com:pingcap/tidb-engine-ext.git\n" },
                 libraryResource: { String path -> '#!/bin/sh\n' },
                 writeFile: { Map args -> written[args.file] = args.text },
@@ -380,14 +381,52 @@ class TestProw {
                                  pulls: [[number: 12, sha: '1234567890abcdef']]],
                 'github-bot-ssh', 7, true)
 
-            assertTrue('the SSH guard is installed', written.containsKey('git_ssh_guard.sh'))
+            assertTrue('the SSH guard is installed in the workspace',
+                written.containsKey('/tmp/ws/git_ssh_guard.sh'))
             def update = events.find { it.contains('git submodule update') }
             assertTrue('the update runs the guard',
-                update.contains('GIT_SSH_COMMAND="\${WORKSPACE:-.}/git_ssh_guard.sh"'))
+                update.contains('GIT_SSH_COMMAND="/tmp/ws/git_ssh_guard.sh"'))
             assertTrue('and spends no HTTP credential',
                 update.contains('GIT_ASKPASS=/bin/false'))
             assertTrue('with the allowlist in the environment',
                 update.contains('GIT_SUBMODULE_PARENT_ORG="pingcap"'))
+        }
+
+        @Test
+        void shouldWriteTheSubmoduleGuardWhereTheUpdateExecutesIt() {
+            // These jobs call the checkout inside `dir(REFS.repo)`, so a guard
+            // written under a bare name lands in the repository while the update,
+            // which runs from the workspace root, looks for it one level up:
+            // `chmod` succeeds in the repository and git then dies with
+            // `cannot exec '<workspace>/git_ssh_guard.sh': No such file or
+            // directory`. Compare the two ends instead of pinning either form.
+            def events = []
+            def written = [:]
+            def script = loadProw(
+                env: [JOB_NAME: 'pingcap/tidb/latest/pull_build', WORKSPACE: '/tmp/ws/tidb-ws'],
+                readFile: { Map args -> '' },
+                libraryResource: { String path -> '#!/bin/sh\n' },
+                writeFile: { Map args -> written[args.file] = args.text },
+                sshagent: { Map args, Closure body -> body() },
+                sh: { Map args -> events << (args.script ?: '') })
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890',
+                                 pulls: [[number: 12, sha: '1234567890abcdef']]],
+                'github-bot-ssh', 7, true)
+
+            def update = events.find { it.contains('git submodule update') }
+            // The script is a GString whose backslash continuations collapse, so
+            // match the assignment itself rather than a line start.
+            def executed = update =~ /GIT_SSH_COMMAND="([^"]+)"/
+            assertTrue('the update hands the fetch to a guard', executed.find())
+            final guard = executed.group(1)
+            assertTrue("the guard the update runs (${guard}) is the file that was written",
+                written.containsKey(guard))
+            assertTrue("the guard path is absolute, not resolved against the step directory: ${guard}",
+                guard.startsWith('/tmp/ws/tidb-ws/'))
+            assertTrue('and it is the file the step makes executable',
+                update.contains("chmod +x \"${guard}\""))
         }
 
         @Test
