@@ -126,6 +126,51 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
 }
 
 /*
+ * Recursive submodule update with broker-minted installation tokens.
+ *
+ * Used for organizations that enforce SAML SSO, where the bot's PAT and SSH key
+ * are rejected and the only working credential is an installation token. Every
+ * submodule URL is rewritten to HTTPS (`insteadOf`), so the update spends no SSH
+ * key at all, and the askpass mints a token per repository, restricted to
+ * `submoduleBrokerScope` — the URLs come from the pull request's `.gitmodules`,
+ * at any depth.
+ *
+ * Unlike the inherited-credential path this does not seed SSH host keys: there
+ * is no SSH hop to verify.
+ */
+def updateSubmodulesWithBrokerToken(refs) {
+    final scope = submoduleBrokerScope()
+    final suffix = UUID.randomUUID().toString()
+    final helper = "${env.WORKSPACE}/git-askpass-submodule-${suffix}"
+    final cache = "${env.WORKSPACE}/git-broker-token-submodule-${suffix}"
+
+    try {
+        writeFile(file: helper, text: libraryResource('scripts/git_askpass_broker.sh'))
+        sh label: 'Update submodules', script: """#!/usr/bin/env bash
+            set -e
+            chmod 700 '${helper}'
+            echo "📁 update submodules with broker tokens for ${scope.join(' ')} ..."
+            GIT_ASKPASS='${helper}' \
+            GIT_TERMINAL_PROMPT=0 \
+            TIPIPELINE_BROKER_URL='${env.GIT_BROKER_URL?.trim()}' \
+            TIPIPELINE_BROKER_CACHE='${cache}' \
+            TIPIPELINE_BROKER_REPO='${refs.org}/${refs.repo}' \
+            TIPIPELINE_BROKER_PERMISSIONS='{"contents":"read"}' \
+            GIT_CREDENTIAL_ALLOWED_REPOS='${scope.join(' ')}' \
+            GIT_CONFIG_COUNT=2 \
+            GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf \
+            GIT_CONFIG_VALUE_0=git@github.com: \
+            GIT_CONFIG_KEY_1=credential.useHttpPath \
+            GIT_CONFIG_VALUE_1=true \
+            git submodule update --init --recursive
+            echo "✅ update submodules done"
+        """
+    } finally {
+        sh label: 'Remove submodule broker credential helper', script: "rm -f '${helper}' '${cache}'"
+    }
+}
+
+/*
  * Repositories the checkout scope may spend its Git credential on.
  *
  * The askpass helpers have a host allowlist, which keeps the credential on
@@ -150,6 +195,52 @@ def credentialAllowedRepos(refs, String sshOrgs = '') {
     }
     splitBrokerAllowlist(sshOrgs ?: submoduleSshOrgs()).each { entries << "${it}/*" }
     return entries.unique().join(' ')
+}
+
+/*
+ * Organizations the token broker can mint for that this job may also use for
+ * submodules, as `owner/repo` / `owner/*` entries.
+ *
+ * An organization that enforces SAML SSO rejects the bot's user credentials, so
+ * neither the PAT nor the SSH key can fetch its submodules; installation tokens
+ * are not tied to a user and are the only thing that works there. The set is the
+ * intersection of what the broker is configured for (GIT_BROKER_ORGS /
+ * GIT_BROKER_REPOS) and what this job may use for submodules
+ * (GIT_SUBMODULE_SSH_ORGS), so neither side can widen the other.
+ */
+def submoduleBrokerScope(String sshOrgs = '') {
+    final allowedOrgs = splitBrokerAllowlist(sshOrgs ?: submoduleSshOrgs())
+    final entries = []
+    splitBrokerAllowlist(env.GIT_BROKER_ORGS).each { org ->
+        if (allowedOrgs.contains(org)) {
+            entries << "${org}/*".toString()
+        }
+    }
+    splitBrokerAllowlist(env.GIT_BROKER_REPOS).each { entry ->
+        final org = entry.contains('/') ? entry.substring(0, entry.indexOf('/')) : entry
+        if (allowedOrgs.contains(org)) {
+            entries << entry
+        }
+    }
+    return entries.unique()
+}
+
+/*
+ * Whether the recursive submodule update should spend broker tokens instead of
+ * the credential inherited from the checkout scope.
+ *
+ * Opt-in per Jenkins instance (GIT_BROKER_SUBMODULES), because the update
+ * rewrites every submodule URL to HTTPS: a submodule in an organization the
+ * broker cannot mint for then fails instead of falling back.
+ */
+def useBrokerForSubmodules(String sshOrgs = '') {
+    if (!env.GIT_BROKER_SUBMODULES?.trim()?.toBoolean()) {
+        return false
+    }
+    if (!env.GIT_BROKER_URL?.trim()) {
+        return false
+    }
+    return !submoduleBrokerScope(sshOrgs).isEmpty()
 }
 
 /*
@@ -508,6 +599,10 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
             readGitmodules(), refs.org, submoduleSshOrgs())
         if (violations) {
             error("refusing to update submodules: ${violations.join('; ')}")
+        }
+        if (useBrokerForSubmodules()) {
+            updateSubmodulesWithBrokerToken(refs)
+            return
         }
         sh label: 'Update submodules', script: """#!/usr/bin/env bash
             set -e

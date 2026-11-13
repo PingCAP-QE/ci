@@ -673,6 +673,38 @@ class TestProw {
         }
 
         @Test
+        void shouldKeepTheInheritedCredentialForSubmodulesByDefault() {
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_BROKER_ENABLED: 'true', GIT_BROKER_URL: 'http://broker.example',
+                 GIT_BROKER_ORGS: 'pingcap-inc'], envs)
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, true)
+
+            assertTrue('the update keeps the inherited credential unless it is opted in',
+                envs.flatten().every { !it.toString().contains('TIPIPELINE_BROKER_URL') })
+        }
+
+        @Test
+        void shouldIntersectTheBrokerAndTheSubmoduleOrganizations() {
+            def script = loadProw(env: [GIT_BROKER_ORGS: 'pingcap-inc, else-org',
+                                        GIT_BROKER_REPOS: 'pingcap/tidb-engine-ext, acme/*'])
+            assertEquals('only organizations both sides allow',
+                ['pingcap-inc/*', 'pingcap/tidb-engine-ext'],
+                script.submoduleBrokerScope())
+        }
+
+        @Test
+        void shouldRefuseToUseTheBrokerWithoutAnOverlap() {
+            def script = loadProw(env: [GIT_BROKER_ORGS: 'else-org', GIT_BROKER_URL: 'http://broker.example',
+                                        GIT_BROKER_SUBMODULES: 'true'])
+            assertFalse('nothing in common, so no broker submodule path',
+                script.useBrokerForSubmodules())
+        }
+
+        @Test
         void shouldNotNameARepositoryItDoesNotHave() {
             final scope = loadProw().credentialAllowedRepos([:], '')
             assertTrue("only organizations, no repository: ${scope}",

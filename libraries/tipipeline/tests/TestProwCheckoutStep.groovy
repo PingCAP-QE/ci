@@ -31,12 +31,23 @@ class TestProwCheckoutStep {
 # step chose becomes an exec, which is what broke in PingCAP-QE/ci#5568.
 case "$1" in
     submodule)
-        case "${GIT_SSH_COMMAND:-}" in
-            '')
-                echo "fake git: no GIT_SSH_COMMAND was exported for the update" >&2
+        # No SSH transport means the update goes over HTTPS and git asks its
+        # credential helper instead.
+        if [ -z "${GIT_SSH_COMMAND:-}" ]; then
+            case "${GIT_ASKPASS:-}" in
+                '')
+                    echo "fake git: no transport credential was exported for the update" >&2
+                    exit 1
+                    ;;
+            esac
+            if [ ! -x "${GIT_ASKPASS}" ]; then
+                echo "fatal: cannot exec '${GIT_ASKPASS}': No such file or directory" >&2
+                echo "fatal: unable to fork" >&2
                 exit 1
-                ;;
-        esac
+            fi
+            echo "fake git: submodule update through ${GIT_ASKPASS}"
+            exit 0
+        fi
         set -- ${GIT_SSH_COMMAND}
         transport="$1"
         if [ -e "$transport" ]; then
@@ -131,11 +142,11 @@ exit 0
     }
 
     /** Render the submodule step for one `withSubmodule` checkout. */
-    private static Map renderSubmoduleStep(Workspace ws) {
+    private static Map renderSubmoduleStep(Workspace ws, Map extraEnv = [:]) {
         final events = []
         final written = [:]
         final script = loadProw(
-            env: [JOB_NAME: 'pingcap/tidb/release-8.5/pull_build', WORKSPACE: ws.root.absolutePath],
+            env: [JOB_NAME: 'pingcap/tidb/release-8.5/pull_build', WORKSPACE: ws.root.absolutePath] + extraEnv,
             readFile: { Map args -> '' },
             libraryResource: { String path -> '#!/bin/sh\nexit 0\n' },
             // Jenkins resolves a relative name against the step's current
@@ -173,6 +184,50 @@ exit 0
             output.contains('update submodules') && output.contains('fake git: submodule update'))
         assertTrue('the step seeds the SSH host keys before the fetch',
             new File(ws.home, '.ssh').isDirectory())
+    }
+
+    @Test
+    void shouldInstallTheBrokerHelperWhereTheBrokerUpdateRunsIt() {
+        // The opt-in broker path has the same shape as the guard that broke:
+        // a helper written by the library and executed by the step. The stub git
+        // is not used here — the step is inspected and then run, so a mismatch
+        // between "written" and "executed" shows up as a missing file.
+        final ws = new Workspace()
+        final rendered = renderSubmoduleStep(ws, [
+            GIT_BROKER_ENABLED  : 'true',
+            GIT_BROKER_URL      : 'http://broker.example',
+            GIT_BROKER_ORGS     : 'pingcap-inc',
+            GIT_BROKER_SUBMODULES: 'true',
+        ])
+
+        assertTrue("the update must hand the fetch to the broker helper:\n${rendered.script}",
+            rendered.script.contains("GIT_ASKPASS='"))
+        final match = rendered.script =~ /GIT_ASKPASS='([^']+)'/
+        assertTrue('the step names the helper', match.find())
+        final helper = match.group(1)
+        assertTrue("${helper} must be one of the written files: ${rendered.written.keySet()}",
+            rendered.written.values().contains(helper))
+
+        // Only the organizations both sides allow, and no SSH hop: every URL is
+        // rewritten to HTTPS, which is what an installation token authenticates.
+        assertTrue("the scope is the intersection:\n${rendered.script}",
+            rendered.script.contains("GIT_CREDENTIAL_ALLOWED_REPOS='pingcap-inc/*'"))
+        assertTrue("ssh urls are rewritten:\n${rendered.script}",
+            rendered.script.contains('GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf'))
+        assertTrue("the repository path reaches the askpass:\n${rendered.script}",
+            rendered.script.contains('GIT_CONFIG_KEY_1=credential.useHttpPath'))
+        assertTrue("the step makes the helper executable:\n${rendered.script}",
+            rendered.script.contains("chmod 700 '${helper}'"))
+
+        final output = ws.run(rendered.script)
+        assertEquals("the step failed:\n${output}", 0, ws.lastExitCode)
+        final helperFile = new File(helper)
+        assertTrue("${helper} must exist after the step ran", helperFile.isFile())
+        assertTrue("${helper} must be executable", helperFile.canExecute())
+        // The stub git cannot speak the broker protocol; reaching the helper at
+        // all means it was found and passed its own checks.
+        assertTrue("the helper was executed:\n${output}",
+            !output.contains('No such file or directory'))
     }
 
     @Test
