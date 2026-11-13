@@ -113,3 +113,4 @@ secret	^prow\-jobs/pingcap\-inc/tiflash\-scripts/presubmits\.yaml$	github-token	
 secret	^prow\-jobs/pingcap\-inc/tiflow/release\-presubmits\.yaml$	github-ssh-secret	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
 secret	^prow\-jobs/pingcap\-qe/ee\-infra/presubmits\.yaml$	github-token	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
 secret	^prow\-jobs/pingcap/tiflash/latest\-presubmits\.yaml$	github-ssh-secret	2027-05-31	Prow decoration injects this credential into the job pod; pre-existing binding, reviewed 2026-11-12
+serviceAccount	^prow\-jobs/pingcap\-qe/ci/presubmits\.yaml$	gar-reader	2027-05-31	pod-yaml presubmit resolves internal images with crane; standing identity grant, not debt
