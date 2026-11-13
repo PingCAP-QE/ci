@@ -17,7 +17,7 @@ spec:
       volumeMounts:
         - mountPath: /tmp
           name: volume-0
-    - image: docker.io/wurstmeister/zookeeper
+    - image: docker.io/wurstmeister/zookeeper@sha256:7a7fd44a72104bfbd24a77844bad5fabc86485b036f988ea927d1780782a6680
       imagePullPolicy: IfNotPresent
       name: zookeeper
       resources:
@@ -46,7 +46,7 @@ spec:
           value: "zk"
         - name: KAFKA_ZOOKEEPER_CONNECT
           value: "127.0.0.1:2181"
-      image: docker.io/wurstmeister/kafka:2.12-2.4.1
+      image: docker.io/wurstmeister/kafka@sha256:21b9367ff68e379b196a9c1a0bb5dc6a51740e4f87c630d2c2d672e10c9e9de7
       imagePullPolicy: IfNotPresent
       name: kafka
       resources:
