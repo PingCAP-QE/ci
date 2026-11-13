@@ -77,7 +77,11 @@ presubmits:
       optional: true
       trigger: "(?m)^/test (?:.*? )?pull-replay-jenkins-pipelines(?: .*?)?$"
       rerun_command: "/test pull-replay-jenkins-pipelines"
-      run_if_changed: "^jenkins/jobs/[^/]+/[^/]+/[^/]+/[^/]+/(Jenkinsfile|pod(-[^/]+)?\\.yaml)$"
+      # A shared-library change replays the jobs listed in
+      # .ci/replay-library-jobs.txt with the library pinned to this pull request's
+      # head commit: a replay replaces the pipeline script only, so without the
+      # pin it would run the library from main and pass while testing nothing.
+      run_if_changed: "^jenkins/jobs/[^/]+/[^/]+/[^/]+/[^/]+/(Jenkinsfile|pod(-[^/]+)?\\.yaml)$|^libraries/(tipipeline|tisys)/"
       branches:
         - ^main$
       spec:
@@ -268,6 +272,36 @@ presubmits:
               - |
                 apk add --no-cache bash git ripgrep
                 bash .ci/test-verify-jenkins-credential-policy.sh
+            resources:
+              limits:
+                memory: 256Mi
+                cpu: 200m
+
+    - name: pull-test-replay-scripts
+      labels: *labels
+      decorate: true
+      max_concurrency: 1
+      # Nothing ran these: a change to .ci/replay-jenkins-build.sh was reviewed by
+      # reading it, and the script that hands Jenkins credentials to pull request
+      # content is exactly the one worth pinning with tests. They need no Jenkins
+      # and no credentials.
+      run_if_changed: '^\.ci/(replay-[^/]+\.sh|test-replay-[^/]+\.sh|replay-library-jobs\.txt)$'
+      timeout: 10m
+      branches:
+        - ^main$
+      spec:
+        containers:
+          - name: main
+            image: alpine:3.24
+            command: [sh, -ce]
+            args:
+              - |
+                # yq-go is mikefarah/yq v4, which the pod-fence test drives.
+                apk add --no-cache bash git curl jq ripgrep yq-go
+                for test_file in .ci/test-replay-*.sh; do
+                  echo "running ${test_file}"
+                  bash "${test_file}"
+                done
             resources:
               limits:
                 memory: 256Mi

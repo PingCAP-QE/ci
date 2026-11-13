@@ -23,6 +23,7 @@ If your changes include pipeline files under `jenkins/jobs/**` (`Jenkinsfile`), 
    - `JENKINS_URL=https://prow.tidb.net/jenkins .ci/verify-jenkins-pipelines.sh`
 2. Real replay validation:
    - `.ci/replay-jenkins-build.sh --auto-changed --route-by-prow-master --verbose` (set `JENKINS_MASTER_0_URL/USER/TOKEN` and `JENKINS_MASTER_1_URL/USER/TOKEN` first)
+   - A change under `libraries/` is covered by the same command: it pins the changed library to your head commit and replays the jobs listed in `.ci/replay-library-jobs.txt`, because a replay of a pipeline alone would still load the library from `main`.
 
 For full command examples, behavior details (including `404` historical-build skip), and PR trigger workflow, see:
 - `docs/guides/CI.md` -> `Pre-PR Verification for Jenkins Pipeline Changes`

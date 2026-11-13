@@ -114,6 +114,42 @@ Notes:
 - At the end, the script prints summary counts, for example:
   - `replay summary: submitted=3, skipped=2, failed=0`
 
+#### Replaying a shared-library change
+
+A change under `libraries/` carries no pipeline script, and a replay replaces the
+pipeline script only: the build would still load the library at its default
+version (`main`) and pass while running code the pull request never touched.
+`--auto-changed` therefore handles library changes differently:
+
+1. It reads the changed libraries from the diff and pins each one to the head
+   commit, rewriting `@Library('tipipeline')` to
+   `@Library('tipipeline@<head>')` in the replayed script.
+2. It replays the jobs listed in `.ci/replay-library-jobs.txt` (those that load
+   the library and hold real credentials), in addition to any changed
+   Jenkinsfiles. A library change with no such list fails instead of replaying
+   nothing.
+3. After a successful replay it reads `consoleText` back and requires
+   `Loading library tipipeline@<head>`, so a pin that silently did not take
+   effect fails the check. `--library-version` therefore requires `--wait`.
+
+```bash
+.ci/replay-jenkins-build.sh \
+  --auto-changed \
+  --route-by-prow-master \
+  --wait --selector lastSuccessfulBuild \
+  --dump-script /tmp/replayed-Jenkinsfile \
+  --verbose
+```
+
+- The pin relies on the global library allowing its default version to be
+  overridden. A pull request from a fork cannot be pinned by commit, because that
+  commit is not in `PingCAP-QE/ci` — push the branch to this repository.
+- `--dump-script` writes the script that would be submitted (after pod-yaml
+  inlining and pinning), which is also how the tests assert the rewrite.
+- `@Library([...])` lists with more than one library are refused rather than
+  replayed unpinned: only `@Library('name')` and `@Library(['name'])` are
+  rewritten.
+
 ### 4. PR-Level Automation in Prow
 
 This repository has two related presubmit jobs for pipeline changes:

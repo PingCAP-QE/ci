@@ -1,0 +1,17 @@
+# Jobs replayed when a shared library under `libraries/` changes.
+#
+# A shared-library change cannot be replayed as a pipeline change: a replay
+# replaces the pipeline script only, so the build would still load the library at
+# its default version (`main`) and pass while running code the pull request never
+# touched. `.ci/replay-jenkins-build.sh` therefore pins the library to the pull
+# request's head commit and rewrites `@Library('<name>')` to
+# `@Library('<name>@<head>')`; these are the jobs it replays with that pin.
+#
+# Pick jobs that load the library *and* hold real credentials, so the transport
+# the library installs is exercised as well (that is what broke when the
+# submodule SSH guard was written one directory away from its execution).
+# Keep the list short: every entry costs a full build.
+#
+# One repo-relative Jenkinsfile path per line; `#` starts a comment.
+jenkins/jobs/pingcap/tidb/release-8.5/pull_build/Jenkinsfile
+jenkins/jobs/pingcap/tidb/release-8.5/pull_check/Jenkinsfile
