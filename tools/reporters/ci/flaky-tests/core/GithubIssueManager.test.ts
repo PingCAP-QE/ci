@@ -765,8 +765,15 @@ for (const state of ["missing", "open"] as const) {
     };
     let creates = 0;
     let comments = 0;
+    let lookups = 0;
     const manager = createManager(
       mockOctokit({
+        actions: {
+          getWorkflowRunAttempt: () => {
+            lookups++;
+            return Promise.reject(new Error("Unexpected attempt lookup"));
+          },
+        },
         search: {
           issuesAndPullRequests: async () => ({
             data: { items: state === "open" ? [issue] : [] },
@@ -801,5 +808,6 @@ for (const state of ["missing", "open"] as const) {
     }]);
     assertEquals(creates, state === "missing" ? 1 : 0);
     assertEquals(comments, state === "open" ? 1 : 0);
+    assertEquals(lookups, 0);
   });
 }
