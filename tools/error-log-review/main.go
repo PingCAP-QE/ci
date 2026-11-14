@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -13,6 +14,9 @@ func main() {
 		configPath = flag.String("config", "config.yaml", "Path to configuration file")
 		prURL      = flag.String("pr", "", "PR URL or owner/repo#number format")
 		token      = flag.String("token", "", "GitHub token (or set GITHUB_API_TOKEN env var)")
+		brokerURL  = flag.String("broker-url", "", "In-cluster github-token-broker base URL; mints a short-lived token for the PR repository instead of using -token (or set GITHUB_BROKER_URL env var)")
+		brokerPerm = flag.String("broker-permissions", DefaultBrokerPermissions, "Permissions to request from the broker, as name=level pairs separated by commas")
+		brokerFile = flag.String("broker-caller-token-file", DefaultBrokerCallerTokenFile, "File holding the Pod ServiceAccount token the broker authenticates")
 		dryRun     = flag.Bool("dry-run", false, "Don't actually post comments or fail, just print results")
 	)
 	flag.Parse()
@@ -20,9 +24,9 @@ func main() {
 	// Get GitHub token from environment if not provided
 	if *token == "" {
 		*token = os.Getenv("GITHUB_API_TOKEN")
-		if *token == "" {
-			log.Fatal("GitHub token must be provided via -token flag or GITHUB_API_TOKEN environment variable")
-		}
+	}
+	if *brokerURL == "" {
+		*brokerURL = os.Getenv("GITHUB_BROKER_URL")
 	}
 
 	// Get PR info from environment variables if not provided
@@ -61,6 +65,24 @@ func main() {
 	if repo == nil {
 		fmt.Printf("Repository %s is not configured for error log review - skipping\n", repoName)
 		os.Exit(0)
+	}
+
+	// Resolve the credential last, when the repository the token has to be
+	// scoped to is known: a broker-minted token names it.
+	if *token == "" {
+		if *brokerURL == "" {
+			log.Fatal("GitHub credentials must be provided via -token, GITHUB_API_TOKEN, or -broker-url")
+		}
+		permissions, err := ParseBrokerPermissions(*brokerPerm)
+		if err != nil {
+			log.Fatalf("Invalid -broker-permissions: %v", err)
+		}
+		minted, err := MintBrokerToken(context.Background(), *brokerURL, repoName, *brokerFile, permissions)
+		if err != nil {
+			log.Fatalf("Failed to mint a token from the broker: %v", err)
+		}
+		fmt.Printf("Using a broker-minted token for %s\n", repoName)
+		*token = minted
 	}
 
 	// Initialize GitHub client
