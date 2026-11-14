@@ -58,9 +58,32 @@ review.
 The program can also read configuration from environment variables:
 
 - `GITHUB_API_TOKEN` - GitHub personal access token
+- `GITHUB_BROKER_URL` - in-cluster `github-token-broker` base URL, used instead of a PAT
 - `GITHUB_REPOSITORY_OWNER` - Repository owner (e.g., "pingcap")
 - `GITHUB_REPOSITORY` - Repository name (e.g., "tidb")
 - `GITHUB_PR_NUMBER` - PR number (e.g., "12345")
+
+### Broker-minted tokens
+
+Instead of a long-lived PAT, the tool can mint a GitHub App installation token
+from the in-cluster `github-token-broker`:
+
+```bash
+./error-log-review -pr "pingcap/tidb#12345" \
+  -broker-url http://github-token-broker.github-token-broker.svc
+```
+
+The broker identifies the caller with the Pod ServiceAccount token
+(`-broker-caller-token-file`, default
+`/var/run/secrets/kubernetes.io/serviceaccount/token`) through a `TokenReview`,
+and only mints a token if its policy grants that namespace and ServiceAccount
+the repository. The request defaults to `-broker-permissions
+pull_requests=read,issues=read`, which is what the diff and comment lookups
+need. Nothing long-lived is written to the Pod.
+
+Use this instead of `GITHUB_API_TOKEN` where no PAT should sit in the Pod: the
+token is scoped to the repository and permissions the broker policy grants the
+caller, and it expires with the job.
 
 ### CI Integration
 
