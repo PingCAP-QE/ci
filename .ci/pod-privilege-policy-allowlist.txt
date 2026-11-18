@@ -68,6 +68,7 @@ runAsUser	^jenkins/jobs/pingcap/tidb/release\-9\.0\-beta/pull_integration_nodejs
 runAsUser	^jenkins/jobs/pingcap/tiproxy/latest/merged_integration_nodejs_test/pod\.yaml$	<pod>	2027-05-31	nodejs integration tooling writes root-owned paths; revisit when the image owns a non-root home
 runAsUser	^jenkins/jobs/pingcap/tiproxy/latest/pull_integration_nodejs_test/pod\.yaml$	<pod>	2027-05-31	nodejs integration tooling writes root-owned paths; revisit when the image owns a non-root home
 runAsUser	^jenkins/jobs/pingcap\-qe/tidb\-test/latest/ghpr_integration_nodejs_test/pod\.yaml$	<pod>	2027-05-31	nodejs integration tooling writes root-owned paths; revisit when the image owns a non-root home
+runAsUser	^prow\-jobs/pingcap\-qe/ci/presubmits\.yaml$	library-tests	2027-05-31	install Git for offline checkout regression tests, then run tests as the image's non-root groovy user
 runAsUser	^prow\-jobs/pingcap\-qe/ci/presubmits\.yaml$	verify-gitops	2027-05-31	flux-cli image ships no non-root default user; the kustomize build writes into the shared workspace
 runAsUser	^prow\-jobs/pingcap\-qe/ci/presubmits\.yaml$	verify-kustomization	2027-05-31	yq image ships no non-root default user; revisit when the presubmit gets a dedicated image
 

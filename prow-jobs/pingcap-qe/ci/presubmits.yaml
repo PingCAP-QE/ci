@@ -401,22 +401,28 @@ presubmits:
         - ^main$
       spec:
         containers:
-          - name: main
+          - name: library-tests
             image: groovy:4.0.33-jdk17
+            securityContext:
+              runAsUser: 0 # Install Git, then drop back to the image's groovy user.
             command: [sh, -ce]
             args:
               - |
-                # system global trusted libraries
-                for test_file in libraries/tisys/tests/Test*.groovy; do
-                  echo "Running ${test_file}"
-                  groovy "${test_file}"
-                done
+                apt-get update
+                apt-get install -y --no-install-recommends git
+                exec runuser -u groovy -- env PATH="$PATH" sh -ce '
+                  # system global trusted libraries
+                  for test_file in libraries/tisys/tests/Test*.groovy; do
+                    echo "Running ${test_file}"
+                    groovy "${test_file}"
+                  done
 
-                # untrusted libraries
-                for test_file in libraries/tipipeline/tests/Test*.groovy; do
-                  echo "Running ${test_file}"
-                  groovy "${test_file}"
-                done
+                  # untrusted libraries
+                  for test_file in libraries/tipipeline/tests/Test*.groovy; do
+                    echo "Running ${test_file}"
+                    groovy "${test_file}"
+                  done
+                '
 
             resources:
               limits:
