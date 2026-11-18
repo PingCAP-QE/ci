@@ -29,7 +29,7 @@ spec:
           cpu: "4"
       volumeMounts:
         - mountPath: "/var/lib/mysql"
-          name: "mysql-tls-fixtures"
+          name: "mysql-tls-certs"
         - mountPath: "/home/jenkins/.my.cnf"
           name: "mysql-config-volume"
           subPath: ".my.cnf"
@@ -108,7 +108,7 @@ spec:
         - "--server-id=1"
         - "--lower_case_table_names=0"
   volumes:
-    - name: mysql-tls-fixtures
+    - name: mysql-tls-certs
       emptyDir: {}
     - name: mysql-config-volume
       emptyDir: {}
