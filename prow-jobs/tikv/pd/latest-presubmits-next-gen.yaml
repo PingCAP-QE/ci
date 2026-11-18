@@ -53,23 +53,29 @@ presubmits:
       spec:
         containers:
           - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
+            image: ghcr.io/pingcap-qe/ci/base:v2026.11.8-40-g6add30fa5-go1.27
             command: [bash, -ce]
             env:
               - { name: NEXT_GEN, value: "1" }
             args:
               - |
-                for i in $(seq 1 3); do
-                  echo "🚀 Testing for job index: ${i} ..."
-                  make ci-test-job JOB_INDEX=${i} || exit 1
-                  echo "🎉 Passed for job index: ${i}."
+                # Keep the legacy grouping for PD branches without the three-runner layout.
+                if [[ -f scripts/ci-test-groups.json ]] &&
+                   jq -e '.layouts.nextgen | length == 3' scripts/ci-test-groups.json >/dev/null; then
+                  make ci-test-job JOB_INDEX=1 JOB_COUNT=3 JOB_LAYOUT=nextgen
+                else
+                  for i in $(seq 1 3); do
+                    echo "🚀 Testing for job index: ${i} ..."
+                    make ci-test-job JOB_INDEX=${i} || exit 1
+                    echo "🎉 Passed for job index: ${i}."
 
-                  # unit test coverage data
-                  # mv covprofile covprofile_${JOB_INDEX}
-                  # if [ -f junitfile ]; then
-                  #     cat junitfile
-                  # fi
-                done
+                    # unit test coverage data
+                    # mv covprofile covprofile_${JOB_INDEX}
+                    # if [ -f junitfile ]; then
+                    #     cat junitfile
+                    # fi
+                  done
+                fi
 
                 # ls -alh covprofile_*
             resources:
@@ -87,23 +93,29 @@ presubmits:
       spec:
         containers:
           - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
+            image: ghcr.io/pingcap-qe/ci/base:v2026.11.8-40-g6add30fa5-go1.27
             command: [bash, -ce]
             env:
               - { name: NEXT_GEN, value: "1" }
             args:
               - |
-                for i in $(seq 4 6); do
-                  echo "🚀 Testing for job index: ${i} ..."
-                  make ci-test-job JOB_INDEX=${i} || exit 1
-                  echo "🎉 Passed for job index: ${i}."
+                # Keep the legacy grouping for PD branches without the three-runner layout.
+                if [[ -f scripts/ci-test-groups.json ]] &&
+                   jq -e '.layouts.nextgen | length == 3' scripts/ci-test-groups.json >/dev/null; then
+                  make ci-test-job JOB_INDEX=2 JOB_COUNT=3 JOB_LAYOUT=nextgen
+                else
+                  for i in $(seq 4 6); do
+                    echo "🚀 Testing for job index: ${i} ..."
+                    make ci-test-job JOB_INDEX=${i} || exit 1
+                    echo "🎉 Passed for job index: ${i}."
 
-                  # unit test coverage data
-                  # mv covprofile covprofile_${JOB_INDEX}
-                  # if [ -f junitfile ]; then
-                  #     cat junitfile
-                  # fi
-                done
+                    # unit test coverage data
+                    # mv covprofile covprofile_${JOB_INDEX}
+                    # if [ -f junitfile ]; then
+                    #     cat junitfile
+                    # fi
+                  done
+                fi
 
                 # ls -alh covprofile_*
             resources:
@@ -121,23 +133,29 @@ presubmits:
       spec:
         containers:
           - name: test
-            image: ghcr.io/pingcap-qe/ci/base:v2026.1.18-8-gbb5ada9-go1.25
+            image: ghcr.io/pingcap-qe/ci/base:v2026.11.8-40-g6add30fa5-go1.27
             command: [bash, -ce]
             env:
               - { name: NEXT_GEN, value: "1" }
             args:
               - |
-                for i in $(seq 7 10); do
-                  echo "🚀 Testing for job index: ${i} ..."
-                  make ci-test-job JOB_INDEX=${i} || exit 1
-                  echo "🎉 Passed for job index: ${i}."
+                # Keep the legacy grouping for PD branches without the three-runner layout.
+                if [[ -f scripts/ci-test-groups.json ]] &&
+                   jq -e '.layouts.nextgen | length == 3' scripts/ci-test-groups.json >/dev/null; then
+                  make ci-test-job JOB_INDEX=3 JOB_COUNT=3 JOB_LAYOUT=nextgen
+                else
+                  for i in $(seq 7 10); do
+                    echo "🚀 Testing for job index: ${i} ..."
+                    make ci-test-job JOB_INDEX=${i} || exit 1
+                    echo "🎉 Passed for job index: ${i}."
 
-                  # unit test coverage data
-                  # mv covprofile covprofile_${JOB_INDEX}
-                  # if [ -f junitfile ]; then
-                  #     cat junitfile
-                  # fi
-                done
+                    # unit test coverage data
+                    # mv covprofile covprofile_${JOB_INDEX}
+                    # if [ -f junitfile ]; then
+                    #     cat junitfile
+                    # fi
+                  done
+                fi
 
                 # ls -alh covprofile_*
             resources:
