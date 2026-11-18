@@ -26,6 +26,8 @@ spec:
           memory: 16Gi
           cpu: "6"
       volumeMounts:
+        - mountPath: "/var/lib/mysql"
+          name: "mysql-tls-certs"
         - mountPath: "/home/jenkins/.my.cnf"
           name: "mysql-config-volume"
           subPath: ".my.cnf"
@@ -68,6 +70,8 @@ spec:
         - "--server-id=1"
         - "--default-authentication-plugin=mysql_native_password"
   volumes:
+    - name: mysql-tls-certs
+      emptyDir: {}
     - name: mysql-config-volume
       emptyDir: {}
   affinity:

@@ -27,6 +27,20 @@
 # Same `init-mysql-config` exception for the pingcap/tiflow DM test Pods.
 ^jenkins/jobs/pingcap/tiflow/latest/pull_dm_(compatibility_test|integration_test|integration_test_next_gen)/pod\.yaml$	init-mysql-config	2027-03-31	lightweight init container (chmod/echo) with no resource budget
 
+# Release DM integration Pods touched by the TLS fixture repair (PingCAP-QE/ci#5596).
+# Their memory budgets predate the repair. Raising requests to limits would
+# increase each release-6.5/7.1/7.5/8.1/8.5 Pod's reservation from 14Gi to 24Gi;
+# lowering limits instead risks OOMKills. Keep this repair scoped to TLS and
+# review sizing with the job owners and usage evidence by 2026-12-31.
+# Only the listed containers in these six release test templates are exempt.
+^jenkins/jobs/pingcap/tiflow/release-(6\.5|7\.1|7\.5|8\.1|8\.5)/pull_dm_integration_test/pod-test\.yaml$	golang	2026-12-31	pre-existing memory request 10Gi != limit 16Gi; right-sizing pending (PingCAP-QE/ci#5596)
+^jenkins/jobs/pingcap/tiflow/release-(6\.5|7\.1|7\.5|8\.1|8\.5)/pull_dm_integration_test/pod-test\.yaml$	mysql1	2026-12-31	pre-existing memory request 2Gi != limit 4Gi; right-sizing pending (PingCAP-QE/ci#5596)
+^jenkins/jobs/pingcap/tiflow/release-(6\.5|7\.1|7\.5|8\.1|8\.5)/pull_dm_integration_test/pod-test\.yaml$	mysql2	2026-12-31	pre-existing memory request 2Gi != limit 4Gi; right-sizing pending (PingCAP-QE/ci#5596)
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_dm_integration_test/pod\.yaml$	golang	2026-12-31	pre-existing memory limit 16Gi with no request; right-sizing pending (PingCAP-QE/ci#5596)
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_dm_integration_test/pod\.yaml$	mysql1	2026-12-31	pre-existing memory limit 4Gi with no request; right-sizing pending (PingCAP-QE/ci#5596)
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_dm_integration_test/pod\.yaml$	mysql2	2026-12-31	pre-existing memory limit 4Gi with no request; right-sizing pending (PingCAP-QE/ci#5596)
+^jenkins/jobs/pingcap/tiflow/release-9\.0-beta/pull_dm_integration_test/pod\.yaml$	init-mysql-config	2026-12-31	pre-existing lightweight init container (echo) with no resource budget (PingCAP-QE/ci#5596)
+
 # Same `init-mysql-config` exception for the pingcap/tidb release-7.5/8.1 BR tests.
 ^jenkins/jobs/pingcap/tidb/release-(7\.5|8\.1)/pull_br_integration_test/pod\.yaml$	init-mysql-config	2027-03-31	lightweight init container (chmod/echo) with no resource budget
 
