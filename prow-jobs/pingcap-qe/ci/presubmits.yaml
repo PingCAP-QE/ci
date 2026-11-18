@@ -418,7 +418,7 @@ presubmits:
                   done
 
                   # untrusted libraries
-                  for test_file in libraries/tipipeline/tests/Test*.groovy; do
+                  for test_file in libraries/tipipeline/tests/Test*.groovy libraries/tipipeline/tests/integration/Test*.groovy; do
                     echo "Running ${test_file}"
                     groovy "${test_file}"
                   done

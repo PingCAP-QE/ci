@@ -7,7 +7,7 @@ import static org.junit.Assert.*
  * Execute the broker checkout shell from component.groovy against local Git
  * repositories. Only the credential scope is stubbed; Git itself is real.
  *
- * Usage: groovy libraries/tipipeline/tests/TestComponentCheckoutStep.groovy
+ * Usage: groovy libraries/tipipeline/tests/integration/TestComponentCheckoutStep.groovy
  */
 class TestComponentCheckoutStep {
     private File root
