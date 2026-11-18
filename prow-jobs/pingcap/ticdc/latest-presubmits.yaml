@@ -170,6 +170,7 @@ presubmits:
       branches:
         - ^master$
         - ^release-8\.5(\.\d+)?(-\d+)?(-v[\.\d]+)?(-\d+)?$
+        - ^feature/release-8\.5-materialized-view-8\.5\.8$
       spec:
         containers:
           - name: check
