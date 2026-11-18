@@ -194,6 +194,10 @@ pipeline {
                                     """
                                 }
                                 sh label: "${TEST_GROUP}", script: """
+                                    if [ "TLS_GROUP" = "${TEST_GROUP}" ]; then
+                                        # The pod mounts a group-writable emptyDir here.
+                                        cp "${WORKSPACE}"/mysql-ssl/*.pem /var/lib/mysql/
+                                    fi
                                     export PATH=/usr/local/go/bin:\$PATH
                                     mkdir -p ./dm/tests/bin && cp -r ./bin/dm-test-tools/* ./dm/tests/bin/
                                     make dm_integration_test_in_group GROUP="${TEST_GROUP}"

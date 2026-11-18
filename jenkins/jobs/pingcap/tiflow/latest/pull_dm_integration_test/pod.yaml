@@ -32,6 +32,8 @@ spec:
           memory: 16Gi
           cpu: "6"
       volumeMounts:
+        - mountPath: "/var/lib/mysql"
+          name: "mysql-tls-fixtures"
         - mountPath: "/home/jenkins/.my.cnf"
           name: "mysql-config-volume"
           subPath: ".my.cnf"
@@ -110,6 +112,8 @@ spec:
         - "--server-id=1"
         - "--lower_case_table_names=0"
   volumes:
+    - name: mysql-tls-fixtures
+      emptyDir: {}
     - name: mysql-config-volume
       emptyDir: {}
   affinity:
