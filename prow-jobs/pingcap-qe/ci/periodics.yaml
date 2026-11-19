@@ -354,7 +354,7 @@ periodics:
             - *pd-flaky-report-smtp-user
             - *pd-flaky-report-smtp-pass
   - name: periodic-reporter-flaky-tests-cse
-    cluster: default
+    cluster: tke-pingcap-cicd
     decorate: true
     hidden: true
     cron: "55 0 * * *" # Daily at 08:55 UTC+8.
@@ -362,7 +362,8 @@ periodics:
     spec:
       activeDeadlineSeconds: 300
       containers:
-        - <<: *periodic-reporter-flaky-tests-tidb-container
+        - &periodic-reporter-flaky-tests-cse-container
+          <<: *periodic-reporter-flaky-tests-tidb-container
           args:
             - |
               set -euo pipefail
@@ -379,14 +380,17 @@ periodics:
               start_date=$(date -u -d "1 days ago" +%Y-%m-%d)
               end_date=$(date -u +%Y-%m-%d)
               script_url="https://cdn.jsdelivr.net/gh/PingCAP-QE/ci@10bcc6134c6540cb7996f7313c96d0a6eadc2683/tools/reporters/ci/flaky-tests/main.ts"
+              email_subject="Flaky Tests Report of ${repo} repository (branch: ${PARAM_BRANCH}) between ${start_date} and ${end_date}"
               # The shared reporter can log private case names; keep both streams
               # and generated HTML pod-local, outside public Prow artifacts.
               if deno run --allow-env --allow-net --allow-write=/tmp "${script_url}" \
-                --repo "${repo}" --branch cloud-engine \
+                --repo "${repo}" --branch "${PARAM_BRANCH}" \
                 --from "${start_date}" --to "${end_date}" \
-                --issue-create --issue-comment --issue-reopen \
-                --issue-labels "component/test,flaky-test,type/enhancement" \
+                ${PARAM_ISSUE_OPS_OPTIONS} \
+                --issue-labels "${PARAM_ISSUE_LABELS}" \
                 --issue-mutation-limit 10000 --html /tmp/cse-flaky-report.html \
+                --email-to="${PARAM_EMAIL_TO}" --email-cc="${PARAM_EMAIL_CC}" \
+                --email-from="${SMTP_USER}" --email-subject="${email_subject}" \
                 >/tmp/cse-flaky-reporter.log 2>&1; then
                 echo "CSE flaky issue reporter completed"
               else
@@ -394,16 +398,109 @@ periodics:
                 exit 1
               fi
           env:
-            - name: GITHUB_TOKEN
+            - name: PARAM_BRANCH
+              value: cloud-engine
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-comment --issue-reopen
+            - name: PARAM_ISSUE_LABELS
+              value: "component/test,flaky-test,type/enhancement"
+            - &cse-flaky-report-github-token
+              name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: github-token
                   key: token
-            - name: DB_URL
+            - &cse-flaky-report-db-url
+              name: DB_URL
               valueFrom:
                 secretKeyRef:
                   name: ci-job-params-mono
                   key: ci-job-flay-report-dsn
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
+  - name: periodic-reporter-flaky-tests-cse-ng2609
+    cluster: tke-pingcap-cicd
+    decorate: true
+    hidden: true
+    cron: "5 1 * * *" # Daily at 09:05 UTC+8.
+    max_concurrency: 1
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-cse-container
+          env:
+            - name: PARAM_BRANCH
+              value: release-nextgen-202609
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-comment
+            - name: PARAM_ISSUE_LABELS
+              value: "component/test,flaky-test,type/enhancement,affects-26.9"
+            - *cse-flaky-report-github-token
+            - *cse-flaky-report-db-url
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
+  - name: periodic-reporter-flaky-tests-cse-ng2603
+    cluster: tke-pingcap-cicd
+    decorate: true
+    hidden: true
+    cron: "15 1 * * *" # Daily at 09:15 UTC+8.
+    max_concurrency: 1
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-cse-container
+          env:
+            - name: PARAM_BRANCH
+              value: release-nextgen-202603
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-comment
+            - name: PARAM_ISSUE_LABELS
+              value: "component/test,flaky-test,type/enhancement,affects-26.3"
+            - *cse-flaky-report-github-token
+            - *cse-flaky-report-db-url
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
+  - name: periodic-reporter-flaky-tests-cse-ng2510
+    cluster: tke-pingcap-cicd
+    decorate: true
+    hidden: true
+    cron: "25 1 * * *" # Daily at 09:25 UTC+8.
+    max_concurrency: 1
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-cse-container
+          env:
+            - name: PARAM_BRANCH
+              value: release-nextgen-20251011
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-comment
+            - name: PARAM_ISSUE_LABELS
+              value: "component/test,flaky-test,type/enhancement,affects-25.10"
+            - *cse-flaky-report-github-token
+            - *cse-flaky-report-db-url
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
     cluster: tke-pingcap-cicd
