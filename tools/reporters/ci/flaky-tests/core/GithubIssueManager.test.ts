@@ -535,6 +535,57 @@ Deno.test("GithubIssueManager.sync can match issue from loose title query", asyn
   assertEquals(flakyCase.issue?.status, "open");
 });
 
+Deno.test("GithubIssueManager.sync comments on closed issues without reopening", async (t) => {
+  const cases = [
+    ["comments enabled", true, false, 1],
+    ["comments disabled", false, false, 0],
+    ["dry run", true, true, 0],
+  ] as const;
+  for (const [name, allowComment, dryRun, expected] of cases) {
+    await t.step(name, async () => {
+      const issue: TestIssue = {
+        number: 555,
+        title: "Flaky test: TestFlakyCase in pkg/executor",
+        state: "closed",
+        html_url: "https://github.com/pingcap/tidb/issues/555",
+        closed_at: "2026-03-01T12:00:00Z",
+      };
+      let reopenCalls = 0;
+      const comments: string[] = [];
+      const manager = createManager(
+        mockOctokit({
+          search: {
+            issuesAndPullRequests: async () => ({ data: { items: [issue] } }),
+          },
+          issues: {
+            update: async () => {
+              reopenCalls += 1;
+              return { data: { ...issue, state: "open", closed_at: null } };
+            },
+            createComment: async (params) => {
+              assertEquals(params.issue_number, issue.number);
+              comments.push(params.body);
+            },
+          },
+        }),
+        { allowReopen: false, allowComment, dryRun },
+      );
+      const flakyCase = { ...buildCase(), branch: "release-8.5" };
+
+      await manager.sync(buildReport(), [flakyCase]);
+
+      assertEquals(reopenCalls, 0);
+      assertEquals(flakyCase.issue?.status, "closed");
+      assertEquals(flakyCase.issue?.state, "closed");
+      assertEquals(comments.length, expected);
+      if (expected > 0) {
+        assertEquals(comments[0].includes("- Branch: release-8.5"), true);
+        assertEquals(comments[0].includes("- Flaky Count: 3"), true);
+      }
+    });
+  }
+});
+
 Deno.test("GithubIssueManager.sync comments only top-N cases within the same issue key", async () => {
   const issue: TestIssue = {
     number: 555,
