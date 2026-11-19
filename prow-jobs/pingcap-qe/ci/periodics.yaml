@@ -416,45 +416,13 @@ periodics:
                 secretKeyRef:
                   name: ci-job-params-mono
                   key: ci-job-flay-report-dsn
-            - &cse-flaky-report-email-to
-              name: PARAM_EMAIL_TO
-              valueFrom:
-                secretKeyRef:
-                  name: ci-job-params-mono
-                  key: ci-job-flay-report-email-to
-            - &cse-flaky-report-email-cc
-              name: PARAM_EMAIL_CC
-              valueFrom:
-                secretKeyRef:
-                  name: ci-job-params-mono
-                  key: ci-job-flay-report-email-cc
-            - &cse-flaky-report-smtp-secure
-              name: SMTP_SECURE
-              value: "true"
-            - &cse-flaky-report-smtp-host
-              name: SMTP_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: ci-smtp
-                  key: smtp-host
-            - &cse-flaky-report-smtp-port
-              name: SMTP_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: ci-smtp
-                  key: smtp-port
-            - &cse-flaky-report-smtp-user
-              name: SMTP_USER
-              valueFrom:
-                secretKeyRef:
-                  name: ci-smtp
-                  key: smtp-user
-            - &cse-flaky-report-smtp-pass
-              name: SMTP_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: ci-smtp
-                  key: smtp-password
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
   - name: periodic-reporter-flaky-tests-cse-ng2609
     cluster: tke-pingcap-cicd
     decorate: true
@@ -474,13 +442,13 @@ periodics:
               value: "component/test,flaky-test,type/enhancement,affects-26.9"
             - *cse-flaky-report-github-token
             - *cse-flaky-report-db-url
-            - *cse-flaky-report-email-to
-            - *cse-flaky-report-email-cc
-            - *cse-flaky-report-smtp-secure
-            - *cse-flaky-report-smtp-host
-            - *cse-flaky-report-smtp-port
-            - *cse-flaky-report-smtp-user
-            - *cse-flaky-report-smtp-pass
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
   - name: periodic-reporter-flaky-tests-cse-ng2603
     cluster: tke-pingcap-cicd
     decorate: true
@@ -500,13 +468,13 @@ periodics:
               value: "component/test,flaky-test,type/enhancement,affects-26.3"
             - *cse-flaky-report-github-token
             - *cse-flaky-report-db-url
-            - *cse-flaky-report-email-to
-            - *cse-flaky-report-email-cc
-            - *cse-flaky-report-smtp-secure
-            - *cse-flaky-report-smtp-host
-            - *cse-flaky-report-smtp-port
-            - *cse-flaky-report-smtp-user
-            - *cse-flaky-report-smtp-pass
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
   - name: periodic-reporter-flaky-tests-cse-ng2510
     cluster: tke-pingcap-cicd
     decorate: true
@@ -526,13 +494,13 @@ periodics:
               value: "component/test,flaky-test,type/enhancement,affects-25.10"
             - *cse-flaky-report-github-token
             - *cse-flaky-report-db-url
-            - *cse-flaky-report-email-to
-            - *cse-flaky-report-email-cc
-            - *cse-flaky-report-smtp-secure
-            - *cse-flaky-report-smtp-host
-            - *cse-flaky-report-smtp-port
-            - *cse-flaky-report-smtp-user
-            - *cse-flaky-report-smtp-pass
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
   - name: periodic-reporter-flaky-tests-tidb-v85
     decorate: true # need add this.
     cluster: tke-pingcap-cicd
