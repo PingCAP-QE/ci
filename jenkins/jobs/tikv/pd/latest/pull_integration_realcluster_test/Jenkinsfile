@@ -23,6 +23,8 @@ pipeline {
     }
     environment {
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
+        GOCACHE = "${WORKSPACE}/go-cache/build"
+        GOMODCACHE = "${WORKSPACE}/go-cache/modules"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -41,22 +43,39 @@ pipeline {
         }
         stage('Prepare') {
             steps {
+                script {
+                    parallel(
+                        'Build PD': {
+                            dir('pd') {
+                                container('golang') {
+                                    final goImage = readYaml(file: "${env.WORKSPACE}/${POD_TEMPLATE_FILE}").spec.containers.find { it.name == 'golang' }.image
+                                    final platform = sh(script: 'go env GOVERSION GOOS GOARCH', returnStdout: true).trim().replace('\n', '-')
+                                    final revision = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                                    final cachePrefix = "go/tikv/pd/realcluster/pr-${REFS.pulls[0].number}/${goImage}/${platform}/"
+                                    // Save compiler and module data before tests, so test results are not reused.
+                                    cache(path: "${env.WORKSPACE}/go-cache", includes: '**/*', key: cachePrefix + revision, restoreKeys: [cachePrefix]) {
+                                        sh label: 'pd-server', script: 'WITH_RACE=1 RUN_CI=1 make pd-server-basic'
+                                    }
+                                }
+                            }
+                        },
+                        'Download peer components': {
+                            dir('pd/third_bin') {
+                                container('utils') {
+                                    sh label: 'download peer component binaries', script: """
+                                        ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
+                                            --tidb=${OCI_TAG_TIDB} \
+                                            --tikv=${OCI_TAG_TIKV} \
+                                            --tiflash=${OCI_TAG_TIFLASH}
+                                    """
+                                }
+                            }
+                        },
+                        failFast: true
+                    )
+                }
                 dir('pd') {
-                    container("golang") {
-                        sh label: 'pd-server', script: '[ -f bin/pd-server ] || WITH_RACE=1 RUN_CI=1 make pd-server-basic'
-                        sh 'mkdir -p third_bin'
-                    }
-                    container("utils") {
-                        dir("third_bin") {
-                            sh label: 'download peer component binaries', script: """
-                                ${WORKSPACE}/scripts/artifacts/download_pingcap_oci_artifact.sh \
-                                    --tidb=${OCI_TAG_TIDB} \
-                                    --tikv=${OCI_TAG_TIKV} \
-                                    --tiflash=${OCI_TAG_TIFLASH}
-                            """
-                        }
-                    }
-                    container("golang") {
+                    container('golang') {
                         sh label: 'verify binaries', script: """
                             ls -alh third_bin/
                             bin/pd-server -V
