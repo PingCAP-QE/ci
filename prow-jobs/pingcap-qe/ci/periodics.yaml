@@ -353,6 +353,7 @@ periodics:
               if deno run --allow-env --allow-net --allow-write=/tmp "${script_url}" \
                 --repo "${repo}" --branch "${PARAM_BRANCH}" \
                 --from "${start_date}" --to "${end_date}" \
+                --db-url="${PARAM_DSN}" \
                 ${PARAM_ISSUE_OPS_OPTIONS} \
                 --issue-labels "${PARAM_ISSUE_LABELS}" \
                 --issue-mutation-limit 10000 --html /tmp/cse-flaky-report.html \
@@ -372,12 +373,7 @@ periodics:
             - name: PARAM_ISSUE_LABELS
               value: "component/test,flaky-test,type/enhancement"
             - *flaky-report-github-token
-            - &cse-flaky-report-db-url
-              name: DB_URL
-              valueFrom:
-                secretKeyRef:
-                  name: ci-job-params-mono
-                  key: ci-job-flay-report-dsn
+            - *flaky-report-dsn
             - *flaky-report-email-to
             - *flaky-report-email-cc
             - *flaky-report-smtp-secure
@@ -403,7 +399,7 @@ periodics:
             - name: PARAM_ISSUE_LABELS
               value: "component/test,flaky-test,type/enhancement,affects-26.9"
             - *flaky-report-github-token
-            - *cse-flaky-report-db-url
+            - *flaky-report-dsn
             - *flaky-report-email-to
             - *flaky-report-email-cc
             - *flaky-report-smtp-secure
@@ -429,7 +425,7 @@ periodics:
             - name: PARAM_ISSUE_LABELS
               value: "component/test,flaky-test,type/enhancement,affects-26.3"
             - *flaky-report-github-token
-            - *cse-flaky-report-db-url
+            - *flaky-report-dsn
             - *flaky-report-email-to
             - *flaky-report-email-cc
             - *flaky-report-smtp-secure
@@ -455,7 +451,7 @@ periodics:
             - name: PARAM_ISSUE_LABELS
               value: "component/test,flaky-test,type/enhancement,affects-25.10"
             - *flaky-report-github-token
-            - *cse-flaky-report-db-url
+            - *flaky-report-dsn
             - *flaky-report-email-to
             - *flaky-report-email-cc
             - *flaky-report-smtp-secure

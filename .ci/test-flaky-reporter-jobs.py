@@ -82,7 +82,7 @@ for repo, repository, branches, crons, labels in PROFILES:
         assert sorted(values["PARAM_ISSUE_LABELS"]["value"].split(",")) == sorted((labels + affects).split(","))
         for name in MAIL_VARS:
             assert values[name] == shared_env[name], (repo, branch, name, "shared settings differ")
-        assert values["DB_URL" if repo == "cse" else "PARAM_DSN"] == shared_env["PARAM_DSN"]
+        assert values["PARAM_DSN"] == shared_env["PARAM_DSN"]
         script = container["args"][0]
         subprocess.run(["bash", "-n"], input=script, text=True, check=True)
         if repo != "cse":
@@ -125,7 +125,7 @@ else:
                                for name, item in values.items()}
                 runtime_env.update(PATH=str(work) + os.pathsep + os.environ["PATH"],
                                    STUB_ARGS=str(work / "args.json"), STUB_EXIT=str(exit_code),
-                                   MARKER=MARKER, PARAM_EMAIL_TO="to@example.invalid",
+                                   MARKER=MARKER, PARAM_DSN="synthetic-dsn", PARAM_EMAIL_TO="to@example.invalid",
                                    PARAM_EMAIL_CC="cc@example.invalid", SMTP_USER="from@example.invalid")
                 private_log, private_html = work / "reporter.log", work / "report.html"
                 script_under_test = script.replace("/tmp/cse-flaky-reporter.log", str(private_log)).replace(
@@ -141,6 +141,7 @@ else:
                 assert "--allow-write=/tmp" in args
                 assert flag(args, "--repo") == "example/renamed-private-repo"
                 assert flag(args, "--branch") == branch
+                assert flag(args, "--db-url") == "synthetic-dsn"
                 assert flag(args, "--issue-labels") == values["PARAM_ISSUE_LABELS"]["value"]
                 assert flag(args, "--html") == str(private_html)
                 assert flag(args, "--email-to") == "to@example.invalid"
