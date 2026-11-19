@@ -55,9 +55,8 @@ presubmits:
       name: pingcap/tidb/pull_mysql_test_next_gen
       labels:
         master: "0"
-      # skip_if_only_changed: *skip_if_only_changed
-      optional: true
-      context: non-block/pull-mysql-test-next-gen
+      skip_if_only_changed: *skip_if_only_changed
+      context: pull-mysql-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-mysql-test-next-gen"
 
