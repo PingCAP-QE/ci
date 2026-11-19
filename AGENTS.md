@@ -22,7 +22,7 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 - **Tekton** - Cloud-native CI/CD framework
 - **Groovy** - Jenkins pipeline DSL scripts
 - **YAML** - Configuration files (Prow jobs, pod templates)
-- **Go** - Various CI tools (`error-log-review`, `gomod-sync`, `gethash`, etc.)
+- **Go** - Various CI tools (`gomod-sync`, `gethash`, etc.)
 - **Kubernetes** - Container orchestration for CI runners
 
 ## Repository Structure
@@ -50,7 +50,6 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 │       ├── src/             # Helper classes
 │       └── test/            # Unit tests (table-driven JUnit 4)
 ├── tools/                   # CI helper tools
-│   ├── error-log-review/    # PR error log checker (Go)
 │   ├── gomod-sync/          # Go module sync tool (Go)
 │   ├── gethash/             # Git hash utility (Go)
 │   └── ...
