@@ -26,6 +26,11 @@
 #                                restore in matrix stages)
 set -euxo pipefail
 
+# Legacy module mirror objects may return 403 after the internal URLs are
+# removed. Add the canonical Go proxy URL while retaining each pinned checksum.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+python3 "${SCRIPT_DIR}/add-go-proxy-urls.py" DEPS.bzl
+
 # Portable in-place sed (GNU and BSD).
 if sed --version >/dev/null 2>&1; then
     SED_I=(sed -i)
