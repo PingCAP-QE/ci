@@ -161,6 +161,198 @@ periodics:
               cpu: 200m
             limits:
               memory: 1Gi
+  - name: periodic-reporter-flaky-tests-pd
+    decorate: true
+    cluster: tke-pingcap-cicd
+    cron: "10 0 * * *" # Daily at 08:10 UTC+8.
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-tidb-container
+          env:
+            - name: PARAM_REPO
+              value: tikv/pd
+            - name: PARAM_BRANCH
+              value: master
+            - name: PARAM_CASE_THRESHOLD_MS
+              value: "100000"
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-reopen --issue-comment
+            - name: PARAM_ISSUE_LABELS
+              value: "flaky-test,type/enhancement"
+            - name: ISSUE_MUTATION_LIMIT
+              value: "10000"
+            - &pd-flaky-report-dsn
+              name: PARAM_DSN
+              valueFrom:
+                secretKeyRef:
+                  key: ci-job-flay-report-dsn
+                  name: ci-job-params-mono
+            - &pd-flaky-report-github-token
+              name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: github-token
+            - &pd-flaky-report-email-to
+              name: PARAM_EMAIL_TO
+              valueFrom:
+                secretKeyRef:
+                  key: ci-job-flay-report-email-to
+                  name: ci-job-params-mono
+            - &pd-flaky-report-email-cc
+              name: PARAM_EMAIL_CC
+              valueFrom:
+                secretKeyRef:
+                  key: ci-job-flay-report-email-cc
+                  name: ci-job-params-mono
+            - &pd-flaky-report-smtp-secure
+              name: SMTP_SECURE
+              value: "true"
+            - &pd-flaky-report-smtp-host
+              name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-host
+                  name: ci-smtp
+            - &pd-flaky-report-smtp-port
+              name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-port
+                  name: ci-smtp
+            - &pd-flaky-report-smtp-user
+              name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-user
+                  name: ci-smtp
+            - &pd-flaky-report-smtp-pass
+              name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  key: smtp-password
+                  name: ci-smtp
+  - name: periodic-reporter-flaky-tests-pd-v85
+    decorate: true
+    cluster: tke-pingcap-cicd
+    cron: "20 0 * * *" # Daily at 08:20 UTC+8.
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-tidb-container
+          env:
+            - name: PARAM_REPO
+              value: tikv/pd
+            - name: PARAM_BRANCH
+              value: release-8.5
+            - name: PARAM_CASE_THRESHOLD_MS
+              value: "100000"
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-comment
+            - name: PARAM_ISSUE_LABELS
+              value: "flaky-test,type/enhancement,affects-8.5"
+            - name: ISSUE_MUTATION_LIMIT
+              value: "10000"
+            - *pd-flaky-report-dsn
+            - *pd-flaky-report-github-token
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
+  - name: periodic-reporter-flaky-tests-pd-ng2609
+    decorate: true
+    cluster: tke-pingcap-cicd
+    cron: "30 0 * * *" # Daily at 08:30 UTC+8.
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-tidb-container
+          env:
+            - name: PARAM_REPO
+              value: tikv/pd
+            - name: PARAM_BRANCH
+              value: release-nextgen-202609
+            - name: PARAM_CASE_THRESHOLD_MS
+              value: "100000"
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-comment
+            - name: PARAM_ISSUE_LABELS
+              value: "flaky-test,type/enhancement,affects-26.9"
+            - name: ISSUE_MUTATION_LIMIT
+              value: "10000"
+            - *pd-flaky-report-dsn
+            - *pd-flaky-report-github-token
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
+  - name: periodic-reporter-flaky-tests-pd-ng2603
+    decorate: true
+    cluster: tke-pingcap-cicd
+    cron: "40 0 * * *" # Daily at 08:40 UTC+8.
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-tidb-container
+          env:
+            - name: PARAM_REPO
+              value: tikv/pd
+            - name: PARAM_BRANCH
+              value: release-nextgen-202603
+            - name: PARAM_CASE_THRESHOLD_MS
+              value: "100000"
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-comment
+            - name: PARAM_ISSUE_LABELS
+              value: "flaky-test,type/enhancement,affects-26.3"
+            - name: ISSUE_MUTATION_LIMIT
+              value: "10000"
+            - *pd-flaky-report-dsn
+            - *pd-flaky-report-github-token
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
+  - name: periodic-reporter-flaky-tests-pd-ng2510
+    decorate: true
+    cluster: tke-pingcap-cicd
+    cron: "50 0 * * *" # Daily at 08:50 UTC+8.
+    spec:
+      activeDeadlineSeconds: 300
+      containers:
+        - <<: *periodic-reporter-flaky-tests-tidb-container
+          env:
+            - name: PARAM_REPO
+              value: tikv/pd
+            - name: PARAM_BRANCH
+              value: release-nextgen-20251011
+            - name: PARAM_CASE_THRESHOLD_MS
+              value: "100000"
+            - name: PARAM_ISSUE_OPS_OPTIONS
+              value: --issue-create --issue-comment
+            - name: PARAM_ISSUE_LABELS
+              value: "flaky-test,type/enhancement,affects-25.10"
+            - name: ISSUE_MUTATION_LIMIT
+              value: "10000"
+            - *pd-flaky-report-dsn
+            - *pd-flaky-report-github-token
+            - *pd-flaky-report-email-to
+            - *pd-flaky-report-email-cc
+            - *pd-flaky-report-smtp-secure
+            - *pd-flaky-report-smtp-host
+            - *pd-flaky-report-smtp-port
+            - *pd-flaky-report-smtp-user
+            - *pd-flaky-report-smtp-pass
   - name: periodic-reporter-flaky-tests-cse
     cluster: default
     decorate: true
