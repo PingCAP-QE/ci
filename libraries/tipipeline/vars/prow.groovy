@@ -130,15 +130,16 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
  *
  * The askpass helpers have a host allowlist, which keeps the credential on
  * GitHub; it does not keep it off other people's repositories. The URLs a fetch
- * follows come from the pull request's own content (`.gitmodules` at any depth,
- * a rewritten remote), so the scope is named here, before that content is read:
- * the repository this job belongs to, its organization, and the organizations
- * submodules may use.
+ * follows come from the pull request's own content (a rewritten remote), so the
+ * scope is named here, before that content is read: the repository this job
+ * belongs to, and its organization. Anything past that — a submodule, a plugin
+ * checkout — is authorized by the token broker policy for this caller, not by a
+ * second list maintained here.
  *
  * Entries are `owner/repo` or `owner/*`, the same vocabulary
  * GIT_CREDENTIAL_ALLOWED_REPOS understands in the askpass scripts.
  */
-def credentialAllowedRepos(refs, String sshOrgs = '') {
+def credentialAllowedRepos(refs) {
     final org = refs?.org?.toString()?.trim()?.toLowerCase()
     final repo = refs?.repo?.toString()?.trim()?.toLowerCase()
     final entries = []
@@ -148,7 +149,6 @@ def credentialAllowedRepos(refs, String sshOrgs = '') {
     if (org) {
         entries << "${org}/*"
     }
-    splitBrokerAllowlist(sshOrgs ?: submoduleSshOrgs()).each { entries << "${it}/*" }
     return entries.unique().join(' ')
 }
 
@@ -340,63 +340,6 @@ def assertRefsMatchJob(refs) {
     }
 }
 
-// Organizations whose repositories the bot SSH key may reach through a
-// submodule, on top of the organization the job itself belongs to.
-def defaultSubmoduleSshOrgs() {
-    return 'pingcap,tikv,pingcap-qe,pingcap-inc,tidbcloud'
-}
-
-def submoduleSshOrgs() {
-    final configured = env.GIT_SUBMODULE_SSH_ORGS?.trim()
-    return configured ? configured : defaultSubmoduleSshOrgs()
-}
-
-def readGitmodules() {
-    try {
-        return readFile(file: '.gitmodules')
-    } catch (Exception ignored) {
-        return ''
-    }
-}
-
-// Submodule URLs come from the pull request's own tree and are fetched inside
-// the `sshagent` scope, so a pull request to a public repository could otherwise
-// make the build clone any private repository the bot key can read — landing its
-// contents in the pull request's workspace — or point the fetch at a host of its
-// choosing. Relative URLs (`../x.git`) resolve inside the superproject's own
-// organization and are always fine.
-def submoduleRemoteViolations(String gitmodules, String parentOrg, String sshOrgs) {
-    final allowedOrgs = (splitBrokerAllowlist(sshOrgs) + [(parentOrg ?: '').trim().toLowerCase()])
-        .findAll { it }
-    final httpsPattern = /(?i)^https:\/\/github\.com\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+?)(\.git)?\/?$/
-    final sshPattern = /(?i)^(?:git@github\.com:|ssh:\/\/git@github\.com\/)([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+?)(\.git)?\/?$/
-    final relativePattern = /^\.\.?\/[A-Za-z0-9._\/-]+$/
-    final violations = []
-    (gitmodules ?: '').readLines().each { String line ->
-        final urlMatch = line =~ /^\s*url\s*=\s*(\S+)\s*$/
-        if (!urlMatch.find()) {
-            return
-        }
-        final url = urlMatch.group(1)
-        if (url ==~ relativePattern) {
-            return
-        }
-        if (url ==~ httpsPattern) {
-            return
-        }
-        def sshMatch = url =~ sshPattern
-        if (sshMatch.matches()) {
-            final owner = sshMatch.group(1).toLowerCase()
-            if (!allowedOrgs.contains(owner)) {
-                violations << "${url} would spend the SSH credential on organization '${owner}', which is not on the submodule allowlist"
-            }
-            return
-        }
-        violations << "${url} is not a github.com URL"
-    }
-    return violations
-}
-
 def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     // These values come from JOB_SPEC and end up in a shell script. Reject
     // anything that is not a git object name or a plain branch name so a
@@ -515,16 +458,40 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     """
 
     if (withSubmodule) {
-        // `.gitmodules` in the worktree now comes from the merged pull request,
-        // so it can only be read once the checkout above has run.
-        final violations = submoduleRemoteViolations(
-            readGitmodules(), refs.org, submoduleSshOrgs())
-        if (violations) {
-            error("refusing to update submodules: ${violations.join('; ')}")
+        updateSubmodules(refs)
+    }
+}
+
+/*
+ * Recursive submodule update.
+ *
+ * With the Git token broker enabled there is exactly one transport: every SSH
+ * submodule URL is rewritten to HTTPS and the broker mints a token per
+ * repository, so which repositories a pull request may fetch is decided by the
+ * broker policy for this caller. `.gitmodules` needs no client-side allowlist —
+ * dropping that parser also drops the check that could be bypassed by a
+ * case-variant `url`, a non-`url` line or a nested `.gitmodules`.
+ *
+ * Instances without a broker keep the inherited SSH credential, and say so in
+ * the log, so a job that silently relies on the old path is easy to spot.
+ */
+def updateSubmodules(refs) {
+    if (env.GIT_BROKER_ENABLED?.trim()?.toBoolean()) {
+        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}".toString()]) {
+            sh label: 'Update submodules', script: '''#!/usr/bin/env bash
+                set -e
+                echo "📁 update submodules ..."
+                git submodule update --init --recursive
+                echo "✅ update submodules done"
+            '''
         }
-        sh label: 'Update submodules', script: """#!/usr/bin/env bash
+        return
+    }
+
+    sh label: 'Update submodules', script: """#!/usr/bin/env bash
             set -e
             echo "📁 update submodules ..."
+            echo "this instance has no Git token broker: submodules use the inherited credential"
             # Submodule URLs come from the pull request's tree, and the fetch runs
             # with the bot's SSH credential. Verify the host key instead of
             # disabling the check: seed it once, then require a match, so a
@@ -543,7 +510,6 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
             GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes" git submodule update --init --recursive
             echo "✅ update submodules done"
     """
-    }
 }
 
 // Unique cache save key by refs.
