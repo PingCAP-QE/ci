@@ -82,6 +82,9 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
  *   repo        owner/repository used when the git prompt carries no path.
  *   permissions JSON permission set, default {"contents":"read"}.
  *   brokerUrl   overrides GIT_BROKER_URL.
+ *   policyOnly  no client-side repository list: the broker policy for this
+ *               caller is the only gate. Exported explicitly, because an
+ *               enclosing checkout scope may have exported its own list.
  */
 def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
     final brokerUrl = cfg.brokerUrl?.toString()?.trim() ?: env.GIT_BROKER_URL?.toString()?.trim()
@@ -91,6 +94,7 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
     }
     final repo = cfg.repo?.toString()?.trim() ?: ''
     final allowedRepos = cfg.allowedRepos?.toString()?.trim() ?: ''
+    final policyOnly = cfg.policyOnly?.toString()?.toBoolean() ?: false
     final permissions = cfg.permissions ?: '{"contents":"read"}'
     // The controllers already provide git configuration through GIT_CONFIG_*
     // (git-cdn insteadOf rewrites). Append to it instead of resetting the count.
@@ -117,7 +121,8 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
             "GIT_CONFIG_VALUE_${baseConfigCount}=git@github.com:",
             "GIT_CONFIG_KEY_${baseConfigCount + 1}=credential.useHttpPath",
             "GIT_CONFIG_VALUE_${baseConfigCount + 1}=true",
-        ] + (allowedRepos ? ["GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos}"] : [])) {
+        ] + (allowedRepos ? ["GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos}"] : []) +
+            (policyOnly ? ['GIT_CREDENTIAL_ALLOWED_REPOS='] : [])) {
             body()
         }
     } finally {
@@ -477,7 +482,7 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
  */
 def updateSubmodules(refs) {
     if (env.GIT_BROKER_ENABLED?.trim()?.toBoolean()) {
-        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}".toString()]) {
+        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}".toString(), policyOnly: true]) {
             sh label: 'Update submodules', script: '''#!/usr/bin/env bash
                 set -e
                 echo "📁 update submodules ..."

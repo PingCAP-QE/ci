@@ -289,8 +289,15 @@ exit 0
                 scope.contains('GIT_CONFIG_VALUE_4=true'))
         assertTrue("the controller's git config must be appended to, not replaced:\n${scope}",
             scope.contains('GIT_CONFIG_COUNT=5'))
-        assertTrue("the broker policy is the allowlist; no client-side list may remain:\n${scope}",
-            scope.every { !it.startsWith('GIT_CREDENTIAL_ALLOWED_REPOS=') })
+        // The main checkout exports its own list around this step, and `withEnv`
+        // only overrides what it names — an omitted variable would inherit
+        // `pingcap/tidb pingcap/*` and refuse the private submodule. So the empty
+        // value here is deliberate: it clears the scope and leaves the broker
+        // policy as the only gate.
+        assertTrue("the update must clear any inherited allowlist:\n${scope}",
+            scope.contains('GIT_CREDENTIAL_ALLOWED_REPOS='))
+        assertTrue("and must not install a list of its own:\n${scope}",
+            scope.every { !it.startsWith('GIT_CREDENTIAL_ALLOWED_REPOS=') || it == 'GIT_CREDENTIAL_ALLOWED_REPOS=' })
     }
 
     @Test

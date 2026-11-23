@@ -341,8 +341,14 @@ class TestProw {
 
             final scope = events.find { it.startsWith('env:') && it.contains('GIT_ASKPASS=') }
             assertTrue("a broker credential helper must be installed: ${events}", scope != null)
-            assertFalse("the broker policy is the allowlist, not a list here:\n${scope}",
-                scope.contains('GIT_CREDENTIAL_ALLOWED_REPOS'))
+            // `withEnv` only overrides what it names, and the main checkout wraps
+            // this step with its own repository list. Naming the variable with an
+            // empty value is what keeps the broker policy (not that list) the
+            // gate for `.gitmodules` content.
+            assertTrue("the update must clear any inherited allowlist:\n${scope}",
+                scope.contains('GIT_CREDENTIAL_ALLOWED_REPOS='))
+            assertFalse("it must not install a list of its own:\n${scope}",
+                scope.matches('.*GIT_CREDENTIAL_ALLOWED_REPOS=\\S+.*'))
         }
 
         @Test
