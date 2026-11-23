@@ -61,6 +61,30 @@ flowchart TD
    - Include links to your successful test jobs in the PR comments
    - After review and approval, your changes will be merged to production
 
+## Submodules
+
+A job fetches submodules when its `Jenkinsfile` calls
+`prow.checkoutRefsWithCacheLock(..., withSubmodule = true)`.
+
+- **With the Git token broker** (`GIT_BROKER_ENABLED=true` — the case on every
+  Jenkins instance today): every SSH submodule URL is rewritten to HTTPS and the
+  broker mints a token per repository. `.gitmodules` is not parsed, and the
+  pipeline keeps no allowlist of its own.
+- **Without a broker**: the update keeps the inherited SSH credential, seeds
+  GitHub's published host keys, and logs that it is the legacy path.
+
+Which repositories a pull request may fetch is therefore decided by the broker
+policy for the job's caller namespace (`jenkins-tidb`, `jenkins-tiflow`, …) —
+not by the pipeline, and not by the contents of `.gitmodules`.
+
+**Adding a submodule means adding it to the broker policy.** A repository that
+the policy does not allow fails the fetch closed, with the broker's
+`repository is not allowed` message. Update `github-token-broker-policy` (owned
+by `PingCAP-QE/ee-ops`) in the same change train as the `.gitmodules` change,
+for the caller namespace of every job that builds the repository. Public
+submodules need no entry: git only asks for credentials after a `401`, so
+anonymous fetches never reach the broker.
+
 ## Pre-PR Verification for Jenkins Pipeline Changes
 
 When your PR modifies pipeline files under `jenkins/jobs/**` (`Jenkinsfile`), run both static validation and replay tests before requesting review.
