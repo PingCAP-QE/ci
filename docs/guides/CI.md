@@ -122,6 +122,11 @@ so the next build re-caches the library from its configured version. It does not
 touch the git clone cache under `$JENKINS_HOME/caches`, which the retriever
 refreshes on that next fetch.
 
+It reaches the controller with `kubectl exec` and runs only `ls`, `cat` and `rm`
+there: no shell, no path supplied by the operator, and the only variable path
+segment is a cache digest that must be 64 hex characters. Deleting anything
+outside `global-libraries-cache` is not expressible through its arguments.
+
 | Controller | Invocation |
 |---|---|
 | TKE production (`tke-pingcap-cicd`) | `--context tke-pingcap-cicd` |

@@ -21,7 +21,22 @@
 #
 # Deleting an entry a build is copying from fails that build, the same way an
 # expiry mid-build does; run this when the controller is quiet.
+#
+# Security notes for reviewers:
+#   - No shell runs inside the controller. Every call is a fixed absolute binary
+#     with an argv array, so nothing here can be read as a command, a
+#     metacharacter, or a redirection.
+#   - The cache directory is a constant; its root comes from the controller's own
+#     JENKINS_HOME. The operator never supplies a path.
+#   - The only variable path segment is a cache digest, accepted only when it
+#     matches ^[0-9a-f]{64}$, so a delete cannot leave the cache directory.
+#   - Cluster and pod names are validated before the first kubectl call, and the
+#     library name is matched by exact string equality, never by glob.
 set -euo pipefail
+
+# Fixed by the plugin; not operator-supplied and not configurable.
+CACHE_DIR_NAME="global-libraries-cache"
+DIGEST_PATTERN='^[0-9a-f]{64}$'
 
 context=""
 namespace="jenkins"
@@ -50,7 +65,7 @@ Options:
   -h, --help           show this help
 
 Environment:
-  KUBECTL              kubectl binary to use (default: kubectl)
+  KUBECTL              kubectl binary to set (default: kubectl)
 
 Exit codes: 0 success, 1 failure, 2 usage error.
 USAGE
@@ -143,93 +158,69 @@ validate() {
 
     local library
     for library in ${libraries[@]+"${libraries[@]}"}; do
-        # The name reaches a shell inside the pod and selects files by exact
-        # match, so anything outside this set is refused rather than quoted.
         [[ "${library}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] ||
             usage_error "not a valid library name: ${library}"
     done
 }
 
-# The half that runs inside the controller. Positional arguments: mode
-# (list|flush), dry_run (true|false), flush_all (true|false), then library names.
-remote_script() {
-    cat <<'REMOTE'
-set -uo pipefail
+# One command inside the controller: a fixed absolute binary plus an argv array.
+kexec() {
+    "${KUBECTL:-kubectl}" --context "${context}" -n "${namespace}" \
+        exec "${pod}" -c "${container}" -- "$@"
+}
 
-mode="$1"
-dry_run="$2"
-flush_all="$3"
-shift 3
-
-cache_root="${JENKINS_HOME:-/var/jenkins_home}/global-libraries-cache"
-if [ ! -d "${cache_root}" ]; then
-    echo "error: ${cache_root} does not exist on this controller" >&2
-    exit 4
-fi
-cd "${cache_root}" || exit 4
-
-wanted=" "
-for library in "$@"; do
-    wanted="${wanted}${library} "
-done
-
-entries=0
-matched=0
-removed=0
-failed=0
-for name_file in *-name.txt; do
-    [ -f "${name_file}" ] || continue
-    entries=$((entries + 1))
-
-    library="$(cat "${name_file}" 2>/dev/null || true)"
-    digest="${name_file%-name.txt}"
-    if [ -z "${library}" ] || [ -z "${digest}" ]; then
-        echo "warning: skipping unreadable cache entry ${name_file}" >&2
-        continue
+# The cache root, from the controller's own environment. Never from the operator.
+resolve_cache_root() {
+    local home
+    home="$(kexec /usr/bin/printenv JENKINS_HOME 2>/dev/null || true)"
+    if [[ -z "${home}" ]]; then
+        home="/var/jenkins_home"
     fi
-    case "${digest}" in
-        */*) echo "warning: skipping unexpected cache entry ${name_file}" >&2; continue ;;
-    esac
+    if [[ "${home}" != /* || "${home}" == *..* ]]; then
+        error "unexpected JENKINS_HOME on the controller: ${home}"
+        return 1
+    fi
+    printf '%s/%s' "${home}" "${CACHE_DIR_NAME}"
+}
 
-    if [ "${mode}" = list ]; then
-        mtime="$(date -r "${digest}" '+%Y-%m-%d %H:%M' 2>/dev/null || echo '?')"
-        printf '%-20s %s  cached %s\n' "${library}" "${digest}" "${mtime}"
-        continue
+# Cached libraries as "<digest>\t<library>", newest first. A cache entry the
+# plugin did not write is skipped rather than passed to a delete.
+read_entries() {
+    local cache_root="$1"
+    local listing name_file digest library
+
+    if ! listing="$(kexec /bin/ls -1t -- "${cache_root}" 2>&1)"; then
+        error "cannot read ${cache_root} on the controller: ${listing}"
+        return 1
     fi
 
-    selected=false
-    if [ "${flush_all}" = true ]; then
-        selected=true
-    else
-        case "${wanted}" in
-            *" ${library} "*) selected=true ;;
+    while IFS= read -r name_file; do
+        case "${name_file}" in
+            *-name.txt) ;;
+            *) continue ;;
         esac
-    fi
-    [ "${selected}" = true ] || continue
-    matched=$((matched + 1))
+        digest="${name_file%-name.txt}"
+        if [[ ! "${digest}" =~ ${DIGEST_PATTERN} ]]; then
+            printf 'warning: skipping unexpected entry %s\n' "${name_file}" >&2
+            continue
+        fi
+        library="$(kexec /bin/cat -- "${cache_root}/${name_file}" 2>/dev/null || true)"
+        if [[ -z "${library}" ]]; then
+            printf 'warning: skipping unreadable entry %s\n' "${name_file}" >&2
+            continue
+        fi
+        printf '%s\t%s\n' "${digest}" "${library}"
+    done <<<"${listing}"
+}
 
-    if [ "${dry_run}" = true ]; then
-        echo "would remove: ${library} ${digest}"
-        continue
-    fi
-    if rm -rf -- "${digest}" && rm -f -- "${name_file}"; then
-        echo "removed: ${library} ${digest}"
-        removed=$((removed + 1))
-    else
-        echo "error: could not remove ${digest}" >&2
-        failed=$((failed + 1))
-    fi
-done
-
-if [ "${mode}" = list ]; then
-    echo "${entries} cached entr(ies)."
-elif [ "${dry_run}" = true ]; then
-    echo "would remove ${matched} of ${entries} cached entr(ies)."
-else
-    echo "removed ${removed} of ${entries} cached entr(ies)."
-fi
-[ "${failed}" -eq 0 ] || exit 5
-REMOTE
+selected() {
+    local library="$1"
+    [[ "${flush_all}" == true ]] && return 0
+    local candidate
+    for candidate in ${libraries[@]+"${libraries[@]}"}; do
+        [[ "${candidate}" == "${library}" ]] && return 0
+    done
+    return 1
 }
 
 confirm() {
@@ -260,28 +251,58 @@ main() {
     parse_args "$@"
     validate
 
-    local kubectl="${KUBECTL:-kubectl}"
-    local mode="flush"
-    [[ "${list_mode}" == true ]] && mode="list"
-
-    confirm
-
-    log "controller: ${context} (namespace ${namespace}, pod ${pod}, container ${container})"
-
-    local remote
-    remote="$(remote_script)"
-
-    if ! "${kubectl}" --context "${context}" -n "${namespace}" \
-        exec "${pod}" -c "${container}" -- \
-        bash -c "${remote}" flush "${mode}" "${dry_run}" "${flush_all}" \
-        ${libraries[@]+"${libraries[@]}"}; then
-        error "flush failed on ${context} (see the message above)"
+    local cache_root entries
+    if ! cache_root="$(resolve_cache_root)"; then
         exit 1
     fi
 
-    if [[ "${mode}" == "flush" && "${dry_run}" != true ]]; then
+    log "controller: ${context} (namespace ${namespace}, pod ${pod}, container ${container})"
+
+    confirm
+
+    if ! entries="$(read_entries "${cache_root}")"; then
+        exit 1
+    fi
+
+    local total=0 removed=0 matched=0 failed=0
+    local digest library
+
+    while IFS=$'\t' read -r digest library; do
+        [[ -n "${digest}" ]] || continue
+        total=$((total + 1))
+
+        if [[ "${list_mode}" == true ]]; then
+            printf '%-20s %s\n' "${library}" "${digest}"
+            continue
+        fi
+
+        selected "${library}" || continue
+        matched=$((matched + 1))
+
+        if [[ "${dry_run}" == true ]]; then
+            printf 'would remove: %s %s\n' "${library}" "${digest}"
+            continue
+        fi
+        if kexec /bin/rm -rf -- "${cache_root}/${digest}" &&
+            kexec /bin/rm -f -- "${cache_root}/${digest}-name.txt"; then
+            printf 'removed: %s %s\n' "${library}" "${digest}"
+            removed=$((removed + 1))
+        else
+            printf 'error: could not remove %s\n' "${digest}" >&2
+            failed=$((failed + 1))
+        fi
+    done <<<"${entries}"
+
+    if [[ "${list_mode}" == true ]]; then
+        printf '%s cached entr(ies).\n' "${total}"
+    elif [[ "${dry_run}" == true ]]; then
+        printf 'would remove %s of %s cached entr(ies).\n' "${matched}" "${total}"
+    else
+        printf 'removed %s of %s cached entr(ies).\n' "${removed}" "${total}"
         log "the next build re-caches any library whose cache entry was removed"
     fi
+
+    [[ "${failed}" -eq 0 ]] || exit 5
 }
 
 main "$@"

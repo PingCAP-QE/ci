@@ -2,12 +2,15 @@
 # Regression tests for .ci/flush-jenkins-library-cache.sh.
 #
 # The script deletes cache entries on a live controller, so these cases pin the
-# three properties that must never drift: only the named library is removed,
-# nothing is removed without --yes outside a terminal, and anything that is not
-# a library name is refused before kubectl is called at all.
+# properties that must never drift:
+#   - only the named library is removed, matched by exact string equality;
+#   - nothing is removed without --yes outside a terminal;
+#   - anything that is not a kube or library name is refused before kubectl runs;
+#   - a cache entry whose digest is not a 64-hex name is skipped, never deleted.
 #
-# A stub kubectl executes the remote half of the script locally against a
-# fixture cache directory, so no cluster and no Jenkins are involved.
+# The stub kubectl is passed through KUBECTL — not PATH — and runs the pod half
+# locally against a fixture cache directory, so no cluster and no Jenkins are
+# involved.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -29,18 +32,16 @@ pass() {
 
 fixture=""
 home=""
-bin=""
+stub=""
 
-# new_fixture creates a temporary JENKINS_HOME with a stub kubectl on PATH.
+# new_fixture creates a temporary JENKINS_HOME plus a stub kubectl, which drops
+# the kube arguments and runs the command the controller would run.
 new_fixture() {
     fixture="$(mktemp -d)"
     home="${fixture}/jenkins-home"
-    bin="${fixture}/bin"
-    mkdir -p "${bin}"
-    cat >"${bin}/kubectl" <<'FAKE'
+    stub="${fixture}/kubectl-stub"
+    cat >"${stub}" <<'FAKE'
 #!/usr/bin/env bash
-# Stand-in for `kubectl --context ... exec ...`: drop the kube arguments and run
-# the command the real kubectl would run inside the pod, here in this shell.
 while [[ $# -gt 0 ]]; do
     if [[ "$1" == "--" ]]; then
         shift
@@ -50,10 +51,10 @@ while [[ $# -gt 0 ]]; do
 done
 exec "$@"
 FAKE
-    chmod +x "${bin}/kubectl"
+    chmod +x "${stub}"
 }
 
-# add_cache_entry <digest> <library> seeds one cached library, the way
+# add_cache_entry <digest> <library> seeds one cached library the way
 # pipeline-groovy-lib leaves it: a content directory and <digest>-name.txt.
 add_cache_entry() {
     local digest="$1" library="$2" cache="${home}/global-libraries-cache"
@@ -63,7 +64,7 @@ add_cache_entry() {
 }
 
 run_flush() {
-    PATH="${bin}:${PATH}" JENKINS_HOME="${home}" bash "${flush_script}" --context test-context "$@"
+    KUBECTL="${stub}" JENKINS_HOME="${home}" bash "${flush_script}" --context test-context "$@"
 }
 
 cleanup() {
@@ -74,6 +75,7 @@ trap cleanup EXIT
 tipipeline_a="1111111111111111111111111111111111111111111111111111111111111111"
 tipipeline_b="2222222222222222222222222222222222222222222222222222222222222222"
 tisys_c="3333333333333333333333333333333333333333333333333333333333333333"
+not_a_digest="zzzz-not-a-digest"
 
 seed() {
     new_fixture
@@ -119,6 +121,16 @@ else
     fail "the flush removed tisys as well"
 fi
 
+# --- the name is matched exactly, never as a glob or prefix -------------
+seed
+out="$(run_flush --library tipi --yes)"
+if [[ -d "${home}/global-libraries-cache/${tipipeline_a}" ]] &&
+    ! grep -q "${tipipeline_a}" <<<"${out}"; then
+    pass "a prefix of a library name matches nothing"
+else
+    fail "the library name was matched as a prefix or glob: ${out}"
+fi
+
 # --- a name that matches nothing ---------------------------------------
 seed
 if out="$(run_flush --library no-such-library --yes)"; then
@@ -138,6 +150,19 @@ if [[ -z "$(find "${home}/global-libraries-cache" -mindepth 1 -maxdepth 1 -print
     pass "--all empties the cache"
 else
     fail "--all left entries behind: $(ls -1 "${home}/global-libraries-cache")"
+fi
+
+# --- an entry the plugin did not write is skipped ----------------------
+seed
+add_cache_entry "${not_a_digest}" tipipeline
+if out="$(run_flush --library tipipeline --yes 2>&1)"; then
+    if [[ -d "${home}/global-libraries-cache/${not_a_digest}" ]]; then
+        pass "an entry whose digest is not 64 hex characters is skipped"
+    else
+        fail "a non-digest entry was deleted"
+    fi
+else
+    fail "a non-digest entry must not fail the run: ${out}"
 fi
 
 # --- refusals -----------------------------------------------------------
@@ -163,7 +188,7 @@ else
 fi
 
 seed
-if PATH="${bin}:${PATH}" JENKINS_HOME="${home}" bash "${flush_script}" --library tipipeline --yes \
+if KUBECTL="${stub}" JENKINS_HOME="${home}" bash "${flush_script}" --library tipipeline --yes \
     >/dev/null 2>&1; then
     fail "ran without --context"
 else
