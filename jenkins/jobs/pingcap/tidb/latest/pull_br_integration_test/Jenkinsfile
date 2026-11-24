@@ -124,7 +124,7 @@ pipeline {
                             }
                         }
                         post{
-                            failure {
+                            unsuccessful {
                                 sh label: "collect logs", script: """
                                     if [ ! -d /tmp/backup_restore_test ]; then
                                         echo "/tmp/backup_restore_test does not exist, skip archiving logs for ${TEST_GROUP}"
