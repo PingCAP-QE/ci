@@ -66,7 +66,7 @@ Do not edit Jenkins, Prow, or non-Tekton CI paths unless the user explicitly ask
 ## Repo-Specific Patterns
 - `pingcap-deliver-binaries` sends binary artifacts to publisher and can emit Harbor-style events for downstream component builds.
 - `pingcap-deliver-images` generates `delivery.sh` from remote delivery rules, executes it with retries, and can emit success cloud-events.
-- The legacy fileserver publish task and its trigger template were removed in 2026-10; use `pingcap-deliver-binaries` (publisher at `https://do2.pingcap.net/publisher`) for tiup delivery instead.
+- The legacy fileserver publish task and its trigger template were removed in 2026-10; use `pingcap-deliver-binaries` (publisher API at the in-cluster `http://v2-tibuild-v2.tibuild.svc`) for tiup delivery instead.
 - `tag-and-delivery-rc2ga-on-oci-artifacts` is the RC-to-GA bridge for both packages and images.
 - `pingcap-release-ga` is the main release pipeline to inspect first for GA behavior changes.
 
