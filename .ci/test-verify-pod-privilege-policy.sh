@@ -256,6 +256,36 @@ PROW_PLAIN='presubmits:
           - name: runner
             image: example.invalid/image:1'
 
+# A template can spell its containers with an alias, or assemble `spec` with a
+# merge key. A gate that only accepts a literal sequence node drops the file and
+# passes, which is exactly the escape these cases cover.
+ALIASED_CONTAINERS_POD='apiVersion: v1
+kind: Pod
+anchors:
+  privileged_containers: &c
+    - name: dockerd
+      image: example.invalid/image:1
+      securityContext:
+        privileged: true
+spec:
+  containers: *c'
+
+MERGED_SPEC_POD='apiVersion: v1
+kind: Pod
+base: &base
+  containers:
+    - name: dockerd
+      image: example.invalid/image:1
+      securityContext:
+        privileged: true
+spec:
+  <<: *base'
+
+UNPARSEABLE_POD='apiVersion: v1
+kind: Pod
+spec:
+  containers: ['
+
 PROW_PERIODIC_HOSTPATH='periodics:
   - name: e2e-kind
     spec:
@@ -281,6 +311,9 @@ run_case "non_default_service_account_allowlisted" "pass" "${POD_PATH}" "${NON_D
   "serviceAccount\t${POD_REGEX}\tprow-pusher\t2999-12-31\ttest exemption" || failed=1
 run_case "default_service_account_is_fine" "pass" "${POD_PATH}" "${DEFAULT_SA_POD}" || failed=1
 run_case "privileged_container" "fail" "${POD_PATH}" "${PRIVILEGED_POD}" || failed=1
+run_case "privileged_container_behind_an_alias" "fail" "${POD_PATH}" "${ALIASED_CONTAINERS_POD}" || failed=1
+run_case "privileged_container_behind_a_merge_key" "fail" "${POD_PATH}" "${MERGED_SPEC_POD}" || failed=1
+run_case "unparseable_template_fails_closed" "fail" "${POD_PATH}" "${UNPARSEABLE_POD}" || failed=1
 run_case "privileged_init_container" "fail" "${POD_PATH}" "${PRIVILEGED_INIT_POD}" || failed=1
 run_case "privileged_false_is_fine" "pass" "${POD_PATH}" "${NOT_PRIVILEGED_POD}" || failed=1
 run_case "allowlisted_container" "pass" "${POD_PATH}" "${PRIVILEGED_POD}" \
