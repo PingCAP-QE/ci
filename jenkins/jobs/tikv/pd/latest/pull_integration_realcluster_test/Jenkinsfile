@@ -48,7 +48,7 @@ pipeline {
                         'Build PD': {
                             dir('pd') {
                                 container('golang') {
-                                    final goImage = readYaml(file: "${env.WORKSPACE}/${POD_TEMPLATE_FILE}").spec.containers.find { it.name == 'golang' }.image
+                                    final goImage = sh(script: 'printf "%s" "${CI_GO_IMAGE:?CI_GO_IMAGE is missing from the golang container}"', returnStdout: true).trim()
                                     final platform = sh(script: 'go env GOVERSION GOOS GOARCH', returnStdout: true).trim().replace('\n', '-')
                                     final revision = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                                     final cachePrefix = "go/tikv/pd/realcluster/pr-${REFS.pulls[0].number}/${goImage}/${platform}/"
