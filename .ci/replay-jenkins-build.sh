@@ -242,7 +242,7 @@ collect_referenced_pod_files() {
     # `jenkins/jobs/.../pod*.yaml` file must not be replayed. A leading `.` is
     # allowed here, unlike for `yaml` — `pod.yaml` never ends in these names,
     # while `this.podTemplate(...)` is the same DSL call.
-    local dsl_token_re="(^|[^A-Za-z0-9_])(podTemplate|containerTemplate)"
+    local dsl_pattern="(^|[^A-Za-z0-9_])(podTemplate|containerTemplate)"
 
     local -a decl_vars=()
     local -a decl_paths=()
@@ -273,7 +273,7 @@ collect_referenced_pod_files() {
         # Fail closed on the plugin DSL as well: `podTemplate`/`containerTemplate`
         # carry the spec itself, so there is no template file to validate and no
         # `yaml` token that would trip the checks below.
-        if printf '%s' "$line" | grep -qE "$dsl_token_re"; then
+        if printf '%s' "$line" | grep -qE "$dsl_pattern"; then
             echo "${script_file}: agent pod spec is built with the Kubernetes plugin DSL ('$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')'); the pod-policy fence cannot validate it, so declare the spec as a 'jenkins/jobs/.../pod*.yaml' template and reference it with yamlFile" >&2
             return 1
         fi
