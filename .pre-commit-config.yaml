@@ -39,3 +39,9 @@ repos:
         entry: bash .ci/pre-commit-verify-pod-privilege-policy.sh
         language: system
         files: '^(jenkins/jobs/.*/pod[^/]*\.ya?ml|prow-jobs/.*\.ya?ml)$'
+      - id: test-flush-jenkins-library-cache
+        name: Test the Jenkins library cache flush script
+        entry: bash .ci/test-flush-jenkins-library-cache.sh
+        language: system
+        pass_filenames: false
+        files: '^\.ci/(flush-jenkins-library-cache|test-flush-jenkins-library-cache)\.sh$'

@@ -46,11 +46,6 @@ aliases:
     - csuzhangxc
     - liubog2008
 
-  sig-approvers-error-log-review:
-    # approvers for error log review.
-    - kennedy8312
-    - XuHuaiyu
-
   emeritus:
     # emeritus will be keeped here, but will not be used.
     # reviewers:

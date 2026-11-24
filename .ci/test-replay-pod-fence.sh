@@ -189,6 +189,37 @@ for form in "yaml'''apiVersion: v1" 'yaml"""apiVersion: v1' "yaml/*c*/'''apiVers
         "$(job_dir example/repo "$slug")/Jenkinsfile" "cannot validate"
 done
 
+# 4i. The Kubernetes plugin DSL builds the pod spec without any yaml token, so
+#     the fence used to find nothing to check, pass on the clean sibling
+#     template, and let the replay schedule the DSL-built pod.
+mkdir -p "$(job_dir example/repo podtemplate)"
+unprivileged_pod > "$(job_dir example/repo podtemplate)/pod.yaml"
+cat > "$(job_dir example/repo podtemplate)/Jenkinsfile" <<'JENKINSFILE'
+def POD_LABEL = podTemplate(containers: [containerTemplate(name: 'runner', image: 'example/evil:latest', privileged: true)],
+                            volumes: [hostPathVolume(hostPath: '/', mountPath: '/host')],
+                            serviceAccount: 'gar-reader') { node(POD_LABEL) { sh 'whoami' } }
+JENKINSFILE
+expect_refused "a pod spec built with podTemplate(...) is refused even next to a clean sibling" \
+    "$(job_dir example/repo podtemplate)/Jenkinsfile" "cannot validate"
+
+# 4j. The same DSL with no sibling template: the policy used to run on nothing.
+mkdir -p "$(job_dir example/repo podtemplate-bare)"
+cat > "$(job_dir example/repo podtemplate-bare)/Jenkinsfile" <<'JENKINSFILE'
+def spec = this.podTemplate(containers: [containerTemplate(name: 'runner', image: 'example/evil:latest', privileged: true)])
+spec.labels()
+JENKINSFILE
+expect_refused "a pod spec built with this.podTemplate(...) is refused" \
+    "$(job_dir example/repo podtemplate-bare)/Jenkinsfile" "cannot validate"
+
+# 4k. containerTemplate is refused on its own as well, so splitting the spec
+#     across lines does not help.
+mkdir -p "$(job_dir example/repo containertemplate)"
+printf 'def runner = containerTemplate(name: %s, image: %s, privileged: true)\n' \
+    "'runner'" "'example/evil:latest'" \
+    > "$(job_dir example/repo containertemplate)/Jenkinsfile"
+expect_refused "a containerTemplate(...) declaration is refused" \
+    "$(job_dir example/repo containertemplate)/Jenkinsfile" "cannot validate"
+
 # 5. A Jenkinsfile that declares no pod spec at all has nothing to check.
 mkdir -p "$(job_dir example/repo budget)"
 printf 'pipeline { agent { kubernetes {} } }\n' > "$(job_dir example/repo budget)/Jenkinsfile"

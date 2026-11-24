@@ -201,7 +201,8 @@ resolve_pod_template_file() {
 # `yamlFile VAR`, `yaml VAR` and `yaml pod_label.withCiLabels(VAR, ...)` are the
 # shapes the job folders use, and each resolves through a `final/def VAR =
 # '<path>'` declaration. Anything else — a literal `yaml """..."""`, a computed
-# spec — cannot be validated, and a reference that does not resolve to a
+# spec, a `podTemplate(...)`/`containerTemplate(...)` DSL spec that names no
+# template file — cannot be validated, and a reference that does not resolve to a
 # `jenkins/jobs/.../pod*.yaml` file is either a mistake or an attempt to get an
 # unchecked template onto a credentialed build.
 #
@@ -230,6 +231,18 @@ collect_referenced_pod_files() {
     # left a way to write an inline spec that no pattern describes. A file name
     # such as `pod.yaml` must not match, hence the exclusion of a leading `.`.
     local token_re="(^|[^A-Za-z0-9_.])(yaml|yamlFile)"
+    # The Kubernetes plugin also builds the agent pod spec from its own Groovy
+    # DSL — `podTemplate(containers: [containerTemplate(...)], volumes:
+    # [hostPathVolume(...)], serviceAccount: '...')` — which mentions neither
+    # `yaml` nor `yamlFile`, so the token check above never sees it: no line
+    # matches, the fail-closed branch never fires, this function prints nothing
+    # and returns 0, and `enforce_pod_policy` then checks nothing or only the
+    # clean `pod*.yaml` siblings while Jenkins schedules the DSL-built pod.
+    # Refuse any mention of that DSL: a pod spec the fence cannot resolve to a
+    # `jenkins/jobs/.../pod*.yaml` file must not be replayed. A leading `.` is
+    # allowed here, unlike for `yaml` — `pod.yaml` never ends in these names,
+    # while `this.podTemplate(...)` is the same DSL call.
+    local dsl_token_re="(^|[^A-Za-z0-9_])(podTemplate|containerTemplate)"
 
     local -a decl_vars=()
     local -a decl_paths=()
@@ -254,6 +267,14 @@ collect_referenced_pod_files() {
         token_count=$(printf '%s' "$line" | grep -oE "$token_re" | wc -l | tr -d ' ')
         if [[ "${token_count:-0}" -gt 1 ]]; then
             echo "${script_file}: agent pod spec is declared more than once on one line ('$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')'); the pod-policy fence cannot validate it" >&2
+            return 1
+        fi
+
+        # Fail closed on the plugin DSL as well: `podTemplate`/`containerTemplate`
+        # carry the spec itself, so there is no template file to validate and no
+        # `yaml` token that would trip the checks below.
+        if printf '%s' "$line" | grep -qE "$dsl_token_re"; then
+            echo "${script_file}: agent pod spec is built with the Kubernetes plugin DSL ('$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')'); the pod-policy fence cannot validate it, so declare the spec as a 'jenkins/jobs/.../pod*.yaml' template and reference it with yamlFile" >&2
             return 1
         fi
 
