@@ -64,6 +64,11 @@ presubmits:
                    jq -e '.layouts.nextgen | length == 3' scripts/ci-test-groups.json >/dev/null; then
                   make ci-test-job JOB_INDEX=1 JOB_COUNT=3 JOB_LAYOUT=nextgen
                 else
+                  if [[ ! -f scripts/ci-test-groups.json ]]; then
+                    echo "Using legacy job indices 1-3: scripts/ci-test-groups.json is missing."
+                  else
+                    echo "Using legacy job indices 1-3: the three-runner NextGen layout check did not pass."
+                  fi
                   for i in $(seq 1 3); do
                     echo "🚀 Testing for job index: ${i} ..."
                     make ci-test-job JOB_INDEX=${i} || exit 1
@@ -104,6 +109,11 @@ presubmits:
                    jq -e '.layouts.nextgen | length == 3' scripts/ci-test-groups.json >/dev/null; then
                   make ci-test-job JOB_INDEX=2 JOB_COUNT=3 JOB_LAYOUT=nextgen
                 else
+                  if [[ ! -f scripts/ci-test-groups.json ]]; then
+                    echo "Using legacy job indices 4-6: scripts/ci-test-groups.json is missing."
+                  else
+                    echo "Using legacy job indices 4-6: the three-runner NextGen layout check did not pass."
+                  fi
                   for i in $(seq 4 6); do
                     echo "🚀 Testing for job index: ${i} ..."
                     make ci-test-job JOB_INDEX=${i} || exit 1
@@ -144,6 +154,11 @@ presubmits:
                    jq -e '.layouts.nextgen | length == 3' scripts/ci-test-groups.json >/dev/null; then
                   make ci-test-job JOB_INDEX=3 JOB_COUNT=3 JOB_LAYOUT=nextgen
                 else
+                  if [[ ! -f scripts/ci-test-groups.json ]]; then
+                    echo "Using legacy job indices 7-10: scripts/ci-test-groups.json is missing."
+                  else
+                    echo "Using legacy job indices 7-10: the three-runner NextGen layout check did not pass."
+                  fi
                   for i in $(seq 7 10); do
                     echo "🚀 Testing for job index: ${i} ..."
                     make ci-test-job JOB_INDEX=${i} || exit 1
