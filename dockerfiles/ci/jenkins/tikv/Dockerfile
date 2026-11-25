@@ -37,8 +37,8 @@ ENV PATH="${CARGO_HOME}/bin:${PATH}"
 RUN rustup component add rustfmt clippy rust-src llvm-tools && \
     rustup set profile minimal
 
-# Install specific versions of cargo-nextest and cargo-sort
-RUN rustup update stable && rustup default stable && \
+# Rust 1.100 changed never-type fallback and breaks the locked nextest 0.9.72 build.
+RUN rustup toolchain install 1.99.1 && rustup default 1.99.1 && \
     cargo install --locked --version 0.9.72 cargo-nextest  && \
     cargo install --locked --version 1.0.9 cargo-sort
 
