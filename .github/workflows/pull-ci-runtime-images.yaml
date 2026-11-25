@@ -6,6 +6,7 @@ on:
     paths:
       - "dockerfiles/ci/**/Dockerfile"
       - "dockerfiles/ci/**/*.Dockerfile"
+      - "dockerfiles/ci/actions-runner/**"
       - "dockerfiles/ci/skaffold.yaml"
 
 concurrency:
@@ -24,6 +25,7 @@ jobs:
       jenkins-special: ${{ steps.filter.outputs.jenkins-special }}
       tici: ${{ steps.filter.outputs.tici }}
       tidb-operator: ${{ steps.filter.outputs.tidb-operator }}
+      actions-runner: ${{ steps.filter.outputs.actions-runner }}
       skaffold: ${{ steps.filter.outputs.skaffold }}
     steps:
       - name: Checkout sources
@@ -45,6 +47,8 @@ jobs:
               - 'dockerfiles/ci/tici/**'
             tidb-operator:
               - 'dockerfiles/ci/tidb-operator/**'
+            actions-runner:
+              - 'dockerfiles/ci/actions-runner/**'
             skaffold:
               - 'dockerfiles/ci/skaffold.yaml'
   skaffold-go:
@@ -257,3 +261,51 @@ jobs:
             --module=${{ matrix.module }} \
             --platform=${{ matrix.platform }} \
             --push=false
+
+  skaffold-actions-runner:
+    name: build actions-runner image with skaffold
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.actions-runner == 'true' || needs.detect-changes.outputs.skaffold == 'true' }}
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [ci-actions-runner]
+        platform: [linux/amd64, linux/arm64]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-depth: "0"
+          fetch-tags: "true"
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Setup skaffold
+        uses: heypigeonhq/setup-skaffold@3b1a0687de1b580d3879bf6b9d423255c9954587
+        with:
+          version: 2.16.0
+
+      - name: Build image
+        working-directory: dockerfiles/ci
+        run: |
+          skaffold build \
+            --build-concurrency=1 \
+            --cache-artifacts \
+            --module=${{ matrix.module }} \
+            --platform=${{ matrix.platform }} \
+            --push=false \
+            --file-output="${RUNNER_TEMP}/skaffold-build.json"
+
+      - name: Smoke test
+        run: |
+          image="$(jq -er '.builds[0].tag' "${RUNNER_TEMP}/skaffold-build.json")"
+          bash dockerfiles/ci/actions-runner/smoke-test.sh "${image}"
