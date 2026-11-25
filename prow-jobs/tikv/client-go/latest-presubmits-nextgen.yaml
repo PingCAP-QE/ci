@@ -124,8 +124,9 @@ presubmits:
               limits:
                 cpu: "2"
                 memory: 4Gi
-        containers: &containers
-          - name: test
+        containers:
+          - &test-container
+            name: test
             image: ghcr.io/pingcap-qe/ci/base:v2026.10.18-10-g831adac9-go1.27
             command: [bash, -ce]
             env:
@@ -182,7 +183,9 @@ presubmits:
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:release-nextgen-202603
           - <<: [*sidecar-tikv]
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:release-nextgen-202603
-        containers: *containers
+        containers:
+          - <<: *test-container
+            image: ghcr.io/pingcap-qe/ci/base:v2026.10.18-10-g831adac9-go1.25
 
     - name: pull-integration-test-release-nextgen-202609
       agent: kubernetes
@@ -203,4 +206,6 @@ presubmits:
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/pd/image:release-nextgen-202609
           - <<: [*sidecar-tikv]
             image: us-docker.pkg.dev/pingcap-testing-account/tidbx/tikv/tikv/image:release-nextgen-202609
-        containers: *containers
+        containers:
+          - <<: *test-container
+            image: ghcr.io/pingcap-qe/ci/base:v2026.10.18-10-g831adac9-go1.25
