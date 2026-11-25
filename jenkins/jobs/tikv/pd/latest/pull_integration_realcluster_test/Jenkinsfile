@@ -50,10 +50,11 @@ pipeline {
                                 container('golang') {
                                     final goImage = sh(script: 'printf "%s" "${CI_GO_IMAGE:?CI_GO_IMAGE is missing from the golang container}"', returnStdout: true).trim()
                                     final platform = sh(script: 'go env GOVERSION GOOS GOARCH', returnStdout: true).trim().replace('\n', '-')
-                                    final revision = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                                    // Checkout merge timestamps change on retests; key the requested revisions instead.
+                                    final revisions = ([REFS.base_sha] + REFS.pulls.collect { it.sha }).join('-')
                                     final cachePrefix = "go/tikv/pd/realcluster/pr-${REFS.pulls[0].number}/${goImage}/${platform}/"
                                     // Save compiler and module data before tests, so test results are not reused.
-                                    cache(path: "${env.WORKSPACE}/go-cache", includes: '**/*', key: cachePrefix + revision, restoreKeys: [cachePrefix]) {
+                                    cache(path: "${env.WORKSPACE}/go-cache", includes: '**/*', key: cachePrefix + revisions, restoreKeys: [cachePrefix]) {
                                         sh label: 'pd-server', script: 'WITH_RACE=1 RUN_CI=1 make pd-server-basic'
                                     }
                                 }
