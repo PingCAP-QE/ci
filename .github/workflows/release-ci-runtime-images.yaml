@@ -7,7 +7,12 @@ on:
     paths:
       - "dockerfiles/ci/**/Dockerfile"
       - "dockerfiles/ci/**/*.Dockerfile"
+      - "dockerfiles/ci/actions-runner/**"
       - "dockerfiles/ci/skaffold.yaml"
+  schedule:
+    # Only the actions-runner publish job reacts to the schedule; the other
+    # jobs do not list `schedule` in their conditions and stay skipped.
+    - cron: "0 4 1 * *"
 
 permissions:
   contents: read
@@ -22,6 +27,7 @@ jobs:
       jenkins-special: ${{ steps.filter.outputs.jenkins-special }}
       tici: ${{ steps.filter.outputs.tici }}
       tidb-operator: ${{ steps.filter.outputs.tidb-operator }}
+      actions-runner: ${{ steps.filter.outputs.actions-runner }}
       skaffold: ${{ steps.filter.outputs.skaffold }}
     steps:
       - name: Checkout sources
@@ -43,6 +49,8 @@ jobs:
               - 'dockerfiles/ci/tici/**'
             tidb-operator:
               - 'dockerfiles/ci/tidb-operator/**'
+            actions-runner:
+              - 'dockerfiles/ci/actions-runner/**'
             skaffold:
               - 'dockerfiles/ci/skaffold.yaml'
   skaffold-go:
@@ -268,3 +276,129 @@ jobs:
             --cache-artifacts \
             --default-repo ghcr.io/pingcap-qe/ci \
             --module ${{ matrix.module }}
+
+  publish-actions-runner:
+    name: publish actions-runner image with skaffold
+    runs-on: ubuntu-24.04
+    needs: [detect-changes]
+    if: |
+      always() &&
+      (github.event_name == 'schedule' ||
+       github.event_name == 'workflow_dispatch' ||
+       needs.detect-changes.outputs.actions-runner == 'true' ||
+       needs.detect-changes.outputs.skaffold == 'true')
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      ref: ${{ steps.build.outputs.ref }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-depth: "0"
+          fetch-tags: "true"
+
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup skaffold
+        uses: heypigeonhq/setup-skaffold@3b1a0687de1b580d3879bf6b9d423255c9954587
+        with:
+          version: 2.16.0
+
+      - name: Build and publish image
+        id: build
+        working-directory: dockerfiles/ci
+        run: |
+          skaffold build \
+            --build-concurrency=1 \
+            --cache-artifacts \
+            --default-repo=ghcr.io/pingcap-qe/ci \
+            --module=ci-actions-runner \
+            --file-output="${RUNNER_TEMP}/skaffold-build.json"
+
+          ref="$(jq -er '.builds[0].tag' "${RUNNER_TEMP}/skaffold-build.json")"
+          digest="${ref##*@}"
+          if [[ "${digest}" != sha256:* ]]; then
+            echo "::error::No digest found in skaffold build output: ${ref}"
+            exit 1
+          fi
+          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
+
+  test-actions-runner:
+    name: test actions-runner image ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    needs: [publish-actions-runner]
+
+    permissions:
+      contents: read
+      packages: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Smoke test published image
+        env:
+          IMAGE_REF: ${{ needs.publish-actions-runner.outputs.ref }}
+        run: bash dockerfiles/ci/actions-runner/smoke-test.sh "${IMAGE_REF}"
+
+  promote-actions-runner:
+    name: promote actions-runner image
+    runs-on: ubuntu-24.04
+    needs: [publish-actions-runner, test-actions-runner]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish latest
+        env:
+          IMAGE: ghcr.io/pingcap-qe/ci/actions-runner
+          IMAGE_REF: ${{ needs.publish-actions-runner.outputs.ref }}
+        run: |
+          docker buildx imagetools create --tag "${IMAGE}:latest" "${IMAGE_REF}"
+          echo "Published ${IMAGE}:latest from ${IMAGE_REF}." >> "${GITHUB_STEP_SUMMARY}"

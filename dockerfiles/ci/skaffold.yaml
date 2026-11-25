@@ -126,3 +126,19 @@ build:
     useBuildkit: true
     concurrency: 0
     tryImportMissing: true
+---
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: ci-actions-runner
+build:
+  artifacts:
+    - image: actions-runner
+      platforms: [linux/amd64, linux/arm64]
+      docker:
+        dockerfile: actions-runner/Dockerfile
+  local:
+    useDockerCLI: true
+    useBuildkit: true
+    concurrency: 0
+    tryImportMissing: true
