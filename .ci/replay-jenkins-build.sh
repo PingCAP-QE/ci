@@ -699,8 +699,32 @@ discover_library_pins() {
         sed -n 's#^libraries/\([^/][^/]*\)/.*#\1#p' |
         sort -u |
         while IFS= read -r name; do
+            if is_implicit_library "$name"; then
+                vlog "shared library ${name} is loaded implicitly; a replay cannot pin it"
+                continue
+            fi
             printf '%s=%s\n' "$name" "$head_sha"
         done
+}
+
+# Changed implicit libraries, one name per line. They cannot be pinned (no
+# annotation to rewrite), so the caller reports them and skips the replay.
+discover_implicit_library_changes() {
+    local base_sha="$1"
+    local head_sha="$2"
+
+    git diff --name-only "$base_sha" "$head_sha" |
+        sed -n 's#^libraries/\([^/][^/]*\)/.*#\1#p' |
+        sort -u |
+        while IFS= read -r name; do
+            is_implicit_library "$name" && printf '%s\n' "$name"
+        done || true
+}
+
+is_implicit_library() {
+    local name="$1"
+    [[ -f "$IMPLICIT_LIBRARIES_FILE" ]] || return 1
+    sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$IMPLICIT_LIBRARIES_FILE" | grep -qx -- "$name"
 }
 
 # Jobs replayed when a shared library changes, into LIBRARY_JOBS. Without this
@@ -1120,6 +1144,7 @@ init_defaults() {
     SUMMARY_DRY_RUN=0
     LIBRARY_PINS=()
     LIBRARY_JOBS_FILE=".ci/replay-library-jobs.txt"
+    IMPLICIT_LIBRARIES_FILE=".ci/replay-implicit-libraries.txt"
     DUMP_SCRIPT=""
 }
 
@@ -1446,6 +1471,16 @@ run_main_flow() {
             [[ -n "$script" ]] || continue
             changed_scripts+=("$script")
         done < <(discover_changed_scripts "$base_sha" "$head_sha")
+
+        local implicit_changed=()
+        local implicit_name=""
+        while IFS= read -r implicit_name; do
+            [[ -n "$implicit_name" ]] || continue
+            implicit_changed+=("$implicit_name")
+        done < <(discover_implicit_library_changes "$base_sha" "$head_sha")
+        if (( ${#implicit_changed[@]} > 0 )); then
+            log "shared libraries changed and loaded implicitly (${implicit_changed[*]}): a replay cannot pin them and would run the configured version, so it is skipped. pull-test-jenkins-libraries runs their unit tests"
+        fi
 
         if (( ${#LIBRARY_PINS[@]} > 0 )); then
             log "shared library changed (${LIBRARY_PINS[*]}); adding the jobs listed in ${LIBRARY_JOBS_FILE}"

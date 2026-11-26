@@ -1,0 +1,18 @@
+# Shared libraries that Jenkins loads with `implicit: true` (see the JCasC
+# `globalLibraries` entry), so no Jenkinsfile carries a `@Library('<name>')`
+# annotation for them.
+#
+# A replay replaces the pipeline script only: the library still comes from its
+# configured version, and `@Library` pinning is the only way this repository has
+# to make a replay run the pull request's library code. For an implicit library
+# there is no annotation to rewrite, so a replay can neither pin it nor prove
+# anything about the change — replaying it anyway would report a pass for code
+# the build never loaded.
+#
+# Their changes are covered by `pull-test-jenkins-libraries`, which runs the
+# Groovy tests under `libraries/*/tests/` on any `libraries/**/*.groovy` change.
+# Listing a library here therefore trades a replay that cannot work for a clear
+# message that says so; it is not an exemption from verification.
+#
+# One library name per line; `#` starts a comment.
+tisys

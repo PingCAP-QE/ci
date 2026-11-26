@@ -196,6 +196,53 @@ check_annotation "@Library(['tipipeline']) _" "@Library('tipipeline@REF')" pinne
 check_annotation "@Library('tipipeline@main') _" "@Library('tipipeline@REF')" pinned
 check_annotation "@Library(['tipipeline', 'tisys']) _" "" refused
 
+# The annotation-form checks leave the job in the refused multi-library form;
+# restore the single annotation the remaining checks replay.
+printf '@Library(%s) _\n\npipeline { agent any; stages { stage(%s) { steps { sh %s } } } }\n' \
+    "'tipipeline'" "'noop'" "'true'" > "$job_dir/Jenkinsfile"
+
+# 8. tisys is loaded implicitly (JCasC `implicit: true`), so no Jenkinsfile can
+#    pin it: a replay would run the configured version and prove nothing. The
+#    mode skips it and says so; pull-test-jenkins-libraries covers those changes.
+cp "$repo_root/.ci/replay-implicit-libraries.txt" .ci/replay-implicit-libraries.txt
+mkdir -p libraries/tisys/vars
+printf 'def withCiLabels(String f, def r) {}\n' > libraries/tisys/vars/pod_label.groovy
+git add -A
+git commit -qm 'change only the implicit library'
+implicit_sha="$(git rev-parse HEAD)"
+out="$(CI_ALLOW_UNFENCED_POD_POLICY=1 bash "$repo_root/.ci/replay-jenkins-build.sh" \
+    --auto-changed --base-sha "$implicit_sha~1" --head-sha "$implicit_sha" \
+    --dry-run --verbose 2>&1)" && rc=0 || rc=$?
+if [[ "$rc" != "0" ]]; then
+    fail "an implicit-library-only change must not fail the replay (rc=${rc}):\n${out}"
+elif [[ "$out" != *"tisys"* ]] || [[ "$out" != *"loaded implicitly"* ]]; then
+    fail "the run must say which implicit library it could not pin:\n${out}"
+elif [[ "$out" == *"shared library changed ("* ]]; then
+    fail "an implicit library must not be reported as pinned:\n${out}"
+else
+    pass "an implicit-library-only change is skipped with a reason"
+fi
+
+# 9. A change to both libraries pins the one that can be pinned and replays it.
+printf 'def checkoutRefs() { println "changed for real" }\n' > libraries/tipipeline/vars/prow.groovy
+git add -A
+git commit -qm 'change both libraries'
+mixed_sha="$(git rev-parse HEAD)"
+out="$(CI_ALLOW_UNFENCED_POD_POLICY=1 bash "$repo_root/.ci/replay-jenkins-build.sh" \
+    --auto-changed --base-sha "$mixed_sha~1" --head-sha "$mixed_sha" \
+    --dry-run --verbose --dump-script dumped-mixed.groovy 2>&1)" && rc=0 || rc=$?
+if [[ "$rc" != "0" ]]; then
+    fail "a mixed library change should replay the pinnable one (rc=${rc}):\n${out}"
+elif [[ "$out" != *"tipipeline=${mixed_sha}"* ]]; then
+    fail "the explicit library was not pinned:\n${out}"
+elif [[ "$out" == *"tisys=${mixed_sha}"* ]]; then
+    fail "the implicit library must not be pinned:\n${out}"
+elif ! grep -q "@Library('tipipeline@${mixed_sha}')" dumped-mixed.groovy; then
+    fail "the dumped script does not pin the explicit library: $(cat dumped-mixed.groovy)"
+else
+    pass "a mixed change pins only the explicitly loaded library"
+fi
+
 if (( failures > 0 )); then
     printf '\n%d check(s) failed\n' "$failures" >&2
     exit 1
