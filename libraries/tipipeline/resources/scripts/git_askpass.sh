@@ -32,7 +32,11 @@
 #                       through git config `insteadOf`, so the credential
 #                       prompts carry the CDN host. Its port is ignored when
 #                       matching; the hostname is the security boundary.
-ALLOWED_HOSTS='github.com git-cdn.cache.svc'
+#   git-cdn.pingcap.net the same cache behind the in-cluster gateway, over TLS
+#                       (TKE moved off the plaintext listener so the credential
+#                       no longer crosses the pod network in the clear). Both
+#                       names are allow-listed while the instances are migrated.
+ALLOWED_HOSTS='github.com git-cdn.cache.svc git-cdn.pingcap.net'
 
 prompt="${1-}"
 

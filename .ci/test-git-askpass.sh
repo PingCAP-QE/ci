@@ -58,6 +58,8 @@ expect_answer "answers a github.com repository password" "$askpass" \
     "Password for 'https://x-access-token@github.com/org/repo.git': " "secret" "${applypass_env[@]}"
 expect_answer "answers the in-cluster git-cdn over http" "$askpass" \
     "Password for 'http://git-cdn.cache.svc:8000/org/repo.git': " "secret" "${applypass_env[@]}"
+expect_answer "answers the git-cdn TLS endpoint" "$askpass" \
+    "Password for 'https://git-cdn.pingcap.net/org/repo.git': " "secret" "${applypass_env[@]}"
 # A remote URL that itself contains a quote makes git print a prompt with more
 # than two quotes. Answering the "last quoted segment" would then answer for an
 # allow-listed host while git sends the credential to the other one.
@@ -97,6 +99,8 @@ broker_reaches_mint "accepts github.com" \
     "Password for 'https://x-access-token@github.com/org/repo.git': "
 broker_reaches_mint "accepts the in-cluster git-cdn" \
     "Password for 'http://git-cdn.cache.svc:8000/org/repo.git': "
+broker_reaches_mint "accepts the git-cdn TLS endpoint" \
+    "Password for 'https://git-cdn.pingcap.net/org/repo.git': "
 expect_reject "rejects a foreign host" "$broker" \
     "Password for 'https://evil.example/org/repo.git': "
 expect_reject "rejects plain http to an internet host" "$broker" \
