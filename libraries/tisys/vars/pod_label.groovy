@@ -1,3 +1,5 @@
+import groovy.transform.Field
+
 def withCiLabels(String podTemplateFile, def refs) {
     def podYaml = null
     try {
@@ -24,7 +26,10 @@ def withCiLabels(String podTemplateFile, def refs) {
     }
 
     def annotations = buildCiAnnotations(refs)
-    if (annotations.isEmpty()) {
+    // The broker CA has to reach the agents even when a job carries no CI
+    // annotations, so this is computed before the annotations shortcut.
+    def brokerCa = wantsBrokerCA()
+    if (annotations.isEmpty() && !brokerCa) {
         return podYaml.toString().trim()
     }
 
@@ -32,6 +37,9 @@ def withCiLabels(String podTemplateFile, def refs) {
     def existingAnnotations = (metadata.annotations instanceof Map) ? metadata.annotations : [:]
     metadata.annotations = existingAnnotations + annotations
     podSpec.metadata = metadata
+    if (brokerCa) {
+        podSpec = withBrokerCA(podSpec)
+    }
 
     try {
         return writeYaml(returnText: true, data: podSpec).trim()
@@ -39,6 +47,52 @@ def withCiLabels(String podTemplateFile, def refs) {
         echo "[pod_label] ⚠️ failed to render pod yaml in ${podTemplateFile}: ${e.message}, skip label injection"
         return podYaml.toString().trim()
     }
+}
+
+// Every job hands its pod template to this helper, so it is the single place
+// that can give the agents the CA that signs the broker's certificate: the
+// namespace gets it from a trust-manager Bundle, and the mount is optional so a
+// namespace without the ConfigMap still starts its pods (the helper fails closed
+// only when it is asked to verify that certificate).
+@Field final String BROKER_CA_CONFIGMAP = 'github-token-broker-ca'
+@Field final String BROKER_CA_MOUNT_PATH = '/etc/github-token-broker/ca'
+
+private boolean wantsBrokerCA() {
+    try {
+        return env.GIT_BROKER_URL?.toString()?.trim()?.startsWith('https://') ?: false
+    } catch (Exception e) {
+        return false
+    }
+}
+
+private Map withBrokerCA(Map podSpec) {
+    def spec = (podSpec.spec instanceof Map) ? podSpec.spec : [:]
+    def volumes = (spec.volumes instanceof List) ? spec.volumes : []
+    if (!volumes.any { it instanceof Map && it.name == BROKER_CA_CONFIGMAP }) {
+        volumes = volumes + [[
+            name: BROKER_CA_CONFIGMAP,
+            configMap: [name: BROKER_CA_CONFIGMAP, optional: true],
+        ]]
+    }
+    spec.volumes = volumes
+    def containers = (spec.containers instanceof List) ? spec.containers : []
+    containers.each { container ->
+        if (!(container instanceof Map)) {
+            return
+        }
+        def mounts = (container.volumeMounts instanceof List) ? container.volumeMounts : []
+        if (!mounts.any { it instanceof Map && it.name == BROKER_CA_CONFIGMAP }) {
+            mounts = mounts + [[
+                name: BROKER_CA_CONFIGMAP,
+                mountPath: BROKER_CA_MOUNT_PATH,
+                readOnly: true,
+            ]]
+        }
+        container.volumeMounts = mounts
+    }
+    spec.containers = containers
+    podSpec.spec = spec
+    return podSpec
 }
 
 // For declarative pipelines: provide a YAML snippet with CI annotations.
