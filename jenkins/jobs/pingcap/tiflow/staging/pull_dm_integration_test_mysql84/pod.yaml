@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    fsGroup: 1000
+  initContainers:
+    - name: init-mysql-config
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25"
+      resources:
+        requests:
+          memory: 128Mi
+          cpu: "100m"
+        limits:
+          memory: 128Mi
+          cpu: "100m"
+      command:
+        - sh
+        - -c
+        - |
+          echo "[client]" > /mysql-config/.my.cnf
+          echo "ssl-mode=DISABLED" >> /mysql-config/.my.cnf
+      volumeMounts:
+        - mountPath: "/mysql-config"
+          name: "mysql-config-volume"
+  containers:
+    - name: golang
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.4.12-10-gc29110c-go1.25"
+      command: [tini, --, bash]
+      tty: true
+      # Guaranteed QoS (requests == limits). FLA-303 lowered this container's
+      # ceiling to 12Gi/4cpu, making the DM integration suites noticeably
+      # slower under load. Restore the original 16Gi/6cpu budget and raise the
+      # request to match it.
+      resources:
+        requests:
+          memory: 16Gi
+          cpu: "6"
+        limits:
+          memory: 16Gi
+          cpu: "6"
+      volumeMounts:
+        - mountPath: "/var/lib/mysql"
+          name: "mysql-tls-certs"
+        - mountPath: "/home/jenkins/.my.cnf"
+          name: "mysql-config-volume"
+          subPath: ".my.cnf"
+    - name: utils
+      image: ghcr.io/pingcap-qe/cd/utils/release:v2025.10.12-7-gfdd779c
+      tty: true
+      resources:
+        requests:
+          memory: 1Gi
+          cpu: "1"
+        limits:
+          memory: 1Gi
+          cpu: "1"
+    - name: mysql1
+      image: "docker.io/library/mysql:5.7"
+      tty: true
+      resources:
+        requests:
+          memory: 4Gi
+          cpu: "2"
+        limits:
+          memory: 4Gi
+          cpu: "2"
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "123456"
+      args:
+        - "--ssl=ON"
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--enforce-gtid-consistency=ON"
+        - "--gtid-mode=ON"
+        - "--server-id=1"
+        - "--default-authentication-plugin=mysql_native_password"
+    - name: mysql2
+      image: "docker.io/library/mysql:8.4.13.1@sha256:8c233bad33d520a7aae1c1e619c3a9775f4a1ba2d463d692fada04ec7f40be00"
+      tty: true
+      resources:
+        requests:
+          memory: 4Gi
+          cpu: "2"
+        limits:
+          memory: 4Gi
+          cpu: "2"
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "123456"
+        - name: MYSQL_TCP_PORT
+          value: "3307"
+      args:
+        - "--tls-version=TLSv1.2,TLSv1.3"
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--enforce-gtid-consistency=ON"
+        - "--gtid-mode=ON"
+        - "--server-id=1"
+        # Preserve existing CI account authentication during the server-version trial.
+        # Enabling the plugin alone does not make it the default for new accounts.
+        - "--mysql-native-password=ON"
+        - "--authentication-policy=*:mysql_native_password,,"
+    - name: mariadb1
+      image: "docker.io/library/mariadb:11.3"
+      tty: true
+      resources:
+        requests:
+          memory: 2Gi
+          cpu: "1"
+        limits:
+          memory: 2Gi
+          cpu: "1"
+      env:
+        - name: MARIADB_ROOT_PASSWORD
+          value: "123456"
+        - name: MYSQL_TCP_PORT
+          value: "3308"
+      args:
+        - "--log-bin"
+        - "--binlog-format=ROW"
+        - "--server-id=1"
+        - "--lower_case_table_names=0"
+  volumes:
+    - name: mysql-tls-certs
+      emptyDir: {}
+    - name: mysql-config-volume
+      emptyDir: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
