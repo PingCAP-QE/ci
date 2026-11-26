@@ -32,7 +32,7 @@ esac
 # below: the caller names the repositories this scope may mint a token for
 # (GIT_CREDENTIAL_ALLOWED_REPOS), so a pull request cannot ask the broker for a
 # private repository it may not read.
-ALLOWED_HOSTS='github.com git-cdn.cache.svc git-cdn.pingcap.net git-cdn-qcloud.pingcap.net'
+ALLOWED_HOSTS='github.com git-cdn.cache.svc git-cdn-qcloud.pingcap.net'
 
 # Extract the URL git quotes in the prompt: `... for '<url>': `. Strip exactly
 # that wrapper and refuse any URL that still contains a quote. Matching the
