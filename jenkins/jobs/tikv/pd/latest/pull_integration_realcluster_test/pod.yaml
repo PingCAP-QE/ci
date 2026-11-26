@@ -5,10 +5,7 @@ spec:
     fsGroup: 1000
   containers:
     - name: golang
-      image: &golang_image "ghcr.io/pingcap-qe/ci/jenkins:v2026.11.8-40-g6add30fa5-go1.27"
-      env:
-        - name: CI_GO_IMAGE
-          value: *golang_image
+      image: "ghcr.io/pingcap-qe/ci/jenkins:v2026.11.8-40-g6add30fa5-go1.27"
       tty: true
       resources:
         requests:

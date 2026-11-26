@@ -23,8 +23,6 @@ pipeline {
     }
     environment {
         OCI_ARTIFACT_HOST = "${env._JENKINS_OCI_ARTIFACT_HOST_HUB}"
-        GOCACHE = "${WORKSPACE}/go-cache/build"
-        GOMODCACHE = "${WORKSPACE}/go-cache/modules"
     }
     options {
         timeout(time: 40, unit: 'MINUTES')
@@ -48,15 +46,7 @@ pipeline {
                         'Build PD': {
                             dir('pd') {
                                 container('golang') {
-                                    final goImage = sh(script: 'printf "%s" "${CI_GO_IMAGE:?CI_GO_IMAGE is missing from the golang container}"', returnStdout: true).trim()
-                                    final platform = sh(script: 'go env GOVERSION GOOS GOARCH', returnStdout: true).trim().replace('\n', '-')
-                                    // Checkout merge timestamps change on retests; key the requested revisions instead.
-                                    final revisions = ([REFS.base_sha] + REFS.pulls.collect { it.sha }).join('-')
-                                    final cachePrefix = "go/tikv/pd/realcluster/pr-${REFS.pulls[0].number}/${goImage}/${platform}/"
-                                    // Save compiler and module data before tests, so test results are not reused.
-                                    cache(path: "${env.WORKSPACE}/go-cache", includes: '**/*', key: cachePrefix + revisions, restoreKeys: [cachePrefix]) {
-                                        sh label: 'pd-server', script: 'WITH_RACE=1 RUN_CI=1 make pd-server-basic'
-                                    }
+                                    sh label: 'pd-server', script: 'WITH_RACE=1 RUN_CI=1 make pd-server-basic'
                                 }
                             }
                         },
