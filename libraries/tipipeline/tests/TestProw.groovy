@@ -544,6 +544,80 @@ class TestProw {
         }
 
         @Test
+        void shouldPassTheBrokerCaFileForAnHttpsBroker() {
+            def events = []
+            def script = loadProw(
+                env: [WORKSPACE: '/tmp/ws',
+                      GIT_BROKER_URL: 'https://broker.example'],
+                libraryResource: { String path -> 'broker askpass' },
+                writeFile: { Map args -> },
+                sh: { Map args -> },
+                withEnv: { List environment, Closure body ->
+                    events << environment.collect { it.toString() }
+                    body()
+                },
+            )
+
+            script.withGitAskPassFromBroker([repo: 'tidbcloud/cloud-storage-engine']) {}
+
+            def env = events[0]
+            assertTrue('in-cluster CA passed for https',
+                env.contains('TIPIPELINE_BROKER_CA_FILE=/etc/github-token-broker/ca/ca.crt'))
+        }
+
+        @Test
+        void shouldHonourAnExplicitCaFileOrClusterSetting() {
+            def fromConfig = []
+            def script = loadProw(
+                env: [WORKSPACE: '/tmp/ws', GIT_BROKER_URL: 'https://broker.example'],
+                libraryResource: { String path -> 'broker askpass' },
+                writeFile: { Map args -> },
+                sh: { Map args -> },
+                withEnv: { List environment, Closure body ->
+                    fromConfig << environment.collect { it.toString() }
+                    body()
+                },
+            )
+            script.withGitAskPassFromBroker([caFile: '/custom/ca.crt']) {}
+            assertTrue('caller supplied CA wins',
+                fromConfig[0].contains('TIPIPELINE_BROKER_CA_FILE=/custom/ca.crt'))
+
+            def fromEnv = []
+            script = loadProw(
+                env: [WORKSPACE: '/tmp/ws', GIT_BROKER_URL: 'https://broker.example',
+                      GIT_BROKER_CA_FILE: '/cluster/ca.crt'],
+                libraryResource: { String path -> 'broker askpass' },
+                writeFile: { Map args -> },
+                sh: { Map args -> },
+                withEnv: { List environment, Closure body ->
+                    fromEnv << environment.collect { it.toString() }
+                    body()
+                },
+            )
+            script.withGitAskPassFromBroker([repo: 'tidbcloud/cloud-storage-engine']) {}
+            assertTrue('cluster setting wins over the default path',
+                fromEnv[0].contains('TIPIPELINE_BROKER_CA_FILE=/cluster/ca.crt'))
+        }
+
+        @Test
+        void shouldNotMentionTheCaFileForAPlaintextBroker() {
+            def events = []
+            def script = loadProw(
+                env: [WORKSPACE: '/tmp/ws', GIT_BROKER_URL: 'http://broker.example'],
+                libraryResource: { String path -> 'broker askpass' },
+                writeFile: { Map args -> },
+                sh: { Map args -> },
+                withEnv: { List environment, Closure body ->
+                    events << environment.collect { it.toString() }
+                    body()
+                },
+            )
+            script.withGitAskPassFromBroker([repo: 'tidbcloud/cloud-storage-engine']) {}
+            assertFalse('plaintext broker needs no CA',
+                events[0].any { it.toString().startsWith('TIPIPELINE_BROKER_CA_FILE=') })
+        }
+
+        @Test
         void shouldAppendToExistingGitConfigEntries() {
             def events = []
             def script = loadProw(

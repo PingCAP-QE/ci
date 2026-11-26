@@ -92,6 +92,13 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
         throw new IllegalArgumentException(
             'withGitAskPassFromBroker requires cfg.brokerUrl or the GIT_BROKER_URL environment variable')
     }
+    // The TencentCloud broker presents a certificate from the cluster CA, which
+    // the agent image does not trust by default. Only an https broker needs it,
+    // and it is passed to the helper as --cacert rather than replacing the
+    // image's roots for every other curl call in the build.
+    final caFile = cfg.caFile?.toString()?.trim() ?:
+        env.GIT_BROKER_CA_FILE?.toString()?.trim() ?:
+        (brokerUrl.startsWith('https://') ? '/etc/github-token-broker/ca/ca.crt' : '')
     final repo = cfg.repo?.toString()?.trim() ?: ''
     final allowedRepos = cfg.allowedRepos?.toString()?.trim() ?: ''
     final policyOnly = cfg.policyOnly?.toString()?.toBoolean() ?: false
@@ -121,7 +128,8 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
             "GIT_CONFIG_VALUE_${baseConfigCount}=git@github.com:",
             "GIT_CONFIG_KEY_${baseConfigCount + 1}=credential.useHttpPath",
             "GIT_CONFIG_VALUE_${baseConfigCount + 1}=true",
-        ] + (allowedRepos ? ["GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos}"] : []) +
+        ] + (caFile ? ["TIPIPELINE_BROKER_CA_FILE=${caFile}"] : []) +
+            (allowedRepos ? ["GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos}"] : []) +
             (policyOnly ? ['GIT_CREDENTIAL_ALLOWED_REPOS='] : [])) {
             body()
         }
