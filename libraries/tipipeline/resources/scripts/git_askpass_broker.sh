@@ -13,6 +13,8 @@
 #   TIPIPELINE_BROKER_CACHE        token cache file (required)
 #   TIPIPELINE_BROKER_TOKEN_FILE   caller ServiceAccount token path
 #   TIPIPELINE_BROKER_TTL_SECONDS  cache lifetime, default 3000 (50 minutes)
+#   TIPIPELINE_BROKER_CA_FILE      PEM bundle that signs the broker's certificate,
+#                                  for an https broker with a private CA
 set -eu
 
 prompt="${1-}"
@@ -98,6 +100,13 @@ fi
 
 broker_url="${TIPIPELINE_BROKER_URL:?TIPIPELINE_BROKER_URL is required}"
 cache_file="${TIPIPELINE_BROKER_CACHE:?TIPIPELINE_BROKER_CACHE is required}"
+broker_ca_file="${TIPIPELINE_BROKER_CA_FILE:-}"
+if [ -n "${broker_ca_file}" ] && [ ! -r "${broker_ca_file}" ]; then
+    # Fail here rather than letting curl fall back to the public roots: the
+    # callback would then fail with an opaque certificate error much later.
+    echo "git-askpass(broker): TIPIPELINE_BROKER_CA_FILE is not readable: ${broker_ca_file}" >&2
+    exit 1
+fi
 # Brace literals cannot be used inside ${VAR:-...} (the shell closes the
 # expansion at the first '}'), so default them explicitly.
 permissions="${TIPIPELINE_BROKER_PERMISSIONS-}"
@@ -190,10 +199,19 @@ cached_token() {
 
 mint_token() {
     caller=$(cat "${token_file}")
-    response=$(curl -fsS --max-time 10 -X POST "${broker_url}/v1/token" \
-        -H "Authorization: Bearer ${caller}" \
-        -H 'Content-Type: application/json' \
-        -d "{\"repo\":\"${repo}\",\"permissions\":${permissions}}")
+    # --cacert only for this request: the run may still call GitHub or a package
+    # mirror with curl, and those must keep the image's public roots.
+    if [ -n "${broker_ca_file}" ]; then
+        response=$(curl -fsS --cacert "${broker_ca_file}" --max-time 10 -X POST "${broker_url}/v1/token" \
+            -H "Authorization: Bearer ${caller}" \
+            -H 'Content-Type: application/json' \
+            -d "{\"repo\":\"${repo}\",\"permissions\":${permissions}}")
+    else
+        response=$(curl -fsS --max-time 10 -X POST "${broker_url}/v1/token" \
+            -H "Authorization: Bearer ${caller}" \
+            -H 'Content-Type: application/json' \
+            -d "{\"repo\":\"${repo}\",\"permissions\":${permissions}}")
+    fi
     token=$(printf '%s' "${response}" \
         | sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     if [ -z "${token}" ]; then
