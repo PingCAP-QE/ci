@@ -14,6 +14,7 @@ readonly -a ALLOWED_PINGCAP_HOSTS=(
     # git-cdn behind the in-cluster gateway: the Jenkins credential helpers have
     # to allow-list the host, so every change touching them names it.
     "git-cdn.pingcap.net"
+    "git-cdn-qcloud.pingcap.net"
     # Not an endpoint: Tekton objects use `tibuild.pingcap.net/...` as
     # annotation and label keys (the tibuild <-> MacBuild contract), so any new
     # trigger template that mirrors an existing one trips the host rule.
