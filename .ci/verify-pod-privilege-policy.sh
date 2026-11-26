@@ -142,9 +142,18 @@ collect_candidate() {
       unparseable_files+=("${f}")
       ;;
     *)
-      is_prow_jobs_file "${f}" && changed_files+=("${f}")
+      # A changed path that is neither a Pod template nor a Prow job
+      # definition — `Jenkinsfile`, `dsl.groovy`, `aa_folder.groovy`, a
+      # `README.md` — has nothing to check. Collect it when it is a Prow job
+      # definition and stay successful otherwise: this function is called from
+      # the loops below, which run under `set -e`, so a non-zero status here
+      # aborts the whole gate and reports nothing at all.
+      if is_prow_jobs_file "${f}"; then
+        changed_files+=("${f}")
+      fi
       ;;
   esac
+  return 0
 }
 
 if [[ "$#" -gt 0 ]]; then

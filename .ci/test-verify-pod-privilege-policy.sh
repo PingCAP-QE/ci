@@ -298,8 +298,33 @@ PROW_PERIODIC_HOSTPATH='periodics:
             path: /sys/fs/cgroup
             type: Directory'
 
+# A job folder also holds files that are not Pod specs: the pipeline itself
+# (`Jenkinsfile`), the Job DSL, and occasional values files. They carry no
+# privilege surface, so the gate skips them — but it has to stay successful
+# while doing so. Collecting a candidate used to return the status of "this is
+# not a Prow job definition", which aborted the whole gate under `set -e` and
+# failed the presubmit with no output at all.
+JENKINSFILE_PATH="jenkins/jobs/pingcap/demo/job/Jenkinsfile"
+JENKINSFILE_BODY='pipeline {
+  agent none
+  stages {
+    stage("noop") {
+      steps {
+        echo "noop"
+      }
+    }
+  }
+}'
+
+NON_POD_YAML_PATH="jenkins/jobs/pingcap/demo/job/values.yaml"
+NON_POD_YAML_BODY='image:
+  repository: example.invalid/demo
+  tag: "1"'
+
 failed=0
 run_case "plain_pod" "pass" "${POD_PATH}" "${PLAIN_POD}" || failed=1
+run_case "jenkinsfile_under_jenkins_jobs_is_skipped" "pass" "${JENKINSFILE_PATH}" "${JENKINSFILE_BODY}" || failed=1
+run_case "non_pod_yaml_under_jenkins_jobs_is_skipped" "pass" "${NON_POD_YAML_PATH}" "${NON_POD_YAML_BODY}" || failed=1
 run_case "secret_env_without_allowlist" "fail" "${POD_PATH}" "${SECRET_ENV_POD}" || failed=1
 run_case "secret_env_allowlisted" "pass" "${POD_PATH}" "${SECRET_ENV_POD}" \
   "secret\t${POD_REGEX}\tgithub-token\t2999-12-31\ttest exemption" || failed=1
