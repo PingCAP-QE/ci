@@ -5,7 +5,8 @@
 - [x] Document the manual command and known TiFlow compatibility blockers.
 - [x] Run reference, YAML, Pod-policy and pipeline-model checks.
 - [x] Smoke-test the pinned MySQL image and authentication parameters.
-- [ ] Open a PR with verification evidence and limitations.
+- [x] Open a PR with verification evidence and limitations:
+      https://github.com/PingCAP-QE/ci/pull/5625
 
 ### Verification evidence
 - Offline job contract checks passed (optional/manual status, references,
