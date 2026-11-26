@@ -32,15 +32,14 @@
 #                       through git config `insteadOf`, so the credential
 #                       prompts carry the CDN host. Its port is ignored when
 #                       matching; the hostname is the security boundary.
-#   git-cdn.pingcap.net the same cache behind the in-cluster gateway, over TLS
-#                       (TKE moved off the plaintext listener so the credential
-#                       no longer crosses the pod network in the clear).
-#   git-cdn-<cluster>   the same cache, named per cluster: each cluster runs its
-#     .pingcap.net      own *.pingcap.net internal gateway on a different
-#                       address, so the host name has to say which cluster it
-#                       means (-qcloud, -gcp). All of these names stay
-#                       allow-listed while the instances are migrated.
-ALLOWED_HOSTS='github.com git-cdn.cache.svc git-cdn.pingcap.net git-cdn-qcloud.pingcap.net'
+#   git-cdn-<cluster>   the same cache behind the in-cluster gateway, over TLS
+#     .pingcap.net      (TKE moved off the plaintext listener so the credential
+#                       no longer crosses the pod network in the clear). The host
+#                       name carries the cluster: each cluster runs its own
+#                       *.pingcap.net internal gateway on a different address, so
+#                       the name has to say which cluster it means
+#                       (-qcloud, -gcp).
+ALLOWED_HOSTS='github.com git-cdn.cache.svc git-cdn-qcloud.pingcap.net'
 
 prompt="${1-}"
 
