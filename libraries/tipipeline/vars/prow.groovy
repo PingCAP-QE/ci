@@ -92,21 +92,12 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
         throw new IllegalArgumentException(
             'withGitAskPassFromBroker requires cfg.brokerUrl or the GIT_BROKER_URL environment variable')
     }
-    // The TencentCloud broker presents a certificate from the cluster CA, which
-    // the agent image does not trust by default. Only an https broker needs it,
-    // and it is passed to the helper as --cacert rather than replacing the
-    // image's roots for every other curl call in the build.
-    // `system` means "no custom bundle": curl then trusts the image's own roots.
-    // That is what a gateway-fronted broker needs -- it presents a public
-    // wildcard certificate, not a cluster-internal one, so mounting an internal
-    // CA into every agent image would be pure overhead.
-    final configuredCa = cfg.caFile?.toString()?.trim() ?: env.GIT_BROKER_CA_FILE?.toString()?.trim()
-    String caFile = ''
-    if (configuredCa == null) {
-        caFile = brokerUrl.startsWith('https://') ? '/etc/github-token-broker/ca/ca.crt' : ''
-    } else if (configuredCa.toLowerCase() != 'system') {
-        caFile = configuredCa
-    }
+    // No CA plumbing: every broker endpoint this library talks to is fronted by
+    // a gateway that presents the public `*.pingcap.net` certificate, which the
+    // agent images already trust. The helper therefore never passes --cacert, so
+    // it cannot accidentally replace the image's roots or fail on a missing
+    // bundle. A future cluster-internal broker endpoint has to bring its own
+    // trust story instead of relying on an implicit path here.
     final repo = cfg.repo?.toString()?.trim() ?: ''
     final allowedRepos = cfg.allowedRepos?.toString()?.trim() ?: ''
     final policyOnly = cfg.policyOnly?.toString()?.toBoolean() ?: false
@@ -136,8 +127,7 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
             "GIT_CONFIG_VALUE_${baseConfigCount}=git@github.com:",
             "GIT_CONFIG_KEY_${baseConfigCount + 1}=credential.useHttpPath",
             "GIT_CONFIG_VALUE_${baseConfigCount + 1}=true",
-        ] + (caFile ? ["TIPIPELINE_BROKER_CA_FILE=${caFile}"] : []) +
-            (allowedRepos ? ["GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos}"] : []) +
+        ] + (allowedRepos ? ["GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos}"] : []) +
             (policyOnly ? ['GIT_CREDENTIAL_ALLOWED_REPOS='] : [])) {
             body()
         }

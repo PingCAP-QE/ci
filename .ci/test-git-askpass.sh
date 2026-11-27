@@ -203,9 +203,10 @@ expect_reject "the broker path refuses a scp-like url outside the scope" "$broke
     "Password for 'https://x-access-token@github.com/pingcap-inc/x.git': " \
     GIT_CREDENTIAL_ALLOWED_REPOS="tidbcloud/*"
 
-# The broker is reached over HTTPS in the TencentCloud cluster, where the CA is
-# an in-cluster one: curl must be told about it explicitly, and a configured but
-# unreadable bundle must fail instead of silently trusting public roots only.
+# The broker is always reached through the in-cluster gateway, which presents the
+# public *.pingcap.net certificate, so the image's own roots are the trust
+# anchor. The helper must never pass --cacert, and a stale
+# TIPIPELINE_BROKER_CA_FILE in a caller's environment must not change that.
 echo "git_askpass_broker.sh HTTPS trust"
 mkdir -p "$tmp/bin"
 cat > "$tmp/bin/curl" <<'CURL'
@@ -217,11 +218,10 @@ chmod +x "$tmp/bin/curl"
 
 # The helper reads the caller ServiceAccount token before minting.
 printf 'caller-token' > "$tmp/sa-token"
-printf '%s\n' '-----BEGIN CERTIFICATE-----' 'stub' '-----END CERTIFICATE-----' > "$tmp/ca.crt"
 
-broker_mint_with() {
-    local name="$1" want="$2" prompt="$3"
-    shift 3
+broker_mints_without_ca() {
+    local name="$1" prompt="$2"
+    shift 2
     : > "$tmp/args"
     local out
     if ! out="$(env -i PATH="$tmp/bin:$PATH" HOME="$tmp" CURL_ARGS_FILE="$tmp/args" \
@@ -237,42 +237,68 @@ broker_mint_with() {
         fail "$name (got '$out')"
         return
     fi
-    if [ "$want" = with-ca ] && ! grep -qx -- '--cacert' "$tmp/args"; then
-        fail "$name (curl was not given --cacert)"
-        return
-    fi
-    if [ "$want" = with-ca ] && ! grep -qx -- "$tmp/ca.crt" "$tmp/args"; then
-        fail "$name (curl got the wrong CA path)"
-        return
-    fi
-    if [ "$want" = without-ca ] && grep -qx -- '--cacert' "$tmp/args"; then
-        fail "$name (curl trusted a CA the caller did not configure)"
+    if grep -qx -- '--cacert' "$tmp/args"; then
+        fail "$name (curl was given --cacert)"
         return
     fi
     pass "$name"
 }
 
-broker_mint_with "passes --cacert when a bundle is configured" with-ca \
-    "Password for 'https://x-access-token@github.com/pingcap/tidb.git': " \
-    TIPIPELINE_BROKER_CA_FILE="$tmp/ca.crt"
-broker_mint_with "keeps the default trust when no bundle is configured" without-ca \
+broker_mints_without_ca "trusts the image roots for an https broker" \
     "Password for 'https://x-access-token@github.com/pingcap/tidb.git': "
+broker_mints_without_ca "ignores a stale CA file setting" \
+    "Password for 'https://x-access-token@github.com/pingcap/tidb.git': " \
+    TIPIPELINE_BROKER_CA_FILE="$tmp/stale.crt"
 
-# A configured bundle that cannot be read must stop the helper: falling back to
-# system trust would fail later with a much less obvious error.
-if env -i PATH="$tmp/bin:$PATH" HOME="$tmp" CURL_ARGS_FILE="$tmp/args" \
-    TIPIPELINE_BROKER_URL="https://broker.example" \
-    TIPIPELINE_BROKER_REPO="pingcap/tidb" \
-    TIPIPELINE_BROKER_CACHE="$tmp/cache" \
-    TIPIPELINE_BROKER_TOKEN_FILE="$tmp/sa-token" \
-    TIPIPELINE_BROKER_CA_FILE="$tmp/missing.crt" \
-    sh "$broker" "Password for 'https://x-access-token@github.com/pingcap/tidb.git': " 2>"$tmp/err"; then
-    fail "refuses an unreadable CA bundle (unexpectedly succeeded)"
-elif grep -q 'TIPIPELINE_BROKER_CA_FILE' "$tmp/err"; then
-    pass "refuses an unreadable CA bundle"
-else
-    fail "refuses an unreadable CA bundle (failed for another reason: $(head -1 "$tmp/err"))"
-fi
+echo "repository scope (GIT_CREDENTIAL_ALLOWED_REPOS)"
+# The host allowlist keeps the credential on GitHub. The scope keeps it off
+# other people's repositories, which matters because `.gitmodules` (at any
+# depth) chooses the repository git asks for.
+expect_answer "answers the repository the scope names" "$askpass" \
+    "Password for 'https://x-access-token@github.com/pingcap/tidb.git': " "secret" \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb"
+expect_answer "answers a repository under an allowed organization" "$askpass" \
+    "Password for 'https://x-access-token@github.com/pingcap-inc/enterprise-extensions.git': " "secret" \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb pingcap-inc/*"
+expect_answer "matches the scope case-insensitively" "$askpass" \
+    "Password for 'https://x-access-token@github.com/PingCAP/TiDB.git': " "secret" \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="PINGCAP/tidb"
+expect_answer "answers an scp-like submodule url under an allowed organization" "$askpass" \
+    "Password for 'git@github.com:pingcap-inc/enterprise-extensions.git': " "secret" \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap-inc/*"
+expect_reject "rejects a private repository outside the scope" "$askpass" \
+    "Password for 'https://x-access-token@github.com/pingcap/private-repo.git': " \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb tikv/*"
+expect_reject "rejects an scp-like submodule url outside the scope" "$askpass" \
+    "Password for 'git@github.com:someone-else/private.git': " \
+    "${applypass_env[@]}" GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb pingcap-inc/*"
+expect_reject "rejects a prompt that names no repository" "$askpass" \
+    "Username for 'https://github.com': " "${applypass_env[@]}" \
+    GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/*"
+
+broker_reaches_mint_scoped() {
+    local name="$1" prompt="$2"
+    shift 2
+    if run_askpass "$broker" "$prompt" "$@" 2>"$tmp/err"; then
+        fail "$name (unexpectedly succeeded)"
+        return
+    fi
+    if grep -q 'TIPIPELINE_BROKER_URL is required' "$tmp/err"; then
+        pass "$name"
+    else
+        fail "$name (failed before the scope check: $(head -1 "$tmp/err"))"
+    fi
+}
+broker_reaches_mint_scoped "the broker path mints only for a scoped repository" \
+    "Password for 'https://x-access-token@github.com/pingcap/tidb.git': " \
+    GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb"
+expect_reject "the broker path refuses a repository outside the scope" "$broker" \
+    "Password for 'https://x-access-token@github.com/someone-else/private.git': " \
+    GIT_CREDENTIAL_ALLOWED_REPOS="pingcap/tidb"
+expect_reject "the broker path refuses a scp-like url outside the scope" "$broker" \
+    "Password for 'https://x-access-token@github.com/pingcap-inc/x.git': " \
+    GIT_CREDENTIAL_ALLOWED_REPOS="tidbcloud/*"
+
 
 if [ "$failures" -ne 0 ]; then
     echo "git-askpass tests failed: $failures" >&2
