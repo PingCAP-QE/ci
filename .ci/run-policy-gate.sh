@@ -35,6 +35,7 @@ Usage: .ci/run-policy-gate.sh <gate> [extra args ...]
 
   pod-privilege             pod privilege / Secret / ServiceAccount gate
   pod-resource              pod resource policy gate
+  pod-yaml                  Pod template structure + image resolution gate
   secret-scan               credential policy + gitleaks scan
   storage-class             storage class policy gate
   pr-content                pull request content policy
@@ -105,6 +106,19 @@ case "${gate}" in
   pod-resource)
     s="$(new_gate_script .ci/verify-pod-resource-policy.sh)"; materialised+=("$s")
     bash "$s" "$@"
+    ;;
+  pod-yaml)
+    # This is the one gate whose Pod carries a Google identity: the presubmit
+    # runs as the `prow-test-pods/gar-reader` Kubernetes ServiceAccount so it
+    # can resolve images in the private `internal` Artifact Registry repository
+    # (see PingCAP-QE/ee-infra `gar_reader_gke_service_accounts`). Running the
+    # gate from the pull request's checkout would hand any contributor who can
+    # get a presubmit to run here — i.e. any contributor plus one `/ok-to-test`
+    # — an arbitrary command with that identity, and with it a reader token for
+    # every repository in the project. The structure under test still comes
+    # from the pull request; only the interpreter is fenced.
+    s="$(new_gate_script .ci/verify-k8s-pod-yaml.sh)"; materialised+=("$s")
+    sh "$s" "$@"
     ;;
   secret-scan)
     s="$(new_gate_script .ci/verify-jenkins-credential-policy.sh)"; materialised+=("$s")

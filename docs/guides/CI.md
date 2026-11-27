@@ -242,7 +242,8 @@ This repository has two related presubmit jobs for pipeline changes:
 - `pull-verify-k8s-pod-yaml`
   - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests: valid YAML, `apiVersion: v1`, `kind: Pod`, a non-empty `spec.containers`, no explicit null nodes, and container images that resolve in their registry.
   - Does not run `kubectl --dry-run` schema validation: field validation is server-side and `--dry-run=server` needs `create pods` RBAC that the presubmit ServiceAccount does not have, so that call was dead code and was removed rather than left as a check that never runs.
-  - Triggered by `jenkins/jobs/**/pod*.yaml` changes.
+  - Runs the gate from the base revision (`.ci/run-policy-gate.sh pod-yaml`) instead of from the pull request's checkout. This Pod runs as the `prow-test-pods/gar-reader` Kubernetes ServiceAccount so it can resolve images in the private `internal` repository, so a PR that rewrote `.ci/verify-k8s-pod-yaml.sh` would otherwise execute its own script with a Google identity in hand. The templates under test still come from the pull request.
+  - Triggered by `jenkins/jobs/**/pod*.yaml`, `.ci/verify-k8s-pod-yaml.sh` or `.ci/run-policy-gate.sh` changes. A PR that only rewrites the gate is checked against every Pod template, not just the changed ones.
 - `pull-verify-pod-resource-policy`
   - Fails when a changed `jenkins/jobs/**/pod*.yaml` container declares memory `requests != limits` (or only one of request/limit), enforcing Guaranteed QoS and preventing new OOM/eviction-prone templates.
   - CPU mismatches are reported as warnings only (the Pod stays Burstable).
