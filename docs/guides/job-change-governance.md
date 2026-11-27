@@ -18,11 +18,14 @@ accept it.
 Every non-trivial job/pipeline change follows this lifecycle:
 
 1. **Propose** — describe the change, its motivation and the affected repositories/branches.
-2. **Plan** — open a Conductor track under `conductor/tracks/<track_id>/` with a
-   `spec.md` (what and why) and a `plan.md` (phases and tasks). The plan is the source
-   of truth for the work.
-3. **Implement** — work through `plan.md` task by task, following `conductor/workflow.md`
-   (per-phase checkpoint commits and Git-note summaries).
+2. **Plan** — write the plan down before touching files: a short plan in the PR
+   description, or a design doc under `docs/designs/` when the change alters the file
+   layout, a shared library or a rollout/serving path. The plan records what changes and
+   which layers are touched, and it is the source of truth for the work. Planning notes
+   stay with the change; keep private or tool-specific scratch files out of the
+   repository.
+3. **Implement** — work through the plan task by task, in reviewable commits that leave
+   each phase verifiable on its own.
 4. **Verify** — run the static validators and, for pipeline behavior, a staging/replay
    test. Keep the commands and results.
 5. **Promote** — follow the staging-to-production flow in
@@ -33,7 +36,7 @@ This lifecycle maps onto the pipeline workflow in [CI](./CI.md):
 
 | Governance step | [CI guide](./CI.md) / [Contributing](../contributing.md) step |
 |---|---|
-| Propose + Plan | Identify the pipeline, describe the change, create the track |
+| Propose + Plan | Identify the pipeline, describe the change, write the plan (PR description or design doc) |
 | Implement | Copy to `/staging`, make changes, open the PR |
 | Verify | Static validation + replay/staging test |
 | Promote | PR that moves staging to production, with test links |
@@ -58,13 +61,14 @@ Rules:
   point at an existing pod template.
 - A change is not complete until every affected layer is updated together.
 
-## Track bookkeeping and evidence
+## Planning notes and evidence
 
-- Record progress in the track `plan.md`: mark a task `[~]` when starting and `[x]` when
-  done.
-- Attach verification evidence to the phase checkpoint Git note (see
-  `conductor/workflow.md`), for example the exact validation commands and their results,
-  and any staging/replay build URLs.
+- Keep the plan in the PR description (or the design doc) as a task list: mark a task
+  `[~]` when starting and `[x]` when done, so review progress is visible without
+  reading Git history.
+- Record verification evidence in the PR itself — the exact validation commands and
+  their results, plus any staging/replay build URLs — so it survives after the branch
+  is deleted.
 - When comparing build numbers or other non-GitHub numbers in PR text, wrap them in
   backticks or use full URLs so GitHub does not auto-link them to issues.
 
@@ -113,35 +117,29 @@ Use this checklist when reviewing a job/pipeline change:
 See [CI.md](./CI.md#pre-pr-verification-for-jenkins-pipeline-changes) for full examples,
 including the Prow presubmit jobs that run these checks automatically.
 
-## Conductor track template
+## Change plan template
 
-A minimal track for a job/pipeline change:
+A minimal plan for a job/pipeline change, written into the PR description (or the top of
+a design doc):
 
 ```markdown
-# Specification: <short description>
-
-## Goal
-<What changes and why.>
+## What and why
+<What changes, and the problem it solves.>
 
 ## Scope
 <Affected repos/branches and the three layers touched.>
 
-## Acceptance Criteria
+## Acceptance criteria
 - <Observable result, for example a specific job passes in staging.>
-```
 
-```markdown
-# Implementation Plan: <short description>
-
-## Phase 1: Implement and verify
-- [ ] Task: Update the affected layers
+## Phases
+- [ ] Update the affected layers
     - [ ] Update the Prow trigger (if needed)
     - [ ] Update the Job DSL and pipeline
     - [ ] Update the pod template (if needed)
-- [ ] Task: Run verification
+- [ ] Run verification
     - [ ] `.ci/verify-jenkins-pipelines.sh`
-    - [ ] Replay/staging test and record the build URL
-- [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+    - [ ] Replay/staging test, with the build URL recorded
 ```
 
 ## See Also

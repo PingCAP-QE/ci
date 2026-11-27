@@ -85,8 +85,8 @@ keeps it empty because hotfix builds never deliver. The GA pipeline
   clusters. Darwin targets use the gcp macbuild path
   (`build-component-darwin-mac` / `build-component-all-platforms-mac`).
 - **`env-prod2/`** is being retired. Do not add new triggers there; new CI
-  should target `env-gcp/`. The prod2 Tekton deployment is tracked in the
-  `prod2_tekton_decommission_20261021` Conductor track.
+  should target `env-gcp/`. The prod2 Tekton decommission lands as normal
+  `tekton/` changes with the decommission PRs.
 
 ## Getting Started
 
