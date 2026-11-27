@@ -459,15 +459,19 @@ presubmits:
       labels: *labels
       decorate: true
       max_concurrency: 1
-      run_if_changed: "^jenkins/jobs/.*/pod.*\\.ya?ml$"
+      run_if_changed: "^(jenkins/jobs/.*/pod.*\\.ya?ml|\\.ci/(run-policy-gate|verify-k8s-pod-yaml)\\.sh)$"
       branches:
         - ^main$
       spec:
         # Resolves every image a changed template references with `crane`. The
         # `internal` Artifact Registry repository is private, so this pod needs a
         # Google identity: `gar-reader` via GKE Workload Identity (bound in
-        # PingCAP-QE/ee-infra). Without it the check can only pull anonymously,
-        # which is why `internal` still grants `allUsers` a reader.
+        # PingCAP-QE/ee-infra), which is what let `internal` drop its anonymous
+        # reader.
+        #
+        # The gate therefore runs from the base revision, not from the checkout:
+        # a PR that both touches a template and rewrites `.ci/verify-k8s-pod-yaml.sh`
+        # would otherwise execute its own script with that identity in hand.
         serviceAccountName: gar-reader
         containers:
           - name: main
@@ -475,19 +479,30 @@ presubmits:
             command: [sh, -ce]
             args:
               - |
-                apk add --no-cache yq-go wget tar git
+                apk add --no-cache bash git grep sed findutils yq-go wget tar
+                base_sha="${PULL_BASE_SHA:?PULL_BASE_SHA is required: the gate comes from the base revision}"
+                git cat-file -e "${base_sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${base_sha}"
+                gate_runner="$(mktemp)"
+                git show "${base_sha}:.ci/run-policy-gate.sh" > "${gate_runner}"
                 wget -qO /tmp/crane.tar.gz "https://github.com/google/go-containerregistry/releases/download/v0.21.5/go-containerregistry_Linux_x86_64.tar.gz"
                 tar xzf /tmp/crane.tar.gz -C /usr/local/bin/ crane
                 rm /tmp/crane.tar.gz
-                changed_files=$(git diff --name-only --diff-filter=d "${PULL_BASE_SHA:?}" -- 'jenkins/jobs/**/pod*.yaml' | LC_ALL=C sort)
+                changed_files=$(git diff --name-only --diff-filter=d "${base_sha}" -- 'jenkins/jobs/**/pod*.yaml' | LC_ALL=C sort)
                 if [ -z "$changed_files" ]; then
+                  # A PR that only rewrites the gate has to exercise it too, so it
+                  # gets the whole tree instead of silence.
+                  if git diff --name-only --diff-filter=d "${base_sha}" -- '.ci/verify-k8s-pod-yaml.sh' '.ci/run-policy-gate.sh' | grep -q .; then
+                    echo "The Pod YAML gate changed: checking every Pod template."
+                    bash "${gate_runner}" pod-yaml
+                    exit 0
+                  fi
                   echo "No changed pipeline Pod YAML files to verify."
                   exit 0
                 fi
-                sh .ci/verify-k8s-pod-yaml.sh $changed_files
+                bash "${gate_runner}" pod-yaml $changed_files
             resources:
               limits:
-                memory: 128Mi
+                memory: 256Mi
                 cpu: 200m
     - name: pull-verify-pod-resource-policy
       labels: *labels
