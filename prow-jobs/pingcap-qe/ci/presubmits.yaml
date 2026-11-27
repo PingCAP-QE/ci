@@ -487,6 +487,23 @@ presubmits:
                 wget -qO /tmp/crane.tar.gz "https://github.com/google/go-containerregistry/releases/download/v0.21.5/go-containerregistry_Linux_x86_64.tar.gz"
                 tar xzf /tmp/crane.tar.gz -C /usr/local/bin/ crane
                 rm /tmp/crane.tar.gz
+                # `crane` authenticates from a docker config only: it does not read
+                # ADC, so the Workload Identity alone leaves every image in the
+                # private `internal` repository reported as "image not found"
+                # (measured 2026-11-27: the metadata token reads that repository,
+                # crane does not). Hand it the token this Pod already holds — any
+                # process here can mint it from the metadata server regardless —
+                # scoped to the one registry host the templates use. A new
+                # registry location has to be added here.
+                export DOCKER_CONFIG=/tmp/crane-docker
+                mkdir -p "${DOCKER_CONFIG}"
+                token=$(wget -qO- --header='Metadata-Flavor: Google' \
+                  "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" \
+                  | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+                test -n "${token}"
+                printf '{"auths":{"us-docker.pkg.dev":{"auth":"%s"}}}' \
+                  "$(printf 'oauth2accesstoken:%s' "${token}" | base64 | tr -d '\n')" \
+                  > "${DOCKER_CONFIG}/config.json"
                 changed_files=$(git diff --name-only --diff-filter=d "${base_sha}" -- 'jenkins/jobs/**/pod*.yaml' | LC_ALL=C sort)
                 if [ -z "$changed_files" ]; then
                   # A PR that only rewrites the gate has to exercise it too, so it
