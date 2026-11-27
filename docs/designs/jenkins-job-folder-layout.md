@@ -294,7 +294,7 @@ lands before the migration batches, together with the Prow presubmit
 
 ## 11. Proposed convention updates (draft, content only)
 
-These are drafts. `AGENTS.md` and `conductor/code_styleguides/` are updated in
+These are drafts. `AGENTS.md` and the repository guides are updated in
 the rollout phase, once the migration tooling exists.
 
 ### 11.1 `AGENTS.md`
@@ -305,9 +305,10 @@ the rollout phase, once the migration tooling exists.
   `jenkins/jobs/<org>/<repo>/<branch>/<job>/{dsl.groovy,Jenkinsfile,pod.yaml|pod-<purpose>.yaml}`.
 - Common task "Adding/Modifying CI Jobs": edit the single job folder.
 
-### 11.2 `conductor/code_styleguides/`
+### 11.2 Repository guides
 
-Add a Jenkins job-layout section stating the file names, the single/multi pod
+Add a Jenkins job-layout section to the job guides (for example
+`docs/guides/job-change-governance.md`) stating the file names, the single/multi pod
 rule, and that all `scriptPath` / pod references are repo-root-relative.
 
 ## 12. Rollout plan

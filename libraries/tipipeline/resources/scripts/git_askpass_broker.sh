@@ -32,7 +32,7 @@ esac
 # below: the caller names the repositories this scope may mint a token for
 # (GIT_CREDENTIAL_ALLOWED_REPOS), so a pull request cannot ask the broker for a
 # private repository it may not read.
-ALLOWED_HOSTS='github.com git-cdn.cache.svc git-cdn.pingcap.net'
+ALLOWED_HOSTS='github.com git-cdn-qcloud.pingcap.net'
 
 # Extract the URL git quotes in the prompt: `... for '<url>': `. Strip exactly
 # that wrapper and refuse any URL that still contains a quote. Matching the
@@ -77,13 +77,12 @@ esac
 host="${host%%:*}" # drop the port
 host=$(printf '%s' "${host}" | tr '[:upper:]' '[:lower:]')
 
-# git-cdn is reached over plain HTTP inside the cluster; every other allowed
-# host must use https.
+# Every allowed host must be reached over https (or ssh for the direct-GitHub
+# path). The cache used to be exempt because it was only reachable as plain HTTP
+# inside the cluster; it serves TLS now and its plaintext port is gone.
 if [ -n "${scheme}" ] && [ "${scheme}" != "https" ] && [ "${scheme}" != "ssh" ]; then
-    if [ "${host}" != "git-cdn.cache.svc" ]; then
-        echo "git-askpass(broker): refusing to send the credential over '${scheme}' to '${host}'" >&2
-        exit 1
-    fi
+    echo "git-askpass(broker): refusing to send the credential over '${scheme}' to '${host}'" >&2
+    exit 1
 fi
 
 allowed=0
