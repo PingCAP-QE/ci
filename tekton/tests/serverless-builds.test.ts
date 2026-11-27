@@ -6,10 +6,12 @@ import {
 } from "jsr:@std/assert@1.0.11";
 import { expandGlobSync } from "jsr:@std/fs@1.0.19/expand-glob";
 import {
+  type Body,
   evaluate,
   filter,
   type Header,
   load,
+  overlay,
   payload,
   precedingExtensions,
   products,
@@ -315,7 +317,8 @@ Deno.test("private dependency credentials stay in the mounted helper", () => {
       ]
     ) {
       assertEquals(
-        command("git", ["ls-remote", "--get-url", remote], { env: runEnv }).trim(),
+        command("git", ["ls-remote", "--get-url", remote], { env: runEnv })
+          .trim(),
         "https://github.com/tidbcloud/private.git",
       );
     }
@@ -346,7 +349,8 @@ Deno.test("git-auth-app installs the broker helper instead of the PAT workspace"
     // Simulate what the setup-git-auth step leaves in the shared home.
     const sharedHome = `${tmp}/shared-home`;
     Deno.mkdirSync(`${sharedHome}/.git-auth`, { recursive: true });
-    const marker = `[credential "https://github.com"]\n\thelper =\n\thelper = ${sharedHome}/.git-auth/bin/git-credential\n`;
+    const marker =
+      `[credential "https://github.com"]\n\thelper =\n\thelper = ${sharedHome}/.git-auth/bin/git-credential\n`;
     Deno.writeTextFileSync(
       `${sharedHome}/.git-auth/gitconfig.fragment`,
       marker,
@@ -503,28 +507,7 @@ Deno.test("image builds resolve the commit metadata where git is available", () 
 });
 
 const routeDirectory = "tekton/v1/triggers/triggers/env-gcp/_/fake-github/";
-function overlay(
-  trigger: Trigger,
-  key: string,
-  body: ReturnType<typeof payload>,
-  header: Header,
-  field = "",
-) {
-  const expressions =
-    trigger.spec.interceptors.slice(-1).flatMap((interceptor) =>
-      interceptor.params
-    )
-      .find((param) => param.name === "overlays")!.value;
-  assert(typeof expressions !== "string");
-  const expression =
-    expressions.find((overlay) => overlay.key === key)!.expression;
-  return evaluate(
-    `(${expression})${field ? `["${field}"]` : ""}`,
-    body,
-    header,
-    precedingExtensions(trigger, body, header),
-  );
-}
+const cseRepositories = ["tidbcloud/cloud-storage-engine", "pingcap/ticse"];
 
 Deno.test("shared Devbuild routes pin product/revision and select one platform run", async (t) => {
   const routes = [
@@ -575,9 +558,8 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
               `fake-github-${routeKind}`
           );
           assertEquals(
-            candidates.filter((route) =>
-              filter(route.trigger, body, header)
-            ).length,
+            candidates.filter((route) => filter(route.trigger, body, header))
+              .length,
             1,
           );
           assertEquals(
@@ -652,18 +634,16 @@ Deno.test("shared Devbuild routes pin product/revision and select one platform r
           ) {
             header["ce-paramplatform"] = platform;
             assertEquals(
-              candidates.filter((route) =>
-                filter(route.trigger, body, header)
-              ).length,
+              candidates.filter((route) => filter(route.trigger, body, header))
+                .length,
               0,
             );
           }
           header["ce-paramplatform"] = `linux/${arch}`;
           header["ce-type"] = `net.pingcap.tibuild.hotfix.${event}`;
           assertEquals(
-            candidates.filter((route) =>
-              filter(route.trigger, body, header)
-            ).length,
+            candidates.filter((route) => filter(route.trigger, body, header))
+              .length,
             0,
           );
 
@@ -711,11 +691,20 @@ Deno.test("legacy canonical events and old products retain shared route behavior
       );
     }
     for (
-      const [repo, component, timeout] of [["pingcap/tidb", "tidb", "40m"], [
-        "tidbcloud/cloud-storage-engine",
-        "tikv",
-        "2h30m",
-      ], ["tidbcloud/tiflash-cse", "tiflash", "2h"]]
+      const [repo, component, timeout] of [
+        ["pingcap/tidb", "tidb", "40m"],
+        [
+          "tidbcloud/cloud-storage-engine",
+          "tikv",
+          "2h30m",
+        ],
+        ["pingcap/ticse", "tikv", "2h30m"],
+        [
+          "tidbcloud/tiflash-cse",
+          "tiflash",
+          "2h",
+        ],
+      ]
     ) {
       const body = payload(repo, kind);
       header["ce-paramproduct"] = component;
@@ -775,6 +764,7 @@ Deno.test("old products retain multi-platform and Darwin routing", () => {
         // Allow-listed upstream repositories keep multi-platform/Darwin routing.
         ["pingcap/tidb", "tidb", 1],
         ["tidbcloud/cloud-storage-engine", "tikv", 1],
+        ["pingcap/ticse", "tikv", 1],
         // Renamed / arbitrary forks are rejected: the allowlist keys on full_name.
         ["custom-owner/custom-fork", "tidb", 0],
         ["custom-owner/tidb", "tidb", 0],
@@ -802,6 +792,264 @@ Deno.test("old products retain multi-platform and Darwin routing", () => {
         );
       }
     }
+  }
+});
+
+Deno.test("TiCSE keeps both source identities and TiKV manual-build contracts", async (t) => {
+  for (const kind of ["branch-push", "pr", "tag-create"]) {
+    const routes = ["", "-single-platform", "-darwin"].map((suffix) =>
+      load<Trigger>(`${routeDirectory}fake-github-${kind}${suffix}.yaml`)
+    );
+    for (const repo of cseRepositories) {
+      const body = payload(repo, kind);
+      for (const engine of ["devbuild", "hotfix"]) {
+        for (const product of ["", "tikv", repo.split("/")[1]]) {
+          for (
+            const platform of [
+              "",
+              "linux",
+              "linux/amd64",
+              "linux/arm64",
+              "darwin/amd64",
+              "darwin/arm64",
+            ]
+          ) {
+            await t.step(
+              `${repo}/${kind}/${engine}/${product}/${platform}`,
+              () => {
+                const header: Header = {
+                  "ce-type": `net.pingcap.tibuild.${engine}.${
+                    {
+                      "branch-push": "push",
+                      pr: "pull_request",
+                      "tag-create": "create",
+                    }[kind]
+                  }`,
+                  "ce-paramproduct": product,
+                  "ce-paramplatform": platform,
+                  // CSE source identity and revision remain payload-derived.
+                  "ce-paramgithubrepo": "custom-owner/custom-fork",
+                  "ce-paramgitrevision": "f".repeat(40),
+                };
+                const selected = routes.filter((route) =>
+                  filter(route, body, header)
+                );
+                assertEquals(selected.length, 1);
+                const trigger = selected[0];
+                const expectedTemplate = platform.startsWith("linux/")
+                  ? "build-component-single-platform"
+                  : platform.startsWith("darwin/")
+                  ? "build-component-darwin-mac"
+                  : "build-component-all-platforms-mac";
+                assertEquals(trigger.spec.template.ref, expectedTemplate);
+                assertEquals(
+                  overlay(trigger, "component", body, header),
+                  "tikv",
+                );
+                for (
+                  const [field, expected] of Object.entries({
+                    timeout: "2h30m",
+                    sourceWsSize: "100Gi",
+                    cpu: "12",
+                    memory: "48Gi",
+                  })
+                ) {
+                  assertEquals(
+                    overlay(trigger, "resource-config", body, header, field),
+                    expected,
+                  );
+                }
+                assertEquals(
+                  overlay(trigger, "registry", body, header),
+                  `us-docker.pkg.dev/pingcap-testing-account/${
+                    engine === "hotfix" ? "hotfix" : "dev"
+                  }`,
+                );
+                for (
+                  const [profile, expected] of [["", "release"], [
+                    "community",
+                    "release",
+                  ], ["nextgen", "nextgen"]]
+                ) {
+                  header["ce-paramprofile"] = profile;
+                  assertEquals(
+                    overlay(trigger, "custom-params", body, header, "profile"),
+                    expected,
+                  );
+                }
+                if (platform.startsWith("linux/")) {
+                  assertEquals(
+                    overlay(trigger, "source", body, header, "revision"),
+                    kind === "tag-create" ? body.ref : sha,
+                  );
+                }
+                const params = trigger.spec.bindings!;
+                const shared = params.find((param) =>
+                  param.ref === `github-${kind}`
+                );
+                const gitUrl = shared
+                  ? load<{ spec: { params: Param[] } }>(
+                    `tekton/v1/triggers/bindings/${shared.ref}.yaml`,
+                  ).spec.params.find((param) => param.name === "git-url")?.value
+                  : params.find((param) => param.name === "git-url")?.value;
+                assertEquals(
+                  gitUrl,
+                  "https://github.com/$(body.repository.full_name).git",
+                );
+                if (shared) {
+                  const revision = load<{ spec: { params: Param[] } }>(
+                    `tekton/v1/triggers/bindings/${shared.ref}.yaml`,
+                  ).spec.params.find((param) => param.name === "git-revision")
+                    ?.value;
+                  assertEquals(
+                    revision,
+                    kind === "branch-push"
+                      ? "$(body.after)"
+                      : kind === "pr"
+                      ? "$(body.pull_request.head.sha)"
+                      : "$(body.ref)",
+                  );
+                }
+                // The product header cannot pick a component: the component
+                // is derived from the allowlisted repository, so naming
+                // another one changes neither the route nor the build.
+                header["ce-paramproduct"] = "tidb";
+                const hijack = routes.filter((route) =>
+                  filter(route, body, header)
+                );
+                assertEquals(hijack.length, 1);
+                assertEquals(
+                  overlay(hijack[0], "component", body, header),
+                  "tikv",
+                );
+              },
+            );
+          }
+        }
+      }
+    }
+    const header: Header = {
+      "ce-paramproduct": "tikv",
+      "ce-paramgithubrepo": "pingcap/ticse",
+    };
+    for (
+      const repo of [
+        "pingcap/cloud-storage-engine",
+        "tidbcloud/ticse",
+        "custom-owner/ticse",
+        "dillon-zheng/cse-migration",
+      ]
+    ) {
+      for (const platform of ["", "linux/amd64", "darwin/arm64"]) {
+        header["ce-paramplatform"] = platform;
+        assertEquals(
+          routes.filter((route) => filter(route, payload(repo, kind), header))
+            .length,
+          0,
+          repo,
+        );
+      }
+    }
+  }
+});
+
+Deno.test("TiCSE formal routes preserve branches, tags and the version placeholder", () => {
+  const directory = "tekton/v1/triggers/triggers/env-gcp/_/";
+  const push = load<Trigger>(`${directory}git-push-branch-build-ng.yaml`);
+  const tag = load<Trigger>(`${directory}git-create-tag-build-ng.yaml`);
+  const branch = load<Trigger>(`${directory}git-create-branch-ng.yaml`);
+  for (const repo of cseRepositories) {
+    const body = payload(repo, "branch-push");
+    for (
+      const name of [
+        "cloud-engine",
+        "dedicated",
+        "release-nextgen-202609",
+        "release-nextgen-26.3.21-20261111",
+      ]
+    ) {
+      body.ref = `refs/heads/${name}`;
+      assert(filter(push, body), `${repo}/${name}`);
+    }
+    for (const name of ["master", "main", "feature/test"]) {
+      body.ref = `refs/heads/${name}`;
+      assertFalse(filter(push, body), `${repo}/${name}`);
+    }
+    // A tag event carries `ref_type`, which the tag trigger requires.
+    const tagBody = payload(repo, "tag-create");
+    for (const version of ["v26.3.21", "v8.5.4-nextgen.202510.1"]) {
+      tagBody.ref = version;
+      assert(filter(tag, tagBody), `${repo}/${version}`);
+    }
+    for (const version of ["v8.5.4", "custom-build-tag", "v26.3.21-rc.1"]) {
+      tagBody.ref = version;
+      assertFalse(filter(tag, tagBody), `${repo}/${version}`);
+    }
+    // The branch-push route was raised to 1h in #5588; the tag route still
+    // carries the older 30m budget.
+    for (const [trigger, timeout] of [[push, "1h"], [tag, "30m"]] as const) {
+      assertEquals(overlay(trigger, "component", body, {}), "tikv");
+      assertEquals(overlay(trigger, "profile", body, {}), "nextgen");
+      for (
+        const [field, expected] of Object.entries({
+          timeout,
+          sourceWsSize: "100Gi",
+          cpu: "12",
+          memory: "48Gi",
+        })
+      ) {
+        assertEquals(
+          overlay(trigger, "resource-config", body, {}, field),
+          expected,
+        );
+      }
+      assertEquals(trigger.spec.template.ref, "build-component-linux");
+    }
+    // A branch-creation event carries `ref_type` too.
+    const branchBody: Body = {
+      ...payload(repo, "branch-push"),
+      ref_type: "branch",
+    };
+    for (
+      const name of [
+        "release-nextgen-202609",
+        "release-nextgen-26.3.21-20261111",
+      ]
+    ) {
+      branchBody.ref = name;
+      assert(filter(branch, branchBody), `${repo}/${name}`);
+    }
+    branchBody.ref = "cloud-engine";
+    assertFalse(filter(branch, branchBody));
+    assertEquals(
+      branch.spec.template.ref,
+      "bump-placeholder-version-in-readme",
+    );
+  }
+  const formalParams = load<{ spec: { params: Param[] } }>(
+    "tekton/v1/triggers/bindings/gcp-ng-build-params.yaml",
+  );
+  assertEquals(
+    formalParams.spec.params.find((param) => param.name === "registry")?.value,
+    "us-docker.pkg.dev/pingcap-testing-account/tidbx",
+  );
+  for (
+    const repo of [
+      "pingcap/cloud-storage-engine",
+      "tidbcloud/ticse",
+      "custom-owner/ticse",
+      "dillon-zheng/cse-migration",
+    ]
+  ) {
+    const body: Body = payload(repo, "branch-push");
+    body.ref = "refs/heads/cloud-engine";
+    assertFalse(filter(push, body));
+    body.ref = "v26.3.21";
+    body.ref_type = "tag";
+    assertFalse(filter(tag, body));
+    body.ref = "release-nextgen-202609";
+    body.ref_type = "branch";
+    assertFalse(filter(branch, body));
   }
 });
 

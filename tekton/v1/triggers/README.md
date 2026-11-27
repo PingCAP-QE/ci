@@ -46,9 +46,22 @@ authorized, but they must never admit a repository or replace its identity.
   organisations, so matching on it would let e.g. `attacker/tidb` through.
   Building renamed/temporary forks is intentionally disabled for now — see
   "Known regression" in item 4.
-- `ce-paramProduct` may pick the build component, but the filter requires it to
-  agree with the repository name (with the `cloud-storage-engine`/`tikv` and
-  `tiflash-cse`/`tiflash` aliases). It never widens the repository allowlist.
+- `ce-paramProduct` never widens the repository allowlist, and it cannot pick
+  the component either: every devbuild route derives `component` from the
+  allow-listed `body.repository.full_name` (with the `tidbcloud/*` and
+  `pingcap/ticse` overrides). The Serverless routes are the only exception —
+  there the product *is* the component, so it must name the Serverless
+  repository.
+- Do **not** require `ce-paramProduct` to equal `body.repository.name`. A
+  component legitimately lives in a repository with another name
+  (`ticdc-newarch` in `pingcap/ticdc`, `br` / `dumpling` / `tidb-lightning` in
+  `pingcap/tidb`, `drainer` / `pump` in `pingcap/tidb-binlog`, `dm` in
+  `pingcap/tiflow`), and a caller may pair a component with an explicit
+  repository. #5474 added that equality check while hardening the allowlist;
+  it rejected those builds without changing what the route would have built,
+  and because a rejected event produces no `PipelineRun` the devbuilds sat in
+  `PENDING` silently (2026-11-06 .. 2026-11-13, five devbuilds including a
+  `ticdc-newarch` hotfix).
 - Do not re-introduce a "this repo is allowlisted" header such as
   `ce-paramGithubRepo`. That pattern let any non-allowlisted repository through
   (security finding `655d8930-bebf-4acc-9a20-2eddb0383c20`).

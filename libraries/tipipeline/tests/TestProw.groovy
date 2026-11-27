@@ -301,89 +301,76 @@ class TestProw {
         }
     }
 
-    static class SubmoduleRemotes {
-        @Test
-        void shouldAllowSubmodulesInsideTheJobsOwnOrganization() {
-            def script = loadProw()
-            assertEquals([], script.submoduleRemoteViolations("""
-                [submodule "extension"]
-                    path = pkg/extension/enterprise
-                    url = git@github.com:pingcap/tidb-engine-ext.git
-            """, 'pingcap', script.defaultSubmoduleSshOrgs()))
-        }
-
-        @Test
-        void shouldAllowAnyPublicHttpsSubmodule() {
-            // tiflash vendors dozens of third-party repositories over https.
-            def script = loadProw()
-            assertEquals([], script.submoduleRemoteViolations("""
-                [submodule "zstd"]
-                    url = https://github.com/facebook/zstd.git
-                [submodule "grpc"]
-                    url = https://github.com/grpc/grpc
-                [submodule "cse"]
-                    url = git@github.com:tidbcloud/cloud-storage-engine.git
-            """, 'pingcap', script.defaultSubmoduleSshOrgs()))
-        }
-
-        @Test
-        void shouldRefuseAnSshSubmoduleOutsideTheAllowlist() {
-            def script = loadProw()
-            def violations = script.submoduleRemoteViolations("""
-                [submodule "secret"]
-                    url = git@github.com:other-org/private-repo.git
-            """, 'pingcap', script.defaultSubmoduleSshOrgs())
-
-            assertEquals(1, violations.size())
-            assertTrue(violations[0].contains("other-org"))
-        }
-
-        @Test
-        void shouldRefuseASubmoduleOnAnotherHost() {
-            def script = loadProw()
-            def violations = script.submoduleRemoteViolations("""
-                [submodule "x"]
-                    url = git@example.com:pingcap/tidb.git
-                [submodule "y"]
-                    url = http://github.com/pingcap/tidb.git
-            """, 'pingcap', script.defaultSubmoduleSshOrgs())
-
-            assertEquals(2, violations.size())
-            assertTrue(violations.every { it.contains('is not a github.com URL') })
-        }
-
-        @Test
-        void shouldResolveRelativeSubmoduleUrlsInsideTheJobsOrganization() {
-            def script = loadProw()
-            assertEquals([], script.submoduleRemoteViolations("""
-                [submodule "tipb"]
-                    url = ../tipb.git
-                [submodule "kvproto"]
-                    url = ./kvproto.git
-            """, 'pingcap', script.defaultSubmoduleSshOrgs()))
-        }
-
-        @Test
-        void shouldRefuseTheUpdateWithoutFetchingAnything() {
-            def events = []
+    /**
+     * The submodule transport has exactly two shapes, chosen by whether the
+     * instance has a token broker. There is no client-side `.gitmodules` check
+     * any more: the broker policy decides which repositories a pull request may
+     * reach, so `.gitmodules` is no longer a control that can be bypassed.
+     */
+    static class SubmoduleTransport {
+        private static List renderUpdate(Map env, String jobName = 'pingcap/tidb/release-8.5/pull_build') {
+            final events = []
             def script = loadProw(
-                env: [JOB_NAME: 'pingcap/tidb/latest/pull_build', GIT_CDN_ENABLED: 'true'],
-                readFile: { Map args -> "url = git@github.com:other-org/private-repo.git\n" },
+                env: [JOB_NAME: jobName, WORKSPACE: '/tmp/ws'] + env,
+                libraryResource: { String path -> '#!/bin/sh\nexit 0\n' },
+                writeFile: { Map args -> events << "write:${args.file}".toString() },
+                readFile: { Map args -> "url = git@github.com:pingcap-inc/enterprise-extensions.git\n" },
                 sshagent: { Map args, Closure body -> body() },
-                sh: { Map args -> events << (args.label ?: 'sh') },
-                error: { String message -> throw new IllegalStateException(message) })
+                withEnv: { List envs, Closure body ->
+                    events << ('env:' + envs.collect { it.toString() }.join(' '))
+                    body()
+                },
+                sh: { Map args -> events << (args.script ?: '').toString() })
 
-            try {
-                script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
-                                     base_sha: 'abcdef1234567890',
-                                     pulls: [[number: 12, sha: '1234567890abcdef']]],
-                    'github-bot-ssh', 7, true)
-                fail('expected the submodule update to be refused')
-            } catch (IllegalStateException expected) {
-                assertTrue(expected.message.contains('refusing to update submodules'))
-            }
-            assertFalse('no submodule fetch may run',
-                events.any { it == 'Update submodules' })
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890',
+                                 pulls: [[number: 12, sha: '1234567890abcdef']]],
+                'github-bot-ssh', 7, true)
+            return events
+        }
+
+        @Test
+        void shouldFetchSubmodulesThroughTheBrokerWhenItIsEnabled() {
+            final events = renderUpdate([GIT_BROKER_ENABLED: 'true',
+                                         GIT_BROKER_URL   : 'http://broker.example'])
+
+            final update = events.find { it.contains('git submodule update') }
+            assertTrue("the update still runs:\n${events}", update != null)
+            assertFalse("the broker path must not fall back to the SSH key:\n${update}",
+                update.contains('GIT_SSH_COMMAND'))
+
+            final scope = events.find { it.startsWith('env:') && it.contains('GIT_ASKPASS=') }
+            assertTrue("a broker credential helper must be installed: ${events}", scope != null)
+            // `withEnv` only overrides what it names, and the main checkout wraps
+            // this step with its own repository list. Naming the variable with an
+            // empty value is what keeps the broker policy (not that list) the
+            // gate for `.gitmodules` content.
+            assertTrue("the update must clear any inherited allowlist:\n${scope}",
+                scope.contains('GIT_CREDENTIAL_ALLOWED_REPOS='))
+            assertFalse("it must not install a list of its own:\n${scope}",
+                scope.matches('.*GIT_CREDENTIAL_ALLOWED_REPOS=\\S+.*'))
+        }
+
+        @Test
+        void shouldNotRefuseASubmoduleForBeingOutsideAClientSideAllowlist() {
+            // The `.gitmodules` above names pingcap-inc, which is not the job's
+            // own organization. That used to be a refusal; the decision now
+            // belongs to the broker policy.
+            final events = renderUpdate([GIT_BROKER_ENABLED: 'true',
+                                         GIT_BROKER_URL   : 'http://broker.example'])
+            assertTrue('the update must run instead of being refused',
+                events.any { it.contains('git submodule update') })
+        }
+
+        @Test
+        void shouldFallBackToTheInheritedCredentialWithoutABroker() {
+            final events = renderUpdate([:])
+
+            final update = events.find { it.contains('git submodule update') }
+            assertTrue("the legacy transport is kept:\n${update}",
+                update.contains('GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes"'))
+            assertTrue("and the log says why:\n${update}",
+                update.contains('has no Git token broker'))
         }
     }
 
@@ -557,6 +544,50 @@ class TestProw {
         }
 
         @Test
+        void shouldNeverExportACaFile() {
+            // Every broker endpoint is fronted by a gateway that presents the
+            // public *.pingcap.net certificate, so the image's own roots are the
+            // trust anchor. No CA must be passed, and a stale setting left in an
+            // environment or a caller must not reintroduce one.
+            def run = { Map env, Map cfg ->
+                def events = []
+                def script = loadProw(
+                    env: [WORKSPACE: '/tmp/ws'] + env,
+                    libraryResource: { String path -> 'broker askpass' },
+                    writeFile: { Map args -> },
+                    sh: { Map args -> },
+                    withEnv: { List environment, Closure body ->
+                        events << environment.collect { it.toString() }
+                        body()
+                    },
+                )
+                script.withGitAskPassFromBroker(cfg) {}
+                return events[0]
+            }
+
+            def httpsDefault = run([GIT_BROKER_URL: 'https://broker.example'],
+                [repo: 'pingcap/tidb'])
+            assertFalse('https broker passes no CA bundle',
+                httpsDefault.any { it.toString().startsWith('TIPIPELINE_BROKER_CA_FILE=') })
+
+            def plaintext = run([GIT_BROKER_URL: 'http://broker.example'],
+                [repo: 'pingcap/tidb'])
+            assertFalse('plaintext broker passes no CA bundle',
+                plaintext.any { it.toString().startsWith('TIPIPELINE_BROKER_CA_FILE=') })
+
+            def staleEnv = run([GIT_BROKER_URL: 'https://broker.example',
+                                GIT_BROKER_CA_FILE: '/cluster/ca.crt'],
+                [repo: 'pingcap/tidb'])
+            assertFalse('a stale GIT_BROKER_CA_FILE is ignored',
+                staleEnv.any { it.toString().startsWith('TIPIPELINE_BROKER_CA_FILE=') })
+
+            def staleCaller = run([GIT_BROKER_URL: 'https://broker.example'],
+                [caFile: '/custom/ca.crt', repo: 'pingcap/tidb'])
+            assertFalse('a caller supplied caFile is ignored',
+                staleCaller.any { it.toString().startsWith('TIPIPELINE_BROKER_CA_FILE=') })
+        }
+
+        @Test
         void shouldAppendToExistingGitConfigEntries() {
             def events = []
             def script = loadProw(
@@ -594,6 +625,107 @@ class TestProw {
             } catch (IllegalArgumentException expected) {
                 assertTrue(expected.message.contains('GIT_BROKER_URL'))
             }
+        }
+    }
+
+    static class CredentialScope {
+        private def loadWithEnvCapture(Map env, List envs) {
+            return loadProw(
+                env: [WORKSPACE: '/tmp/ws', JOB_NAME: 'pingcap/tidb/release-8.5/pull_build'] + env,
+                libraryResource: { String path -> 'askpass' },
+                writeFile: { Map args -> },
+                readFile: { Map args -> '' },
+                sh: { Map args -> },
+                usernamePassword: { Map args -> 'credentials' },
+                withCredentials: { List args, Closure body -> body() },
+                withEnv: { List environment, Closure body ->
+                    envs << environment.collect { it.toString() }
+                    body()
+                },
+                sshagent: { Map args, Closure body -> body() },
+            )
+        }
+
+        private static def scopeOf(List envs) {
+            return envs.flatten().find { it.toString().startsWith('GIT_CREDENTIAL_ALLOWED_REPOS=') }
+        }
+
+        @Test
+        void shouldScopeTheHttpCredentialToTheJobRepositoryAndOrganization() {
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https'], envs)
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, true)
+
+            final scope = scopeOf(envs)
+            assertTrue('the checkout names the repositories its credential may be spent on',
+                scope != null)
+            assertTrue("this repository: ${scope}", scope.contains('pingcap/tidb'))
+            assertTrue("its organization: ${scope}", scope.contains('pingcap/*'))
+            assertFalse("submodule organizations are the broker policy's call now: ${scope}",
+                scope.contains('pingcap-inc/*') || scope.contains('tidbcloud/*'))
+        }
+
+        @Test
+        void shouldAskGitForTheRepositoryPathWhenTheCredentialIsScoped() {
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https'], envs)
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, true)
+
+            final flat = envs.flatten().collect { it.toString() }
+            assertTrue("the helper is told the repository, so git must put it in the prompt: ${flat}",
+                flat.contains('GIT_CONFIG_KEY_0=credential.useHttpPath') &&
+                    flat.contains('GIT_CONFIG_VALUE_0=true'))
+            assertTrue("and it must append to the controller's config: ${flat}",
+                flat.contains('GIT_CONFIG_COUNT=1'))
+        }
+
+        @Test
+        void shouldScopeTheBrokerCredentialTheSameWay() {
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_BROKER_ENABLED: 'true', GIT_BROKER_URL: 'http://broker.example',
+                 GIT_BROKER_ORGS: 'tidbcloud',
+                 JOB_NAME: 'tidbcloud/cloud-storage-engine/cloud-engine/pull_integration_test'], envs)
+
+            script.checkoutRefs([org: 'tidbcloud', repo: 'cloud-storage-engine',
+                                 base_ref: 'cloud-engine', base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, false)
+
+            final scope = scopeOf(envs)
+            assertTrue('the broker path is scoped too', scope != null)
+            assertTrue("this repository: ${scope}", scope.contains('tidbcloud/cloud-storage-engine'))
+            assertFalse("no implicit submodule organizations: ${scope}", scope.contains('pingcap-inc/*'))
+        }
+
+        @Test
+        void shouldIgnoreSubmoduleSettingsWhenScopingTheMainCheckout() {
+            // GIT_SUBMODULE_SSH_ORGS was the client-side submodule allowlist.
+            // It must not widen the main checkout scope either, or deleting the
+            // allowlist would leave a second, quieter one behind.
+            def envs = []
+            def script = loadWithEnvCapture(
+                [GIT_CDN_ENABLED: 'true', GIT_HTTP_CREDENTIALS_ID: 'github-bot-https',
+                 GIT_SUBMODULE_SSH_ORGS: 'acme, other'], envs)
+
+            script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
+                                 base_sha: 'abcdef1234567890', pulls: []],
+                'github-bot-ssh', 7, true)
+
+            final scope = scopeOf(envs)
+            assertEquals('pingcap/tidb pingcap/*', scope.split('=')[1])
+        }
+
+        @Test
+        void shouldNotNameARepositoryItDoesNotHave() {
+            assertEquals('', loadProw().credentialAllowedRepos([:]))
         }
     }
 

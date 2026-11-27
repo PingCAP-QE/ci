@@ -110,6 +110,50 @@ else
     fail "the runner failed when executed from outside the repository: $(tail -2 "${fixture}/out4" | head -1)"
 fi
 
+# `pod-yaml` is the gate whose Pod carries the `gar-reader` Workload Identity,
+# so the same fence has to cover it: a PR that breaks a template and rewrites
+# the gate must still be judged by the base revision's gate, never by its own.
+# CRANE_BIN is pointed at a name that does not exist so the case stays offline;
+# the structural checks below run either way.
+cat >jenkins/jobs/example/repo/latest/demo/pod.yaml <<'YAML'
+apiVersion: v1
+kind: Pod
+spec:
+  # An explicit null silently overrides the Pod default; the gate rejects it.
+  nodeSelector:
+  containers:
+    - name: runner
+      image: ghcr.io/pingcap-qe/ci/jenkins:v2026.3.22-4-gd9d1135
+YAML
+printf '#!/bin/sh\nexit 0\n' >.ci/verify-k8s-pod-yaml.sh
+git add -A
+git commit -q -m "break the pod template and neuter the crane gate"
+pod_yaml=jenkins/jobs/example/repo/latest/demo/pod.yaml
+
+if CRANE_BIN=__no_crane__ sh .ci/verify-k8s-pod-yaml.sh "${pod_yaml}" >/dev/null 2>&1; then
+    pass "the pull request's own copy of the pod-yaml gate is fooled (documents the bypass)"
+else
+    fail "expected the neutered in-tree pod-yaml gate to pass"
+fi
+
+if CRANE_BIN=__no_crane__ PULL_BASE_SHA="${base_sha}" PULL_PULL_SHA="HEAD" \
+    bash .ci/run-policy-gate.sh pod-yaml "${pod_yaml}" >"${fixture}/out5" 2>&1; then
+    fail "the fenced pod-yaml gate accepted a template with an explicit null node"
+elif ! grep -q 'explicit null nodes are not allowed' "${fixture}/out5"; then
+    fail "the fenced pod-yaml gate failed for the wrong reason: $(tail -2 "${fixture}/out5" | head -1)"
+else
+    pass "the fenced pod-yaml gate blocks the broken template"
+fi
+
+git checkout -q "${base_sha}" -- "${pod_yaml}" .ci/verify-k8s-pod-yaml.sh
+git commit -q -am "revert the template and the gate" || true
+if CRANE_BIN=__no_crane__ PULL_BASE_SHA="${base_sha}" PULL_PULL_SHA="HEAD" \
+    bash .ci/run-policy-gate.sh pod-yaml "${pod_yaml}" >"${fixture}/out6" 2>&1; then
+    pass "the fenced pod-yaml gate accepts an unchanged template"
+else
+    fail "the fenced pod-yaml gate rejected an unchanged template: $(tail -2 "${fixture}/out6" | head -1)"
+fi
+
 if [ "$failures" -ne 0 ]; then
     echo "run-policy-gate tests failed: $failures" >&2
     exit 1

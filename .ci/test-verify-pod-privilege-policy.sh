@@ -256,6 +256,36 @@ PROW_PLAIN='presubmits:
           - name: runner
             image: example.invalid/image:1'
 
+# A template can spell its containers with an alias, or assemble `spec` with a
+# merge key. A gate that only accepts a literal sequence node drops the file and
+# passes, which is exactly the escape these cases cover.
+ALIASED_CONTAINERS_POD='apiVersion: v1
+kind: Pod
+anchors:
+  privileged_containers: &c
+    - name: dockerd
+      image: example.invalid/image:1
+      securityContext:
+        privileged: true
+spec:
+  containers: *c'
+
+MERGED_SPEC_POD='apiVersion: v1
+kind: Pod
+base: &base
+  containers:
+    - name: dockerd
+      image: example.invalid/image:1
+      securityContext:
+        privileged: true
+spec:
+  <<: *base'
+
+UNPARSEABLE_POD='apiVersion: v1
+kind: Pod
+spec:
+  containers: ['
+
 PROW_PERIODIC_HOSTPATH='periodics:
   - name: e2e-kind
     spec:
@@ -268,8 +298,33 @@ PROW_PERIODIC_HOSTPATH='periodics:
             path: /sys/fs/cgroup
             type: Directory'
 
+# A job folder also holds files that are not Pod specs: the pipeline itself
+# (`Jenkinsfile`), the Job DSL, and occasional values files. They carry no
+# privilege surface, so the gate skips them — but it has to stay successful
+# while doing so. Collecting a candidate used to return the status of "this is
+# not a Prow job definition", which aborted the whole gate under `set -e` and
+# failed the presubmit with no output at all.
+JENKINSFILE_PATH="jenkins/jobs/pingcap/demo/job/Jenkinsfile"
+JENKINSFILE_BODY='pipeline {
+  agent none
+  stages {
+    stage("noop") {
+      steps {
+        echo "noop"
+      }
+    }
+  }
+}'
+
+NON_POD_YAML_PATH="jenkins/jobs/pingcap/demo/job/values.yaml"
+NON_POD_YAML_BODY='image:
+  repository: example.invalid/demo
+  tag: "1"'
+
 failed=0
 run_case "plain_pod" "pass" "${POD_PATH}" "${PLAIN_POD}" || failed=1
+run_case "jenkinsfile_under_jenkins_jobs_is_skipped" "pass" "${JENKINSFILE_PATH}" "${JENKINSFILE_BODY}" || failed=1
+run_case "non_pod_yaml_under_jenkins_jobs_is_skipped" "pass" "${NON_POD_YAML_PATH}" "${NON_POD_YAML_BODY}" || failed=1
 run_case "secret_env_without_allowlist" "fail" "${POD_PATH}" "${SECRET_ENV_POD}" || failed=1
 run_case "secret_env_allowlisted" "pass" "${POD_PATH}" "${SECRET_ENV_POD}" \
   "secret\t${POD_REGEX}\tgithub-token\t2999-12-31\ttest exemption" || failed=1
@@ -281,6 +336,9 @@ run_case "non_default_service_account_allowlisted" "pass" "${POD_PATH}" "${NON_D
   "serviceAccount\t${POD_REGEX}\tprow-pusher\t2999-12-31\ttest exemption" || failed=1
 run_case "default_service_account_is_fine" "pass" "${POD_PATH}" "${DEFAULT_SA_POD}" || failed=1
 run_case "privileged_container" "fail" "${POD_PATH}" "${PRIVILEGED_POD}" || failed=1
+run_case "privileged_container_behind_an_alias" "fail" "${POD_PATH}" "${ALIASED_CONTAINERS_POD}" || failed=1
+run_case "privileged_container_behind_a_merge_key" "fail" "${POD_PATH}" "${MERGED_SPEC_POD}" || failed=1
+run_case "unparseable_template_fails_closed" "fail" "${POD_PATH}" "${UNPARSEABLE_POD}" || failed=1
 run_case "privileged_init_container" "fail" "${POD_PATH}" "${PRIVILEGED_INIT_POD}" || failed=1
 run_case "privileged_false_is_fine" "pass" "${POD_PATH}" "${NOT_PRIVILEGED_POD}" || failed=1
 run_case "allowlisted_container" "pass" "${POD_PATH}" "${PRIVILEGED_POD}" \

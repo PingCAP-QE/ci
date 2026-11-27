@@ -32,7 +32,7 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
         final remoteUrl = cdnEnabled
             ? "git@github.com:${refs.org}/${refs.repo}.git"
             : publicRemoteUrl(refs, gitBaseUrl)
-        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}"]) {
+        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}", allowedRepos: credentialAllowedRepos(refs)]) {
             _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule)
         }
         return
@@ -51,7 +51,7 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
 
     def checkoutWithHttpCredentials = {
         if (cdnEnabled && httpCredentialsId) {
-            withGitAskPass(httpCredentialsId, checkout)
+            withGitAskPass(httpCredentialsId, checkout, credentialAllowedRepos(refs))
         } else {
             checkout()
         }
@@ -82,6 +82,9 @@ def checkoutRefs(refs, credentialsId = '', timeout = 5, withSubmodule = false, g
  *   repo        owner/repository used when the git prompt carries no path.
  *   permissions JSON permission set, default {"contents":"read"}.
  *   brokerUrl   overrides GIT_BROKER_URL.
+ *   policyOnly  no client-side repository list: the broker policy for this
+ *               caller is the only gate. Exported explicitly, because an
+ *               enclosing checkout scope may have exported its own list.
  */
 def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
     final brokerUrl = cfg.brokerUrl?.toString()?.trim() ?: env.GIT_BROKER_URL?.toString()?.trim()
@@ -89,7 +92,15 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
         throw new IllegalArgumentException(
             'withGitAskPassFromBroker requires cfg.brokerUrl or the GIT_BROKER_URL environment variable')
     }
+    // No CA plumbing: every broker endpoint this library talks to is fronted by
+    // a gateway that presents the public `*.pingcap.net` certificate, which the
+    // agent images already trust. The helper therefore never passes --cacert, so
+    // it cannot accidentally replace the image's roots or fail on a missing
+    // bundle. A future cluster-internal broker endpoint has to bring its own
+    // trust story instead of relying on an implicit path here.
     final repo = cfg.repo?.toString()?.trim() ?: ''
+    final allowedRepos = cfg.allowedRepos?.toString()?.trim() ?: ''
+    final policyOnly = cfg.policyOnly?.toString()?.toBoolean() ?: false
     final permissions = cfg.permissions ?: '{"contents":"read"}'
     // The controllers already provide git configuration through GIT_CONFIG_*
     // (git-cdn insteadOf rewrites). Append to it instead of resetting the count.
@@ -116,12 +127,40 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
             "GIT_CONFIG_VALUE_${baseConfigCount}=git@github.com:",
             "GIT_CONFIG_KEY_${baseConfigCount + 1}=credential.useHttpPath",
             "GIT_CONFIG_VALUE_${baseConfigCount + 1}=true",
-        ]) {
+        ] + (allowedRepos ? ["GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos}"] : []) +
+            (policyOnly ? ['GIT_CREDENTIAL_ALLOWED_REPOS='] : [])) {
             body()
         }
     } finally {
         sh label: 'Remove Git HTTP credential helper (token broker)', script: "rm -f '${askPassScript}' '${cacheFile}'"
     }
+}
+
+/*
+ * Repositories the checkout scope may spend its Git credential on.
+ *
+ * The askpass helpers have a host allowlist, which keeps the credential on
+ * GitHub; it does not keep it off other people's repositories. The URLs a fetch
+ * follows come from the pull request's own content (a rewritten remote), so the
+ * scope is named here, before that content is read: the repository this job
+ * belongs to, and its organization. Anything past that — a submodule, a plugin
+ * checkout — is authorized by the token broker policy for this caller, not by a
+ * second list maintained here.
+ *
+ * Entries are `owner/repo` or `owner/*`, the same vocabulary
+ * GIT_CREDENTIAL_ALLOWED_REPOS understands in the askpass scripts.
+ */
+def credentialAllowedRepos(refs) {
+    final org = refs?.org?.toString()?.trim()?.toLowerCase()
+    final repo = refs?.repo?.toString()?.trim()?.toLowerCase()
+    final entries = []
+    if (org && repo) {
+        entries << "${org}/${repo}"
+    }
+    if (org) {
+        entries << "${org}/*"
+    }
+    return entries.unique().join(' ')
 }
 
 /*
@@ -134,7 +173,7 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
  * every other host gets no credential, so a PR-controlled .gitmodules cannot
  * redirect the bot credential to an attacker host.
  */
-def withGitAskPass(String credentialsId, Closure body) {
+def withGitAskPass(String credentialsId, Closure body, String allowedRepos = '') {
     // Keep the askpass script inside the shared workspace volume but outside
     // the Git worktree. Every caller clones into a workspace subdirectory via
     // dir(), so the workspace root is never touched by git clean/checkout.
@@ -144,12 +183,29 @@ def withGitAskPass(String credentialsId, Closure body) {
     // different filesystem than the container that runs Git.
     final askPassScript = libraryResource 'scripts/git_askpass.sh'
     final tmpAskPassScript = "${env.WORKSPACE}/git-askpass-${UUID.randomUUID().toString()}"
+    // Git asks its credential helper for a bare host unless the path is part of
+    // the credential context, and the helper cannot tell which repository it is
+    // answering for — it would have to refuse, which is a blocked checkout:
+    //   Username for 'http://git-cdn.cache.svc:8000':
+    // With credential.useHttpPath the same prompt names the repository:
+    //   Username for 'http://git-cdn.cache.svc:8000/pingcap-inc/x.git':
+    // The broker helper already sets this; a scoped helper cannot work without it.
+    // Append to whatever GIT_CONFIG_* the controller provided instead of
+    // resetting the count.
+    final baseConfigCount = (env.GIT_CONFIG_COUNT?.toString()?.trim() ?: '0') as int
 
     try {
         writeFile(file: tmpAskPassScript, text: askPassScript)
         sh label: 'Prepare Git HTTP credential helper', script: "chmod 700 '${tmpAskPassScript}'"
         withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'TIPIPELINE_GIT_USERNAME', passwordVariable: 'TIPIPELINE_GIT_PASSWORD')]) {
-            withEnv(["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']) {
+            final envs = ["GIT_ASKPASS=${tmpAskPassScript}", 'GIT_TERMINAL_PROMPT=0']
+            if (allowedRepos?.trim()) {
+                envs << "GIT_CREDENTIAL_ALLOWED_REPOS=${allowedRepos.trim()}"
+                envs << "GIT_CONFIG_COUNT=${baseConfigCount + 1}".toString()
+                envs << "GIT_CONFIG_KEY_${baseConfigCount}=credential.useHttpPath".toString()
+                envs << "GIT_CONFIG_VALUE_${baseConfigCount}=true".toString()
+            }
+            withEnv(envs) {
                 body()
             }
         }
@@ -295,63 +351,6 @@ def assertRefsMatchJob(refs) {
     }
 }
 
-// Organizations whose repositories the bot SSH key may reach through a
-// submodule, on top of the organization the job itself belongs to.
-def defaultSubmoduleSshOrgs() {
-    return 'pingcap,tikv,pingcap-qe,pingcap-inc,tidbcloud'
-}
-
-def submoduleSshOrgs() {
-    final configured = env.GIT_SUBMODULE_SSH_ORGS?.trim()
-    return configured ? configured : defaultSubmoduleSshOrgs()
-}
-
-def readGitmodules() {
-    try {
-        return readFile(file: '.gitmodules')
-    } catch (Exception ignored) {
-        return ''
-    }
-}
-
-// Submodule URLs come from the pull request's own tree and are fetched inside
-// the `sshagent` scope, so a pull request to a public repository could otherwise
-// make the build clone any private repository the bot key can read — landing its
-// contents in the pull request's workspace — or point the fetch at a host of its
-// choosing. Relative URLs (`../x.git`) resolve inside the superproject's own
-// organization and are always fine.
-def submoduleRemoteViolations(String gitmodules, String parentOrg, String sshOrgs) {
-    final allowedOrgs = (splitBrokerAllowlist(sshOrgs) + [(parentOrg ?: '').trim().toLowerCase()])
-        .findAll { it }
-    final httpsPattern = /(?i)^https:\/\/github\.com\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+?)(\.git)?\/?$/
-    final sshPattern = /(?i)^(?:git@github\.com:|ssh:\/\/git@github\.com\/)([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+?)(\.git)?\/?$/
-    final relativePattern = /^\.\.?\/[A-Za-z0-9._\/-]+$/
-    final violations = []
-    (gitmodules ?: '').readLines().each { String line ->
-        final urlMatch = line =~ /^\s*url\s*=\s*(\S+)\s*$/
-        if (!urlMatch.find()) {
-            return
-        }
-        final url = urlMatch.group(1)
-        if (url ==~ relativePattern) {
-            return
-        }
-        if (url ==~ httpsPattern) {
-            return
-        }
-        def sshMatch = url =~ sshPattern
-        if (sshMatch.matches()) {
-            final owner = sshMatch.group(1).toLowerCase()
-            if (!allowedOrgs.contains(owner)) {
-                violations << "${url} would spend the SSH credential on organization '${owner}', which is not on the submodule allowlist"
-            }
-            return
-        }
-        violations << "${url} is not a github.com URL"
-    }
-    return violations
-}
-
 def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     // These values come from JOB_SPEC and end up in a shell script. Reject
     // anything that is not a git object name or a plain branch name so a
@@ -470,16 +469,40 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
     """
 
     if (withSubmodule) {
-        // `.gitmodules` in the worktree now comes from the merged pull request,
-        // so it can only be read once the checkout above has run.
-        final violations = submoduleRemoteViolations(
-            readGitmodules(), refs.org, submoduleSshOrgs())
-        if (violations) {
-            error("refusing to update submodules: ${violations.join('; ')}")
+        updateSubmodules(refs)
+    }
+}
+
+/*
+ * Recursive submodule update.
+ *
+ * With the Git token broker enabled there is exactly one transport: every SSH
+ * submodule URL is rewritten to HTTPS and the broker mints a token per
+ * repository, so which repositories a pull request may fetch is decided by the
+ * broker policy for this caller. `.gitmodules` needs no client-side allowlist —
+ * dropping that parser also drops the check that could be bypassed by a
+ * case-variant `url`, a non-`url` line or a nested `.gitmodules`.
+ *
+ * Instances without a broker keep the inherited SSH credential, and say so in
+ * the log, so a job that silently relies on the old path is easy to spot.
+ */
+def updateSubmodules(refs) {
+    if (env.GIT_BROKER_ENABLED?.trim()?.toBoolean()) {
+        withGitAskPassFromBroker([repo: "${refs.org}/${refs.repo}".toString(), policyOnly: true]) {
+            sh label: 'Update submodules', script: '''#!/usr/bin/env bash
+                set -e
+                echo "📁 update submodules ..."
+                git submodule update --init --recursive
+                echo "✅ update submodules done"
+            '''
         }
-        sh label: 'Update submodules', script: """#!/usr/bin/env bash
+        return
+    }
+
+    sh label: 'Update submodules', script: """#!/usr/bin/env bash
             set -e
             echo "📁 update submodules ..."
+            echo "this instance has no Git token broker: submodules use the inherited credential"
             # Submodule URLs come from the pull request's tree, and the fetch runs
             # with the bot's SSH credential. Verify the host key instead of
             # disabling the check: seed it once, then require a match, so a
@@ -498,7 +521,6 @@ def _checkoutRefsImpl(refs, remoteUrl, timeout, withSubmodule) {
             GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes" git submodule update --init --recursive
             echo "✅ update submodules done"
     """
-    }
 }
 
 // Unique cache save key by refs.

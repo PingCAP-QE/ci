@@ -131,11 +131,12 @@ exit 0
     }
 
     /** Render the submodule step for one `withSubmodule` checkout. */
-    private static Map renderSubmoduleStep(Workspace ws) {
+    private static Map renderSubmoduleStep(Workspace ws, Map extraEnv = [:]) {
         final events = []
         final written = [:]
+        final envScopes = []
         final script = loadProw(
-            env: [JOB_NAME: 'pingcap/tidb/release-8.5/pull_build', WORKSPACE: ws.root.absolutePath],
+            env: [JOB_NAME: 'pingcap/tidb/release-8.5/pull_build', WORKSPACE: ws.root.absolutePath] + extraEnv,
             readFile: { Map args -> '' },
             libraryResource: { String path -> '#!/bin/sh\nexit 0\n' },
             // Jenkins resolves a relative name against the step's current
@@ -147,7 +148,21 @@ exit 0
                 written[args.file] = target.absolutePath
             },
             sshagent: { Map args, Closure body -> body() },
-            sh: { Map args -> events << (args.script ?: '') })
+            withEnv: { List envs, Closure body ->
+                envScopes << envs.collect { it.toString() }
+                body()
+            },
+            sh: { Map args ->
+                final script = args.script ?: ''
+                events << script
+                // The credential helpers are made executable by their own `sh`
+                // step; carry that one effect over so the assertions here see
+                // what the agent would see.
+                final chmod = script =~ /chmod 700 '([^']+)'/
+                if (chmod.find()) {
+                    new File(chmod.group(1)).setExecutable(true)
+                }
+            })
 
         script.checkoutRefs([org: 'pingcap', repo: 'tidb', base_ref: 'release-8.5',
                              base_sha: 'abcdef1234567890',
@@ -158,7 +173,7 @@ exit 0
         if (update == null) {
             fail('the checkout did not render a submodule update step')
         }
-        return [script: update, written: written]
+        return [script: update, written: written, envScopes: envScopes]
     }
 
     @Test
@@ -173,6 +188,23 @@ exit 0
             output.contains('update submodules') && output.contains('fake git: submodule update'))
         assertTrue('the step seeds the SSH host keys before the fetch',
             new File(ws.home, '.ssh').isDirectory())
+    }
+
+    @Test
+    void shouldKeepTheInheritedCredentialAvailableToTheUpdate() {
+        // PingCAP-QE/ci#5568 also set GIT_ASKPASS=/bin/false and cleared the
+        // credential helper for the recursive update. With the SSH key unable to
+        // reach a SAML-enforcing organization, that removed the only credential
+        // that could, and the fetch died with a SAML error instead of fetching.
+        // The credential scope is enforced by the askpass helper (per repository,
+        // through GIT_CREDENTIAL_ALLOWED_REPOS), not by disabling it here.
+        final ws = new Workspace()
+        final rendered = renderSubmoduleStep(ws)
+
+        assertTrue("the update must not disable the inherited credential:\n${rendered.script}",
+            !rendered.script.contains('GIT_ASKPASS=/bin/false'))
+        assertTrue("and must not clear the credential helper:\n${rendered.script}",
+            !rendered.script.contains('credential.helper'))
     }
 
     @Test
@@ -195,6 +227,77 @@ exit 0
         final transport = new File(command)
         assertTrue("${command} must exist after the step ran", transport.isFile())
         assertTrue("${command} must be executable", transport.canExecute())
+    }
+
+    /**
+     * Characterization of the pre-broker behaviour, so the refactor cannot
+     * quietly change what a cluster without a token broker does: the inherited
+     * SSH credential stays the transport, host keys are still seeded, and no
+     * credential helper is installed.
+     */
+    @Test
+    void shouldKeepTheInheritedSshTransportWhenNoTokenBrokerIsConfigured() {
+        final ws = new Workspace()
+        final rendered = renderSubmoduleStep(ws)
+
+        assertTrue("the legacy step must keep the SSH transport:\n${rendered.script}",
+            rendered.script.contains('GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes"'))
+        assertTrue('the legacy step must still seed GitHub host keys',
+            rendered.script.contains('api.github.com/meta'))
+        assertTrue("the legacy step must not install a credential helper:\n${rendered.script}",
+            !rendered.script.contains('GIT_ASKPASS'))
+        assertTrue('the legacy step writes no askpass file',
+            rendered.written.keySet().every { !it.contains('askpass') })
+    }
+
+    /**
+     * The whole point of the refactor: with the broker available there is one
+     * transport (HTTPS + broker token per repository) and no client-side
+     * `.gitmodules` allowlist, so the broker policy alone decides what a pull
+     * request may fetch.
+     */
+    @Test
+    void shouldFetchSubmodulesWithBrokerTokensWhenTheBrokerIsEnabled() {
+        final ws = new Workspace()
+        final rendered = renderSubmoduleStep(ws, [
+            GIT_BROKER_ENABLED: 'true',
+            GIT_BROKER_URL   : 'http://github-token-broker.github-token-broker.svc',
+            GIT_BROKER_ORGS  : 'tidbcloud,pingcap-inc',
+            // Shape of the TKE controllers: 3 git-cdn insteadOf entries already
+            // occupy GIT_CONFIG_KEY_0..2.
+            GIT_CONFIG_COUNT : '3',
+        ])
+
+        assertTrue("the broker path must not fall back to the SSH key:\n${rendered.script}",
+            !rendered.script.contains('GIT_SSH_COMMAND'))
+        assertTrue('the broker path must still run the recursive update',
+            rendered.script.contains('git submodule update --init --recursive'))
+
+        final scope = rendered.envScopes.find { envs -> envs.any { it.startsWith('GIT_ASKPASS=') } }
+        if (scope == null) {
+            fail("no credential helper was installed for the update:\n${rendered.envScopes}")
+        }
+        final askpass = scope.find { it.startsWith('GIT_ASKPASS=') }.split('=', 2)[1]
+        assertTrue("the helper must be executable: ${askpass}", new File(askpass).canExecute())
+        assertTrue("the prompt must name the job's repository:\n${scope}",
+            scope.contains('TIPIPELINE_BROKER_REPO=pingcap/tidb'))
+        assertTrue("SSH submodule URLs must be rewritten to HTTPS:\n${scope}",
+            scope.contains('GIT_CONFIG_KEY_3=url.https://github.com/.insteadOf') &&
+                scope.contains('GIT_CONFIG_VALUE_3=git@github.com:'))
+        assertTrue("the credential prompt must carry the repository path:\n${scope}",
+            scope.contains('GIT_CONFIG_KEY_4=credential.useHttpPath') &&
+                scope.contains('GIT_CONFIG_VALUE_4=true'))
+        assertTrue("the controller's git config must be appended to, not replaced:\n${scope}",
+            scope.contains('GIT_CONFIG_COUNT=5'))
+        // The main checkout exports its own list around this step, and `withEnv`
+        // only overrides what it names — an omitted variable would inherit
+        // `pingcap/tidb pingcap/*` and refuse the private submodule. So the empty
+        // value here is deliberate: it clears the scope and leaves the broker
+        // policy as the only gate.
+        assertTrue("the update must clear any inherited allowlist:\n${scope}",
+            scope.contains('GIT_CREDENTIAL_ALLOWED_REPOS='))
+        assertTrue("and must not install a list of its own:\n${scope}",
+            scope.every { !it.startsWith('GIT_CREDENTIAL_ALLOWED_REPOS=') || it == 'GIT_CREDENTIAL_ALLOWED_REPOS=' })
     }
 
     @Test

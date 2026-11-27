@@ -470,7 +470,12 @@ private Object checkoutWithAuth(Map scmArgs, String brokerRepo) {
             git clean -ffdx || true
             git for-each-ref --format='%(refname)' 'refs/remotes/origin/pr/' | xargs -r -n 1 -I {} git update-ref -d "{}" || true
             timeout ${timeout}m git fetch --force --prune --tags -- '${remote.url}' '${remote.refspec}'
-            git checkout -f '${branch}'
+            # Prefer the fetched remote branch over a stale cached local branch.
+            if git show-ref --verify --quiet 'refs/remotes/origin/${branch}'; then
+                git checkout -B '${branch}' 'refs/remotes/origin/${branch}'
+            else
+                git checkout -f '${branch}'
+            fi
             echo "🧾 HEAD info:"
             git rev-parse HEAD^{commit}
             git log -n 3 --oneline
@@ -882,22 +887,6 @@ def patternMatchAnyFile(pattern, files_list) {
     }
 
     return false
-}
-
-def ks3_upload_fileserver(local, remote, credentialsId="ks3util-config"){
-    withCredentials(
-        [file(credentialsId: "${credentialsId}", variable: 'KS3UTIL_CONF')]
-    ) {
-        sh "ks3util -c \$KS3UTIL_CONF cp -f $local ks3://ee-fileserver/download/${remote}"
-    }
-}
-
-def ks3_download_fileserver(remote, local, credentialsId="ks3util-config"){
-    withCredentials(
-        [file(credentialsId: "${credentialsId}", variable: 'KS3UTIL_CONF')]
-    ) {
-        sh "ks3util -c \$KS3UTIL_CONF cp -f ks3://ee-fileserver/download/${remote} $local"
-    }
 }
 
 def validateAndFilterRefs(componentRefs) {

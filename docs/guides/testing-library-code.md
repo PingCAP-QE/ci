@@ -198,6 +198,26 @@ it with stubs on `PATH`:
 Nothing in these tests reaches the network, and they run with `/bin/sh`, so the
 `groovy:*-jdk17` presubmit image can execute them.
 
+### Real Git checkout tests
+
+`libraries/tipipeline/tests/integration/TestComponentCheckoutStep.groovy` runs the
+actual broker checkout shell against temporary local Git repositories. It covers
+cached branch refreshes, force-pushes, fresh checkouts, tag/SHA/PR-ref fallbacks,
+and same-name branch/tag priority. Git's allowed transports are restricted to
+`file`, so the tests cannot contact GitHub or use real credentials.
+
+```bash
+groovy libraries/tipipeline/tests/integration/TestComponentCheckoutStep.groovy
+```
+
+These tests require Git, Bash, and GNU `timeout`. The library presubmit installs
+Git, then runs both the flat unit tests and `tests/integration/Test*.groovy` as the
+image's non-root `groovy` user. Keeping the Git-dependent tests in a separate
+subdirectory lets the job configuration roll out without breaking existing
+presubmits that still use the old no-Git image setup. Before that rollout, run
+the integration command above locally; a green old-style presubmit does not
+validate these new cases.
+
 ## Best Practices
 
 ### DO

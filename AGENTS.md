@@ -22,7 +22,7 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 - **Tekton** - Cloud-native CI/CD framework
 - **Groovy** - Jenkins pipeline DSL scripts
 - **YAML** - Configuration files (Prow jobs, pod templates)
-- **Go** - Various CI tools (`error-log-review`, `gomod-sync`, `gethash`, etc.)
+- **Go** - Various CI tools (`gomod-sync`, `gethash`, etc.)
 - **Kubernetes** - Container orchestration for CI runners
 
 ## Repository Structure
@@ -50,7 +50,6 @@ The CI system uses **Prow** (Kubernetes-native CI) + **Jenkins** (backend worker
 │       ├── src/             # Helper classes
 │       └── test/            # Unit tests (table-driven JUnit 4)
 ├── tools/                   # CI helper tools
-│   ├── error-log-review/    # PR error log checker (Go)
 │   ├── gomod-sync/          # Go module sync tool (Go)
 │   ├── gethash/             # Git hash utility (Go)
 │   └── ...
@@ -133,6 +132,21 @@ Applies to `libraries/*/vars/*.groovy` (Jenkins global variables). Follow these 
    (Job DSL), `Jenkinsfile` (pipeline), `pod*.yaml` (pod template)
 3. Run `.ci/check-jenkins-job-references.sh` to confirm the references resolve
 4. Run `.ci/update-prow-job-kustomization.sh` after Prow job changes
+
+### 1b. Adding a Submodule to a Build
+
+Submodules are authenticated by the Git token broker, and its policy is the only
+allowlist (see `docs/guides/CI.md` → Submodules). Adding one means:
+
+1. Commit the `.gitmodules` change in the product repository.
+2. For a **private** submodule, add the repository to
+   `github-token-broker-policy` for the caller namespace of every job that
+   builds it (`jenkins-tidb`, `jenkins-tiflow`, …; the policy lives in
+   `PingCAP-QE/ee-ops`). Public submodules are fetched anonymously and need no
+   entry.
+3. Until the policy lands, the fetch fails closed with
+   `repository is not allowed`. That is the intended signal, not a flake — do
+   not work around it by adding a credential or an allowlist to the pipeline.
 
 ### 2. Pipeline Development Workflow
 

@@ -61,6 +61,88 @@ flowchart TD
    - Include links to your successful test jobs in the PR comments
    - After review and approval, your changes will be merged to production
 
+## Submodules
+
+A job fetches submodules when its `Jenkinsfile` calls
+`prow.checkoutRefsWithCacheLock(..., withSubmodule = true)`.
+
+- **With the Git token broker** (`GIT_BROKER_ENABLED=true` — the case on every
+  Jenkins instance today): every SSH submodule URL is rewritten to HTTPS and the
+  broker mints a token per repository. `.gitmodules` is not parsed, and the
+  pipeline keeps no allowlist of its own.
+- **Without a broker**: the update keeps the inherited SSH credential, seeds
+  GitHub's published host keys, and logs that it is the legacy path.
+
+Which repositories a pull request may fetch is therefore decided by the broker
+policy for the job's caller namespace (`jenkins-tidb`, `jenkins-tiflow`, …) —
+not by the pipeline, and not by the contents of `.gitmodules`.
+
+**Adding a submodule means adding it to the broker policy.** A repository that
+the policy does not allow fails the fetch closed, with the broker's
+`repository is not allowed` message. Update `github-token-broker-policy` (owned
+by `PingCAP-QE/ee-ops`) in the same change train as the `.gitmodules` change,
+for the caller namespace of every job that builds the repository. Public
+submodules need no entry: git only asks for credentials after a `401`, so
+anonymous fetches never reach the broker.
+
+## Rolling Out a Shared Library Change
+
+A folder-scoped shared library (`tipipeline`, `tisys`) is cached on the
+controller so that builds do not re-clone it every time. The cache lives in
+`$JENKINS_HOME/global-libraries-cache/<digest>` with a `<digest>-name.txt`
+sibling, is keyed by library name, version and source, and expires after
+`refreshTimeMinutes` — 60 in `jenkins/jobs/<org>/aa_folder.groovy`. Only `main`
+is cached; a pinned version such as `tipipeline@<sha>` is always fetched.
+
+That window is why a merged library change does not show up immediately: until
+the entry expires, builds log `Library tipipeline@main is cached. Copying from
+cache.` A build that re-reads the library instead logs
+`Caching library tipipeline@main`. Pull-request replays do not need a flush —
+`.ci/replay-jenkins-build.sh` pins the library to the head revision, which is
+never cached.
+
+To verify a merged change without waiting, flush the entry by hand:
+
+```bash
+# what is cached right now
+.ci/flush-jenkins-library-cache.sh --context tke-pingcap-cicd --list
+
+# show what a flush would remove
+.ci/flush-jenkins-library-cache.sh --context tke-pingcap-cicd \
+    --library tipipeline --dry-run
+
+# flush it
+.ci/flush-jenkins-library-cache.sh --context tke-pingcap-cicd \
+    --library tipipeline --yes
+```
+
+The script deletes `global-libraries-cache/<digest>` and its `-name.txt` inside
+the controller pod — exactly what the plugin deletes when the window expires —
+so the next build re-caches the library from its configured version. It does not
+touch the git clone cache under `$JENKINS_HOME/caches`, which the retriever
+refreshes on that next fetch.
+
+It reaches the controller with `kubectl exec` and runs only `ls`, `cat` and `rm`
+there: no shell, no path supplied by the operator, and the only variable path
+segment is a cache digest that must be 64 hex characters. Deleting anything
+outside `global-libraries-cache` is not expressible through its arguments.
+
+| Controller | Invocation |
+|---|---|
+| TKE production (`tke-pingcap-cicd`) | `--context tke-pingcap-cicd` |
+| TKE staging (`tke-pingcap-cicd`, same cluster) | `--context tke-pingcap-cicd --pod jenkins-staging-0` |
+| GKE prow cluster (`gke_prow`) | `--context gke_prow` |
+
+Notes:
+
+- The digest is an HMAC of name, version and source, so entries cannot be
+  selected per folder. Every folder loads `tipipeline@main` from the same
+  repository, so flushing by name covers them all.
+- A build copying from the cache at the moment of deletion fails, the same way
+  an expiry mid-build does. Flush when the controller is quiet.
+- Without `--yes` the script asks for confirmation and refuses to run in a
+  non-interactive shell.
+
 ## Pre-PR Verification for Jenkins Pipeline Changes
 
 When your PR modifies pipeline files under `jenkins/jobs/**` (`Jenkinsfile`), run both static validation and replay tests before requesting review.
@@ -114,6 +196,42 @@ Notes:
 - At the end, the script prints summary counts, for example:
   - `replay summary: submitted=3, skipped=2, failed=0`
 
+#### Replaying a shared-library change
+
+A change under `libraries/` carries no pipeline script, and a replay replaces the
+pipeline script only: the build would still load the library at its default
+version (`main`) and pass while running code the pull request never touched.
+`--auto-changed` therefore handles library changes differently:
+
+1. It reads the changed libraries from the diff and pins each one to the head
+   commit, rewriting `@Library('tipipeline')` to
+   `@Library('tipipeline@<head>')` in the replayed script.
+2. It replays the jobs listed in `.ci/replay-library-jobs.txt` (those that load
+   the library and hold real credentials), in addition to any changed
+   Jenkinsfiles. A library change with no such list fails instead of replaying
+   nothing.
+3. After a successful replay it reads `consoleText` back and requires
+   `Loading library tipipeline@<head>`, so a pin that silently did not take
+   effect fails the check. `--library-version` therefore requires `--wait`.
+
+```bash
+.ci/replay-jenkins-build.sh \
+  --auto-changed \
+  --route-by-prow-master \
+  --wait --selector lastSuccessfulBuild \
+  --dump-script /tmp/replayed-Jenkinsfile \
+  --verbose
+```
+
+- The pin relies on the global library allowing its default version to be
+  overridden. A pull request from a fork cannot be pinned by commit, because that
+  commit is not in `PingCAP-QE/ci` — push the branch to this repository.
+- `--dump-script` writes the script that would be submitted (after pod-yaml
+  inlining and pinning), which is also how the tests assert the rewrite.
+- `@Library([...])` lists with more than one library are refused rather than
+  replayed unpinned: only `@Library('name')` and `@Library(['name'])` are
+  rewritten.
+
 ### 4. PR-Level Automation in Prow
 
 This repository has two related presubmit jobs for pipeline changes:
@@ -124,7 +242,8 @@ This repository has two related presubmit jobs for pipeline changes:
 - `pull-verify-k8s-pod-yaml`
   - Verifies pipeline Pod YAML files stay structurally valid Kubernetes Pod manifests: valid YAML, `apiVersion: v1`, `kind: Pod`, a non-empty `spec.containers`, no explicit null nodes, and container images that resolve in their registry.
   - Does not run `kubectl --dry-run` schema validation: field validation is server-side and `--dry-run=server` needs `create pods` RBAC that the presubmit ServiceAccount does not have, so that call was dead code and was removed rather than left as a check that never runs.
-  - Triggered by `jenkins/jobs/**/pod*.yaml` changes.
+  - Runs the gate from the base revision (`.ci/run-policy-gate.sh pod-yaml`) instead of from the pull request's checkout. This Pod runs as the `prow-test-pods/gar-reader` Kubernetes ServiceAccount so it can resolve images in the private `internal` repository, so a PR that rewrote `.ci/verify-k8s-pod-yaml.sh` would otherwise execute its own script with a Google identity in hand. The templates under test still come from the pull request.
+  - Triggered by `jenkins/jobs/**/pod*.yaml`, `.ci/verify-k8s-pod-yaml.sh` or `.ci/run-policy-gate.sh` changes. A PR that only rewrites the gate is checked against every Pod template, not just the changed ones.
 - `pull-verify-pod-resource-policy`
   - Fails when a changed `jenkins/jobs/**/pod*.yaml` container declares memory `requests != limits` (or only one of request/limit), enforcing Guaranteed QoS and preventing new OOM/eviction-prone templates.
   - CPU mismatches are reported as warnings only (the Pod stays Burstable).

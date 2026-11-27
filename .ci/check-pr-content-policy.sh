@@ -10,8 +10,10 @@ readonly -a ALLOWED_PINGCAP_HOSTS=(
     "hub-zot.pingcap.net"
     "tiup.pingcap.net"
     "cla.pingcap.net"
-    "do2.pingcap.net"
     "internal2-do.pingcap.net"
+    # git-cdn behind the in-cluster gateway: the Jenkins credential helpers have
+    # to allow-list the host, so every change touching them names it.
+    "git-cdn-qcloud.pingcap.net"
     # Not an endpoint: Tekton objects use `tibuild.pingcap.net/...` as
     # annotation and label keys (the tibuild <-> MacBuild contract), so any new
     # trigger template that mirrors an existing one trips the host rule.
@@ -224,7 +226,7 @@ print_policy_report() {
 PR content policy violations detected in added pull request lines.
 Current rules:
   - deny literal substrings: FILESERVER, FILE_SERVER
-  - deny pingcap.net hosts except: cla.pingcap.net, do2.pingcap.net, fileserver.pingcap.net, hub.pingcap.net, internal2-do.pingcap.net, sunset-fileserver.pingcap.net, tiup.pingcap.net
+  - deny pingcap.net hosts except: cla.pingcap.net, fileserver.pingcap.net, hub.pingcap.net, internal2-do.pingcap.net, sunset-fileserver.pingcap.net, tiup.pingcap.net
 EOF
     cat "$REPORT_FILE" >&2
     return 1

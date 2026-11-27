@@ -619,7 +619,7 @@ export class GithubIssueManager {
   }
 
   private allowCommentForStatus(status: GithubIssueStatus): boolean {
-    return status === "open" || status === "reopened";
+    return status === "open" || status === "reopened" || status === "closed";
   }
 
   private async findBestIssue(

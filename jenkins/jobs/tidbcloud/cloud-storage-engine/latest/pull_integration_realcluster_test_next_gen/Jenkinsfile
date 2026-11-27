@@ -3,12 +3,12 @@
 @Library('tipipeline') _
 
 final K8S_NAMESPACE = "jenkins-tidb"
-final BRANCH_ALIAS = 'latest'
 final REFS = readJSON(text: params.JOB_SPEC).refs
 final GIT_CREDENTIALS_ID = 'github-bot-ssh'
-final GIT_FULL_REPO_NAME = "${REFS.org}/${REFS.repo}"
-final MAIN_POD_TEMPLATE_FILE = "jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-main.yaml"
-final TEST_POD_TEMPLATE_FILE = "jenkins/jobs/${GIT_FULL_REPO_NAME}/${BRANCH_ALIAS}/${JOB_BASE_NAME}/pod-test.yaml"
+// Source identity can change; pod templates stay with the existing Jenkins job.
+final CI_JOB_DIR = 'jenkins/jobs/tidbcloud/cloud-storage-engine/latest/pull_integration_realcluster_test_next_gen'
+final MAIN_POD_TEMPLATE_FILE = "${CI_JOB_DIR}/pod-main.yaml"
+final TEST_POD_TEMPLATE_FILE = "${CI_JOB_DIR}/pod-test.yaml"
 
 final OCI_TAG_PD = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")
 final OCI_TAG_TIDB = (REFS.base_ref ==~ /release-nextgen-.*/ ? component.computeNextgenPeerBranch(REFS.base_ref) : "master-nextgen")

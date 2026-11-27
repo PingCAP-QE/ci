@@ -124,16 +124,22 @@ pipeline {
                             }
                         }
                         post{
-                            failure {
-                                sh label: "collect logs", script: """
-                                    if [ ! -d /tmp/backup_restore_test ]; then
-                                        echo "/tmp/backup_restore_test does not exist, skip archiving logs for ${TEST_GROUP}"
-                                        exit 0
-                                    fi
-                                    ls /tmp/backup_restore_test
-                                    tar --warning=no-file-changed -cvzf log-${TEST_GROUP}.tar.gz \$(find /tmp/backup_restore_test/ -type f -name "*.log")
-                                    ls -alh log-${TEST_GROUP}.tar.gz
-                                """
+                            unsuccessful {
+                                script {
+                                    // Changing logs can make tar return 1 even when it creates a usable archive.
+                                    def collectStatus = sh label: "collect logs", returnStatus: true, script: """
+                                        if [ ! -d /tmp/backup_restore_test ]; then
+                                            echo "/tmp/backup_restore_test does not exist, skip archiving logs for ${TEST_GROUP}"
+                                            exit 0
+                                        fi
+                                        ls /tmp/backup_restore_test
+                                        find /tmp/backup_restore_test/ -type f -name "*.log" -print0 |
+                                            tar --null -T - -cvzf log-${TEST_GROUP}.tar.gz
+                                    """
+                                    if (collectStatus != 0) {
+                                        echo "WARNING: log collection exited with status ${collectStatus}; attempting to upload any available archive"
+                                    }
+                                }
                                 archiveArtifacts artifacts: "log-${TEST_GROUP}.tar.gz", fingerprint: true, allowEmptyArchive: true
                             }
                             success {

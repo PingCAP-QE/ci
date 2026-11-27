@@ -19,11 +19,13 @@ spec:
                 && body.pull_request.base.ref == 'test_ai_review'
               )
               || body.repository.full_name in [
+                'pingcap/tidb',
                 'pingcap/tiflash',
                 'pingcap/ticdc',
                 'pingcap/tiflow',
                 'tikv/tikv',
-                'tikv/pd'
+                'tikv/pd',
+                'tikv/client-go'
               ]
             )
             && header.match('X-GitHub-Event', 'pull_request_review')

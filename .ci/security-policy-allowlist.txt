@@ -23,3 +23,8 @@ secret_echo	^\.ci/test-verify-jenkins-credential-policy\.sh$
 # only the test's own fixtures. Everything else in these jobs (the ServiceAccount
 # token, the pull-request code boundary) is governed by the pod policy.
 secret_env_plain_value	^prow-jobs/tikv/client-go/latest-presubmits-nextgen\.yaml$
+
+# The replay script inspects a build's console output for a Jenkins
+# password-grant token to prove that no credential reached the log. It matches
+# a pattern in the captured text; it never prints a secret.
+secret_echo	^\.ci/replay-jenkins-build\.sh$
