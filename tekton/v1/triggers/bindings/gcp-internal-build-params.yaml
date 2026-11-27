@@ -10,3 +10,8 @@ spec:
       value: "http://v2-tibuild-v2.tibuild.svc"
     - name: image-publisher-url
       value: "http://v2-tibuild-v2.tibuild.svc"
+    # Base URL of the GitHub token broker for this environment. The gateway
+    # terminates the agent's TLS with the public *.pingcap.net certificate and
+    # re-encrypts to the broker, so no CA is configured anywhere.
+    - name: git-auth-broker-url
+      value: "https://github-token-broker-gcp.pingcap.net"

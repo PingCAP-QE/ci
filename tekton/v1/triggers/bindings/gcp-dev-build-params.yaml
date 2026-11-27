@@ -18,3 +18,4 @@ spec:
     - { name: timeout, value: $(extensions.resource-config.timeout) }
     - { name: external-git-ref, value: $(extensions.custom-params.external-git-ref) }
     - { name: fetch-external, value: $(extensions.custom-params.fetch-external) }
+    - { name: git-auth-broker-url, value: "https://github-token-broker-gcp.pingcap.net" }

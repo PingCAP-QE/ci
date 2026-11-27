@@ -74,7 +74,6 @@ spec:
     - name: git-auth-broker-url
       description: Base URL of the in-cluster token broker.
       type: string
-      default: "http://github-token-broker.github-token-broker.svc"
     - name: git-auth-home
       description: >-
         Shared home directory of the pod where the credential helper is

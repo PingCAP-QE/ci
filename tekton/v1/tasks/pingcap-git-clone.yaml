@@ -149,7 +149,6 @@ spec:
     - name: git-auth-broker-url
       description: Base URL of the in-cluster token broker.
       type: string
-      default: "http://github-token-broker.github-token-broker.svc"
     - name: git-auth-permissions
       description: >-
         Permissions requested from the broker, as name=level pairs separated by

@@ -34,5 +34,6 @@ spec:
       value: $(extensions.resource-config.cpu)
     - name: builder-resources-memory
       value: $(extensions.resource-config.memory)
+    - { name: git-auth-broker-url, value: "https://github-token-broker-gcp.pingcap.net" }
   template:
     ref: build-serverless-linux

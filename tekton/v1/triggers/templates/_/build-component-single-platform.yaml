@@ -61,6 +61,12 @@ spec:
         Authenticate git with GitHub App installation tokens from the in-cluster
         token broker. Set to "false" to fall back to the previous credentials.
       default: "true"
+    - name: git-auth-broker-url
+      description: >-
+        Base URL of the GitHub token broker, set per environment by the trigger
+        binding (GCP: https://github-token-broker-gcp.pingcap.net). No default:
+        a PipelineRun that does not receive it fails instead of silently using a
+        hardcoded endpoint.
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -108,6 +114,8 @@ spec:
             value: $(tt.params.fetch-external)
           - name: git-auth-app
             value: $(tt.params.git-auth-app)
+          - name: git-auth-broker-url
+            value: $(tt.params.git-auth-broker-url)
         taskRunTemplate:
           podTemplate:
             nodeSelector:

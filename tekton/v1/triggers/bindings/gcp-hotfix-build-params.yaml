@@ -16,3 +16,4 @@ spec:
     # same intent as the empty publisher-url above (docs/designs/hotfix-build-isolation.md).
     - name: image-publisher-url
       value: ""
+    - { name: git-auth-broker-url, value: "https://github-token-broker-gcp.pingcap.net" }
