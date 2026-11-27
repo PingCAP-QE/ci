@@ -96,9 +96,17 @@ def withGitAskPassFromBroker(Map cfg = [:], Closure body) {
     // the agent image does not trust by default. Only an https broker needs it,
     // and it is passed to the helper as --cacert rather than replacing the
     // image's roots for every other curl call in the build.
-    final caFile = cfg.caFile?.toString()?.trim() ?:
-        env.GIT_BROKER_CA_FILE?.toString()?.trim() ?:
-        (brokerUrl.startsWith('https://') ? '/etc/github-token-broker/ca/ca.crt' : '')
+    // `system` means "no custom bundle": curl then trusts the image's own roots.
+    // That is what a gateway-fronted broker needs -- it presents a public
+    // wildcard certificate, not a cluster-internal one, so mounting an internal
+    // CA into every agent image would be pure overhead.
+    final configuredCa = cfg.caFile?.toString()?.trim() ?: env.GIT_BROKER_CA_FILE?.toString()?.trim()
+    String caFile = ''
+    if (configuredCa == null) {
+        caFile = brokerUrl.startsWith('https://') ? '/etc/github-token-broker/ca/ca.crt' : ''
+    } else if (configuredCa.toLowerCase() != 'system') {
+        caFile = configuredCa
+    }
     final repo = cfg.repo?.toString()?.trim() ?: ''
     final allowedRepos = cfg.allowedRepos?.toString()?.trim() ?: ''
     final policyOnly = cfg.policyOnly?.toString()?.toBoolean() ?: false
