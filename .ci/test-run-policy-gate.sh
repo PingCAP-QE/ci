@@ -110,7 +110,7 @@ else
     fail "the runner failed when executed from outside the repository: $(tail -2 "${fixture}/out4" | head -1)"
 fi
 
-# `pod-yaml` is the gate whose Pod carries the `gar-reader` Workload Identity,
+# `pod-yaml` is the gate whose Pod carries the `pod-yaml-reader` Workload Identity,
 # so the same fence has to cover it: a PR that breaks a template and rewrites
 # the gate must still be judged by the base revision's gate, never by its own.
 # CRANE_BIN is pointed at a name that does not exist so the case stays offline;

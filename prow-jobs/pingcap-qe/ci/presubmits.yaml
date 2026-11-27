@@ -465,14 +465,14 @@ presubmits:
       spec:
         # Resolves every image a changed template references with `crane`. The
         # `internal` Artifact Registry repository is private, so this pod needs a
-        # Google identity: `gar-reader` via GKE Workload Identity (bound in
-        # PingCAP-QE/ee-infra), which is what let `internal` drop its anonymous
-        # reader.
+        # Google identity: `pod-yaml-reader` via GKE Workload Identity (bound in
+        # PingCAP-QE/ee-infra), which reads exactly the four repositories these
+        # templates reference and nothing else.
         #
         # The gate therefore runs from the base revision, not from the checkout:
         # a PR that both touches a template and rewrites `.ci/verify-k8s-pod-yaml.sh`
         # would otherwise execute its own script with that identity in hand.
-        serviceAccountName: gar-reader
+        serviceAccountName: pod-yaml-reader
         containers:
           - name: main
             image: alpine:3.24
