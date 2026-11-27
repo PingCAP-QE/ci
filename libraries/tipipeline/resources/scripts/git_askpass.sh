@@ -27,11 +27,6 @@
 # not read.
 #
 #   github.com          direct HTTPS to GitHub (agents without git-cdn).
-#   git-cdn.cache.svc   the in-cluster git-cdn: the TKE controllers rewrite
-#                       https://github.com/ to http://git-cdn.cache.svc:8000
-#                       through git config `insteadOf`, so the credential
-#                       prompts carry the CDN host. Its port is ignored when
-#                       matching; the hostname is the security boundary.
 #   git-cdn-<cluster>   the same cache behind the in-cluster gateway, over TLS
 #     .pingcap.net      (TKE moved off the plaintext listener so the credential
 #                       no longer crosses the pod network in the clear). The host
@@ -39,7 +34,7 @@
 #                       *.pingcap.net internal gateway on a different address, so
 #                       the name has to say which cluster it means
 #                       (-qcloud, -gcp).
-ALLOWED_HOSTS='github.com git-cdn.cache.svc git-cdn-qcloud.pingcap.net'
+ALLOWED_HOSTS='github.com git-cdn-qcloud.pingcap.net'
 
 prompt="${1-}"
 
@@ -87,7 +82,7 @@ esac
 
 # Reduce the URL to its bare hostname:
 #   https://x-access-token@github.com/org/repo.git -> github.com
-#   ssh://git@git-cdn.cache.svc:8000/org/repo.git  -> git-cdn.cache.svc
+#   ssh://git@git-cdn-qcloud.pingcap.net/org/repo.git -> git-cdn-qcloud.pingcap.net
 #   git@github.com:org/repo.git                    -> github.com
 rest="${url#*://}"
 authority="${rest%%/*}"
@@ -101,14 +96,13 @@ esac
 host="${host%%:*}" # drop the port
 host=$(printf '%s' "${host}" | tr '[:upper:]' '[:lower:]')
 
-# git-cdn is reached over plain HTTP inside the cluster; every other allowed
-# host must use https. A plain-HTTP prompt for an internet host would send the
-# credential in clear text.
+# Every allowed host must be reached over https (or ssh for the direct-GitHub
+# path). The cache used to be exempt because it was only reachable as plain HTTP
+# inside the cluster; it serves TLS now and its plaintext port is gone, so a
+# plain-HTTP prompt is refused everywhere.
 if [ -n "${scheme}" ] && [ "${scheme}" != "https" ] && [ "${scheme}" != "ssh" ]; then
-    if [ "${host}" != "git-cdn.cache.svc" ]; then
-        echo "git-askpass: refusing to send the credential over '${scheme}' to '${host}'" >&2
-        exit 1
-    fi
+    echo "git-askpass: refusing to send the credential over '${scheme}' to '${host}'" >&2
+    exit 1
 fi
 
 allowed=0

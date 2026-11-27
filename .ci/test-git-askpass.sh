@@ -56,8 +56,8 @@ expect_answer "answers github.com over https" "$askpass" \
     "Username for 'https://github.com': " "bot" "${applypass_env[@]}"
 expect_answer "answers a github.com repository password" "$askpass" \
     "Password for 'https://x-access-token@github.com/org/repo.git': " "secret" "${applypass_env[@]}"
-expect_answer "answers the in-cluster git-cdn over http" "$askpass" \
-    "Password for 'http://git-cdn.cache.svc:8000/org/repo.git': " "secret" "${applypass_env[@]}"
+expect_reject "rejects the retired plaintext git-cdn host" "$askpass" \
+    "Password for 'http://git-cdn.cache.svc:8000/org/repo.git': "
 expect_reject "rejects the retired cluster-agnostic git-cdn host" "$askpass" \
     "Password for 'https://git-cdn.pingcap.net/org/repo.git': "
 expect_answer "answers the cluster-scoped git-cdn TLS endpoint" "$askpass" \
@@ -99,7 +99,7 @@ broker_reaches_mint() {
 }
 broker_reaches_mint "accepts github.com" \
     "Password for 'https://x-access-token@github.com/org/repo.git': "
-broker_reaches_mint "accepts the in-cluster git-cdn" \
+expect_reject "rejects the retired plaintext git-cdn host" "$broker" \
     "Password for 'http://git-cdn.cache.svc:8000/org/repo.git': "
 expect_reject "rejects the retired cluster-agnostic git-cdn host" "$broker" \
     "Password for 'https://git-cdn.pingcap.net/org/repo.git': "
@@ -135,7 +135,7 @@ cp "$askpass" "$helper_copy"
 chmod +x "$helper_copy"
 
 fill_credential() {
-    printf 'protocol=http\nhost=git-cdn.cache.svc:8000\npath=pingcap-inc/enterprise-extensions.git\n\n' |
+    printf 'protocol=https\nhost=git-cdn-qcloud.pingcap.net\npath=pingcap-inc/enterprise-extensions.git\n\n' |
         env -i PATH="$PATH" HOME="$tmp" \
             GIT_ASKPASS="$helper_copy" GIT_TERMINAL_PROMPT=0 \
             TIPIPELINE_GIT_USERNAME=bot TIPIPELINE_GIT_PASSWORD=secret \
