@@ -46,6 +46,11 @@ spec:
 
       '
     default: ''
+  - name: git-auth-broker-url
+    description: >-
+      Base URL of the GitHub token broker, set per environment by the trigger.
+      No default: a PipelineRun that does not receive it fails instead of
+      silently using a hardcoded endpoint.
   resourcetemplates:
   - apiVersion: tekton.dev/v1
     kind: PipelineRun
@@ -81,6 +86,8 @@ spec:
         value: $(tt.params.publisher-url)
       - name: git-instead-of
         value: $(tt.params.git-instead-of)
+      - name: git-auth-broker-url
+        value: $(tt.params.git-auth-broker-url)
       taskRunTemplate:
         podTemplate:
           nodeSelector:
@@ -152,6 +159,8 @@ spec:
         value: $(tt.params.publisher-url)
       - name: git-instead-of
         value: $(tt.params.git-instead-of)
+      - name: git-auth-broker-url
+        value: $(tt.params.git-auth-broker-url)
       taskRunTemplate:
         podTemplate:
           nodeSelector:

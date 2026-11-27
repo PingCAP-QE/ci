@@ -85,7 +85,6 @@ spec:
     - name: git-auth-broker-url
       description: Base URL of the in-cluster token broker.
       type: string
-      default: "http://github-token-broker.github-token-broker.svc"
     - name: git-auth-fallback-credentials
       description: >-
         Path to a .git-credentials file used when the broker denies the request.
