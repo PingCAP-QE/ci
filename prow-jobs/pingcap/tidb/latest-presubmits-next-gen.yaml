@@ -56,8 +56,7 @@ presubmits:
       labels:
         master: "0"
       skip_if_only_changed: *skip_if_only_changed
-      optional: true
-      context: non-block/pull-mysql-test-next-gen
+      context: pull-mysql-test-next-gen
       trigger: "(?m)^/test (?:.*? )?pull-mysql-test-next-gen(?: .*?)?$"
       rerun_command: "/test pull-mysql-test-next-gen"
 
