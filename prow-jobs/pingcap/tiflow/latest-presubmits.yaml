@@ -156,6 +156,22 @@ presubmits:
       rerun_command: "/test pull-dm-integration-test"
       branches: *branches
 
+    # Staging compatibility trial: retain the required MySQL 8.0 job above.
+    # Do not add this context to branch protection or required Tide contexts.
+    - name: pingcap/tiflow/staging/pull_dm_integration_test_mysql84
+      agent: jenkins
+      labels:
+        master: "0"
+      decorate: false
+      always_run: false
+      optional: true
+      run_before_merge: false
+      context: pull-dm-integration-test-mysql84
+      trigger: '(?m)^/test pull-dm-integration-test-mysql84\s*$'
+      rerun_command: "/test pull-dm-integration-test-mysql84"
+      branches:
+        - ^master$
+
     - name: pingcap/tiflow/pull_syncdiff_integration_test
       agent: jenkins
       labels:
